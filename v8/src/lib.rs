@@ -7,12 +7,13 @@ use valu3::{prelude::*, Error as ValueError};
 
 pub type InnerId = u32;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 pub enum Error {
     JsonParseError(ValueError),
     InvalidPipeline(InnerId),
     InvalidCondition,
     InvalidStep(InnerId),
+    PayloadError(payload::PayloadError),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -47,25 +48,41 @@ impl Condition {
         }
     }
 
-    // pub fn execute(&self, context: &Context) {
-    //     let left = self.left.execute(context);
-    //     let right = self.right.execute(context);
+    pub fn execute(&self, context: &Context) -> Result<bool, Error> {
+        let left = self.left.execute(context).map_err(Error::PayloadError)?;
+        let right = self.right.execute(context).map_err(Error::PayloadError)?;
 
-    //     match self.operator {
-    //         Operator::Equal => left == right,
-    //         Operator::NotEqual => left != right,
-    //         Operator::GreaterThan => left > right,
-    //         Operator::LessThan => left < right,
-    //         Operator::GreaterThanOrEqual => left >= right,
-    //         Operator::LessThanOrEqual => left <= right,
-    //         Operator::Contains => left.contains(right),
-    //         Operator::NotContains => !left.contains(right),
-    //         Operator::StartsWith => left.starts_with(right),
-    //         Operator::EndsWith => left.ends_with(right),
-    //         Operator::Regex => left.matches(right),
-    //         Operator::NotRegex => !left.matches(right),
-    //     }
-    // }
+        match self.operator {
+            Operator::Equal => Ok(left == right),
+            Operator::NotEqual => Ok(left != right),
+            Operator::GreaterThan => Ok(left > right),
+            Operator::LessThan => Ok(left < right),
+            Operator::GreaterThanOrEqual => Ok(left >= right),
+            Operator::LessThanOrEqual => Ok(left <= right),
+            Operator::Contains => {
+                if left.is_string() && right.is_string() {
+                    let left = left.as_str();
+                    let right = right.as_str();
+
+                    return Ok(left.contains(right));
+                } else if left.is_array() && right.is_array() {
+                    let left = match left.as_array() {
+                        Some(array) => array,
+                        None => return Err(Error::InvalidCondition),
+                    };
+                    let right = match right.as_array() {
+                        Some(array) => array,
+                        None => return Err(Error::InvalidCondition),
+                    };
+
+                    return Ok(left.into_iter().any(|x| right.into_iter().any(|y| x == y)));
+                }
+
+                Err(Error::InvalidCondition)
+            }
+            _ => Err(Error::InvalidCondition),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
