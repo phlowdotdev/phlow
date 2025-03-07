@@ -6,7 +6,7 @@ mod variable;
 use step::Step;
 use valu3::Error as ValueError;
 
-pub type InnerId = u32;
+pub type InnerId = String;
 
 #[derive(Debug)]
 pub enum Error {

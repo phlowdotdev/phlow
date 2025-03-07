@@ -3,12 +3,12 @@ use std::collections::HashMap;
 use serde::Serialize;
 use valu3::value::Value;
 
-use crate::{InnerId, Step};
+use crate::{step::Output, InnerId, Step};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Context {
     pub(crate) context: Value,
-    pub(crate) steps: HashMap<InnerId, Step>,
+    pub(crate) steps: HashMap<InnerId, HashMap<String, Value>>,
 }
 
 impl Context {
@@ -19,12 +19,12 @@ impl Context {
         }
     }
 
-    pub fn add_step(&mut self, step: Step) {
-        self.steps.insert(step.inner_id, step);
+    pub fn add_step_output(&mut self, step: &Step, output: Output) {
+        self.steps.insert(step.get_reference_id(), output);
     }
 
-    pub fn get_step(&self, inner_id: InnerId) -> Option<&Step> {
-        self.steps.get(&inner_id)
+    pub fn get_step_output(&self, step: &Step) -> Option<&HashMap<String, Value>> {
+        self.steps.get(&step.get_reference_id())
     }
 }
 

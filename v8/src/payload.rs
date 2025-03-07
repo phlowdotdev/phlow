@@ -48,6 +48,8 @@ impl Payload {
 
 #[cfg(test)]
 mod test {
+    use crate::{step::StepType, Step};
+
     use super::*;
     use std::collections::HashMap;
     use valu3::value::Value;
@@ -124,6 +126,40 @@ mod test {
         let payload = Payload::new(script.to_string());
 
         let variable = payload.execute_variable(&context).unwrap();
+        assert_eq!(variable, Variable::new(Value::from(30i64)));
+    }
+
+    #[test]
+    fn test_payload_execute_variable_step() {
+        let script = r#"
+            let a = steps.0.a;
+            let b = steps.0.b;
+            println(a)
+            a + b
+        "#;
+        let step = Step::new(
+            Some("0".to_string()),
+            None,
+            StepType::Default,
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(Value::Null),
+        );
+
+        let mut context = Context::new(Value::Null);
+        context.add_step_output(&step, {
+            let mut map = HashMap::new();
+            map.insert("a".to_string(), Value::from(10i64));
+            map.insert("b".to_string(), Value::from(20i64));
+            map
+        });
+
+        let payload = Payload::new(script.to_string());
+        let variable = payload.execute_variable(&context).unwrap();
+
         assert_eq!(variable, Variable::new(Value::from(30i64)));
     }
 }
