@@ -60,3 +60,105 @@ impl Condition {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use valu3::value::Value;
+
+    #[test]
+    fn test_condition_execute_equal() {
+        let left = Payload::new("10".to_string());
+        let right = Payload::new("20".to_string());
+        let condition = Condition::new(left, right, Operator::Equal);
+
+        let context = Context::new(Value::Null);
+
+        let result = condition.execute(&context).unwrap();
+        assert_eq!(result, false);
+    }
+
+    #[test]
+    fn test_condition_execute_not_equal() {
+        let left = Payload::new("10".to_string());
+        let right = Payload::new("20".to_string());
+        let condition = Condition::new(left, right, Operator::NotEqual);
+
+        let context = Context::new(Value::Null);
+
+        let result = condition.execute(&context).unwrap();
+        assert_eq!(result, true);
+    }
+
+    #[test]
+    fn test_condition_execute_greater_than() {
+        let left = Payload::new("10".to_string());
+        let right = Payload::new("20".to_string());
+        let condition = Condition::new(left, right, Operator::GreaterThan);
+
+        let context = Context::new(Value::Null);
+
+        let result = condition.execute(&context).unwrap();
+        assert_eq!(result, false);
+    }
+
+    #[test]
+    fn test_condition_execute_contains() {
+        let left = Payload::new("hello world".to_string());
+        let right = Payload::new("world".to_string());
+        let condition = Condition::new(left, right, Operator::Contains);
+
+        let context = Context::new(Value::Null);
+
+        let result = condition.execute(&context).unwrap();
+        assert_eq!(result, true);
+    }
+
+    #[test]
+    fn test_condition_execute_regex() {
+        let left = Payload::new("hello world".to_string());
+        let right = Payload::new("world".to_string());
+        let condition = Condition::new(left, right, Operator::Regex);
+
+        let context = Context::new(Value::Null);
+
+        let result = condition.execute(&context).unwrap();
+        assert_eq!(result, true);
+    }
+
+    #[test]
+    fn test_condition_execute_not_regex() {
+        let left = Payload::new("hello world".to_string());
+        let right = Payload::new("world".to_string());
+        let condition = Condition::new(left, right, Operator::NotRegex);
+
+        let context = Context::new(Value::Null);
+
+        let result = condition.execute(&context).unwrap();
+        assert_eq!(result, false);
+    }
+
+    #[test]
+    fn test_condition_execute_start_with() {
+        let left = Payload::new("hello world".to_string());
+        let right = Payload::new("hello".to_string());
+        let condition = Condition::new(left, right, Operator::StartsWith);
+
+        let context = Context::new(Value::Null);
+
+        let result = condition.execute(&context).unwrap();
+        assert_eq!(result, true);
+    }
+
+    #[test]
+    fn test_condition_execute_end_with() {
+        let left = Payload::new("hello world".to_string());
+        let right = Payload::new("world".to_string());
+        let condition = Condition::new(left, right, Operator::EndsWith);
+
+        let context = Context::new(Value::Null);
+
+        let result = condition.execute(&context).unwrap();
+        assert_eq!(result, true);
+    }
+}

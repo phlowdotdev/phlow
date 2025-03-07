@@ -36,21 +36,23 @@ impl Variable {
 
     pub fn contains(&self, other: &Variable) -> bool {
         if self.get().is_string() && other.get().is_string() {
-            let left = self.get().as_str();
-            let right = other.get().as_str();
+            let target = self.get().as_str();
+            let other = other.get().as_str();
 
-            return left.contains(right);
+            return target.contains(other);
         } else if self.get().is_array() && other.get().is_array() {
-            let left = match self.get().as_array() {
+            let target = match self.get().as_array() {
                 Some(array) => array,
                 None => return false,
             };
-            let right = match other.get().as_array() {
+            let other = match other.get().as_array() {
                 Some(array) => array,
                 None => return false,
             };
 
-            return left.into_iter().any(|x| right.into_iter().any(|y| x == y));
+            return target
+                .into_iter()
+                .any(|x| other.into_iter().any(|y| x == y));
         }
 
         return false;
@@ -58,10 +60,10 @@ impl Variable {
 
     pub fn starts_with(&self, other: &Variable) -> bool {
         if self.get().is_string() && other.get().is_string() {
-            let left = self.get().as_str();
-            let right = other.get().as_str();
+            let target = self.get().as_str();
+            let other = other.get().as_str();
 
-            return left.starts_with(right);
+            return target.starts_with(other);
         }
 
         return false;
@@ -69,10 +71,10 @@ impl Variable {
 
     pub fn ends_with(&self, other: &Variable) -> bool {
         if self.get().is_string() && other.get().is_string() {
-            let left = self.get().as_str();
-            let right = other.get().as_str();
+            let target = self.get().as_str();
+            let other = other.get().as_str();
 
-            return left.ends_with(right);
+            return target.ends_with(other);
         }
 
         return false;
@@ -80,10 +82,10 @@ impl Variable {
 
     pub fn regex(&self, other: &Variable) -> bool {
         if self.get().is_string() && other.get().is_string() {
-            let left = self.get().as_str();
-            let right = other.get().as_str();
+            let target = self.get().as_str();
+            let other = other.get().as_str();
 
-            return Regex::new(right).unwrap().is_match(left);
+            return Regex::new(other).unwrap().is_match(target);
         }
 
         return false;
