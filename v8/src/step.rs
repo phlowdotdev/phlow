@@ -92,30 +92,24 @@ impl Step {
         if let Some(condition) = &self.condition {
             if condition.evaluate(context)? {
                 let output = self.evaluate_payload(context)?;
+                let next_step = if let Some(ref then_case) = self.then_case {
+                    NextStep::Step(then_case.clone())
+                } else {
+                    NextStep::Next
+                };
 
-                return if let Some(ref then_case) = self.then_case {
-                    Ok(StepOutput {
-                        next_step: NextStep::Step(then_case.clone()),
-                        output,
-                    })
-                } else {
-                    Ok(StepOutput {
-                        next_step: NextStep::Next,
-                        output,
-                    })
-                };
+                return Ok(StepOutput { next_step, output });
             } else {
-                return if let Some(ref else_case) = self.else_case {
-                    Ok(StepOutput {
-                        next_step: NextStep::Step(else_case.clone()),
-                        output: None,
-                    })
+                let next_step = if let Some(ref else_case) = self.else_case {
+                    NextStep::Step(else_case.clone())
                 } else {
-                    Ok(StepOutput {
-                        next_step: NextStep::Stop,
-                        output: None,
-                    })
+                    NextStep::Stop
                 };
+
+                return Ok(StepOutput {
+                    next_step,
+                    output: None,
+                });
             }
         }
 
@@ -130,5 +124,34 @@ impl Step {
             next_step: NextStep::Next,
             output: self.evaluate_payload(context)?,
         });
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use valu3::value::Value;
+
+    #[test]
+    fn test_step_new() {
+        let step = Step::new(
+            Some("id".to_string()),
+            Some("name".to_string()),
+            StepType::Default,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+
+        assert_eq!(step.id, Some("id".to_string()));
+        assert_eq!(step.name, Some("name".to_string()));
+        assert_eq!(step.step_type, StepType::Default);
+        assert_eq!(step.condition, None);
+        assert_eq!(step.payload, None);
+        assert_eq!(step.then_case, None);
+        assert_eq!(step.else_case, None);
+        assert_eq!(step.return_case, None);
     }
 }

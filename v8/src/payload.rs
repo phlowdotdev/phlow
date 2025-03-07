@@ -145,7 +145,7 @@ mod test {
             None,
             None,
             None,
-            Some(Value::Null),
+            None,
         );
 
         let mut context = Context::new(Value::Null);

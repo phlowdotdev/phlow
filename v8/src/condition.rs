@@ -104,8 +104,8 @@ mod test {
 
     #[test]
     fn test_condition_execute_contains() {
-        let left = Payload::new("hello world".to_string());
-        let right = Payload::new("world".to_string());
+        let left = Payload::new(r#""hello world""#.to_string());
+        let right = Payload::new(r#""hello""#.to_string());
         let condition = Condition::new(left, right, Operator::Contains);
 
         let context = Context::new(Value::Null);
@@ -116,8 +116,8 @@ mod test {
 
     #[test]
     fn test_condition_execute_regex() {
-        let left = Payload::new("hello world".to_string());
-        let right = Payload::new("world".to_string());
+        let left = Payload::new(r#""hello world""#.to_string());
+        let right = Payload::new(r#""hello""#.to_string());
         let condition = Condition::new(left, right, Operator::Regex);
 
         let context = Context::new(Value::Null);
@@ -128,8 +128,8 @@ mod test {
 
     #[test]
     fn test_condition_execute_not_regex() {
-        let left = Payload::new("hello world".to_string());
-        let right = Payload::new("world".to_string());
+        let left = Payload::new(r#""hello world""#.to_string());
+        let right = Payload::new(r#""hello""#.to_string());
         let condition = Condition::new(left, right, Operator::NotRegex);
 
         let context = Context::new(Value::Null);
@@ -140,8 +140,8 @@ mod test {
 
     #[test]
     fn test_condition_execute_start_with() {
-        let left = Payload::new("hello world".to_string());
-        let right = Payload::new("hello".to_string());
+        let left = Payload::new(r#""hello world""#.to_string());
+        let right = Payload::new(r#""hello""#.to_string());
         let condition = Condition::new(left, right, Operator::StartsWith);
 
         let context = Context::new(Value::Null);
