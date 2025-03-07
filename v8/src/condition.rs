@@ -152,8 +152,8 @@ mod test {
 
     #[test]
     fn test_condition_execute_end_with() {
-        let left = Payload::new("hello world".to_string());
-        let right = Payload::new("world".to_string());
+        let left = Payload::new(r#""hello world""#.to_string());
+        let right = Payload::new(r#""world""#.to_string());
         let condition = Condition::new(left, right, Operator::EndsWith);
 
         let context = Context::new(Value::Null);

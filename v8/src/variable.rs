@@ -1,6 +1,7 @@
 use regex::Regex;
 use valu3::{prelude::StringBehavior, value::Value};
 
+#[derive(Debug, PartialEq)]
 pub struct Variable {
     value: Value,
 }

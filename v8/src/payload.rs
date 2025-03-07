@@ -94,4 +94,36 @@ mod test {
 
         assert_eq!(result, expected);
     }
+
+    #[test]
+    fn test_payload_execute_variable() {
+        let script = r#""hello world""#;
+
+        let context = Context::new(Value::Null);
+        let payload = Payload::new(script.to_string());
+
+        let variable = payload.execute_variable(&context).unwrap();
+        assert_eq!(variable, Variable::new(Value::from("hello world")));
+    }
+
+    #[test]
+    fn test_payload_execute_variable_context() {
+        let script = r#"
+            let a = context.a;
+            let b = context.b;
+            a + b
+        "#;
+
+        let context = Context::new(Value::from({
+            let mut map = HashMap::new();
+            map.insert("a".to_string(), Value::from(10i64));
+            map.insert("b".to_string(), Value::from(20i64));
+            map
+        }));
+
+        let payload = Payload::new(script.to_string());
+
+        let variable = payload.execute_variable(&context).unwrap();
+        assert_eq!(variable, Variable::new(Value::from(30i64)));
+    }
 }
