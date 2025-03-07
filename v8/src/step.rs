@@ -26,7 +26,6 @@ pub(crate) struct Step {
     pub(crate) name: Option<String>,
     pub(crate) step_type: StepType,
     pub(crate) inner_id: StepInnerId,
-    pub(crate) echo: Option<String>,
     pub(crate) condition: Option<Condition>,
     pub(crate) payload: Option<String>,
     pub(crate) then_case: Option<StepInnerId>,
@@ -39,7 +38,6 @@ impl Step {
         id: Option<String>,
         name: Option<String>,
         step_type: StepType,
-        echo: Option<String>,
         condition: Option<Condition>,
         payload: Option<String>,
         then_case: Option<StepInnerId>,
@@ -51,7 +49,6 @@ impl Step {
             name,
             step_type,
             inner_id: Uuid::new_v4().to_string(),
-            echo,
             condition,
             payload,
             then_case,
@@ -67,19 +64,28 @@ impl Step {
         }
     }
 
-    pub fn execute(&self, context: &Context) -> Result<StepOutput, Error> {
-        let output = if let Some(ref payload) = self.payload {
+    fn evaluate_payload(&self, context: &Context) -> Result<Option<Output>, Error> {
+        if let Some(ref payload) = self.payload {
             let payload = Payload::new(payload.to_string());
-            Some(payload.evaluate(context).map_err(Error::PayloadError)?)
+            let output = Some(payload.evaluate(context).map_err(Error::PayloadError)?);
+            Ok(output)
         } else {
-            None
-        };
+            Ok(None)
+        }
+    }
 
+    pub fn execute(&self, context: &Context) -> Result<StepOutput, Error> {
         if let Some(ref condition) = self.condition {
             let result = condition.evaluate(context)?;
 
             if result {
                 if let Some(ref then_case) = self.then_case {
+                    let output = if self.evaluate_payload(context)?.is_some() {
+                        self.evaluate_payload(context)?
+                    } else {
+                        None
+                    };
+
                     return Ok(StepOutput {
                         next_step: Some(then_case.clone()),
                         output,
@@ -94,6 +100,12 @@ impl Step {
                 }
             }
         }
+
+        let output = if self.evaluate_payload(context)?.is_some() {
+            self.evaluate_payload(context)?
+        } else {
+            None
+        };
 
         Ok(StepOutput {
             next_step: None,

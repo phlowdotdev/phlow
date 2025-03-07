@@ -145,7 +145,6 @@ mod test {
             None,
             None,
             None,
-            None,
             Some(Value::Null),
         );
 
