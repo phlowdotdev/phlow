@@ -242,7 +242,7 @@ mod test {
             StepType::Default,
             Some(Condition::new(
                 Payload::new("10".to_string()),
-                Payload::new("10".to_string()),
+                Payload::new("20".to_string()),
                 crate::condition::Operator::Equal,
             )),
             Some(Payload::new("10".to_string())),
@@ -257,5 +257,26 @@ mod test {
 
         assert_eq!(result.next_step, NextStep::Step("else_case".to_string()));
         assert_eq!(result.output, None);
+    }
+
+    #[test]
+    fn test_step_execute_with_return_case() {
+        let step = Step::new(
+            None,
+            None,
+            StepType::Default,
+            None,
+            None,
+            None,
+            None,
+            Some(Payload::new("10".to_string())),
+        );
+
+        let context = Context::new(Value::Null);
+
+        let result = step.execute(&context).unwrap();
+
+        assert_eq!(result.next_step, NextStep::Stop);
+        assert_eq!(result.output, Some(Value::from(10i64)));
     }
 }
