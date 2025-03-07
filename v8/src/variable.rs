@@ -18,10 +18,6 @@ impl Variable {
         self.value == other.value
     }
 
-    pub fn not_equal(&self, other: &Variable) -> bool {
-        self.value != other.value
-    }
-
     pub fn greater_than(&self, other: &Variable) -> bool {
         self.value > other.value
     }
@@ -92,10 +88,6 @@ impl Variable {
 
         return false;
     }
-
-    pub fn not_regex(&self, other: &Variable) -> bool {
-        return !self.regex(other);
-    }
 }
 
 #[cfg(test)]
@@ -124,7 +116,7 @@ mod test {
         let value = Value::from(10i64);
         let variable = Variable::new(value.clone());
 
-        assert!(!variable.not_equal(&Variable::new(value.clone())));
+        assert!(!variable.equal(&Variable::new(value.clone())));
     }
 
     #[test]
@@ -214,7 +206,7 @@ mod test {
         let variable = Variable::new(value.clone());
         let expected = Variable::new(Value::from("h.*z"));
 
-        assert!(variable.not_regex(&expected));
+        assert!(!variable.regex(&expected));
     }
 
     #[test]
@@ -223,7 +215,7 @@ mod test {
         let variable = Variable::new(value.clone());
         let expected = Variable::new(Value::from("h.*o"));
 
-        assert!(!variable.not_regex(&expected));
+        assert!(variable.regex(&expected));
     }
 
     #[test]
@@ -232,6 +224,6 @@ mod test {
         let variable = Variable::new(value.clone());
         let expected = Variable::new(Value::from("h.*z"));
 
-        assert!(variable.not_regex(&expected));
+        assert!(!variable.regex(&expected));
     }
 }

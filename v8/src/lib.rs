@@ -1,8 +1,9 @@
+mod condition;
 mod payload;
 mod variable;
 use payload::Payload;
 use serde::Serialize;
-use std::{collections::HashMap, hash::Hash};
+use std::collections::HashMap;
 use valu3::{prelude::*, Error as ValueError};
 
 pub type InnerId = u32;
@@ -49,38 +50,28 @@ impl Condition {
     }
 
     pub fn execute(&self, context: &Context) -> Result<bool, Error> {
-        let left = self.left.execute(context).map_err(Error::PayloadError)?;
-        let right = self.right.execute(context).map_err(Error::PayloadError)?;
+        let left = self
+            .left
+            .execute_variable(context)
+            .map_err(Error::PayloadError)?;
+        let right = self
+            .right
+            .execute_variable(context)
+            .map_err(Error::PayloadError)?;
 
         match self.operator {
-            Operator::Equal => Ok(left == right),
-            Operator::NotEqual => Ok(left != right),
-            Operator::GreaterThan => Ok(left > right),
-            Operator::LessThan => Ok(left < right),
-            Operator::GreaterThanOrEqual => Ok(left >= right),
-            Operator::LessThanOrEqual => Ok(left <= right),
-            Operator::Contains => {
-                if left.is_string() && right.is_string() {
-                    let left = left.as_str();
-                    let right = right.as_str();
-
-                    return Ok(left.contains(right));
-                } else if left.is_array() && right.is_array() {
-                    let left = match left.as_array() {
-                        Some(array) => array,
-                        None => return Err(Error::InvalidCondition),
-                    };
-                    let right = match right.as_array() {
-                        Some(array) => array,
-                        None => return Err(Error::InvalidCondition),
-                    };
-
-                    return Ok(left.into_iter().any(|x| right.into_iter().any(|y| x == y)));
-                }
-
-                Err(Error::InvalidCondition)
-            }
-            _ => Err(Error::InvalidCondition),
+            Operator::Equal => Ok(left.equal(&right)),
+            Operator::NotEqual => Ok(!left.equal(&right)),
+            Operator::GreaterThan => Ok(left.greater_than(&right)),
+            Operator::LessThan => Ok(left.less_than(&right)),
+            Operator::GreaterThanOrEqual => Ok(left.greater_than_or_equal(&right)),
+            Operator::LessThanOrEqual => Ok(left.less_than_or_equal(&right)),
+            Operator::Contains => Ok(left.contains(&right)),
+            Operator::NotContains => Ok(!left.contains(&right)),
+            Operator::StartsWith => Ok(left.starts_with(&right)),
+            Operator::EndsWith => Ok(left.ends_with(&right)),
+            Operator::Regex => Ok(left.regex(&right)),
+            Operator::NotRegex => Ok(!left.regex(&right)),
         }
     }
 }
