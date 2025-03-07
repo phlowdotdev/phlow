@@ -1,5 +1,4 @@
 use serde::Serialize;
-use std::collections::HashMap;
 use uuid::Uuid;
 use valu3::value::Value;
 
@@ -340,6 +339,30 @@ mod test {
             None,
             Some("then_case".to_string()),
             None,
+            Some(Payload::new(r#""Ok""#.to_string())),
+        );
+
+        let context = Context::new(Value::Null);
+        let result = step.execute(&context).unwrap();
+
+        assert_eq!(result.next_step, NextStep::Stop);
+        assert_eq!(result.output, Some(Value::from("Ok")));
+    }
+
+    #[test]
+    fn test_step_execute_with_return_case_and_condition_else_case() {
+        let step = Step::new(
+            None,
+            None,
+            StepType::Default,
+            Some(Condition::new(
+                Payload::new("10".to_string()),
+                Payload::new("20".to_string()),
+                crate::condition::Operator::Equal,
+            )),
+            None,
+            None,
+            Some("else_case".to_string()),
             Some(Payload::new(r#""Ok""#.to_string())),
         );
 
