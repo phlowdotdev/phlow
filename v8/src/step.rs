@@ -33,10 +33,10 @@ pub(crate) struct Step {
     pub(crate) step_type: StepType,
     pub(crate) inner_id: StepInnerId,
     pub(crate) condition: Option<Condition>,
-    pub(crate) payload: Option<String>,
+    pub(crate) payload: Option<Payload>,
     pub(crate) then_case: Option<StepInnerId>,
     pub(crate) else_case: Option<StepInnerId>,
-    pub(crate) return_case: Option<String>,
+    pub(crate) return_case: Option<Payload>,
 }
 
 impl Step {
@@ -45,10 +45,10 @@ impl Step {
         name: Option<String>,
         step_type: StepType,
         condition: Option<Condition>,
-        payload: Option<String>,
+        payload: Option<Payload>,
         then_case: Option<StepInnerId>,
         else_case: Option<StepInnerId>,
-        return_case: Option<Value>,
+        return_case: Option<Payload>,
     ) -> Self {
         Self {
             id,
@@ -72,11 +72,7 @@ impl Step {
 
     fn evaluate_payload(&self, context: &Context) -> Result<Option<Output>, Error> {
         if let Some(ref payload) = self.payload {
-            let output = Some(
-                Payload::new(payload.to_string())
-                    .evaluate(context)
-                    .map_err(Error::PayloadError)?,
-            );
+            let output = Some(payload.evaluate(context).map_err(Error::PayloadError)?);
             Ok(output)
         } else {
             Ok(None)
@@ -85,11 +81,7 @@ impl Step {
 
     fn evaluate_return(&self, context: &Context) -> Result<Option<Output>, Error> {
         if let Some(ref return_case) = self.return_case {
-            let output = Some(
-                Payload::new(return_case.to_string())
-                    .evaluate(context)
-                    .map_err(Error::PayloadError)?,
-            );
+            let output = Some(return_case.evaluate(context).map_err(Error::PayloadError)?);
             Ok(output)
         } else {
             Ok(None)
@@ -97,7 +89,7 @@ impl Step {
     }
 
     pub fn execute(&self, context: &Context) -> Result<StepOutput, Error> {
-        if let Some(ref condition) = self.condition {
+        if let Some(condition) = &self.condition {
             if condition.evaluate(context)? {
                 let output = if self.evaluate_payload(context)?.is_some() {
                     self.evaluate_payload(context)?
@@ -138,22 +130,9 @@ impl Step {
             });
         }
 
-        if let Some(ref payload) = self.payload {
-            let output = Some(
-                Payload::new(payload.to_string())
-                    .evaluate(context)
-                    .map_err(Error::PayloadError)?,
-            );
-
-            return Ok(StepOutput {
-                next_step: NextStep::Next,
-                output,
-            });
-        }
-
         return Ok(StepOutput {
             next_step: NextStep::Next,
-            output: None,
+            output: self.evaluate_payload(context)?,
         });
     }
 }
