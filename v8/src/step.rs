@@ -91,15 +91,14 @@ impl Step {
 
     pub fn execute(&self, context: &Context) -> Result<StepOutput, Error> {
         if let Some(condition) = &self.condition {
-            if condition.evaluate(context)? {
-                let output = self.evaluate_payload(context)?;
+            let (next_step, output) = if condition.evaluate(context)? {
                 let next_step = if let Some(ref then_case) = self.then_case {
                     NextStep::Step(then_case.clone())
                 } else {
                     NextStep::Next
                 };
 
-                return Ok(StepOutput { next_step, output });
+                (next_step, self.evaluate_payload(context)?)
             } else {
                 let next_step = if let Some(ref else_case) = self.else_case {
                     NextStep::Step(else_case.clone())
@@ -107,11 +106,10 @@ impl Step {
                     NextStep::Stop
                 };
 
-                return Ok(StepOutput {
-                    next_step,
-                    output: None,
-                });
-            }
+                (next_step, None)
+            };
+
+            return Ok(StepOutput { next_step, output });
         }
 
         if let Some(return_case) = self.evaluate_return(context)? {
@@ -209,5 +207,55 @@ mod test {
 
         assert_eq!(result.next_step, NextStep::Next);
         assert_eq!(result.output, Some(Value::from(10i64)));
+    }
+
+    #[test]
+    fn test_step_execute_with_condition_then_case() {
+        let step = Step::new(
+            None,
+            None,
+            StepType::Default,
+            Some(Condition::new(
+                Payload::new("10".to_string()),
+                Payload::new("20".to_string()),
+                crate::condition::Operator::NotEqual,
+            )),
+            Some(Payload::new("10".to_string())),
+            Some("then_case".to_string()),
+            None,
+            None,
+        );
+
+        let context = Context::new(Value::Null);
+
+        let result = step.execute(&context).unwrap();
+
+        assert_eq!(result.next_step, NextStep::Step("then_case".to_string()));
+        assert_eq!(result.output, Some(Value::from(10i64)));
+    }
+
+    #[test]
+    fn test_step_execute_with_condition_else_case() {
+        let step = Step::new(
+            None,
+            None,
+            StepType::Default,
+            Some(Condition::new(
+                Payload::new("10".to_string()),
+                Payload::new("10".to_string()),
+                crate::condition::Operator::Equal,
+            )),
+            Some(Payload::new("10".to_string())),
+            None,
+            Some("else_case".to_string()),
+            None,
+        );
+
+        let context = Context::new(Value::Null);
+
+        let result = step.execute(&context).unwrap();
+
+        assert_eq!(result.next_step, NextStep::Step("else_case".to_string()));
+        assert_eq!(result.output, None);
     }
 }
