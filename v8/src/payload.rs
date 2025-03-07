@@ -1,0 +1,91 @@
+use crate::{Context, Error};
+use rhai::plugin::*;
+use rhai::serde::{from_dynamic, to_dynamic};
+use rhai::{Engine, EvalAltResult, Scope};
+use serde::{Deserialize, Serialize};
+use valu3::value::Value;
+
+#[derive(Debug)]
+pub enum PayloadError {
+    EvalError(Box<EvalAltResult>),
+}
+
+pub struct Payload {
+    script: String,
+}
+
+impl Payload {
+    pub fn new(script: String) -> Self {
+        Self { script }
+    }
+
+    pub fn execute(&self, context: &Context) -> Result<Value, PayloadError> {
+        let engine = Engine::new();
+        let mut scope = Scope::new();
+
+        let steps: Dynamic = to_dynamic(context.steps.clone()).unwrap();
+        let context: Dynamic = to_dynamic(context.context.clone()).unwrap();
+
+        scope.push_constant("steps", steps);
+        scope.push_constant("context", context);
+
+        let result = engine
+            .eval_with_scope(&mut scope, &self.script)
+            .map_err(PayloadError::EvalError)?;
+
+        let result: Value = from_dynamic(&result).unwrap();
+
+        Ok(result)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::{Context, Step, StepType};
+    use std::collections::HashMap;
+    use valu3::value::Value;
+
+    #[test]
+    fn test_payload_execute() {
+        let script = r#"
+            let a = 10;
+            let b = 20;
+            a + b
+        "#;
+
+        let context = Context::new(Value::Null);
+        let payload = Payload::new(script.to_string());
+
+        let result = payload.execute(&context).unwrap();
+        assert_eq!(result, Value::from(30i64));
+    }
+
+    #[test]
+    fn test_payload_json() {
+        let script = r#"
+            let a = 10;
+            let b = 20;
+            
+            #{
+                a: a,
+                b: b,
+                sum: a + b
+            }
+        "#;
+
+        let context = Context::new(Value::Null);
+        let payload = Payload::new(script.to_string());
+
+        let result = payload.execute(&context).unwrap();
+        let expected = Value::from({
+            let mut map = HashMap::new();
+            map.insert("a".to_string(), Value::from(10i64));
+            map.insert("b".to_string(), Value::from(20i64));
+            map.insert("sum".to_string(), Value::from(30i64));
+            map
+        });
+
+        assert_eq!(result, expected);
+    }
+}

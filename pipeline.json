@@ -1,0 +1,109 @@
+{
+  "context": [
+    {
+      "name": "Credit avaliable",
+      "params": [
+        {
+          "name": "credit",
+          "type": "number",
+          "value": 1000
+        },
+        {
+          "name": "credit_used",
+          "type": "number",
+          "value": 0
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "echo": "Start"
+    },
+    {
+      "id": "step1",
+      "condition": {
+        "left": "{{context.credit}}",
+        "right": "{{context.credit_used}}",
+        "condition": "greater_than",
+        "then": [
+          {
+            "payload": {
+              "score": "{{context.credit - context.credit_used}}"
+            },
+            "steps": [
+              {
+                "condition": {
+                  "left": "{{steps.step1.score}}",
+                  "right": "10",
+                  "condition": "greater_than"
+                }
+              },
+              {
+                "condition": {
+                  "left": "{{steps.step1.score}}",
+                  "right": "500",
+                  "condition": "greater_than"
+                }
+              },
+              {
+                "condition": {
+                  "left": "{{steps.step1.score}}",
+                  "right": "100000",
+                  "condition": "less_than"
+                }
+              }, // Se falhar em um dos 3 testes, não passa e executa o else do step acima
+              {
+                "then": {
+                  // aqui executa primeiramente o condition, se passar, executa o then, caso não passe, 
+                  // executa o else da step de origem, se não tiver, some mais uma até não ter mais nenhuma,
+                  // nesse caso executaria o else do step1
+                  "echo": "Credit avaliable",
+                  "condition": {
+                    "left": "{{steps.step1.score}}",
+                    "right": "500",
+                    "condition": "equal"
+                  },
+                  "then": {
+                    "return": true
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "else": [
+          {
+            "score": "{{0}}"
+          }
+        ]
+      }
+    },
+    {
+      "condition": {
+        "left": "{{steps.step1.score}}",
+        "right": "500",
+        "condition": "greater_than",
+        "then": [
+          {
+            "echo": "Credit avaliable",
+            "payload": {
+              "resul": "{{true}}"
+            }
+          }
+        ],
+        "else": [
+          {
+            "echo": "Credit not avaliable",
+            "payload": {
+              "score": "{{false}}"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "echo": "End"
+    }
+  ]
+}
