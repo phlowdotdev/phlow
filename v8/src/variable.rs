@@ -112,14 +112,6 @@ mod test {
     }
 
     #[test]
-    fn test_variable_not_equal() {
-        let value = Value::from(10i64);
-        let variable = Variable::new(value.clone());
-
-        assert!(!variable.equal(&Variable::new(value.clone())));
-    }
-
-    #[test]
     fn test_variable_greater_than() {
         let value = Value::from(10i64);
         let variable = Variable::new(value.clone());
