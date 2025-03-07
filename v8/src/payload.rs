@@ -1,3 +1,4 @@
+use crate::variable::Variable;
 use crate::{Context, Error};
 use rhai::plugin::*;
 use rhai::serde::{from_dynamic, to_dynamic};
@@ -37,6 +38,11 @@ impl Payload {
         let result: Value = from_dynamic(&result).unwrap();
 
         Ok(result)
+    }
+
+    pub fn execute_variable(&self, context: &Context) -> Result<Variable, PayloadError> {
+        let value = self.execute(context)?;
+        Ok(Variable::new(value))
     }
 }
 

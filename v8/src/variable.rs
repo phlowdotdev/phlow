@@ -1,3 +1,4 @@
+use regex::Regex;
 use valu3::{prelude::StringBehavior, value::Value};
 
 pub struct Variable {
@@ -58,6 +59,43 @@ impl Variable {
 
         return false;
     }
+
+    pub fn starts_with(&self, other: &Variable) -> bool {
+        if self.get().is_string() && other.get().is_string() {
+            let left = self.get().as_str();
+            let right = other.get().as_str();
+
+            return left.starts_with(right);
+        }
+
+        return false;
+    }
+
+    pub fn ends_with(&self, other: &Variable) -> bool {
+        if self.get().is_string() && other.get().is_string() {
+            let left = self.get().as_str();
+            let right = other.get().as_str();
+
+            return left.ends_with(right);
+        }
+
+        return false;
+    }
+
+    pub fn regex(&self, other: &Variable) -> bool {
+        if self.get().is_string() && other.get().is_string() {
+            let left = self.get().as_str();
+            let right = other.get().as_str();
+
+            return Regex::new(right).unwrap().is_match(left);
+        }
+
+        return false;
+    }
+
+    pub fn not_regex(&self, other: &Variable) -> bool {
+        return !self.regex(other);
+    }
 }
 
 #[cfg(test)]
@@ -79,6 +117,14 @@ mod test {
         let variable = Variable::new(value.clone());
 
         assert!(variable.equal(&Variable::new(value.clone())));
+    }
+
+    #[test]
+    fn test_variable_not_equal() {
+        let value = Value::from(10i64);
+        let variable = Variable::new(value.clone());
+
+        assert!(!variable.not_equal(&Variable::new(value.clone())));
     }
 
     #[test]
@@ -133,5 +179,59 @@ mod test {
         let expected = Variable::new(Value::from("ell"));
 
         assert!(variable.contains(&expected));
+    }
+
+    #[test]
+    fn test_variable_string_starts_with() {
+        let value = Value::from("hello");
+        let variable = Variable::new(value.clone());
+        let expected = Variable::new(Value::from("he"));
+
+        assert!(variable.starts_with(&expected));
+    }
+
+    #[test]
+    fn test_variable_string_ends_with() {
+        let value = Value::from("hello");
+        let variable = Variable::new(value.clone());
+        let expected = Variable::new(Value::from("lo"));
+
+        assert!(variable.ends_with(&expected));
+    }
+
+    #[test]
+    fn test_variable_string_regex() {
+        let value = Value::from("hello");
+        let variable = Variable::new(value.clone());
+        let expected = Variable::new(Value::from("h.*o"));
+
+        assert!(variable.regex(&expected));
+    }
+
+    #[test]
+    fn test_variable_string_not_regex() {
+        let value = Value::from("hello");
+        let variable = Variable::new(value.clone());
+        let expected = Variable::new(Value::from("h.*z"));
+
+        assert!(variable.not_regex(&expected));
+    }
+
+    #[test]
+    fn test_variable_string_not_regex_false() {
+        let value = Value::from("hello");
+        let variable = Variable::new(value.clone());
+        let expected = Variable::new(Value::from("h.*o"));
+
+        assert!(!variable.not_regex(&expected));
+    }
+
+    #[test]
+    fn test_variable_string_not_regex_true() {
+        let value = Value::from("hello");
+        let variable = Variable::new(value.clone());
+        let expected = Variable::new(Value::from("h.*z"));
+
+        assert!(variable.not_regex(&expected));
     }
 }
