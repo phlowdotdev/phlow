@@ -132,13 +132,13 @@ mod test {
     #[test]
     fn test_payload_execute_variable_step() {
         let script = r#"
-            let a = steps.0.a;
-            let b = steps.0.b;
-            println(a)
+            let a = steps.me.a;
+            let b = steps.me.b;
+   
             a + b
         "#;
         let step = Step::new(
-            Some("0".to_string()),
+            Some("me".to_string()),
             None,
             StepType::Default,
             None,
