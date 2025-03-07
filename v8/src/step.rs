@@ -91,35 +91,31 @@ impl Step {
     pub fn execute(&self, context: &Context) -> Result<StepOutput, Error> {
         if let Some(condition) = &self.condition {
             if condition.evaluate(context)? {
-                let output = if self.evaluate_payload(context)?.is_some() {
-                    self.evaluate_payload(context)?
-                } else {
-                    None
-                };
+                let output = self.evaluate_payload(context)?;
 
-                if let Some(ref then_case) = self.then_case {
-                    return Ok(StepOutput {
+                return if let Some(ref then_case) = self.then_case {
+                    Ok(StepOutput {
                         next_step: NextStep::Step(then_case.clone()),
                         output,
-                    });
+                    })
                 } else {
-                    return Ok(StepOutput {
+                    Ok(StepOutput {
                         next_step: NextStep::Next,
                         output,
-                    });
-                }
+                    })
+                };
             } else {
-                if let Some(ref else_case) = self.else_case {
-                    return Ok(StepOutput {
+                return if let Some(ref else_case) = self.else_case {
+                    Ok(StepOutput {
                         next_step: NextStep::Step(else_case.clone()),
                         output: None,
-                    });
+                    })
                 } else {
-                    return Ok(StepOutput {
+                    Ok(StepOutput {
                         next_step: NextStep::Stop,
                         output: None,
-                    });
-                }
+                    })
+                };
             }
         }
 
