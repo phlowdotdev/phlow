@@ -90,6 +90,13 @@ impl Step {
     }
 
     pub fn execute(&self, context: &Context) -> Result<StepOutput, Error> {
+        if let Some(return_case) = self.evaluate_return(context)? {
+            return Ok(StepOutput {
+                next_step: NextStep::Stop,
+                output: Some(return_case),
+            });
+        }
+
         if let Some(condition) = &self.condition {
             let (next_step, output) = if condition.evaluate(context)? {
                 let next_step = if let Some(ref then_case) = self.then_case {
@@ -110,13 +117,6 @@ impl Step {
             };
 
             return Ok(StepOutput { next_step, output });
-        }
-
-        if let Some(return_case) = self.evaluate_return(context)? {
-            return Ok(StepOutput {
-                next_step: NextStep::Stop,
-                output: Some(return_case),
-            });
         }
 
         return Ok(StepOutput {
@@ -278,5 +278,75 @@ mod test {
 
         assert_eq!(result.next_step, NextStep::Stop);
         assert_eq!(result.output, Some(Value::from(10i64)));
+    }
+
+    #[test]
+    fn test_step_execute_with_return_case_and_payload() {
+        let step = Step::new(
+            None,
+            None,
+            StepType::Default,
+            None,
+            Some(Payload::new("10".to_string())),
+            None,
+            None,
+            Some(Payload::new("20".to_string())),
+        );
+
+        let context = Context::new(Value::Null);
+
+        let result = step.execute(&context).unwrap();
+
+        assert_eq!(result.next_step, NextStep::Stop);
+        assert_eq!(result.output, Some(Value::from(20i64)));
+    }
+
+    #[test]
+    fn test_step_execute_with_return_case_and_condition() {
+        let step = Step::new(
+            None,
+            None,
+            StepType::Default,
+            Some(Condition::new(
+                Payload::new("10".to_string()),
+                Payload::new("10".to_string()),
+                crate::condition::Operator::Equal,
+            )),
+            None,
+            None,
+            None,
+            Some(Payload::new("10".to_string())),
+        );
+
+        let context = Context::new(Value::Null);
+
+        let result = step.execute(&context).unwrap();
+
+        assert_eq!(result.next_step, NextStep::Stop);
+        assert_eq!(result.output, Some(Value::from(10i64)));
+    }
+
+    #[test]
+    fn test_step_execute_with_return_case_and_condition_then_case() {
+        let step = Step::new(
+            None,
+            None,
+            StepType::Default,
+            Some(Condition::new(
+                Payload::new("10".to_string()),
+                Payload::new("10".to_string()),
+                crate::condition::Operator::Equal,
+            )),
+            None,
+            Some("then_case".to_string()),
+            None,
+            Some(Payload::new(r#""Ok""#.to_string())),
+        );
+
+        let context = Context::new(Value::Null);
+        let result = step.execute(&context).unwrap();
+
+        assert_eq!(result.next_step, NextStep::Stop);
+        assert_eq!(result.output, Some(Value::from("Ok")));
     }
 }
