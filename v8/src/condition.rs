@@ -1,6 +1,22 @@
 use serde::Serialize;
 
-use crate::{payload::Payload, Context, Error, Operator};
+use crate::{payload::Payload, pipeline::Context, Error};
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub enum Operator {
+    Equal,
+    NotEqual,
+    GreaterThan,
+    LessThan,
+    GreaterThanOrEqual,
+    LessThanOrEqual,
+    Contains,
+    NotContains,
+    StartsWith,
+    EndsWith,
+    Regex,
+    NotRegex,
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Condition {

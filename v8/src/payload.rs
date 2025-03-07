@@ -1,5 +1,5 @@
+use crate::pipeline::Context;
 use crate::variable::Variable;
-use crate::{Context, Error};
 use rhai::plugin::*;
 use rhai::serde::{from_dynamic, to_dynamic};
 use rhai::{Engine, EvalAltResult, Scope};
@@ -49,7 +49,6 @@ impl Payload {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::Context;
     use std::collections::HashMap;
     use valu3::value::Value;
 
