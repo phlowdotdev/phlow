@@ -3,10 +3,8 @@ mod payload;
 mod pipeline;
 mod step;
 mod variable;
-use serde::Serialize;
-use std::collections::HashMap;
 use step::Step;
-use valu3::{prelude::*, Error as ValueError};
+use valu3::Error as ValueError;
 
 pub type InnerId = u32;
 
