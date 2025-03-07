@@ -3,16 +3,14 @@ mod payload;
 mod pipeline;
 mod step;
 mod variable;
-use step::Step;
+use step::{Step, StepInnerId};
 use valu3::Error as ValueError;
-
-pub type InnerId = String;
 
 #[derive(Debug)]
 pub enum Error {
     JsonParseError(ValueError),
-    InvalidPipeline(InnerId),
+    InvalidPipeline(StepInnerId),
     InvalidCondition,
-    InvalidStep(InnerId),
+    InvalidStep(StepInnerId),
     PayloadError(payload::PayloadError),
 }

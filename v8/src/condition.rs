@@ -34,14 +34,14 @@ impl Condition {
         }
     }
 
-    pub fn execute(&self, context: &Context) -> Result<bool, Error> {
+    pub fn evaluate(&self, context: &Context) -> Result<bool, Error> {
         let left = self
             .left
-            .execute_variable(context)
+            .evaluate_variable(context)
             .map_err(Error::PayloadError)?;
         let right = self
             .right
-            .execute_variable(context)
+            .evaluate_variable(context)
             .map_err(Error::PayloadError)?;
 
         match self.operator {
@@ -74,7 +74,7 @@ mod test {
 
         let context = Context::new(Value::Null);
 
-        let result = condition.execute(&context).unwrap();
+        let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, false);
     }
 
@@ -86,7 +86,7 @@ mod test {
 
         let context = Context::new(Value::Null);
 
-        let result = condition.execute(&context).unwrap();
+        let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, true);
     }
 
@@ -98,7 +98,7 @@ mod test {
 
         let context = Context::new(Value::Null);
 
-        let result = condition.execute(&context).unwrap();
+        let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, false);
     }
 
@@ -110,7 +110,7 @@ mod test {
 
         let context = Context::new(Value::Null);
 
-        let result = condition.execute(&context).unwrap();
+        let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, true);
     }
 
@@ -122,7 +122,7 @@ mod test {
 
         let context = Context::new(Value::Null);
 
-        let result = condition.execute(&context).unwrap();
+        let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, true);
     }
 
@@ -134,7 +134,7 @@ mod test {
 
         let context = Context::new(Value::Null);
 
-        let result = condition.execute(&context).unwrap();
+        let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, false);
     }
 
@@ -146,7 +146,7 @@ mod test {
 
         let context = Context::new(Value::Null);
 
-        let result = condition.execute(&context).unwrap();
+        let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, true);
     }
 
@@ -158,7 +158,7 @@ mod test {
 
         let context = Context::new(Value::Null);
 
-        let result = condition.execute(&context).unwrap();
+        let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, true);
     }
 }

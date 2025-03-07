@@ -3,9 +3,15 @@ use std::collections::HashMap;
 use uuid::Uuid;
 use valu3::value::Value;
 
-use crate::{condition::Condition, InnerId};
+use crate::{condition::Condition, payload::Payload, pipeline::Context, Error};
 
-pub type Output = HashMap<String, Value>;
+pub type StepInnerId = String;
+pub type Output = Value;
+
+pub struct StepOutput {
+    pub(crate) next_step: Option<StepInnerId>,
+    pub(crate) output: Option<Output>,
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub(crate) enum StepType {
@@ -19,12 +25,12 @@ pub(crate) struct Step {
     pub(crate) id: Option<String>, // id do json enviado pelo cliente
     pub(crate) name: Option<String>,
     pub(crate) step_type: StepType,
-    pub(crate) inner_id: InnerId,
+    pub(crate) inner_id: StepInnerId,
     pub(crate) echo: Option<String>,
     pub(crate) condition: Option<Condition>,
     pub(crate) payload: Option<String>,
-    pub(crate) then_case: Option<InnerId>,
-    pub(crate) else_case: Option<InnerId>,
+    pub(crate) then_case: Option<StepInnerId>,
+    pub(crate) else_case: Option<StepInnerId>,
     pub(crate) return_case: Option<Value>,
 }
 
@@ -36,8 +42,8 @@ impl Step {
         echo: Option<String>,
         condition: Option<Condition>,
         payload: Option<String>,
-        then_case: Option<InnerId>,
-        else_case: Option<InnerId>,
+        then_case: Option<StepInnerId>,
+        else_case: Option<StepInnerId>,
         return_case: Option<Value>,
     ) -> Self {
         Self {
@@ -59,5 +65,39 @@ impl Step {
             Some(ref id) => id.clone(),
             None => self.inner_id.clone(),
         }
+    }
+
+    pub fn execute(&self, context: &Context) -> Result<StepOutput, Error> {
+        let output = if let Some(ref payload) = self.payload {
+            let payload = Payload::new(payload.to_string());
+            Some(payload.evaluate(context).map_err(Error::PayloadError)?)
+        } else {
+            None
+        };
+
+        if let Some(ref condition) = self.condition {
+            let result = condition.evaluate(context)?;
+
+            if result {
+                if let Some(ref then_case) = self.then_case {
+                    return Ok(StepOutput {
+                        next_step: Some(then_case.clone()),
+                        output,
+                    });
+                }
+            } else {
+                if let Some(ref else_case) = self.else_case {
+                    return Ok(StepOutput {
+                        next_step: Some(else_case.clone()),
+                        output: None,
+                    });
+                }
+            }
+        }
+
+        Ok(StepOutput {
+            next_step: None,
+            output,
+        })
     }
 }

@@ -21,7 +21,7 @@ impl Payload {
         Self { script }
     }
 
-    pub fn execute(&self, context: &Context) -> Result<Value, PayloadError> {
+    pub fn evaluate(&self, context: &Context) -> Result<Value, PayloadError> {
         let engine = Engine::new();
         let mut scope = Scope::new();
 
@@ -40,8 +40,8 @@ impl Payload {
         Ok(result)
     }
 
-    pub fn execute_variable(&self, context: &Context) -> Result<Variable, PayloadError> {
-        let value = self.execute(context)?;
+    pub fn evaluate_variable(&self, context: &Context) -> Result<Variable, PayloadError> {
+        let value = self.evaluate(context)?;
         Ok(Variable::new(value))
     }
 }
@@ -52,7 +52,7 @@ mod test {
 
     use super::*;
     use std::collections::HashMap;
-    use valu3::value::Value;
+    use valu3::{traits::ToValueBehavior, value::Value};
 
     #[test]
     fn test_payload_execute() {
@@ -65,7 +65,7 @@ mod test {
         let context = Context::new(Value::Null);
         let payload = Payload::new(script.to_string());
 
-        let result = payload.execute(&context).unwrap();
+        let result = payload.evaluate(&context).unwrap();
         assert_eq!(result, Value::from(30i64));
     }
 
@@ -85,7 +85,7 @@ mod test {
         let context = Context::new(Value::Null);
         let payload = Payload::new(script.to_string());
 
-        let result = payload.execute(&context).unwrap();
+        let result = payload.evaluate(&context).unwrap();
         let expected = Value::from({
             let mut map = HashMap::new();
             map.insert("a".to_string(), Value::from(10i64));
@@ -104,7 +104,7 @@ mod test {
         let context = Context::new(Value::Null);
         let payload = Payload::new(script.to_string());
 
-        let variable = payload.execute_variable(&context).unwrap();
+        let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from("hello world")));
     }
 
@@ -125,7 +125,7 @@ mod test {
 
         let payload = Payload::new(script.to_string());
 
-        let variable = payload.execute_variable(&context).unwrap();
+        let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from(30i64)));
     }
 
@@ -154,11 +154,11 @@ mod test {
             let mut map = HashMap::new();
             map.insert("a".to_string(), Value::from(10i64));
             map.insert("b".to_string(), Value::from(20i64));
-            map
+            map.to_value()
         });
 
         let payload = Payload::new(script.to_string());
-        let variable = payload.execute_variable(&context).unwrap();
+        let variable = payload.evaluate_variable(&context).unwrap();
 
         assert_eq!(variable, Variable::new(Value::from(30i64)));
     }
