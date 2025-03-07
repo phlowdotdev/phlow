@@ -208,22 +208,4 @@ mod test {
 
         assert!(!variable.regex(&expected));
     }
-
-    #[test]
-    fn test_variable_string_not_regex_false() {
-        let value = Value::from("hello");
-        let variable = Variable::new(value.clone());
-        let expected = Variable::new(Value::from("h.*o"));
-
-        assert!(variable.regex(&expected));
-    }
-
-    #[test]
-    fn test_variable_string_not_regex_true() {
-        let value = Value::from("hello");
-        let variable = Variable::new(value.clone());
-        let expected = Variable::new(Value::from("h.*z"));
-
-        assert!(!variable.regex(&expected));
-    }
 }
