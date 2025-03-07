@@ -8,6 +8,7 @@ use crate::{condition::Condition, payload::Payload, pipeline::Context, Error};
 pub type StepInnerId = String;
 pub type Output = Value;
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum NextStep {
     Step(StepInnerId),
     Stop,
@@ -133,7 +134,7 @@ mod test {
     use valu3::value::Value;
 
     #[test]
-    fn test_step_new() {
+    fn test_step_get_reference_id() {
         let step = Step::new(
             Some("id".to_string()),
             Some("name".to_string()),
@@ -145,13 +146,68 @@ mod test {
             None,
         );
 
-        assert_eq!(step.id, Some("id".to_string()));
-        assert_eq!(step.name, Some("name".to_string()));
-        assert_eq!(step.step_type, StepType::Default);
-        assert_eq!(step.condition, None);
-        assert_eq!(step.payload, None);
-        assert_eq!(step.then_case, None);
-        assert_eq!(step.else_case, None);
-        assert_eq!(step.return_case, None);
+        assert_eq!(step.get_reference_id(), "id".to_string());
+    }
+
+    #[test]
+    fn test_step_get_reference_id_without_id() {
+        let step = Step::new(
+            None,
+            Some("name".to_string()),
+            StepType::Default,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+
+        assert_eq!(step.get_reference_id(), step.inner_id);
+    }
+
+    #[test]
+    fn test_step_execute() {
+        let step = Step::new(
+            None,
+            None,
+            StepType::Default,
+            None,
+            Some(Payload::new("10".to_string())),
+            None,
+            None,
+            None,
+        );
+
+        let context = Context::new(Value::Null);
+
+        let result = step.execute(&context).unwrap();
+
+        assert_eq!(result.next_step, NextStep::Next);
+        assert_eq!(result.output, Some(Value::from(10i64)));
+    }
+
+    #[test]
+    fn test_step_execute_with_condition() {
+        let step = Step::new(
+            None,
+            None,
+            StepType::Default,
+            Some(Condition::new(
+                Payload::new("10".to_string()),
+                Payload::new("20".to_string()),
+                crate::condition::Operator::NotEqual,
+            )),
+            Some(Payload::new("10".to_string())),
+            None,
+            None,
+            None,
+        );
+
+        let context = Context::new(Value::Null);
+
+        let result = step.execute(&context).unwrap();
+
+        assert_eq!(result.next_step, NextStep::Next);
+        assert_eq!(result.output, Some(Value::from(10i64)));
     }
 }
