@@ -10,6 +10,7 @@ pub enum PayloadError {
     EvalError(Box<EvalAltResult>),
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Payload {
     script: String,
 }
@@ -42,7 +43,7 @@ impl Payload {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{Context, Step, StepType};
+    use crate::Context;
     use std::collections::HashMap;
     use valu3::value::Value;
 

@@ -1,4 +1,6 @@
 mod payload;
+mod variable;
+use payload::Payload;
 use serde::Serialize;
 use std::{collections::HashMap, hash::Hash};
 use valu3::{prelude::*, Error as ValueError};
@@ -31,19 +33,39 @@ pub enum Operator {
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Condition {
-    left: String,
-    right: String,
+    left: Payload,
+    right: Payload,
     operator: Operator,
 }
 
 impl Condition {
-    pub fn new(left: String, right: String, operator: Operator) -> Self {
+    pub fn new(left: Payload, right: Payload, operator: Operator) -> Self {
         Self {
             left,
             right,
             operator,
         }
     }
+
+    // pub fn execute(&self, context: &Context) {
+    //     let left = self.left.execute(context);
+    //     let right = self.right.execute(context);
+
+    //     match self.operator {
+    //         Operator::Equal => left == right,
+    //         Operator::NotEqual => left != right,
+    //         Operator::GreaterThan => left > right,
+    //         Operator::LessThan => left < right,
+    //         Operator::GreaterThanOrEqual => left >= right,
+    //         Operator::LessThanOrEqual => left <= right,
+    //         Operator::Contains => left.contains(right),
+    //         Operator::NotContains => !left.contains(right),
+    //         Operator::StartsWith => left.starts_with(right),
+    //         Operator::EndsWith => left.ends_with(right),
+    //         Operator::Regex => left.matches(right),
+    //         Operator::NotRegex => !left.matches(right),
+    //     }
+    // }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
