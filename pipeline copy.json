@@ -1,0 +1,98 @@
+{
+  "autoId0": [
+    {
+      "echo": "Start"
+    },
+    {
+      "id": "step1",
+      "condition": {
+        "left": "{{context.credit}}",
+        "right": "{{context.credit_used}}",
+        "condition": "greater_than",
+        "then": "autoId1",
+        "else": "autoId2"
+      }
+    },
+    {
+      "condition": {
+        "left": "{{steps.step1.score}}",
+        "right": "500",
+        "condition": "greater_than",
+        "then": "autoId3",
+        "else": "autoId4"
+      }
+    },
+    {
+      "echo": "End"
+    }
+  ],
+  "autoId1": [
+    [
+      {
+        "payload": {
+          "score": "{{context.credit - context.credit_used}}"
+        },
+        "steps": [
+          {
+            "condition": {
+              "left": "{{steps.step1.score}}",
+              "right": "10",
+              "condition": "greater_than"
+            }
+          },
+          {
+            "condition": {
+              "left": "{{steps.step1.score}}",
+              "right": "500",
+              "condition": "greater_than"
+            }
+          },
+          {
+            "condition": {
+              "left": "{{steps.step1.score}}",
+              "right": "100000",
+              "condition": "less_than"
+            }
+          },
+          {
+            "then": "autoId5"
+          }
+        ]
+      }
+    ]
+  ],
+  "autoId2": [
+    {
+      "score": "{{0}}"
+    }
+  ],
+  "autoId3": [
+    {
+      "echo": "Credit avaliable",
+      "payload": {
+        "resul": "{{true}}"
+      }
+    }
+  ],
+  "autoId4": [
+    {
+      "echo": "Credit not avaliable",
+      "payload": {
+        "score": "{{false}}"
+      }
+    }
+  ],
+  "autoId5": [
+    {
+      "echo": "Credit avaliable",
+      "condition": {
+        "left": "{{steps.step1.score}}",
+        "right": "500",
+        "condition": "equal"
+      },
+      "then": {
+        "return": true
+      }
+    }
+  ]
+}
