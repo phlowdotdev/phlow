@@ -1,16 +1,18 @@
-use serde::Serialize;
-use uuid::Uuid;
-use valu3::value::Value;
-
 use crate::{
-    condition::Condition,
+    condition::{Condition, ConditionError},
     payload::Payload,
     pipeline::{Context, Step},
     Error,
 };
+use serde::Serialize;
+use valu3::{prelude::StringBehavior, value::Value};
 
 pub type InnerId = String;
 pub type Output = Value;
+
+pub enum InnerStepError {
+    ConditionError(ConditionError),
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum NextStep {
@@ -42,6 +44,60 @@ pub struct InnerStep {
     pub(crate) then_case: Option<InnerId>,
     pub(crate) else_case: Option<InnerId>,
     pub(crate) return_case: Option<Payload>,
+}
+
+impl TryFrom<&Value> for InnerStep {
+    type Error = InnerStepError;
+
+    fn try_from(value: &Value) -> Result<Self, InnerStepError> {
+        let id = value.get("id").map(|id| id.to_string());
+        let name = value.get("name").map(|name| name.to_string());
+        let step_type = value
+            .get("step_type")
+            .map(|step_type| match step_type.as_str() {
+                "default" => StepType::Default,
+                "then_case" => StepType::ThenCase,
+                "else_case" => StepType::ElseCase,
+                _ => unreachable!(),
+            })
+            .unwrap_or(StepType::Default);
+
+        let condition = {
+            if let Some(condition) = value
+                .get("condition")
+                .map(|condition| Condition::try_from(condition))
+            {
+                Some(condition.map_err(InnerStepError::ConditionError)?)
+            } else {
+                None
+            }
+        };
+
+        let payload = value
+            .get("payload")
+            .map(|payload| Payload::new(payload.to_string()));
+        let then_case = value
+            .get("then_case")
+            .map(|then_case| then_case.to_string());
+        let else_case = value
+            .get("else_case")
+            .map(|else_case| else_case.to_string());
+        let return_case = value
+            .get("return_case")
+            .map(|return_case| Payload::new(return_case.to_string()));
+
+        Ok(Self {
+            id,
+            name,
+            step_type,
+            inner_id: InnerId::new(),
+            condition,
+            payload,
+            then_case,
+            else_case,
+            return_case,
+        })
+    }
 }
 
 impl From<Step> for InnerStep {

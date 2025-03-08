@@ -1,16 +1,29 @@
 use std::collections::HashMap;
 use valu3::value::Value;
 
+use crate::{
+    pipeline::Pipeline,
+    step::{InnerId, InnerStep, InnerStepError},
+};
+
+pub enum TransformError {
+    InnerStepError(InnerStepError),
+}
+
 pub fn transform_json(input: &Value) -> Value {
     let mut id_counter = 0;
     let mut map = HashMap::new();
 
-    process_steps(input, &mut id_counter, &mut map);
+    process_raw_steps(input, &mut id_counter, &mut map);
 
     Value::from(map)
 }
 
-fn process_steps(input: &Value, id_counter: &mut usize, map: &mut HashMap<String, Value>) -> Value {
+fn process_raw_steps(
+    input: &Value,
+    id_counter: &mut usize,
+    map: &mut HashMap<String, Value>,
+) -> Value {
     let key = format!("pipeline_id_{}", *id_counter);
     *id_counter += 1;
 
@@ -28,12 +41,16 @@ fn process_steps(input: &Value, id_counter: &mut usize, map: &mut HashMap<String
 
                         // Substitui `then` e `else` por novos IDs
                         if let Some(then) = cond_obj.get("then") {
-                            new_cond
-                                .insert("then".to_string(), process_steps(then, id_counter, map));
+                            new_cond.insert(
+                                "then".to_string(),
+                                process_raw_steps(then, id_counter, map),
+                            );
                         }
                         if let Some(els) = cond_obj.get("else") {
-                            new_cond
-                                .insert("else".to_string(), process_steps(els, id_counter, map));
+                            new_cond.insert(
+                                "else".to_string(),
+                                process_raw_steps(els, id_counter, map),
+                            );
                         }
 
                         new_obj.insert("condition".to_string(), Value::Object(new_cond));
@@ -50,6 +67,31 @@ fn process_steps(input: &Value, id_counter: &mut usize, map: &mut HashMap<String
 
     map.insert(key.clone(), Value::from(new_array));
     Value::from(key)
+}
+
+fn value_to_structs(value: &Value) -> Result<HashMap<InnerId, Pipeline>, TransformError> {
+    let mut pipelines = HashMap::new();
+
+    if let Value::Object(obj) = value {
+        for (key, val) in obj.iter() {
+            if let Value::Array(arr) = val {
+                let mut steps = Vec::new();
+
+                for item in arr {
+                    let inner_step =
+                        InnerStep::try_from(value).map_err(TransformError::InnerStepError)?;
+                    steps.push(inner_step);
+                }
+
+                pipelines.insert(
+                    key.as_string_b().as_string(),
+                    Pipeline::new(key.as_string_b().as_string(), steps),
+                );
+            }
+        }
+    }
+
+    Ok(pipelines)
 }
 
 #[cfg(test)]

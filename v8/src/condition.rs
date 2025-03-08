@@ -1,6 +1,14 @@
 use serde::Serialize;
+use valu3::{prelude::StringBehavior, value::Value};
 
 use crate::{payload::Payload, pipeline::Context, Error};
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub enum ConditionError {
+    InvalidOperator(String),
+    RighInvalid(String),
+    LeftInvalid(String),
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum Operator {
@@ -18,11 +26,62 @@ pub enum Operator {
     NotRegex,
 }
 
+impl From<&Value> for Operator {
+    fn from(value: &Value) -> Self {
+        match value.to_string().as_str() {
+            "equal" => Operator::Equal,
+            "not_equal" => Operator::NotEqual,
+            "greater_than" => Operator::GreaterThan,
+            "less_than" => Operator::LessThan,
+            "greater_than_or_equal" => Operator::GreaterThanOrEqual,
+            "less_than_or_equal" => Operator::LessThanOrEqual,
+            "contains" => Operator::Contains,
+            "not_contains" => Operator::NotContains,
+            "starts_with" => Operator::StartsWith,
+            "ends_with" => Operator::EndsWith,
+            "regex" => Operator::Regex,
+            "not_regex" => Operator::NotRegex,
+            _ => panic!("Invalid operator"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Condition {
     left: Payload,
     right: Payload,
     operator: Operator,
+}
+
+impl TryFrom<&Value> for Condition {
+    type Error = ConditionError;
+
+    fn try_from(value: &Value) -> Result<Self, ConditionError> {
+        let left = match value.get("left") {
+            Some(left) => Payload::from(left),
+            None => return Err(ConditionError::LeftInvalid("does not exist".to_string())),
+        };
+
+        let right = match value.get("right") {
+            Some(right) => Payload::from(right),
+            None => return Err(ConditionError::RighInvalid("does not exist".to_string())),
+        };
+
+        match value.get("operator") {
+            Some(operator) => {
+                let operator = Operator::from(operator);
+
+                Ok(Self {
+                    left,
+                    right,
+                    operator,
+                })
+            }
+            None => Err(ConditionError::InvalidOperator(
+                "does not exist".to_string(),
+            )),
+        }
+    }
 }
 
 impl Condition {
@@ -160,5 +219,23 @@ mod test {
 
         let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, true);
+    }
+
+    #[test]
+    fn test_condition_from_value() {
+        let value = Value::json_to_value(
+            r#"{
+            "left": "10",
+            "right": "20",
+            "condition": "greater_than"
+        }"#,
+        )
+        .unwrap();
+
+        let condition = Condition::try_from(&value).unwrap();
+
+        assert_eq!(condition.left, Payload::new("10".to_string()));
+        assert_eq!(condition.right, Payload::new("20".to_string()));
+        assert_eq!(condition.operator, Operator::GreaterThan);
     }
 }
