@@ -8,7 +8,7 @@ mod variable;
 use std::collections::HashMap;
 
 use pipeline::{Pipeline, Step};
-use step::{ID, StepWorker};
+use step::{StepWorker, ID};
 use valu3::Error as ValueError;
 
 #[derive(Debug)]
@@ -29,8 +29,8 @@ fn steps_to_pipelines(steps: Vec<Step>) -> Vec<Pipeline> {
     let mut pipelines = HashMap::new();
 
     for step in steps {
-        let inner_step = StepWorker::from(step);
-        let pipeline = Pipeline::new(ID::new(), vec![inner_step]);
+        let step_worker = StepWorker::from(step);
+        let pipeline = Pipeline::new(ID::new(), vec![step_worker]);
         pipelines.insert(pipeline.id.clone(), pipeline);
     }
 

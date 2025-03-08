@@ -78,9 +78,9 @@ fn value_to_structs(value: &Value) -> Result<HashMap<ID, Pipeline>, TransformErr
                 let mut steps = Vec::new();
 
                 for item in arr {
-                    let inner_step =
+                    let step_worker =
                         StepWorker::try_from(value).map_err(TransformError::InnerStepError)?;
-                    steps.push(inner_step);
+                    steps.push(step_worker);
                 }
 
                 pipelines.insert(

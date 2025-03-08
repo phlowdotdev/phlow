@@ -119,7 +119,7 @@ impl From<Step> for StepWorker {
 impl StepWorker {
     pub fn new(
         id: Option<String>,
-        inner_id: ID,
+        worker_id: ID,
         name: Option<String>,
         step_type: StepType,
         condition: Option<Condition>,
@@ -132,7 +132,7 @@ impl StepWorker {
             id,
             name,
             step_type,
-            worker_id: inner_id,
+            worker_id: worker_id,
             condition,
             payload,
             then_case,
