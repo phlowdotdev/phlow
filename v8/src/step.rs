@@ -7,16 +7,16 @@ use crate::{
 use serde::Serialize;
 use valu3::{prelude::StringBehavior, value::Value};
 
-pub type InnerId = String;
+pub type ID = String;
 pub type Output = Value;
 
-pub enum InnerStepError {
+pub enum StepWorkerError {
     ConditionError(ConditionError),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum NextStep {
-    Step(InnerId),
+    Step(ID),
     Stop,
     Next,
 }
@@ -34,22 +34,22 @@ pub enum StepType {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct InnerStep {
+pub struct StepWorker {
     pub(crate) id: Option<String>,
     pub(crate) name: Option<String>,
     pub(crate) step_type: StepType,
-    pub(crate) inner_id: InnerId,
+    pub(crate) worker_id: ID,
     pub(crate) condition: Option<Condition>,
     pub(crate) payload: Option<Payload>,
-    pub(crate) then_case: Option<InnerId>,
-    pub(crate) else_case: Option<InnerId>,
+    pub(crate) then_case: Option<ID>,
+    pub(crate) else_case: Option<ID>,
     pub(crate) return_case: Option<Payload>,
 }
 
-impl TryFrom<&Value> for InnerStep {
-    type Error = InnerStepError;
+impl TryFrom<&Value> for StepWorker {
+    type Error = StepWorkerError;
 
-    fn try_from(value: &Value) -> Result<Self, InnerStepError> {
+    fn try_from(value: &Value) -> Result<Self, StepWorkerError> {
         let id = value.get("id").map(|id| id.to_string());
         let name = value.get("name").map(|name| name.to_string());
         let step_type = value
@@ -67,7 +67,7 @@ impl TryFrom<&Value> for InnerStep {
                 .get("condition")
                 .map(|condition| Condition::try_from(condition))
             {
-                Some(condition.map_err(InnerStepError::ConditionError)?)
+                Some(condition.map_err(StepWorkerError::ConditionError)?)
             } else {
                 None
             }
@@ -90,7 +90,7 @@ impl TryFrom<&Value> for InnerStep {
             id,
             name,
             step_type,
-            inner_id: InnerId::new(),
+            worker_id: ID::new(),
             condition,
             payload,
             then_case,
@@ -100,13 +100,13 @@ impl TryFrom<&Value> for InnerStep {
     }
 }
 
-impl From<Step> for InnerStep {
+impl From<Step> for StepWorker {
     fn from(step: Step) -> Self {
         Self {
             id: step.id,
             name: step.name,
             step_type: step.step_type,
-            inner_id: InnerId::new(),
+            worker_id: ID::new(),
             condition: step.condition,
             payload: step.payload,
             then_case: None,
@@ -116,23 +116,23 @@ impl From<Step> for InnerStep {
     }
 }
 
-impl InnerStep {
+impl StepWorker {
     pub fn new(
         id: Option<String>,
-        inner_id: InnerId,
+        inner_id: ID,
         name: Option<String>,
         step_type: StepType,
         condition: Option<Condition>,
         payload: Option<Payload>,
-        then_case: Option<InnerId>,
-        else_case: Option<InnerId>,
+        then_case: Option<ID>,
+        else_case: Option<ID>,
         return_case: Option<Payload>,
     ) -> Self {
         Self {
             id,
             name,
             step_type,
-            inner_id,
+            worker_id: inner_id,
             condition,
             payload,
             then_case,
@@ -141,18 +141,18 @@ impl InnerStep {
         }
     }
 
-    pub fn add_then_case(&mut self, then_case: InnerId) {
+    pub fn add_then_case(&mut self, then_case: ID) {
         self.then_case = Some(then_case);
     }
 
-    pub fn add_else_case(&mut self, else_case: InnerId) {
+    pub fn add_else_case(&mut self, else_case: ID) {
         self.else_case = Some(else_case);
     }
 
     pub fn get_reference_id(&self) -> String {
         match self.id {
             Some(ref id) => id.clone(),
-            None => self.inner_id.clone(),
+            None => self.worker_id.clone(),
         }
     }
 
@@ -218,9 +218,9 @@ mod test {
 
     #[test]
     fn test_step_get_reference_id() {
-        let step = InnerStep::new(
+        let step = StepWorker::new(
             Some("id".to_string()),
-            InnerId::new(),
+            ID::new(),
             Some("name".to_string()),
             StepType::Default,
             None,
@@ -235,9 +235,9 @@ mod test {
 
     #[test]
     fn test_step_get_reference_id_without_id() {
-        let step = InnerStep::new(
+        let step = StepWorker::new(
             None,
-            InnerId::new(),
+            ID::new(),
             Some("name".to_string()),
             StepType::Default,
             None,
@@ -247,14 +247,14 @@ mod test {
             None,
         );
 
-        assert_eq!(step.get_reference_id(), step.inner_id);
+        assert_eq!(step.get_reference_id(), step.worker_id);
     }
 
     #[test]
     fn test_step_execute() {
-        let step = InnerStep::new(
+        let step = StepWorker::new(
             None,
-            InnerId::new(),
+            ID::new(),
             None,
             StepType::Default,
             None,
@@ -274,9 +274,9 @@ mod test {
 
     #[test]
     fn test_step_execute_with_condition() {
-        let step = InnerStep::new(
+        let step = StepWorker::new(
             None,
-            InnerId::new(),
+            ID::new(),
             None,
             StepType::Default,
             Some(Condition::new(
@@ -300,9 +300,9 @@ mod test {
 
     #[test]
     fn test_step_execute_with_condition_then_case() {
-        let step = InnerStep::new(
+        let step = StepWorker::new(
             None,
-            InnerId::new(),
+            ID::new(),
             None,
             StepType::Default,
             Some(Condition::new(
@@ -326,9 +326,9 @@ mod test {
 
     #[test]
     fn test_step_execute_with_condition_else_case() {
-        let step = InnerStep::new(
+        let step = StepWorker::new(
             None,
-            InnerId::new(),
+            ID::new(),
             None,
             StepType::Default,
             Some(Condition::new(
@@ -352,9 +352,9 @@ mod test {
 
     #[test]
     fn test_step_execute_with_return_case() {
-        let step = InnerStep::new(
+        let step = StepWorker::new(
             None,
-            InnerId::new(),
+            ID::new(),
             None,
             StepType::Default,
             None,
@@ -374,9 +374,9 @@ mod test {
 
     #[test]
     fn test_step_execute_with_return_case_and_payload() {
-        let step = InnerStep::new(
+        let step = StepWorker::new(
             None,
-            InnerId::new(),
+            ID::new(),
             None,
             StepType::Default,
             None,
@@ -396,9 +396,9 @@ mod test {
 
     #[test]
     fn test_step_execute_with_return_case_and_condition() {
-        let step = InnerStep::new(
+        let step = StepWorker::new(
             None,
-            InnerId::new(),
+            ID::new(),
             None,
             StepType::Default,
             Some(Condition::new(
@@ -422,9 +422,9 @@ mod test {
 
     #[test]
     fn test_step_execute_with_return_case_and_condition_then_case() {
-        let step = InnerStep::new(
+        let step = StepWorker::new(
             None,
-            InnerId::new(),
+            ID::new(),
             None,
             StepType::Default,
             Some(Condition::new(
@@ -447,9 +447,9 @@ mod test {
 
     #[test]
     fn test_step_execute_with_return_case_and_condition_else_case() {
-        let step = InnerStep::new(
+        let step = StepWorker::new(
             None,
-            InnerId::new(),
+            ID::new(),
             None,
             StepType::Default,
             Some(Condition::new(

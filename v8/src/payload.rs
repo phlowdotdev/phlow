@@ -56,8 +56,8 @@ impl Payload {
 #[cfg(test)]
 mod test {
     use crate::{
-        step::{InnerId, StepType},
-        InnerStep,
+        step::{ID, StepType},
+        StepWorker,
     };
 
     use super::*;
@@ -147,9 +147,9 @@ mod test {
    
             a + b
         "#;
-        let step = InnerStep::new(
+        let step = StepWorker::new(
             Some("me".to_string()),
-            InnerId::new(),
+            ID::new(),
             None,
             StepType::Default,
             None,

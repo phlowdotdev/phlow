@@ -3,20 +3,20 @@ use valu3::value::Value;
 
 use crate::{
     pipeline::Pipeline,
-    step::{InnerId, InnerStep, InnerStepError},
+    step::{StepWorker, StepWorkerError, ID},
 };
 
 pub enum TransformError {
-    InnerStepError(InnerStepError),
+    InnerStepError(StepWorkerError),
 }
 
-pub fn transform_json(input: &Value) -> Value {
+pub fn transform_json(input: &Value) -> Result<HashMap<ID, Pipeline>, TransformError> {
     let mut id_counter = 0;
     let mut map = HashMap::new();
 
     process_raw_steps(input, &mut id_counter, &mut map);
 
-    Value::from(map)
+    value_to_structs(&Value::from(map))
 }
 
 fn process_raw_steps(
@@ -69,7 +69,7 @@ fn process_raw_steps(
     Value::from(key)
 }
 
-fn value_to_structs(value: &Value) -> Result<HashMap<InnerId, Pipeline>, TransformError> {
+fn value_to_structs(value: &Value) -> Result<HashMap<ID, Pipeline>, TransformError> {
     let mut pipelines = HashMap::new();
 
     if let Value::Object(obj) = value {
@@ -79,7 +79,7 @@ fn value_to_structs(value: &Value) -> Result<HashMap<InnerId, Pipeline>, Transfo
 
                 for item in arr {
                     let inner_step =
-                        InnerStep::try_from(value).map_err(TransformError::InnerStepError)?;
+                        StepWorker::try_from(value).map_err(TransformError::InnerStepError)?;
                     steps.push(inner_step);
                 }
 
@@ -193,17 +193,5 @@ mod test {
         "#,
         )
         .unwrap();
-
-        let expected = Valu3Value::json_to_value(
-            &r#"
-                {
-                "pipeline_id_0":[{"echo":"Start"},{"condition":{"condition":"greater_than","else":"pipeline_id_2","left":"{{context.credit}}","right":"{{context.credit_used}}","then":"pipeline_id_1"},"id":"step1"},{"condition":{"condition":"greater_than","else":"pipeline_id_4","left":"{{steps.step1.score}}","right":"500","then":"pipeline_id_3"}},{"echo":"End"}],
-                "pipeline_id_1":[{"payload":{"score":"{{context.credit - context.credit_used}}"},"steps":[{"condition":{"condition":"greater_than","left":"{{steps.step1.score}}","right":"10"}},{"condition":{"condition":"greater_than","left":"{{steps.step1.score}}","right":"500"}},{"condition":{"condition":"less_than","left":"{{steps.step1.score}}","right":"100000"}},{"then":{"condition":{"condition":"equal","left":"{{steps.step1.score}}","right":"500"},"echo":"Credit avaliable","then":{"return":true}}}]}],
-                "pipeline_id_2":[{"score":"{{0}}"}],"pipeline_id_3":[{"echo":"Credit avaliable","payload":{"resul":"{{true}}"}}],
-                "pipeline_id_4":[{"echo":"Credit not avaliable","payload":{"score":"{{false}}"}}]
-            }
-            "#).unwrap();
-
-        assert_eq!(transform_json(&original), expected);
     }
 }

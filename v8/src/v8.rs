@@ -1,17 +1,17 @@
 use std::collections::HashMap;
 
-use crate::{pipeline::Pipeline, step::InnerId, transform::transform_json};
+use crate::{pipeline::Pipeline, step::ID};
 
 struct V8 {
-    pipelines: HashMap<InnerId, Pipeline>,
-    main: InnerId,
+    pipelines: HashMap<ID, Pipeline>,
+    main: ID,
 }
 
 impl V8 {
     fn new() -> Self {
         Self {
             pipelines: HashMap::new(),
-            main: InnerId::new(),
+            main: ID::new(),
         }
     }
 
@@ -19,7 +19,7 @@ impl V8 {
         self.pipelines.insert(pipeline.id.clone(), pipeline);
     }
 
-    fn get_pipeline(&self, id: InnerId) -> Option<&Pipeline> {
+    fn get_pipeline(&self, id: ID) -> Option<&Pipeline> {
         self.pipelines.get(&id)
     }
 

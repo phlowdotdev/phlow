@@ -4,7 +4,7 @@ use crate::{
     condition::Condition,
     payload::Payload,
     step::{Output, StepType},
-    InnerId, InnerStep,
+    ID, StepWorker,
 };
 use serde::Serialize;
 use valu3::value::Value;
@@ -14,7 +14,7 @@ pub enum PipelineError {}
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Context {
     pub(crate) context: Value,
-    pub(crate) steps: HashMap<InnerId, Output>,
+    pub(crate) steps: HashMap<ID, Output>,
 }
 
 impl Context {
@@ -25,11 +25,11 @@ impl Context {
         }
     }
 
-    pub fn add_step_output(&mut self, step: &InnerStep, output: Output) {
+    pub fn add_step_output(&mut self, step: &StepWorker, output: Output) {
         self.steps.insert(step.get_reference_id(), output);
     }
 
-    pub fn get_step_output(&self, step: &InnerStep) -> Option<&Output> {
+    pub fn get_step_output(&self, step: &StepWorker) -> Option<&Output> {
         self.steps.get(&step.get_reference_id())
     }
 }
@@ -49,13 +49,13 @@ pub struct Step {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Pipeline {
     pub(crate) name: Option<String>,
-    pub(crate) id: InnerId,
-    pub(crate) steps: HashMap<InnerId, InnerStep>,
-    pub(crate) steps_order: Vec<InnerId>,
+    pub(crate) id: ID,
+    pub(crate) steps: HashMap<ID, StepWorker>,
+    pub(crate) steps_order: Vec<ID>,
 }
 
 impl Pipeline {
-    pub fn new(id: InnerId, steps: Vec<InnerStep>) -> Self {
+    pub fn new(id: ID, steps: Vec<StepWorker>) -> Self {
         let mut steps_map = HashMap::new();
         let mut steps_order = Vec::new();
 

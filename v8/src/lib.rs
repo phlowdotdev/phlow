@@ -8,29 +8,29 @@ mod variable;
 use std::collections::HashMap;
 
 use pipeline::{Pipeline, Step};
-use step::{InnerId, InnerStep};
+use step::{ID, StepWorker};
 use valu3::Error as ValueError;
 
 #[derive(Debug)]
 pub enum Error {
     JsonParseError(ValueError),
-    InvalidPipeline(InnerId),
+    InvalidPipeline(ID),
     InvalidCondition,
-    InvalidStep(InnerId),
+    InvalidStep(ID),
     PayloadError(payload::PayloadError),
 }
 
 struct V8 {
-    pipelines: HashMap<InnerId, Pipeline>,
-    main: InnerId,
+    pipelines: HashMap<ID, Pipeline>,
+    main: ID,
 }
 
 fn steps_to_pipelines(steps: Vec<Step>) -> Vec<Pipeline> {
     let mut pipelines = HashMap::new();
 
     for step in steps {
-        let inner_step = InnerStep::from(step);
-        let pipeline = Pipeline::new(InnerId::new(), vec![inner_step]);
+        let inner_step = StepWorker::from(step);
+        let pipeline = Pipeline::new(ID::new(), vec![inner_step]);
         pipelines.insert(pipeline.id.clone(), pipeline);
     }
 
