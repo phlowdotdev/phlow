@@ -6,7 +6,7 @@ use crate::{payload::Payload, pipeline::Context, Error};
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum ConditionError {
     InvalidOperator(String),
-    RighInvalid(String),
+    RightInvalid(String),
     LeftInvalid(String),
 }
 
@@ -28,7 +28,7 @@ pub enum Operator {
 
 impl From<&Value> for Operator {
     fn from(value: &Value) -> Self {
-        match value.to_string().as_str() {
+        match value.as_str() {
             "equal" => Operator::Equal,
             "not_equal" => Operator::NotEqual,
             "greater_than" => Operator::GreaterThan,
@@ -64,7 +64,7 @@ impl TryFrom<&Value> for Condition {
 
         let right = match value.get("right") {
             Some(right) => Payload::from(right),
-            None => return Err(ConditionError::RighInvalid("does not exist".to_string())),
+            None => return Err(ConditionError::RightInvalid("does not exist".to_string())),
         };
 
         match value.get("operator") {
@@ -225,8 +225,8 @@ mod test {
     fn test_condition_from_value() {
         let value = Value::json_to_value(
             r#"{
-            "left": "10",
-            "right": "20",
+            "left": 10,
+            "right": 20,
             "operator": "greater_than"
         }"#,
         )
