@@ -50,7 +50,7 @@ pub struct Step {
 pub struct Pipeline {
     pub(crate) name: Option<String>,
     pub(crate) id: InnerId,
-    pub(crate) steps: HashMap<String, InnerStep>,
+    pub(crate) steps: HashMap<InnerId, InnerStep>,
     pub(crate) steps_order: Vec<InnerId>,
 }
 

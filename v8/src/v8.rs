@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{pipeline::Pipeline, step::InnerId};
+use crate::{pipeline::Pipeline, step::InnerId, transform::transform_json};
 
 struct V8 {
     pipelines: HashMap<InnerId, Pipeline>,
@@ -27,3 +27,9 @@ impl V8 {
         self.pipelines.get(&self.main)
     }
 }
+
+// impl From<&str> for V8 {
+//     fn from(json: &str) -> Self {
+//         let pipelines = transform_json(json);
+//     }
+// }
