@@ -40,6 +40,7 @@ pub struct Step {
     pub(crate) name: Option<String>,
     pub(crate) step_type: StepType,
     pub(crate) condition: Option<Condition>,
+    pub(crate) echo: Option<String>,
     pub(crate) payload: Option<Payload>,
     pub(crate) then_case: Option<Vec<Step>>,
     pub(crate) else_case: Option<Vec<Step>>,

@@ -39,6 +39,7 @@ pub struct StepWorker {
     pub(crate) name: Option<String>,
     pub(crate) step_type: StepType,
     pub(crate) worker_id: ID,
+    pub(crate) echo: Option<String>,
     pub(crate) condition: Option<Condition>,
     pub(crate) payload: Option<Payload>,
     pub(crate) then_case: Option<ID>,
@@ -85,12 +86,14 @@ impl TryFrom<&Value> for StepWorker {
         let return_case = value
             .get("return_case")
             .map(|return_case| Payload::new(return_case.to_string()));
+        let echo = value.get("echo").map(|echo| echo.to_string());
 
         Ok(Self {
             id,
             name,
             step_type,
             worker_id: ID::new(),
+            echo,
             condition,
             payload,
             then_case,
@@ -108,6 +111,7 @@ impl From<Step> for StepWorker {
             step_type: step.step_type,
             worker_id: ID::new(),
             condition: step.condition,
+            echo: step.echo,
             payload: step.payload,
             then_case: None,
             else_case: None,
@@ -123,6 +127,7 @@ impl StepWorker {
         name: Option<String>,
         step_type: StepType,
         condition: Option<Condition>,
+        echo: Option<String>,
         payload: Option<Payload>,
         then_case: Option<ID>,
         else_case: Option<ID>,
@@ -134,6 +139,7 @@ impl StepWorker {
             step_type,
             worker_id: worker_id,
             condition,
+            echo,
             payload,
             then_case,
             else_case,
@@ -228,6 +234,7 @@ mod test {
             None,
             None,
             None,
+            None,
         );
 
         assert_eq!(step.get_reference_id(), "id".to_string());
@@ -245,6 +252,7 @@ mod test {
             None,
             None,
             None,
+            None,
         );
 
         assert_eq!(step.get_reference_id(), step.worker_id);
@@ -257,6 +265,7 @@ mod test {
             ID::new(),
             None,
             StepType::Default,
+            None,
             None,
             Some(Payload::new("10".to_string())),
             None,
@@ -284,6 +293,7 @@ mod test {
                 Payload::new("20".to_string()),
                 crate::condition::Operator::NotEqual,
             )),
+            None,
             Some(Payload::new("10".to_string())),
             None,
             None,
@@ -310,6 +320,7 @@ mod test {
                 Payload::new("20".to_string()),
                 crate::condition::Operator::NotEqual,
             )),
+            None,
             Some(Payload::new("10".to_string())),
             Some("then_case".to_string()),
             None,
@@ -336,6 +347,7 @@ mod test {
                 Payload::new("20".to_string()),
                 crate::condition::Operator::Equal,
             )),
+            None,
             Some(Payload::new("10".to_string())),
             None,
             Some("else_case".to_string()),
@@ -361,6 +373,7 @@ mod test {
             None,
             None,
             None,
+            None,
             Some(Payload::new("10".to_string())),
         );
 
@@ -379,6 +392,7 @@ mod test {
             ID::new(),
             None,
             StepType::Default,
+            None,
             None,
             Some(Payload::new("10".to_string())),
             None,
@@ -409,6 +423,7 @@ mod test {
             None,
             None,
             None,
+            None,
             Some(Payload::new("10".to_string())),
         );
 
@@ -432,6 +447,7 @@ mod test {
                 Payload::new("10".to_string()),
                 crate::condition::Operator::Equal,
             )),
+            None,
             None,
             Some("then_case".to_string()),
             None,
@@ -457,6 +473,7 @@ mod test {
                 Payload::new("20".to_string()),
                 crate::condition::Operator::Equal,
             )),
+            None,
             None,
             None,
             Some("else_case".to_string()),
