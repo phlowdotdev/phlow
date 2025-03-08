@@ -105,7 +105,7 @@ mod test {
             r#"
             [
           {
-            "echo": "Start"
+            "name": "Start"
           },
           {
             "id": "step1",
@@ -142,7 +142,7 @@ mod test {
                     },
                     {
                       "then": {
-                        "echo": "Credit avaliable",
+                        "name": "Credit avaliable",
                         "condition": {
                           "left": "{{steps.step1.score}}",
                           "right": "500",
@@ -170,7 +170,7 @@ mod test {
               "condition": "greater_than",
               "then": [
                 {
-                  "echo": "Credit avaliable",
+                  "name": "Credit avaliable",
                   "payload": {
                     "resul": "{{true}}"
                   }
@@ -178,7 +178,7 @@ mod test {
               ],
               "else": [
                 {
-                  "echo": "Credit not avaliable",
+                  "name": "Credit not avaliable",
                   "payload": {
                     "score": "{{false}}"
                   }
@@ -187,7 +187,7 @@ mod test {
             }
           },
           {
-            "echo": "End"
+            "name": "End"
           }
         ]
         "#,
