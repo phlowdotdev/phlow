@@ -48,7 +48,10 @@ impl Payload {
 
 #[cfg(test)]
 mod test {
-    use crate::{step::StepType, InnerStep};
+    use crate::{
+        step::{InnerId, StepType},
+        InnerStep,
+    };
 
     use super::*;
     use std::collections::HashMap;
@@ -139,6 +142,7 @@ mod test {
         "#;
         let step = InnerStep::new(
             Some("me".to_string()),
+            InnerId::new(),
             None,
             StepType::Default,
             None,

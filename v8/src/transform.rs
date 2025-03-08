@@ -11,7 +11,7 @@ pub fn transform_json(input: &Value) -> Value {
 }
 
 fn process_steps(input: &Value, id_counter: &mut usize, map: &mut HashMap<String, Value>) -> Value {
-    let key = format!("autoId{}", *id_counter);
+    let key = format!("pipeline_id_{}", *id_counter);
     *id_counter += 1;
 
     let mut new_array = Vec::new();
@@ -155,10 +155,10 @@ mod test {
         let expected = Valu3Value::json_to_value(
             &r#"
                 {
-                "autoId0":[{"echo":"Start"},{"condition":{"condition":"greater_than","else":"autoId2","left":"{{context.credit}}","right":"{{context.credit_used}}","then":"autoId1"},"id":"step1"},{"condition":{"condition":"greater_than","else":"autoId4","left":"{{steps.step1.score}}","right":"500","then":"autoId3"}},{"echo":"End"}],
-                "autoId1":[{"payload":{"score":"{{context.credit - context.credit_used}}"},"steps":[{"condition":{"condition":"greater_than","left":"{{steps.step1.score}}","right":"10"}},{"condition":{"condition":"greater_than","left":"{{steps.step1.score}}","right":"500"}},{"condition":{"condition":"less_than","left":"{{steps.step1.score}}","right":"100000"}},{"then":{"condition":{"condition":"equal","left":"{{steps.step1.score}}","right":"500"},"echo":"Credit avaliable","then":{"return":true}}}]}],
-                "autoId2":[{"score":"{{0}}"}],"autoId3":[{"echo":"Credit avaliable","payload":{"resul":"{{true}}"}}],
-                "autoId4":[{"echo":"Credit not avaliable","payload":{"score":"{{false}}"}}]
+                "pipeline_id_0":[{"echo":"Start"},{"condition":{"condition":"greater_than","else":"pipeline_id_2","left":"{{context.credit}}","right":"{{context.credit_used}}","then":"pipeline_id_1"},"id":"step1"},{"condition":{"condition":"greater_than","else":"pipeline_id_4","left":"{{steps.step1.score}}","right":"500","then":"pipeline_id_3"}},{"echo":"End"}],
+                "pipeline_id_1":[{"payload":{"score":"{{context.credit - context.credit_used}}"},"steps":[{"condition":{"condition":"greater_than","left":"{{steps.step1.score}}","right":"10"}},{"condition":{"condition":"greater_than","left":"{{steps.step1.score}}","right":"500"}},{"condition":{"condition":"less_than","left":"{{steps.step1.score}}","right":"100000"}},{"then":{"condition":{"condition":"equal","left":"{{steps.step1.score}}","right":"500"},"echo":"Credit avaliable","then":{"return":true}}}]}],
+                "pipeline_id_2":[{"score":"{{0}}"}],"pipeline_id_3":[{"echo":"Credit avaliable","payload":{"resul":"{{true}}"}}],
+                "pipeline_id_4":[{"echo":"Credit not avaliable","payload":{"score":"{{false}}"}}]
             }
             "#).unwrap();
 

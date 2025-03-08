@@ -50,7 +50,7 @@ impl From<Step> for InnerStep {
             id: step.id,
             name: step.name,
             step_type: step.step_type,
-            inner_id: uuid::Uuid::new_v4().to_string(),
+            inner_id: InnerId::new(),
             condition: step.condition,
             payload: step.payload,
             then_case: None,
@@ -63,6 +63,7 @@ impl From<Step> for InnerStep {
 impl InnerStep {
     pub fn new(
         id: Option<String>,
+        inner_id: InnerId,
         name: Option<String>,
         step_type: StepType,
         condition: Option<Condition>,
@@ -75,7 +76,7 @@ impl InnerStep {
             id,
             name,
             step_type,
-            inner_id: Uuid::new_v4().to_string(),
+            inner_id,
             condition,
             payload,
             then_case,
@@ -163,6 +164,7 @@ mod test {
     fn test_step_get_reference_id() {
         let step = InnerStep::new(
             Some("id".to_string()),
+            InnerId::new(),
             Some("name".to_string()),
             StepType::Default,
             None,
@@ -179,6 +181,7 @@ mod test {
     fn test_step_get_reference_id_without_id() {
         let step = InnerStep::new(
             None,
+            InnerId::new(),
             Some("name".to_string()),
             StepType::Default,
             None,
@@ -195,6 +198,7 @@ mod test {
     fn test_step_execute() {
         let step = InnerStep::new(
             None,
+            InnerId::new(),
             None,
             StepType::Default,
             None,
@@ -216,6 +220,7 @@ mod test {
     fn test_step_execute_with_condition() {
         let step = InnerStep::new(
             None,
+            InnerId::new(),
             None,
             StepType::Default,
             Some(Condition::new(
@@ -241,6 +246,7 @@ mod test {
     fn test_step_execute_with_condition_then_case() {
         let step = InnerStep::new(
             None,
+            InnerId::new(),
             None,
             StepType::Default,
             Some(Condition::new(
@@ -266,6 +272,7 @@ mod test {
     fn test_step_execute_with_condition_else_case() {
         let step = InnerStep::new(
             None,
+            InnerId::new(),
             None,
             StepType::Default,
             Some(Condition::new(
@@ -291,6 +298,7 @@ mod test {
     fn test_step_execute_with_return_case() {
         let step = InnerStep::new(
             None,
+            InnerId::new(),
             None,
             StepType::Default,
             None,
@@ -312,6 +320,7 @@ mod test {
     fn test_step_execute_with_return_case_and_payload() {
         let step = InnerStep::new(
             None,
+            InnerId::new(),
             None,
             StepType::Default,
             None,
@@ -333,6 +342,7 @@ mod test {
     fn test_step_execute_with_return_case_and_condition() {
         let step = InnerStep::new(
             None,
+            InnerId::new(),
             None,
             StepType::Default,
             Some(Condition::new(
@@ -358,6 +368,7 @@ mod test {
     fn test_step_execute_with_return_case_and_condition_then_case() {
         let step = InnerStep::new(
             None,
+            InnerId::new(),
             None,
             StepType::Default,
             Some(Condition::new(
@@ -382,6 +393,7 @@ mod test {
     fn test_step_execute_with_return_case_and_condition_else_case() {
         let step = InnerStep::new(
             None,
+            InnerId::new(),
             None,
             StepType::Default,
             Some(Condition::new(
