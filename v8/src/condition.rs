@@ -227,7 +227,7 @@ mod test {
             r#"{
             "left": "10",
             "right": "20",
-            "condition": "greater_than"
+            "operator": "greater_than"
         }"#,
         )
         .unwrap();
