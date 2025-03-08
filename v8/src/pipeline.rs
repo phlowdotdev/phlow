@@ -48,10 +48,10 @@ pub struct Step {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Pipeline {
-    name: Option<String>,
+    pub(crate) name: Option<String>,
     pub(crate) id: InnerId,
-    steps: HashMap<String, InnerStep>,
-    steps_order: Vec<InnerId>,
+    pub(crate) steps: HashMap<String, InnerStep>,
+    pub(crate) steps_order: Vec<InnerId>,
 }
 
 impl Pipeline {
