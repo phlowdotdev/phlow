@@ -3,7 +3,7 @@ mod payload;
 mod pipeline;
 mod step;
 mod variable;
-use step::{Step, StepInnerId};
+use step::{InnerStep, StepInnerId};
 use valu3::Error as ValueError;
 
 #[derive(Debug)]

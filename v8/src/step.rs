@@ -2,7 +2,12 @@ use serde::Serialize;
 use uuid::Uuid;
 use valu3::value::Value;
 
-use crate::{condition::Condition, payload::Payload, pipeline::Context, Error};
+use crate::{
+    condition::Condition,
+    payload::Payload,
+    pipeline::{Context, Step},
+    Error,
+};
 
 pub type StepInnerId = String;
 pub type Output = Value;
@@ -15,20 +20,20 @@ pub enum NextStep {
 }
 
 pub struct StepOutput {
-    pub(crate) next_step: NextStep,
-    pub(crate) output: Option<Output>,
+    pub next_step: NextStep,
+    pub output: Option<Output>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub(crate) enum StepType {
+pub enum StepType {
     Default,
     ThenCase,
     ElseCase,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub(crate) struct Step {
-    pub(crate) id: Option<String>, // id do json enviado pelo cliente
+pub struct InnerStep {
+    pub(crate) id: Option<String>,
     pub(crate) name: Option<String>,
     pub(crate) step_type: StepType,
     pub(crate) inner_id: StepInnerId,
@@ -39,8 +44,24 @@ pub(crate) struct Step {
     pub(crate) return_case: Option<Payload>,
 }
 
-impl Step {
-    pub(crate) fn new(
+impl From<Step> for InnerStep {
+    fn from(step: Step) -> Self {
+        Self {
+            id: step.id,
+            name: step.name,
+            step_type: step.step_type,
+            inner_id: uuid::Uuid::new_v4().to_string(),
+            condition: step.condition,
+            payload: step.payload,
+            then_case: None,
+            else_case: None,
+            return_case: step.return_case,
+        }
+    }
+}
+
+impl InnerStep {
+    pub fn new(
         id: Option<String>,
         name: Option<String>,
         step_type: StepType,
@@ -61,6 +82,14 @@ impl Step {
             else_case,
             return_case,
         }
+    }
+
+    pub fn add_then_case(&mut self, then_case: StepInnerId) {
+        self.then_case = Some(then_case);
+    }
+
+    pub fn add_else_case(&mut self, else_case: StepInnerId) {
+        self.else_case = Some(else_case);
     }
 
     pub fn get_reference_id(&self) -> String {
@@ -132,7 +161,7 @@ mod test {
 
     #[test]
     fn test_step_get_reference_id() {
-        let step = Step::new(
+        let step = InnerStep::new(
             Some("id".to_string()),
             Some("name".to_string()),
             StepType::Default,
@@ -148,7 +177,7 @@ mod test {
 
     #[test]
     fn test_step_get_reference_id_without_id() {
-        let step = Step::new(
+        let step = InnerStep::new(
             None,
             Some("name".to_string()),
             StepType::Default,
@@ -164,7 +193,7 @@ mod test {
 
     #[test]
     fn test_step_execute() {
-        let step = Step::new(
+        let step = InnerStep::new(
             None,
             None,
             StepType::Default,
@@ -185,7 +214,7 @@ mod test {
 
     #[test]
     fn test_step_execute_with_condition() {
-        let step = Step::new(
+        let step = InnerStep::new(
             None,
             None,
             StepType::Default,
@@ -210,7 +239,7 @@ mod test {
 
     #[test]
     fn test_step_execute_with_condition_then_case() {
-        let step = Step::new(
+        let step = InnerStep::new(
             None,
             None,
             StepType::Default,
@@ -235,7 +264,7 @@ mod test {
 
     #[test]
     fn test_step_execute_with_condition_else_case() {
-        let step = Step::new(
+        let step = InnerStep::new(
             None,
             None,
             StepType::Default,
@@ -260,7 +289,7 @@ mod test {
 
     #[test]
     fn test_step_execute_with_return_case() {
-        let step = Step::new(
+        let step = InnerStep::new(
             None,
             None,
             StepType::Default,
@@ -281,7 +310,7 @@ mod test {
 
     #[test]
     fn test_step_execute_with_return_case_and_payload() {
-        let step = Step::new(
+        let step = InnerStep::new(
             None,
             None,
             StepType::Default,
@@ -302,7 +331,7 @@ mod test {
 
     #[test]
     fn test_step_execute_with_return_case_and_condition() {
-        let step = Step::new(
+        let step = InnerStep::new(
             None,
             None,
             StepType::Default,
@@ -327,7 +356,7 @@ mod test {
 
     #[test]
     fn test_step_execute_with_return_case_and_condition_then_case() {
-        let step = Step::new(
+        let step = InnerStep::new(
             None,
             None,
             StepType::Default,
@@ -351,7 +380,7 @@ mod test {
 
     #[test]
     fn test_step_execute_with_return_case_and_condition_else_case() {
-        let step = Step::new(
+        let step = InnerStep::new(
             None,
             None,
             StepType::Default,
