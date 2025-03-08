@@ -6,6 +6,7 @@ use crate::{
     step_worker::{StepWorker, StepWorkerError, ID},
 };
 
+#[derive(Debug)]
 pub enum TransformError {
     InnerStepError(StepWorkerError),
 }
@@ -193,5 +194,9 @@ mod test {
         "#,
         )
         .unwrap();
+
+        let result = transform_json(&original).unwrap();
+
+        println!("{:?}", result);
     }
 }

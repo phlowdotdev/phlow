@@ -10,6 +10,7 @@ use valu3::{prelude::StringBehavior, value::Value};
 pub type ID = String;
 pub type Output = Value;
 
+#[derive(Debug)]
 pub enum StepWorkerError {
     ConditionError(ConditionError),
 }
