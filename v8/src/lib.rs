@@ -3,14 +3,22 @@ mod payload;
 mod pipeline;
 mod step;
 mod variable;
-use step::{InnerStep, StepInnerId};
+use std::collections::HashMap;
+
+use pipeline::Pipeline;
+use step::{InnerId, InnerStep};
 use valu3::Error as ValueError;
 
 #[derive(Debug)]
 pub enum Error {
     JsonParseError(ValueError),
-    InvalidPipeline(StepInnerId),
+    InvalidPipeline(InnerId),
     InvalidCondition,
-    InvalidStep(StepInnerId),
+    InvalidStep(InnerId),
     PayloadError(payload::PayloadError),
+}
+
+struct V8 {
+    pipelines: HashMap<InnerId, Pipeline>,
+    main: InnerId,
 }

@@ -4,7 +4,7 @@ use crate::{
     condition::Condition,
     payload::Payload,
     step::{Output, StepType},
-    InnerStep, StepInnerId,
+    InnerId, InnerStep,
 };
 use serde::Serialize;
 use valu3::value::Value;
@@ -14,7 +14,7 @@ pub enum PipelineError {}
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Context {
     pub(crate) context: Value,
-    pub(crate) steps: HashMap<StepInnerId, Output>,
+    pub(crate) steps: HashMap<InnerId, Output>,
 }
 
 impl Context {
@@ -41,15 +41,34 @@ pub struct Step {
     pub(crate) step_type: StepType,
     pub(crate) condition: Option<Condition>,
     pub(crate) payload: Option<Payload>,
-    pub(crate) then_case: Option<Vec<Step>>,
-    pub(crate) else_case: Option<Vec<Step>>,
+    pub(crate) then_case: Option<InnerId>,
+    pub(crate) else_case: Option<InnerId>,
     pub(crate) return_case: Option<Payload>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Pipeline {
     name: Option<String>,
-    id: StepInnerId,
+    pub(crate) id: InnerId,
     steps: HashMap<String, InnerStep>,
-    steps_order: Vec<StepInnerId>,
+    steps_order: Vec<InnerId>,
+}
+
+impl Pipeline {
+    pub fn new(id: InnerId, steps: Vec<InnerStep>) -> Self {
+        let mut steps_map = HashMap::new();
+        let mut steps_order = Vec::new();
+
+        for step in steps {
+            steps_order.push(step.get_reference_id().clone());
+            steps_map.insert(step.get_reference_id().clone(), step);
+        }
+
+        Self {
+            name: None,
+            id,
+            steps: steps_map,
+            steps_order,
+        }
+    }
 }

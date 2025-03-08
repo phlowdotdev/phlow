@@ -9,12 +9,12 @@ use crate::{
     Error,
 };
 
-pub type StepInnerId = String;
+pub type InnerId = String;
 pub type Output = Value;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum NextStep {
-    Step(StepInnerId),
+    Step(InnerId),
     Stop,
     Next,
 }
@@ -36,11 +36,11 @@ pub struct InnerStep {
     pub(crate) id: Option<String>,
     pub(crate) name: Option<String>,
     pub(crate) step_type: StepType,
-    pub(crate) inner_id: StepInnerId,
+    pub(crate) inner_id: InnerId,
     pub(crate) condition: Option<Condition>,
     pub(crate) payload: Option<Payload>,
-    pub(crate) then_case: Option<StepInnerId>,
-    pub(crate) else_case: Option<StepInnerId>,
+    pub(crate) then_case: Option<InnerId>,
+    pub(crate) else_case: Option<InnerId>,
     pub(crate) return_case: Option<Payload>,
 }
 
@@ -67,8 +67,8 @@ impl InnerStep {
         step_type: StepType,
         condition: Option<Condition>,
         payload: Option<Payload>,
-        then_case: Option<StepInnerId>,
-        else_case: Option<StepInnerId>,
+        then_case: Option<InnerId>,
+        else_case: Option<InnerId>,
         return_case: Option<Payload>,
     ) -> Self {
         Self {
@@ -84,11 +84,11 @@ impl InnerStep {
         }
     }
 
-    pub fn add_then_case(&mut self, then_case: StepInnerId) {
+    pub fn add_then_case(&mut self, then_case: InnerId) {
         self.then_case = Some(then_case);
     }
 
-    pub fn add_else_case(&mut self, else_case: StepInnerId) {
+    pub fn add_else_case(&mut self, else_case: InnerId) {
         self.else_case = Some(else_case);
     }
 
