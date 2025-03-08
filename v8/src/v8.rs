@@ -27,9 +27,3 @@ impl V8 {
         self.pipelines.get(&self.main)
     }
 }
-
-// impl From<&str> for V8 {
-//     fn from(json: &str) -> Self {
-//         let pipelines = transform_json(json);
-//     }
-// }

@@ -1,17 +1,13 @@
-use serde::Serialize;
-use serde_json::{json, Value};
 use std::collections::HashMap;
-use valu3::value::Value as Valu3Value;
+use valu3::value::Value;
 
-pub fn transform_json(input: &Value) -> Valu3Value {
+pub fn transform_json(input: &Value) -> Value {
     let mut id_counter = 0;
     let mut map = HashMap::new();
 
     process_steps(input, &mut id_counter, &mut map);
 
-    let json_string = json!(map).to_string();
-
-    Valu3Value::json_to_value(&json_string).unwrap()
+    Value::from(map)
 }
 
 fn process_steps(input: &Value, id_counter: &mut usize, map: &mut HashMap<String, Value>) -> Value {
@@ -21,7 +17,7 @@ fn process_steps(input: &Value, id_counter: &mut usize, map: &mut HashMap<String
     let mut new_array = Vec::new();
 
     if let Value::Array(arr) = input {
-        for item in arr {
+        for item in arr.into_iter() {
             if let Value::Object(obj) = item {
                 let mut new_obj = obj.clone();
 
@@ -32,10 +28,12 @@ fn process_steps(input: &Value, id_counter: &mut usize, map: &mut HashMap<String
 
                         // Substitui `then` e `else` por novos IDs
                         if let Some(then) = cond_obj.get("then") {
-                            new_cond["then"] = process_steps(then, id_counter, map);
+                            new_cond
+                                .insert("then".to_string(), process_steps(then, id_counter, map));
                         }
                         if let Some(els) = cond_obj.get("else") {
-                            new_cond["else"] = process_steps(els, id_counter, map);
+                            new_cond
+                                .insert("else".to_string(), process_steps(els, id_counter, map));
                         }
 
                         new_obj.insert("condition".to_string(), Value::Object(new_cond));
@@ -50,8 +48,8 @@ fn process_steps(input: &Value, id_counter: &mut usize, map: &mut HashMap<String
         }
     }
 
-    map.insert(key.clone(), Value::Array(new_array));
-    Value::String(key)
+    map.insert(key.clone(), Value::from(new_array));
+    Value::from(key)
 }
 
 #[cfg(test)]
@@ -61,7 +59,9 @@ mod test {
 
     #[test]
     fn test_transform_json() {
-        let original = json!([
+        let original = Valu3Value::json_to_value(
+            r#"
+            [
           {
             "echo": "Start"
           },
@@ -147,7 +147,10 @@ mod test {
           {
             "echo": "End"
           }
-        ]);
+        ]
+        "#,
+        )
+        .unwrap();
 
         let expected = Valu3Value::json_to_value(
             &r#"
