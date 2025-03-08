@@ -56,7 +56,7 @@ impl Payload {
 #[cfg(test)]
 mod test {
     use crate::{
-        step::{ID, StepType},
+        step_worker::{ID, StepType},
         StepWorker,
     };
 

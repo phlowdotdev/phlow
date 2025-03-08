@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{pipeline::Pipeline, step::ID};
+use crate::{pipeline::Pipeline, step_worker::ID};
 
 struct V8 {
     pipelines: HashMap<ID, Pipeline>,

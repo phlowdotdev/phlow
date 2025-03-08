@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use crate::{
     condition::Condition,
     payload::Payload,
-    step::{Output, StepType},
-    ID, StepWorker,
+    step_worker::{Output, StepType},
+    StepWorker, ID,
 };
 use serde::Serialize;
 use valu3::value::Value;

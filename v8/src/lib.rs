@@ -1,14 +1,14 @@
 mod condition;
 mod payload;
 mod pipeline;
-mod step;
+mod step_worker;
 mod transform;
 mod v8;
 mod variable;
 use std::collections::HashMap;
 
 use pipeline::{Pipeline, Step};
-use step::{StepWorker, ID};
+use step_worker::{StepWorker, ID};
 use valu3::Error as ValueError;
 
 #[derive(Debug)]

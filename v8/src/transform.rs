@@ -3,7 +3,7 @@ use valu3::value::Value;
 
 use crate::{
     pipeline::Pipeline,
-    step::{StepWorker, StepWorkerError, ID},
+    step_worker::{StepWorker, StepWorkerError, ID},
 };
 
 pub enum TransformError {
