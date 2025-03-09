@@ -6,7 +6,7 @@ use crate::{
 };
 use serde::Serialize;
 use std::fmt::Display;
-use valu3::{prelude::StringBehavior, value::Value};
+use valu3::value::Value;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Eq, Hash)]
 pub struct ID(String);
@@ -93,10 +93,9 @@ impl Default for StepType {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Default)]
 pub struct StepWorker {
-    pub(crate) id: Option<ID>,
+    pub(crate) id: ID,
     pub(crate) name: Option<String>,
     pub(crate) step_type: StepType,
-    pub(crate) worker_id: ID,
     pub(crate) condition: Option<Condition>,
     pub(crate) payload: Option<Payload>,
     pub(crate) then_case: Option<ID>,
@@ -108,9 +107,9 @@ impl TryFrom<&Value> for StepWorker {
     type Error = StepWorkerError;
 
     fn try_from(value: &Value) -> Result<Self, StepWorkerError> {
-        let id: Option<ID> = match value.get("id") {
-            Some(id) => Some(ID::from(id)),
-            None => None,
+        let id = match value.get("id") {
+            Some(id) => ID::from(id),
+            None => ID::new(),
         };
         let name = value.get("name").map(|name| name.to_string());
         let condition = {
@@ -152,7 +151,6 @@ impl TryFrom<&Value> for StepWorker {
             id,
             name,
             step_type,
-            worker_id: ID::new(),
             condition,
             payload,
             then_case,
@@ -165,14 +163,13 @@ impl TryFrom<&Value> for StepWorker {
 impl From<Step> for StepWorker {
     fn from(step: Step) -> Self {
         Self {
-            id: if step.id.is_some() {
-                Some(ID::from(step.id.unwrap()))
+            id: if let Some(id) = step.id {
+                ID::from(id)
             } else {
-                None
+                ID::new()
             },
             name: step.name,
             step_type: step.step_type,
-            worker_id: ID::new(),
             condition: step.condition,
             payload: step.payload,
             then_case: None,
@@ -184,8 +181,7 @@ impl From<Step> for StepWorker {
 
 impl StepWorker {
     pub fn new(
-        id: Option<ID>,
-        worker_id: ID,
+        id: ID,
         name: Option<String>,
         step_type: StepType,
         condition: Option<Condition>,
@@ -198,7 +194,6 @@ impl StepWorker {
             id,
             name,
             step_type,
-            worker_id,
             condition,
             payload,
             then_case,
@@ -215,11 +210,8 @@ impl StepWorker {
         self.else_case = Some(else_case);
     }
 
-    pub fn get_reference_id(&self) -> &ID {
-        match self.id {
-            Some(ref id) => id,
-            None => &self.worker_id,
-        }
+    pub fn get_id(&self) -> &ID {
+        &self.id
     }
 
     fn evaluate_payload(&self, context: &Context) -> Result<Option<Output>, Error> {
@@ -285,8 +277,7 @@ mod test {
     #[test]
     fn test_step_get_reference_id() {
         let step = StepWorker::new(
-            Some(ID::from("id")),
-            ID::new(),
+            ID::from("id"),
             Some("name".to_string()),
             StepType::Default,
             None,
@@ -296,30 +287,12 @@ mod test {
             None,
         );
 
-        assert_eq!(step.get_reference_id(), &ID::from("id"));
-    }
-
-    #[test]
-    fn test_step_get_reference_id_without_id() {
-        let step = StepWorker::new(
-            None,
-            ID::new(),
-            Some("name".to_string()),
-            StepType::Default,
-            None,
-            None,
-            None,
-            None,
-            None,
-        );
-
-        assert_eq!(step.get_reference_id(), &step.worker_id);
+        assert_eq!(step.get_id(), &ID::from("id"));
     }
 
     #[test]
     fn test_step_execute() {
         let step = StepWorker::new(
-            None,
             ID::new(),
             None,
             StepType::Default,
@@ -341,7 +314,6 @@ mod test {
     #[test]
     fn test_step_execute_with_condition() {
         let step = StepWorker::new(
-            None,
             ID::new(),
             None,
             StepType::Default,
@@ -367,7 +339,6 @@ mod test {
     #[test]
     fn test_step_execute_with_condition_then_case() {
         let step = StepWorker::new(
-            None,
             ID::new(),
             None,
             StepType::Default,
@@ -393,7 +364,6 @@ mod test {
     #[test]
     fn test_step_execute_with_condition_else_case() {
         let step = StepWorker::new(
-            None,
             ID::new(),
             None,
             StepType::Default,
@@ -419,7 +389,6 @@ mod test {
     #[test]
     fn test_step_execute_with_return_case() {
         let step = StepWorker::new(
-            None,
             ID::new(),
             None,
             StepType::Default,
@@ -441,7 +410,6 @@ mod test {
     #[test]
     fn test_step_execute_with_return_case_and_payload() {
         let step = StepWorker::new(
-            None,
             ID::new(),
             None,
             StepType::Default,
@@ -463,7 +431,6 @@ mod test {
     #[test]
     fn test_step_execute_with_return_case_and_condition() {
         let step = StepWorker::new(
-            None,
             ID::new(),
             None,
             StepType::Default,
@@ -489,7 +456,6 @@ mod test {
     #[test]
     fn test_step_execute_with_return_case_and_condition_then_case() {
         let step = StepWorker::new(
-            None,
             ID::new(),
             None,
             StepType::Default,
@@ -514,7 +480,6 @@ mod test {
     #[test]
     fn test_step_execute_with_return_case_and_condition_else_case() {
         let step = StepWorker::new(
-            None,
             ID::new(),
             None,
             StepType::Default,

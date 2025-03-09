@@ -26,11 +26,11 @@ impl Context {
     }
 
     pub fn add_step_output(&mut self, step: &StepWorker, output: Output) {
-        self.steps.insert(step.get_reference_id().clone(), output);
+        self.steps.insert(step.get_id().clone(), output);
     }
 
     pub fn get_step_output(&self, step: &StepWorker) -> Option<&Output> {
-        self.steps.get(&step.get_reference_id())
+        self.steps.get(&step.get_id())
     }
 }
 
@@ -51,25 +51,15 @@ pub struct Step {
 pub struct Pipeline {
     pub(crate) name: Option<String>,
     pub(crate) id: ID,
-    pub(crate) steps: HashMap<ID, StepWorker>,
-    pub(crate) steps_order: Vec<ID>,
+    pub(crate) steps: Vec<StepWorker>,
 }
 
 impl Pipeline {
     pub fn new(id: ID, steps: Vec<StepWorker>) -> Self {
-        let mut steps_map = HashMap::new();
-        let mut steps_order = Vec::new();
-
-        for step in steps {
-            steps_order.push(step.get_reference_id().clone());
-            steps_map.insert(step.get_reference_id().clone(), step);
-        }
-
         Self {
             name: None,
             id,
-            steps: steps_map,
-            steps_order,
+            steps,
         }
     }
 }

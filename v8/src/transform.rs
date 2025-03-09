@@ -139,7 +139,7 @@ mod test {
                             ..default::Default::default()
                         },
                         StepWorker {
-                            id: Some(ID::from("step1")),
+                            id: ID::from("step1"),
                             condition: Some(Condition {
                                 left: Payload::from("context.credit"),
                                 right: Payload::from("context.credit_used"),
