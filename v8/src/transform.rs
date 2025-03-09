@@ -73,7 +73,7 @@ pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
             }
         }
 
-        map.push(Value::from(new_steps));
+        map.push(new_steps.to_value());
     }
 
     (map.len() - 1).to_value()
