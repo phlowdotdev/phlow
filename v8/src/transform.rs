@@ -76,7 +76,8 @@ pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
         map.push(new_steps.to_value());
     }
 
-    Number::from((map.len() - 1) as u128).to_value()
+    let json = (map.len() - 1).to_value().to_json(JsonMode::Inline);
+    Value::json_to_value(&json).unwrap()
 }
 
 fn value_to_structs(map: &Vec<Value>) -> Result<PipelineMap, TransformError> {

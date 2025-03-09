@@ -7,9 +7,9 @@
     [
         {
             "condition": {
-                "right": 500,
                 "operator": "equal",
-                "left": "steps.step1.score"
+                "left": "steps.step1.score",
+                "right": 500
             },
             "then": 0
         }
@@ -22,23 +22,23 @@
         },
         {
             "condition": {
-                "right": 10,
-                "left": "steps.step1.score",
-                "operator": "greater_than"
-            }
-        },
-        {
-            "condition": {
                 "operator": "greater_than",
-                "right": 500,
-                "left": "steps.step1.score"
+                "left": "steps.step1.score",
+                "right": 10
             }
         },
         {
             "condition": {
-                "right": 100000,
+                "left": "steps.step1.score",
+                "operator": "greater_than",
+                "right": 500
+            }
+        },
+        {
+            "condition": {
                 "operator": "less_than",
-                "left": "steps.step1.score"
+                "left": "steps.step1.score",
+                "right": 100000
             }
         },
         {
@@ -52,18 +52,18 @@
     ],
     [
         {
+            "name": "Credit avaliable",
             "payload": {
                 "result": true
-            },
-            "name": "Credit avaliable"
+            }
         }
     ],
     [
         {
-            "name": "Credit not avaliable",
             "payload": {
                 "score": false
-            }
+            },
+            "name": "Credit not avaliable"
         }
     ],
     [
@@ -79,21 +79,21 @@
         {
             "condition": {
                 "left": "params.credit",
-                "right": "params.credit_used",
-                "operator": "greater_than"
+                "operator": "greater_than",
+                "right": "params.credit_used"
             },
-            "id": "step1",
             "then": 2,
-            "else": 3
+            "else": 3,
+            "id": "step1"
         },
         {
-            "then": 4,
             "else": 5,
             "condition": {
-                "operator": "greater_than",
                 "right": 500,
+                "operator": "greater_than",
                 "left": "steps.step1.score"
-            }
+            },
+            "then": 4
         },
         {
             "name": "End"
