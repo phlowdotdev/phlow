@@ -9,6 +9,13 @@ use crate::{
 #[derive(Debug)]
 pub enum TransformError {
     InnerStepError(StepWorkerError),
+    Parser(valu3::Error),
+}
+
+pub(crate) fn json_to_pipelines(input: &str) -> Result<HashMap<ID, Pipeline>, TransformError> {
+    let value = Value::json_to_value(input).map_err(TransformError::Parser)?;
+
+    transform_json(&value)
 }
 
 pub(crate) fn transform_json(input: &Value) -> Result<HashMap<ID, Pipeline>, TransformError> {
