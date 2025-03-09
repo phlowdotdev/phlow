@@ -207,7 +207,7 @@ mod test {
             map.insert(
                 ID::from("pipeline_id_0"),
                 Pipeline::new(
-                    "pipeline_id_0".to_string(),
+                    ID::from("pipeline_id_0"),
                     vec![
                         StepWorker {
                             name: Some("Start".to_string()),
@@ -240,7 +240,7 @@ mod test {
             map.insert(
                 ID::from("pipeline_id_1"),
                 Pipeline::new(
-                    "pipeline_id_1".to_string(),
+                    ID::from("pipeline_id_1"),
                     vec![
                         StepWorker {
                             payload: Some(Payload::from(
@@ -289,7 +289,7 @@ mod test {
             map.insert(
                 ID::from("pipeline_id_2"),
                 Pipeline::new(
-                    "pipeline_id_2".to_string(),
+                    ID::from("pipeline_id_2"),
                     vec![StepWorker {
                         payload: Some(Payload::from(r#"{"score": "{{0}}"}"#)),
                         ..default::Default::default()
@@ -299,7 +299,7 @@ mod test {
             map.insert(
                 ID::from("pipeline_id_3"),
                 Pipeline::new(
-                    "pipeline_id_3".to_string(),
+                    ID::from("pipeline_id_3"),
                     vec![StepWorker {
                         condition: Some(Condition {
                             left: Payload::from("{{steps.step1.score}}"),
@@ -315,7 +315,7 @@ mod test {
             map.insert(
                 ID::from("pipeline_id_4"),
                 Pipeline::new(
-                    "pipeline_id_4".to_string(),
+                    ID::from("pipeline_id_4"),
                     vec![StepWorker {
                         name: Some("Credit not avaliable".to_string()),
                         payload: Some(Payload::from(r#"{"score": "{{false}}"}"#)),
@@ -326,7 +326,7 @@ mod test {
             map.insert(
                 ID::from("pipeline_id_5"),
                 Pipeline::new(
-                    "pipeline_id_5".to_string(),
+                    ID::from("pipeline_id_5"),
                     vec![StepWorker {
                         name: Some("Credit avaliable".to_string()),
                         payload: Some(Payload::from(r#"{"resul": "{{true}}"}"#)),
