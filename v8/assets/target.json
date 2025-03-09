@@ -9,7 +9,7 @@
             "payload": {
                 "score": "false"
             },
-            "echo": "Credit not avaliable"
+            "name": "Credit not avaliable"
         }
     ],
     "pipeline_id_1": [
@@ -40,7 +40,7 @@
     ],
     "pipeline_id_0": [
         {
-            "echo": "Start"
+            "name": "Start"
         },
         {
             "condition": {
@@ -62,12 +62,12 @@
             }
         },
         {
-            "echo": "End"
+            "name": "End"
         }
     ],
     "pipeline_id_4": [
         {
-            "echo": "Credit avaliable",
+            "name": "Credit avaliable",
             "payload": {
                 "resul": "true"
             }

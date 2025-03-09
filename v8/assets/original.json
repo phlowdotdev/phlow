@@ -1,7 +1,7 @@
 {
   "steps": [
     {
-      "echo": "Start"
+      "name": "Start"
     },
     {
       "id": "step1",
@@ -67,7 +67,7 @@
       "then": {
         "steps": [
           {
-            "echo": "Credit avaliable",
+            "name": "Credit avaliable",
             "payload": {
               "resul": "true"
             }
@@ -77,7 +77,7 @@
       "else": {
         "steps": [
           {
-            "echo": "Credit not avaliable",
+            "name": "Credit not avaliable",
             "payload": {
               "score": "false"
             }
@@ -86,7 +86,7 @@
       }
     },
     {
-      "echo": "End"
+      "name": "End"
     }
   ]
 }
