@@ -1,87 +1,89 @@
-[
-  {
-    "echo": "Start"
-  },
-  {
-    "id": "step1",
-    "condition": {
-      "left": "context.credit",
-      "right": "context.credit_used",
-      "operator": "greater_than"
+{
+  "steps": [
+    {
+      "echo": "Start"
     },
-    "then": [
-      {
-        "payload": {
-          "score": "context.credit - context.credit_used"
-        },
-        "steps": [
-          {
-            "condition": {
-              "left": "steps.step1.score",
-              "right": "10",
-              "operator": "greater_than"
-            }
+    {
+      "id": "step1",
+      "condition": {
+        "left": "context.credit",
+        "right": "context.credit_used",
+        "operator": "greater_than"
+      },
+      "then": [
+        {
+          "payload": {
+            "score": "context.credit - context.credit_used"
           },
-          {
-            "condition": {
-              "left": "steps.step1.score",
-              "right": "500",
-              "operator": "greater_than"
-            }
-          },
-          {
-            "condition": {
-              "left": "steps.step1.score",
-              "right": "100000",
-              "operator": "less_than"
-            }
-          },
-          {
-            "then": {
-              "echo": "Credit avaliable",
+          "steps": [
+            {
+              "condition": {
+                "left": "steps.step1.score",
+                "right": "10",
+                "operator": "greater_than"
+              }
+            },
+            {
               "condition": {
                 "left": "steps.step1.score",
                 "right": "500",
-                "operator": "equal"
-              },
+                "operator": "greater_than"
+              }
+            },
+            {
+              "condition": {
+                "left": "steps.step1.score",
+                "right": "100000",
+                "operator": "less_than"
+              }
+            },
+            {
               "then": {
-                "return": true
+                "echo": "Credit avaliable",
+                "condition": {
+                  "left": "steps.step1.score",
+                  "right": "500",
+                  "operator": "equal"
+                },
+                "then": {
+                  "return": true
+                }
               }
             }
-          }
-        ]
-      }
-    ],
-    "else": [
-      {
-        "score": "{{0}}"
-      }
-    ]
-  },
-  {
-    "condition": {
-      "left": "steps.step1.score",
-      "right": "500",
-      "operator": "greater_than",
-      "then": [
-        {
-          "echo": "Credit avaliable",
-          "payload": {
-            "resul": "{{true}}"
-          }
+          ]
         }
       ],
       "else": [
         {
-          "echo": "Credit not avaliable",
-          "payload": {
-            "score": "{{false}}"
-          }
+          "score": "{{0}}"
         }
       ]
+    },
+    {
+      "condition": {
+        "left": "steps.step1.score",
+        "right": "500",
+        "operator": "greater_than",
+        "then": [
+          {
+            "echo": "Credit avaliable",
+            "payload": {
+              "resul": "true"
+            }
+          }
+        ],
+        "else": [
+          {
+            "echo": "Credit not avaliable",
+            "payload": {
+              "score": "false"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "echo": "End"
     }
-  },
-  {
-    "echo": "End"
-  }
-]
+  ]
+}

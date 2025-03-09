@@ -30,8 +30,13 @@ pub(crate) fn process_raw_steps(
 
     let mut new_array = Vec::new();
 
-    if let Value::Array(arr) = input {
-        for item in arr.into_iter() {
+    if let Value::Object(main_obj) = input {
+        let main_steps = match main_obj.get("steps") {
+            Some(Value::Array(arr)) => arr,
+            _ => return Value::from(new_array),
+        };
+
+        for item in main_steps.into_iter() {
             if let Value::Object(obj) = item {
                 let mut new_obj = obj.clone();
 
@@ -102,105 +107,108 @@ mod test {
     use super::*;
     use valu3::{traits::ToValueBehavior, value::Value as Valu3Value};
 
+    const ORIGINAL: &str = r#"
+    {
+      "steps": [
+        {
+          "echo": "Start"
+        },
+        {
+          "id": "step1",
+          "condition": {
+            "left": "context.credit",
+            "right": "context.credit_used",
+            "operator": "greater_than"
+          },
+          "then": [
+            {
+              "payload": {
+                "score": "context.credit - context.credit_used"
+              },
+              "steps": [
+                {
+                  "condition": {
+                    "left": "steps.step1.score",
+                    "right": "10",
+                    "operator": "greater_than"
+                  }
+                },
+                {
+                  "condition": {
+                    "left": "steps.step1.score",
+                    "right": "500",
+                    "operator": "greater_than"
+                  }
+                },
+                {
+                  "condition": {
+                    "left": "steps.step1.score",
+                    "right": "100000",
+                    "operator": "less_than"
+                  }
+                },
+                {
+                  "then": {
+                    "echo": "Credit avaliable",
+                    "condition": {
+                      "left": "steps.step1.score",
+                      "right": "500",
+                      "operator": "equal"
+                    },
+                    "then": {
+                      "return": true
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "else": [
+            {
+              "score": "{{0}}"
+            }
+          ]
+        },
+        {
+          "condition": {
+            "left": "steps.step1.score",
+            "right": "500",
+            "operator": "greater_than",
+            "then": [
+              {
+                "echo": "Credit avaliable",
+                "payload": {
+                  "resul": "true"
+                }
+              }
+            ],
+            "else": [
+              {
+                "echo": "Credit not avaliable",
+                "payload": {
+                  "score": "false"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "echo": "End"
+        }
+      ]
+    }
+  "#;
+
     #[test]
     fn test_transform_value() {
         let mut id_counter = 0;
         let mut map = HashMap::new();
 
-        let original = Valu3Value::json_to_value(
-            r#"
-            [
-              {
-                "name": "Start"
-              },
-              {
-                "id": "step1",
-                "condition": {
-                  "left": "context.credit",
-                  "right": "context.credit_used",
-                  "operator": "greater_than",
-                  "then": [
-                    {
-                      "payload": {
-                        "score": "context.credit - context.credit_used"
-                      },
-                      "steps": [
-                        {
-                          "condition": {
-                            "left": "steps.step1.score",
-                            "right": "10",
-                            "operator": "greater_than"
-                          }
-                        },
-                        {
-                          "condition": {
-                            "left": "steps.step1.score",
-                            "right": "500",
-                            "operator": "greater_than"
-                          }
-                        },
-                        {
-                          "condition": {
-                            "left": "steps.step1.score",
-                            "right": "100000",
-                            "operator": "less_than"
-                          }
-                        },
-                        {
-                          "then": {
-                            "name": "Credit avaliable",
-                            "condition": {
-                              "left": "steps.step1.score",
-                              "right": "500",
-                              "operator": "equal"
-                            },
-                            "then": {
-                              "return": true
-                            }
-                          }
-                        }
-                      ]
-                    }
-                  ],
-                  "else": [
-                    {
-                      "score": "{{0}}"
-                    }
-                  ]
-                }
-              },
-              {
-                "condition": {
-                  "left": "steps.step1.score",
-                  "right": "500",
-                  "operator": "greater_than",
-                  "then": [
-                    {
-                      "name": "Credit avaliable",
-                      "payload": {
-                        "resul": "{{true}}"
-                      }
-                    }
-                  ],
-                  "else": [
-                    {
-                      "name": "Credit not avaliable",
-                      "payload": {
-                        "score": "{{false}}"
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "name": "End"
-              }
-            ]
-        "#,
-        )
-        .unwrap();
-
-        process_raw_steps(&original, &mut id_counter, &mut map);
+        process_raw_steps(
+            &Valu3Value::json_to_value(ORIGINAL).unwrap(),
+            &mut id_counter,
+            &mut map,
+        );
 
         let transfomed = Valu3Value::json_to_value(
             r#"
@@ -306,106 +314,19 @@ mod test {
         )
         .unwrap();
 
+        println!(
+            "{:?}",
+            map.to_value().to_json(valu3::prelude::JsonMode::Inline)
+        );
+
         assert_eq!(map.to_value(), transfomed);
     }
 
     #[test]
     fn test_transform_struct() {
-        let original = Valu3Value::json_to_value(
-            r#"
-            [
-              {
-                "name": "Start"
-              },
-              {
-                "id": "step1",
-                "condition": {
-                  "left": "context.credit",
-                  "right": "context.credit_used",
-                  "operator": "greater_than",
-                  "then": [
-                    {
-                      "payload": {
-                        "score": "context.credit - context.credit_used"
-                      },
-                      "steps": [
-                        {
-                          "condition": {
-                            "left": "steps.step1.score",
-                            "right": "10",
-                            "operator": "greater_than"
-                          }
-                        },
-                        {
-                          "condition": {
-                            "left": "steps.step1.score",
-                            "right": "500",
-                            "operator": "greater_than"
-                          }
-                        },
-                        {
-                          "condition": {
-                            "left": "steps.step1.score",
-                            "right": "100000",
-                            "operator": "less_than"
-                          }
-                        },
-                        {
-                          "then": {
-                            "name": "Credit avaliable",
-                            "condition": {
-                              "left": "steps.step1.score",
-                              "right": "500",
-                              "operator": "equal"
-                            },
-                            "then": {
-                              "return": true
-                            }
-                          }
-                        }
-                      ]
-                    }
-                  ],
-                  "else": [
-                    {
-                      "score": "{{0}}"
-                    }
-                  ]
-                }
-              },
-              {
-                "condition": {
-                  "left": "steps.step1.score",
-                  "right": "500",
-                  "operator": "greater_than",
-                  "then": [
-                    {
-                      "name": "Credit avaliable",
-                      "payload": {
-                        "resul": "{{true}}"
-                      }
-                    }
-                  ],
-                  "else": [
-                    {
-                      "name": "Credit not avaliable",
-                      "payload": {
-                        "score": "{{false}}"
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "name": "End"
-              }
-            ]
-        "#,
-        )
-        .unwrap();
-
         let expected = {
             let mut map = HashMap::new();
+
             map.insert(
                 ID::from("pipeline_id_0"),
                 Pipeline::new(
@@ -540,7 +461,7 @@ mod test {
             map
         };
 
-        let result = transform_json(&original).unwrap();
+        let result = transform_json(&Valu3Value::json_to_value(ORIGINAL).unwrap()).unwrap();
 
         assert_eq!(result, expected);
     }

@@ -1,0 +1,93 @@
+{
+    "pipeline_id_4": [
+        {
+            "name": "Credit not avaliable",
+            "payload": {
+                "score": "{{false}}"
+            }
+        }
+    ],
+    "pipeline_id_1": [
+        {
+            "steps": [
+                {
+                    "condition": {
+                        "right": "10",
+                        "left": "steps.step1.score",
+                        "operator": "greater_than"
+                    }
+                },
+                {
+                    "condition": {
+                        "left": "steps.step1.score",
+                        "operator": "greater_than",
+                        "right": "500"
+                    }
+                },
+                {
+                    "condition": {
+                        "left": "steps.step1.score",
+                        "right": "100000",
+                        "operator": "less_than"
+                    }
+                },
+                {
+                    "then": {
+                        "name": "Credit avaliable",
+                        "then": {
+                            "return": true
+                        },
+                        "condition": {
+                            "right": "500",
+                            "operator": "equal",
+                            "left": "steps.step1.score"
+                        }
+                    }
+                }
+            ],
+            "payload": {
+                "score": "context.credit - context.credit_used"
+            }
+        }
+    ],
+    "pipeline_id_3": [
+        {
+            "name": "Credit avaliable",
+            "payload": {
+                "resul": "{{true}}"
+            }
+        }
+    ],
+    "pipeline_id_0": [
+        {
+            "name": "Start"
+        },
+        {
+            "id": "step1",
+            "condition": {
+                "else": "pipeline_id_2",
+                "left": "context.credit",
+                "right": "context.credit_used",
+                "operator": "greater_than",
+                "then": "pipeline_id_1"
+            }
+        },
+        {
+            "condition": {
+                "left": "steps.step1.score",
+                "operator": "greater_than",
+                "right": "500",
+                "else": "pipeline_id_4",
+                "then": "pipeline_id_3"
+            }
+        },
+        {
+            "name": "End"
+        }
+    ],
+    "pipeline_id_2": [
+        {
+            "score": "{{0}}"
+        }
+    ]
+}
