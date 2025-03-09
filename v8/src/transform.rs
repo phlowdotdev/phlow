@@ -202,121 +202,144 @@ mod test {
         )
         .unwrap();
 
-        let expected = vec![
-            Pipeline::new(
-                "pipeline_id_0".to_string(),
-                vec![
-                    StepWorker {
-                        name: Some("Start".to_string()),
+        let expected = {
+            let mut map = HashMap::new();
+            map.insert(
+                ID::from("pipeline_id_0"),
+                Pipeline::new(
+                    "pipeline_id_0".to_string(),
+                    vec![
+                        StepWorker {
+                            name: Some("Start".to_string()),
+                            ..default::Default::default()
+                        },
+                        StepWorker {
+                            id: Some(ID::from("step1")),
+                            condition: Some(Condition {
+                                left: Payload::from("context.credit"),
+                                right: Payload::from("context.credit_used"),
+                                operator: Operator::GreaterThan,
+                            }),
+                            then_case: Some(ID::from("pipeline_id_1")),
+                            else_case: Some(ID::from("pipeline_id_2")),
+                            ..default::Default::default()
+                        },
+                        StepWorker {
+                            condition: Some(Condition {
+                                left: Payload::from("{{steps.step1.score}}"),
+                                right: Payload::from("500"),
+                                operator: Operator::GreaterThan,
+                            }),
+                            then_case: Some(ID::from("pipeline_id_3")),
+                            else_case: Some(ID::from("pipeline_id_4")),
+                            ..default::Default::default()
+                        },
+                    ],
+                ),
+            );
+            map.insert(
+                ID::from("pipeline_id_1"),
+                Pipeline::new(
+                    "pipeline_id_1".to_string(),
+                    vec![
+                        StepWorker {
+                            payload: Some(Payload::from(
+                                r#"{"score": "{{context.credit - context.credit_used}}"}"#,
+                            )),
+                            then_case: Some(ID::from("pipeline_id_5")),
+                            ..default::Default::default()
+                        },
+                        StepWorker {
+                            condition: Some(Condition {
+                                left: Payload::from("{{steps.step1.score}}"),
+                                right: Payload::from("10"),
+                                operator: Operator::GreaterThan,
+                            }),
+                            ..default::Default::default()
+                        },
+                        StepWorker {
+                            condition: Some(Condition {
+                                left: Payload::from("{{steps.step1.score}}"),
+                                right: Payload::from("500"),
+                                operator: Operator::GreaterThan,
+                            }),
+                            ..default::Default::default()
+                        },
+                        StepWorker {
+                            condition: Some(Condition {
+                                left: Payload::from("{{steps.step1.score}}"),
+                                right: Payload::from("100000"),
+                                operator: Operator::LessThan,
+                            }),
+                            ..default::Default::default()
+                        },
+                        StepWorker {
+                            name: Some("Credit avaliable".to_string()),
+                            condition: Some(Condition {
+                                left: Payload::from("{{steps.step1.score}}"),
+                                right: Payload::from("500"),
+                                operator: Operator::Equal,
+                            }),
+                            then_case: Some(ID::from("pipeline_id_6")),
+                            ..default::Default::default()
+                        },
+                    ],
+                ),
+            );
+            map.insert(
+                ID::from("pipeline_id_2"),
+                Pipeline::new(
+                    "pipeline_id_2".to_string(),
+                    vec![StepWorker {
+                        payload: Some(Payload::from(r#"{"score": "{{0}}"}"#)),
                         ..default::Default::default()
-                    },
-                    StepWorker {
-                        id: Some(ID::from("step1")),
-                        condition: Some(Condition {
-                            left: Payload::from("context.credit"),
-                            right: Payload::from("context.credit_used"),
-                            operator: Operator::GreaterThan,
-                        }),
-                        then_case: Some(ID::from("pipeline_id_1")),
-                        else_case: Some(ID::from("pipeline_id_2")),
-                        ..default::Default::default()
-                    },
-                    StepWorker {
+                    }],
+                ),
+            );
+            map.insert(
+                ID::from("pipeline_id_3"),
+                Pipeline::new(
+                    "pipeline_id_3".to_string(),
+                    vec![StepWorker {
                         condition: Some(Condition {
                             left: Payload::from("{{steps.step1.score}}"),
                             right: Payload::from("500"),
                             operator: Operator::GreaterThan,
                         }),
-                        then_case: Some(ID::from("pipeline_id_3")),
-                        else_case: Some(ID::from("pipeline_id_4")),
+                        then_case: Some(ID::from("pipeline_id_7")),
+                        else_case: Some(ID::from("pipeline_id_8")),
                         ..default::Default::default()
-                    },
-                ],
-            ),
-            Pipeline::new(
-                "pipeline_id_1".to_string(),
-                vec![
-                    StepWorker {
-                        payload: Some(Payload::from(
-                            r#"{"score": "{{context.credit - context.credit_used}}"}"#,
-                        )),
-                        then_case: Some(ID::from("pipeline_id_5")),
+                    }],
+                ),
+            );
+            map.insert(
+                ID::from("pipeline_id_4"),
+                Pipeline::new(
+                    "pipeline_id_4".to_string(),
+                    vec![StepWorker {
+                        name: Some("Credit not avaliable".to_string()),
+                        payload: Some(Payload::from(r#"{"score": "{{false}}"}"#)),
                         ..default::Default::default()
-                    },
-                    StepWorker {
-                        condition: Some(Condition {
-                            left: Payload::from("{{steps.step1.score}}"),
-                            right: Payload::from("10"),
-                            operator: Operator::GreaterThan,
-                        }),
-                        ..default::Default::default()
-                    },
-                    StepWorker {
-                        condition: Some(Condition {
-                            left: Payload::from("{{steps.step1.score}}"),
-                            right: Payload::from("500"),
-                            operator: Operator::GreaterThan,
-                        }),
-                        ..default::Default::default()
-                    },
-                    StepWorker {
-                        condition: Some(Condition {
-                            left: Payload::from("{{steps.step1.score}}"),
-                            right: Payload::from("100000"),
-                            operator: Operator::LessThan,
-                        }),
-                        ..default::Default::default()
-                    },
-                    StepWorker {
+                    }],
+                ),
+            );
+            map.insert(
+                ID::from("pipeline_id_5"),
+                Pipeline::new(
+                    "pipeline_id_5".to_string(),
+                    vec![StepWorker {
                         name: Some("Credit avaliable".to_string()),
-                        condition: Some(Condition {
-                            left: Payload::from("{{steps.step1.score}}"),
-                            right: Payload::from("500"),
-                            operator: Operator::Equal,
-                        }),
-                        then_case: Some(ID::from("pipeline_id_6")),
+                        payload: Some(Payload::from(r#"{"resul": "{{true}}"}"#)),
                         ..default::Default::default()
-                    },
-                ],
-            ),
-            Pipeline::new(
-                "pipeline_id_2".to_string(),
-                vec![StepWorker {
-                    payload: Some(Payload::from(r#"{"score": "{{0}}"}"#)),
-                    ..default::Default::default()
-                }],
-            ),
-            Pipeline::new(
-                "pipeline_id_3".to_string(),
-                vec![StepWorker {
-                    condition: Some(Condition {
-                        left: Payload::from("{{steps.step1.score}}"),
-                        right: Payload::from("500"),
-                        operator: Operator::GreaterThan,
-                    }),
-                    then_case: Some(ID::from("pipeline_id_7")),
-                    else_case: Some(ID::from("pipeline_id_8")),
-                    ..default::Default::default()
-                }],
-            ),
-            Pipeline::new(
-                "pipeline_id_4".to_string(),
-                vec![StepWorker {
-                    name: Some("Credit not avaliable".to_string()),
-                    payload: Some(Payload::from(r#"{"score": "{{false}}"}"#)),
-                    ..default::Default::default()
-                }],
-            ),
-            Pipeline::new(
-                "pipeline_id_5".to_string(),
-                vec![StepWorker {
-                    name: Some("Credit avaliable".to_string()),
-                    payload: Some(Payload::from(r#"{"resul": "{{true}}"}"#)),
-                    ..default::Default::default()
-                }],
-            ),
-        ];
+                    }],
+                ),
+            );
+
+            map
+        };
 
         let result = transform_json(&original).unwrap();
+
+        assert_eq!(result, expected);
     }
 }
