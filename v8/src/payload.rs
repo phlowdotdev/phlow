@@ -155,7 +155,7 @@ mod test {
             a + b
         "#;
         let step = StepWorker::new(
-            Some("me".to_string()),
+            Some(ID::from("me")),
             ID::new(),
             None,
             StepType::Default,

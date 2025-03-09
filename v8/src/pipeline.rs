@@ -26,7 +26,7 @@ impl Context {
     }
 
     pub fn add_step_output(&mut self, step: &StepWorker, output: Output) {
-        self.steps.insert(step.get_reference_id(), output);
+        self.steps.insert(step.get_reference_id().clone(), output);
     }
 
     pub fn get_step_output(&self, step: &StepWorker) -> Option<&Output> {

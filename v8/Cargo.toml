@@ -8,4 +8,4 @@ valu3 = "0.7.2"
 serde = { version = "1.0", features = ["derive"] }
 rhai = { version = "1.21.0", features = ["serde"] }
 regex = "1.11.1"
-uuid = { version = "1.15.1", features = ["v7"] }
+uuid = { version = "1.15.1", features = ["v4"] }

@@ -74,19 +74,19 @@ pub(crate) fn process_raw_steps(
 fn value_to_structs(map: &HashMap<String, Value>) -> Result<HashMap<ID, Pipeline>, TransformError> {
     let mut pipelines = HashMap::new();
 
-    for (key, val) in map.iter() {
-        if let Value::Object(obj) = val {
+    for (pipeline_id, steps) in map.iter() {
+        if let Value::Array(arr) = steps {
             let mut steps = Vec::new();
 
-            // for item in arr.into_iter() {
-            //     let step_worker =
-            //         StepWorker::try_from(item).map_err(TransformError::InnerStepError)?;
-            //     steps.push(step_worker);
-            // }
+            for step in arr.into_iter() {
+                let step_worker =
+                    StepWorker::try_from(step).map_err(TransformError::InnerStepError)?;
+                steps.push(step_worker);
+            }
 
             pipelines.insert(
-                ID::from(key.clone()),
-                Pipeline::new(ID::from(key.clone()), steps),
+                ID::from(pipeline_id),
+                Pipeline::new(ID::from(pipeline_id), steps),
             );
         }
     }

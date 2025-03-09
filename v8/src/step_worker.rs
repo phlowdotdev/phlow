@@ -5,9 +5,60 @@ use crate::{
     Error,
 };
 use serde::Serialize;
+use std::fmt::Display;
 use valu3::{prelude::StringBehavior, value::Value};
 
-pub type ID = String;
+#[derive(Debug, Clone, PartialEq, Serialize, Eq, Hash)]
+pub struct ID(String);
+
+impl ID {
+    pub fn new() -> Self {
+        Self(uuid::Uuid::new_v4().to_string())
+    }
+}
+
+impl From<String> for ID {
+    fn from(id: String) -> Self {
+        Self(id)
+    }
+}
+
+impl From<&Value> for ID {
+    fn from(id: &Value) -> Self {
+        Self(id.to_string())
+    }
+}
+
+impl From<Value> for ID {
+    fn from(id: Value) -> Self {
+        Self(id.to_string())
+    }
+}
+
+impl From<&String> for ID {
+    fn from(id: &String) -> Self {
+        Self(id.clone())
+    }
+}
+
+impl From<&str> for ID {
+    fn from(id: &str) -> Self {
+        Self(id.to_string())
+    }
+}
+
+impl Display for ID {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl Default for ID {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub type Output = Value;
 
 #[derive(Debug)]
@@ -42,7 +93,7 @@ impl Default for StepType {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Default)]
 pub struct StepWorker {
-    pub(crate) id: Option<String>,
+    pub(crate) id: Option<ID>,
     pub(crate) name: Option<String>,
     pub(crate) step_type: StepType,
     pub(crate) worker_id: ID,
@@ -57,7 +108,10 @@ impl TryFrom<&Value> for StepWorker {
     type Error = StepWorkerError;
 
     fn try_from(value: &Value) -> Result<Self, StepWorkerError> {
-        let id = value.get("id").map(|id| id.to_string());
+        let id: Option<ID> = match value.get("id") {
+            Some(id) => Some(ID::from(id.to_string())),
+            None => None,
+        };
         let name = value.get("name").map(|name| name.to_string());
         let step_type = value
             .get("step_type")
@@ -83,16 +137,18 @@ impl TryFrom<&Value> for StepWorker {
         let payload = value
             .get("payload")
             .map(|payload| Payload::new(payload.to_string()));
-        let then_case = value
-            .get("then_case")
-            .map(|then_case| then_case.to_string());
-        let else_case = value
-            .get("else_case")
-            .map(|else_case| else_case.to_string());
-        let return_case = value
-            .get("return_case")
-            .map(|return_case| Payload::new(return_case.to_string()));
-        let echo = value.get("echo").map(|echo| echo.to_string());
+        let then_case = match value.get("then_case") {
+            Some(then_case) => Some(ID::from(then_case.to_string())),
+            None => None,
+        };
+        let else_case = match value.get("else_case") {
+            Some(else_case) => Some(ID::from(else_case.to_string())),
+            None => None,
+        };
+        let return_case = match value.get("return_case") {
+            Some(return_case) => Some(Payload::new(return_case.to_string())),
+            None => None,
+        };
 
         Ok(Self {
             id,
@@ -111,7 +167,11 @@ impl TryFrom<&Value> for StepWorker {
 impl From<Step> for StepWorker {
     fn from(step: Step) -> Self {
         Self {
-            id: step.id,
+            id: if step.id.is_some() {
+                Some(ID::from(step.id.unwrap()))
+            } else {
+                None
+            },
             name: step.name,
             step_type: step.step_type,
             worker_id: ID::new(),
@@ -126,7 +186,7 @@ impl From<Step> for StepWorker {
 
 impl StepWorker {
     pub fn new(
-        id: Option<String>,
+        id: Option<ID>,
         worker_id: ID,
         name: Option<String>,
         step_type: StepType,
@@ -140,7 +200,7 @@ impl StepWorker {
             id,
             name,
             step_type,
-            worker_id: worker_id,
+            worker_id,
             condition,
             payload,
             then_case,
@@ -157,10 +217,10 @@ impl StepWorker {
         self.else_case = Some(else_case);
     }
 
-    pub fn get_reference_id(&self) -> String {
+    pub fn get_reference_id(&self) -> &ID {
         match self.id {
-            Some(ref id) => id.clone(),
-            None => self.worker_id.clone(),
+            Some(ref id) => id,
+            None => &self.worker_id,
         }
     }
 
@@ -227,7 +287,7 @@ mod test {
     #[test]
     fn test_step_get_reference_id() {
         let step = StepWorker::new(
-            Some("id".to_string()),
+            Some(ID::from("id")),
             ID::new(),
             Some("name".to_string()),
             StepType::Default,
@@ -238,7 +298,7 @@ mod test {
             None,
         );
 
-        assert_eq!(step.get_reference_id(), "id".to_string());
+        assert_eq!(step.get_reference_id(), &ID::from("id"));
     }
 
     #[test]
@@ -255,7 +315,7 @@ mod test {
             None,
         );
 
-        assert_eq!(step.get_reference_id(), step.worker_id);
+        assert_eq!(step.get_reference_id(), &step.worker_id);
     }
 
     #[test]
@@ -319,7 +379,7 @@ mod test {
                 crate::condition::Operator::NotEqual,
             )),
             Some(Payload::new("10".to_string())),
-            Some("then_case".to_string()),
+            Some(ID::from("then_case")),
             None,
             None,
         );
@@ -328,7 +388,7 @@ mod test {
 
         let result = step.execute(&context).unwrap();
 
-        assert_eq!(result.next_step, NextStep::Step("then_case".to_string()));
+        assert_eq!(result.next_step, NextStep::Step(ID::from("then_case")));
         assert_eq!(result.output, Some(Value::from(10i64)));
     }
 
@@ -346,7 +406,7 @@ mod test {
             )),
             Some(Payload::new("10".to_string())),
             None,
-            Some("else_case".to_string()),
+            Some(ID::from("else_case")),
             None,
         );
 
@@ -354,7 +414,7 @@ mod test {
 
         let result = step.execute(&context).unwrap();
 
-        assert_eq!(result.next_step, NextStep::Step("else_case".to_string()));
+        assert_eq!(result.next_step, NextStep::Step(ID::from("else_case")));
         assert_eq!(result.output, None);
     }
 
@@ -441,7 +501,7 @@ mod test {
                 crate::condition::Operator::Equal,
             )),
             None,
-            Some("then_case".to_string()),
+            Some(ID::from("then_case")),
             None,
             Some(Payload::new(r#""Ok""#.to_string())),
         );
@@ -467,7 +527,7 @@ mod test {
             )),
             None,
             None,
-            Some("else_case".to_string()),
+            Some(ID::from("else_case")),
             Some(Payload::new(r#""Ok""#.to_string())),
         );
 
