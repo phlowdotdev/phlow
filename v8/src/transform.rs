@@ -146,17 +146,21 @@ mod test {
                                 operator: Operator::GreaterThan,
                             }),
                             then_case: Some(ID::from("pipeline_id_1")),
-                            else_case: Some(ID::from("pipeline_id_2")),
+                            else_case: Some(ID::from("pipeline_id_4")),
                             ..default::Default::default()
                         },
                         StepWorker {
                             condition: Some(Condition {
                                 left: Payload::from("steps.step1.score"),
-                                right: Payload::from("500"),
+                                right: Payload::from(&500.to_value()),
                                 operator: Operator::GreaterThan,
                             }),
-                            then_case: Some(ID::from("pipeline_id_3")),
-                            else_case: Some(ID::from("pipeline_id_4")),
+                            then_case: Some(ID::from("pipeline_id_5")),
+                            else_case: Some(ID::from("pipeline_id_6")),
+                            ..default::Default::default()
+                        },
+                        StepWorker {
+                            name: Some("End".to_string()),
                             ..default::Default::default()
                         },
                     ],
@@ -171,13 +175,12 @@ mod test {
                             payload: Some(Payload::from(
                                 r#"{"score": "context.credit - context.credit_used"}"#,
                             )),
-                            then_case: Some(ID::from("pipeline_id_5")),
                             ..default::Default::default()
                         },
                         StepWorker {
                             condition: Some(Condition {
                                 left: Payload::from("steps.step1.score"),
-                                right: Payload::from("10"),
+                                right: Payload::from(&10.to_value()),
                                 operator: Operator::GreaterThan,
                             }),
                             ..default::Default::default()
@@ -185,7 +188,7 @@ mod test {
                         StepWorker {
                             condition: Some(Condition {
                                 left: Payload::from("steps.step1.score"),
-                                right: Payload::from("500"),
+                                right: Payload::from(&500.to_value()),
                                 operator: Operator::GreaterThan,
                             }),
                             ..default::Default::default()
@@ -193,19 +196,13 @@ mod test {
                         StepWorker {
                             condition: Some(Condition {
                                 left: Payload::from("steps.step1.score"),
-                                right: Payload::from("100000"),
+                                right: Payload::from(&100000.to_value()),
                                 operator: Operator::LessThan,
                             }),
                             ..default::Default::default()
                         },
                         StepWorker {
-                            name: Some("Credit avaliable".to_string()),
-                            condition: Some(Condition {
-                                left: Payload::from("steps.step1.score"),
-                                right: Payload::from("500"),
-                                operator: Operator::Equal,
-                            }),
-                            then_case: Some(ID::from("pipeline_id_6")),
+                            then_case: Some(ID::from("pipeline_id_2")),
                             ..default::Default::default()
                         },
                     ],
