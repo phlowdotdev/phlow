@@ -100,14 +100,14 @@ impl Default for StepType {
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Context {
-    pub(crate) request: Value,
+    pub(crate) params: Value,
     pub(crate) steps: HashMap<ID, Output>,
 }
 
 impl Context {
-    pub fn new(request: Value) -> Self {
+    pub fn new(params: Value) -> Self {
         Self {
-            request,
+            params,
             steps: HashMap::new(),
         }
     }
@@ -124,7 +124,7 @@ impl Context {
 #[derive(Debug, Clone, PartialEq, Serialize, Default)]
 pub struct StepWorker {
     pub(crate) id: ID,
-    pub(crate) request: Option<Value>,
+    pub(crate) params: Option<Value>,
     pub(crate) name: Option<String>,
     pub(crate) step_type: StepType,
     pub(crate) condition: Option<Condition>,
@@ -252,7 +252,7 @@ impl TryFrom<&Value> for StepWorker {
 
         Ok(Self {
             id,
-            request,
+            params: request,
             name,
             step_type,
             condition,

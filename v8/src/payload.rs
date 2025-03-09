@@ -47,7 +47,7 @@ impl Payload {
         let mut scope = Scope::new();
 
         let steps: Dynamic = to_dynamic(context.steps.clone()).unwrap();
-        let context: Dynamic = to_dynamic(context.request.clone()).unwrap();
+        let context: Dynamic = to_dynamic(context.params.clone()).unwrap();
 
         scope.push_constant("steps", steps);
         scope.push_constant("context", context);
