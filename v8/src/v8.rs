@@ -1,7 +1,8 @@
 use crate::{
     id::ID,
     payload::PayloadError,
-    pipeline::Pipeline,
+    pipeline::{Pipeline, PipelineError},
+    step_worker::NextStep,
     transform::{get_pipeline_id, json_to_pipelines, TransformError},
 };
 use serde::Serialize;
@@ -40,15 +41,47 @@ pub enum Error {
     InvalidCondition,
     InvalidStep(ID),
     PayloadError(PayloadError),
+    PipelineError(PipelineError),
 }
 
+pub type PipelineMap = HashMap<usize, Pipeline>;
+
 struct V8 {
-    pipelines: HashMap<ID, Pipeline>,
-    main: ID,
+    pipelines: PipelineMap,
+    main: usize,
     params: Option<Value>,
 }
 
-impl V8 {}
+impl V8 {
+    pub fn execute(&self) -> Result<Context, Error> {
+        let mut context = Context::new(self.params.clone().unwrap_or_default());
+
+        let mut current = self.main;
+        loop {
+            let pipeline = self
+                .pipelines
+                .get(&current)
+                .ok_or(Error::PipelineNotFound)?;
+
+            match pipeline.execute(&mut context) {
+                Ok(next_step) => match next_step {
+                    NextStep::Next => {
+                        return Ok(context);
+                    }
+                    NextStep::Pipeline(id) => {
+                        current = id;
+                    }
+                    NextStep::Stop => {
+                        return Ok(context);
+                    }
+                },
+                Err(err) => {
+                    return Err(Error::PipelineError(err));
+                }
+            }
+        }
+    }
+}
 
 impl TryFrom<&str> for V8 {
     type Error = Error;
@@ -57,7 +90,7 @@ impl TryFrom<&str> for V8 {
         let (pipelines, params) = json_to_pipelines(value).map_err(Error::TransformError)?;
         Ok(Self {
             pipelines,
-            main: ID::from(get_pipeline_id(0)),
+            main: 0,
             params,
         })
     }

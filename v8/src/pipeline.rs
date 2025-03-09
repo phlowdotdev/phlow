@@ -1,21 +1,24 @@
+use std::collections::HashMap;
+
 use crate::{
     id::ID,
     step_worker::{NextStep, StepOutput, StepWorker, StepWorkerError},
     v8::Context,
 };
 
+#[derive(Debug)]
 pub enum PipelineError {
     StepWorkerError(StepWorkerError),
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Pipeline {
-    pub(crate) id: ID,
+    pub(crate) id: usize,
     pub(crate) steps: Vec<StepWorker>,
 }
 
 impl Pipeline {
-    pub fn new(id: ID, steps: Vec<StepWorker>) -> Self {
+    pub fn new(id: usize, steps: Vec<StepWorker>) -> Self {
         Self { id, steps }
     }
 
@@ -29,7 +32,7 @@ impl Pipeline {
                         }
                     }
 
-                    if let NextStep::Step(_) | NextStep::Stop = step_output.next_step {
+                    if let NextStep::Pipeline(_) | NextStep::Stop = step_output.next_step {
                         return Ok(step_output.next_step);
                     }
                 }

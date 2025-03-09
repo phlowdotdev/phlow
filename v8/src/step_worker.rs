@@ -2,10 +2,10 @@ use crate::{
     condition::{Condition, ConditionError},
     id::ID,
     payload::{Payload, PayloadError},
-    transform::TransformError,
     v8::Context,
 };
 use serde::Serialize;
+use valu3::prelude::NumberBehavior;
 use valu3::{prelude::StringBehavior, value::Value, Error as ValueError};
 
 #[derive(Debug)]
@@ -21,7 +21,7 @@ pub enum StepWorkerError {
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum NextStep {
-    Step(ID),
+    Pipeline(usize),
     Stop,
     Next,
 }
@@ -51,17 +51,17 @@ pub struct StepWorker {
     pub(crate) step_type: StepType,
     pub(crate) condition: Option<Condition>,
     pub(crate) payload: Option<Payload>,
-    pub(crate) then_case: Option<ID>,
-    pub(crate) else_case: Option<ID>,
+    pub(crate) then_case: Option<usize>,
+    pub(crate) else_case: Option<usize>,
     pub(crate) return_case: Option<Payload>,
 }
 
 impl StepWorker {
-    pub fn add_then_case(&mut self, then_case: ID) {
+    pub fn add_then_case(&mut self, then_case: usize) {
         self.then_case = Some(then_case);
     }
 
-    pub fn add_else_case(&mut self, else_case: ID) {
+    pub fn add_else_case(&mut self, else_case: usize) {
         self.else_case = Some(else_case);
     }
 
@@ -109,7 +109,7 @@ impl StepWorker {
                 .map_err(StepWorkerError::ConditionError)?
             {
                 let next_step = if let Some(ref then_case) = self.then_case {
-                    NextStep::Step(then_case.clone())
+                    NextStep::Pipeline(*then_case)
                 } else {
                     NextStep::Next
                 };
@@ -117,7 +117,7 @@ impl StepWorker {
                 (next_step, self.evaluate_payload(context)?)
             } else {
                 let next_step = if let Some(ref else_case) = self.else_case {
-                    NextStep::Step(else_case.clone())
+                    NextStep::Pipeline(*else_case)
                 } else {
                     NextStep::Stop
                 };
@@ -165,11 +165,17 @@ impl TryFrom<&Value> for StepWorker {
             None => None,
         };
         let then_case = match value.get("then_case") {
-            Some(then_case) => Some(ID::from(then_case.to_string())),
+            Some(then_case) => match then_case.get_u128() {
+                Some(then_case) => Some(then_case as usize),
+                None => None,
+            },
             None => None,
         };
         let else_case = match value.get("else_case") {
-            Some(else_case) => Some(ID::from(else_case.to_string())),
+            Some(else_case) => match else_case.get_u128() {
+                Some(else_case) => Some(else_case as usize),
+                None => None,
+            },
             None => None,
         };
         let return_case = match value.get("return_case") {
@@ -260,7 +266,7 @@ mod test {
                 crate::condition::Operator::NotEqual,
             )),
             payload: Some(Payload::new("10".to_string())),
-            then_case: Some(ID::from("then_case")),
+            then_case: Some(0),
             ..Default::default()
         };
 
@@ -268,7 +274,7 @@ mod test {
 
         let result = step.execute(&context).unwrap();
 
-        assert_eq!(result.next_step, NextStep::Step(ID::from("then_case")));
+        assert_eq!(result.next_step, NextStep::Pipeline(0));
         assert_eq!(result.payload, Some(Value::from(10i64)));
     }
 
@@ -282,7 +288,7 @@ mod test {
                 crate::condition::Operator::Equal,
             )),
             payload: Some(Payload::new("10".to_string())),
-            else_case: Some(ID::from("else_case")),
+            else_case: Some(1),
             ..Default::default()
         };
 
@@ -290,7 +296,7 @@ mod test {
 
         let result = step.execute(&context).unwrap();
 
-        assert_eq!(result.next_step, NextStep::Step(ID::from("else_case")));
+        assert_eq!(result.next_step, NextStep::Pipeline(1));
         assert_eq!(result.payload, None);
     }
 
@@ -357,16 +363,16 @@ mod test {
                 Payload::new("10".to_string()),
                 crate::condition::Operator::Equal,
             )),
-            then_case: Some(ID::from("then_case")),
+            then_case: Some(0),
             return_case: Some(Payload::new(r#""Ok""#.to_string())),
             ..Default::default()
         };
 
         let context = Context::new(Value::Null);
-        let result = step.execute(&context).unwrap();
+        let output = step.execute(&context).unwrap();
 
-        assert_eq!(result.next_step, NextStep::Stop);
-        assert_eq!(result.payload, Some(Value::from("Ok")));
+        assert_eq!(output.next_step, NextStep::Stop);
+        assert_eq!(output.payload, Some(Value::from("Ok")));
     }
 
     #[test]
@@ -378,7 +384,7 @@ mod test {
                 Payload::new("20".to_string()),
                 crate::condition::Operator::Equal,
             )),
-            else_case: Some(ID::from("else_case")),
+            else_case: Some(0),
             return_case: Some(Payload::new(r#""Ok""#.to_string())),
             ..Default::default()
         };

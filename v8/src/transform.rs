@@ -5,6 +5,7 @@ use crate::{
     id::ID,
     pipeline::{self, Pipeline},
     step_worker::{StepWorker, StepWorkerError},
+    v8::PipelineMap,
 };
 
 #[derive(Debug)]
@@ -15,7 +16,7 @@ pub enum TransformError {
 
 pub(crate) fn json_to_pipelines(
     input: &str,
-) -> Result<(HashMap<ID, Pipeline>, Option<Value>), TransformError> {
+) -> Result<(PipelineMap, Option<Value>), TransformError> {
     let value = Value::json_to_value(input).map_err(TransformError::Parser)?;
     let params = value.get("params").cloned();
     let pipelines = transform_json(&value)?;
@@ -23,37 +24,30 @@ pub(crate) fn json_to_pipelines(
     Ok((pipelines, params))
 }
 
-pub(crate) fn transform_json(input: &Value) -> Result<HashMap<ID, Pipeline>, TransformError> {
+pub(crate) fn transform_json(input: &Value) -> Result<PipelineMap, TransformError> {
     let mut id_counter = 0;
-    let mut map = HashMap::new();
+    let mut map = Vec::new();
 
-    process_raw_steps(input, &mut id_counter, &mut map);
+    process_raw_steps(input, &mut map);
 
     value_to_structs(&map)
 }
 
-pub(crate) fn get_pipeline_id(index: usize) -> String {
-    format!("pipeline_id_{}", index)
+pub(crate) fn get_pipeline_id(index: usize) -> u64 {
+    index as u64
 }
 
-pub(crate) fn process_raw_steps(
-    input: &Value,
-    id_counter: &mut usize,
-    map: &mut HashMap<String, Value>,
-) -> Value {
-    let key = get_pipeline_id(*id_counter);
-    *id_counter += 1;
-
+pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
     if let Value::Object(pipeline) = input {
         let mut new_pipeline = pipeline.clone();
 
         new_pipeline.remove(&"steps");
 
         if let Some(then) = pipeline.get("then") {
-            new_pipeline.insert("then".to_string(), process_raw_steps(then, id_counter, map));
+            new_pipeline.insert("then".to_string(), process_raw_steps(then, map));
         }
         if let Some(els) = pipeline.get("else") {
-            new_pipeline.insert("else".to_string(), process_raw_steps(els, id_counter, map));
+            new_pipeline.insert("else".to_string(), process_raw_steps(els, map));
         }
 
         let mut new_steps = if new_pipeline.is_empty() {
@@ -68,12 +62,10 @@ pub(crate) fn process_raw_steps(
                     let mut new_step = step.clone();
 
                     if let Some(then) = step.get("then") {
-                        new_step
-                            .insert("then".to_string(), process_raw_steps(then, id_counter, map));
+                        new_step.insert("then".to_string(), process_raw_steps(then, map));
                     }
                     if let Some(els) = step.get("else") {
-                        new_step
-                            .insert("else".to_string(), process_raw_steps(els, id_counter, map));
+                        new_step.insert("else".to_string(), process_raw_steps(els, map));
                     }
 
                     new_steps.push(new_step);
@@ -81,16 +73,16 @@ pub(crate) fn process_raw_steps(
             }
         }
 
-        map.insert(key.clone(), Value::from(new_steps));
+        map.push(Value::from(new_steps));
     }
 
-    Value::from(key)
+    (map.len() - 1).to_value()
 }
 
-fn value_to_structs(map: &HashMap<String, Value>) -> Result<HashMap<ID, Pipeline>, TransformError> {
+fn value_to_structs(map: &Vec<Value>) -> Result<PipelineMap, TransformError> {
     let mut pipelines = HashMap::new();
 
-    for (pipeline_id, steps) in map.iter() {
+    for (pipeline_id, steps) in map.iter().enumerate() {
         if let Value::Array(arr) = steps {
             let mut steps = Vec::new();
 
@@ -101,9 +93,9 @@ fn value_to_structs(map: &HashMap<String, Value>) -> Result<HashMap<ID, Pipeline
             }
 
             pipelines.insert(
-                ID::from(pipeline_id),
+                pipeline_id,
                 Pipeline {
-                    id: ID::from(pipeline_id),
+                    id: pipeline_id,
                     steps,
                 },
             );
@@ -127,16 +119,11 @@ mod test {
 
     #[test]
     fn test_transform_value() {
-        let mut id_counter = 0;
-        let mut map = HashMap::new();
+        let mut map = Vec::new();
         let original = fs::read_to_string("assets/original.json").unwrap();
         let target = fs::read_to_string("assets/target.json").unwrap();
 
-        process_raw_steps(
-            &Valu3Value::json_to_value(&original).unwrap(),
-            &mut id_counter,
-            &mut map,
-        );
+        process_raw_steps(&Valu3Value::json_to_value(&original).unwrap(), &mut map);
 
         println!("{:?}", map.to_value().to_json(JsonMode::Inline));
 
@@ -146,144 +133,123 @@ mod test {
     #[test]
     fn test_transform_struct() {
         let expected = {
-            let mut map = HashMap::new();
+            let mut map = Vec::new();
 
-            map.insert(
-                ID::from("pipeline_id_0"),
-                Pipeline::new(
-                    ID::from("pipeline_id_0"),
-                    vec![
-                        StepWorker {
-                            name: Some("Start".to_string()),
-                            ..default::Default::default()
-                        },
-                        StepWorker {
-                            id: ID::from("step1"),
-                            condition: Some(Condition {
-                                left: Payload::from("context.credit".to_value()),
-                                right: Payload::from("context.credit_used".to_value()),
-                                operator: Operator::GreaterThan,
-                            }),
-                            then_case: Some(ID::from("pipeline_id_1")),
-                            else_case: Some(ID::from("pipeline_id_4")),
-                            ..default::Default::default()
-                        },
-                        StepWorker {
-                            condition: Some(Condition {
-                                left: Payload::from("steps.step1.score".to_value()),
-                                right: Payload::from(&500.to_value()),
-                                operator: Operator::GreaterThan,
-                            }),
-                            then_case: Some(ID::from("pipeline_id_5")),
-                            else_case: Some(ID::from("pipeline_id_6")),
-                            ..default::Default::default()
-                        },
-                        StepWorker {
-                            name: Some("End".to_string()),
-                            ..default::Default::default()
-                        },
-                    ],
-                ),
-            );
-            map.insert(
-                ID::from("pipeline_id_1"),
-                Pipeline::new(
-                    ID::from("pipeline_id_1"),
-                    vec![
-                        StepWorker {
-                            payload: Some(Payload::from(
-                                r#"{"score": "context.credit - context.credit_used"}"#.to_value(),
-                            )),
-                            ..default::Default::default()
-                        },
-                        StepWorker {
-                            condition: Some(Condition {
-                                left: Payload::from("steps.step1.score".to_value()),
-                                right: Payload::from(10.to_value()),
-                                operator: Operator::GreaterThan,
-                            }),
-                            ..default::Default::default()
-                        },
-                        StepWorker {
-                            condition: Some(Condition {
-                                left: Payload::from("steps.step1.score".to_value()),
-                                right: Payload::from(500.to_value()),
-                                operator: Operator::GreaterThan,
-                            }),
-                            ..default::Default::default()
-                        },
-                        StepWorker {
-                            condition: Some(Condition {
-                                left: Payload::from("steps.step1.score".to_value()),
-                                right: Payload::from(100000.to_value()),
-                                operator: Operator::LessThan,
-                            }),
-                            ..default::Default::default()
-                        },
-                        StepWorker {
-                            then_case: Some(ID::from("pipeline_id_2")),
-                            ..default::Default::default()
-                        },
-                    ],
-                ),
-            );
-            map.insert(
-                ID::from("pipeline_id_2"),
-                Pipeline::new(
-                    ID::from("pipeline_id_2"),
-                    vec![StepWorker {
+            map.push(Pipeline::new(
+                map.len(),
+                vec![
+                    StepWorker {
+                        name: Some("Start".to_string()),
+                        ..default::Default::default()
+                    },
+                    StepWorker {
+                        id: ID::from("step1"),
+                        condition: Some(Condition {
+                            left: Payload::from("context.credit".to_value()),
+                            right: Payload::from("context.credit_used".to_value()),
+                            operator: Operator::GreaterThan,
+                        }),
+                        then_case: Some(1),
+                        else_case: Some(4),
+                        ..default::Default::default()
+                    },
+                    StepWorker {
+                        condition: Some(Condition {
+                            left: Payload::from("steps.step1.score".to_value()),
+                            right: Payload::from(&500.to_value()),
+                            operator: Operator::GreaterThan,
+                        }),
+                        then_case: Some(5),
+                        else_case: Some(6),
+                        ..default::Default::default()
+                    },
+                    StepWorker {
+                        name: Some("End".to_string()),
+                        ..default::Default::default()
+                    },
+                ],
+            ));
+            map.push(Pipeline::new(
+                map.len(),
+                vec![
+                    StepWorker {
+                        payload: Some(Payload::from(
+                            r#"{"score": "context.credit - context.credit_used"}"#.to_value(),
+                        )),
+                        ..default::Default::default()
+                    },
+                    StepWorker {
+                        condition: Some(Condition {
+                            left: Payload::from("steps.step1.score".to_value()),
+                            right: Payload::from(10.to_value()),
+                            operator: Operator::GreaterThan,
+                        }),
+                        ..default::Default::default()
+                    },
+                    StepWorker {
                         condition: Some(Condition {
                             left: Payload::from("steps.step1.score".to_value()),
                             right: Payload::from(500.to_value()),
-                            operator: Operator::Equal,
+                            operator: Operator::GreaterThan,
                         }),
-                        then_case: Some(ID::from("pipeline_id_3")),
                         ..default::Default::default()
-                    }],
-                ),
-            );
-            map.insert(
-                ID::from("pipeline_id_3"),
-                Pipeline::new(
-                    ID::from("pipeline_id_3"),
-                    vec![StepWorker {
-                        return_case: Some(Payload::from(r#"{"result": true}"#.to_value())),
+                    },
+                    StepWorker {
+                        condition: Some(Condition {
+                            left: Payload::from("steps.step1.score".to_value()),
+                            right: Payload::from(100000.to_value()),
+                            operator: Operator::LessThan,
+                        }),
                         ..default::Default::default()
-                    }],
-                ),
-            );
-            map.insert(
-                ID::from("pipeline_id_4"),
-                Pipeline::new(
-                    ID::from("pipeline_id_4"),
-                    vec![StepWorker {
-                        payload: Some(Payload::from(r#"{"score": 0}"#.to_value())),
+                    },
+                    StepWorker {
+                        then_case: Some(2),
                         ..default::Default::default()
-                    }],
-                ),
-            );
-            map.insert(
-                ID::from("pipeline_id_5"),
-                Pipeline::new(
-                    ID::from("pipeline_id_5"),
-                    vec![StepWorker {
-                        name: Some("Credit avaliable".to_string()),
-                        payload: Some(Payload::from(r#"{"result": true}"#.to_value())),
-                        ..default::Default::default()
-                    }],
-                ),
-            );
-            map.insert(
-                ID::from("pipeline_id_6"),
-                Pipeline::new(
-                    ID::from("pipeline_id_6"),
-                    vec![StepWorker {
-                        name: Some("Credit avaliable".to_string()),
-                        payload: Some(Payload::from(r#"{"score": false}"#.to_value())),
-                        ..default::Default::default()
-                    }],
-                ),
-            );
+                    },
+                ],
+            ));
+            map.push(Pipeline::new(
+                map.len(),
+                vec![StepWorker {
+                    condition: Some(Condition {
+                        left: Payload::from("steps.step1.score".to_value()),
+                        right: Payload::from(500.to_value()),
+                        operator: Operator::Equal,
+                    }),
+                    then_case: Some(3),
+                    ..default::Default::default()
+                }],
+            ));
+            map.push(Pipeline::new(
+                map.len(),
+                vec![StepWorker {
+                    return_case: Some(Payload::from(r#"{"result": true}"#.to_value())),
+                    ..default::Default::default()
+                }],
+            ));
+            map.push(Pipeline::new(
+                map.len(),
+                vec![StepWorker {
+                    payload: Some(Payload::from(r#"{"score": 0}"#.to_value())),
+                    ..default::Default::default()
+                }],
+            ));
+            map.push(Pipeline::new(
+                map.len(),
+                vec![StepWorker {
+                    name: Some("Credit avaliable".to_string()),
+                    payload: Some(Payload::from(r#"{"result": true}"#.to_value())),
+                    ..default::Default::default()
+                }],
+            ));
+            map.push(Pipeline::new(
+                map.len(),
+                vec![StepWorker {
+                    name: Some("Credit avaliable".to_string()),
+                    payload: Some(Payload::from(r#"{"score": false}"#.to_value())),
+                    ..default::Default::default()
+                }],
+            ));
 
             map
         };
@@ -292,25 +258,13 @@ mod test {
         let result = transform_json(&Valu3Value::json_to_value(&original).unwrap()).unwrap();
 
         assert_eq!(
-            result
-                .get(&ID::from("pipeline_id_0"))
-                .unwrap()
-                .steps
-                .get(0)
-                .unwrap()
-                .id,
-            expected
-                .get(&ID::from("pipeline_id_0"))
-                .unwrap()
-                .steps
-                .get(0)
-                .unwrap()
-                .id
+            result.get(&0).unwrap().steps.get(0).unwrap().id,
+            expected.get(0).unwrap().steps.get(0).unwrap().id
         );
 
         assert_eq!(
             result
-                .get(&ID::from("pipeline_id_0"))
+                .get(&0)
                 .unwrap()
                 .steps
                 .get(1)
@@ -320,7 +274,7 @@ mod test {
                 .unwrap()
                 .left,
             expected
-                .get(&ID::from("pipeline_id_0"))
+                .get(0)
                 .unwrap()
                 .steps
                 .get(1)
