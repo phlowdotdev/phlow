@@ -8,19 +8,19 @@
       "condition": {
         "left": "context.credit",
         "right": "context.credit_used",
-        "condition": "greater_than",
-        "then": "pipeline_id_1",
-        "else": "pipeline_id_2"
-      }
+        "operator": "greater_than"
+      },
+      "then": "pipeline_id_1",
+      "else": "pipeline_id_2"
     },
     {
       "condition": {
         "left": "steps.step1.score",
         "right": "500",
-        "condition": "greater_than",
-        "then": "pipeline_id_3",
-        "else": "pipeline_id_4"
-      }
+        "operator": "greater_than"
+      },
+      "then": "pipeline_id_3",
+      "else": "pipeline_id_4"
     },
     {
       "echo": "End"
@@ -37,21 +37,21 @@
             "condition": {
               "left": "steps.step1.score",
               "right": "10",
-              "condition": "greater_than"
+              "operator": "greater_than"
             }
           },
           {
             "condition": {
               "left": "steps.step1.score",
               "right": "500",
-              "condition": "greater_than"
+              "operator": "greater_than"
             }
           },
           {
             "condition": {
               "left": "steps.step1.score",
               "right": "100000",
-              "condition": "less_than"
+              "operator": "less_than"
             }
           },
           {
@@ -88,7 +88,7 @@
       "condition": {
         "left": "steps.step1.score",
         "right": "500",
-        "condition": "equal"
+        "operator": "equal"
       },
       "then": {
         "return": true

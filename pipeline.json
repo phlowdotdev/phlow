@@ -7,62 +7,62 @@
     "condition": {
       "left": "context.credit",
       "right": "context.credit_used",
-      "condition": "greater_than",
-      "then": [
-        {
-          "payload": {
-            "score": "context.credit - context.credit_used"
+      "operator": "greater_than"
+    },
+    "then": [
+      {
+        "payload": {
+          "score": "context.credit - context.credit_used"
+        },
+        "steps": [
+          {
+            "condition": {
+              "left": "steps.step1.score",
+              "right": "10",
+              "operator": "greater_than"
+            }
           },
-          "steps": [
-            {
-              "condition": {
-                "left": "steps.step1.score",
-                "right": "10",
-                "condition": "greater_than"
-              }
-            },
-            {
+          {
+            "condition": {
+              "left": "steps.step1.score",
+              "right": "500",
+              "operator": "greater_than"
+            }
+          },
+          {
+            "condition": {
+              "left": "steps.step1.score",
+              "right": "100000",
+              "operator": "less_than"
+            }
+          },
+          {
+            "then": {
+              "echo": "Credit avaliable",
               "condition": {
                 "left": "steps.step1.score",
                 "right": "500",
-                "condition": "greater_than"
-              }
-            },
-            {
-              "condition": {
-                "left": "steps.step1.score",
-                "right": "100000",
-                "condition": "less_than"
-              }
-            },
-            {
+                "operator": "equal"
+              },
               "then": {
-                "echo": "Credit avaliable",
-                "condition": {
-                  "left": "steps.step1.score",
-                  "right": "500",
-                  "condition": "equal"
-                },
-                "then": {
-                  "return": true
-                }
+                "return": true
               }
             }
-          ]
-        }
-      ],
-      "else": [
-        {
-          "score": "{{0}}"
-        }
-      ]
-    }
+          }
+        ]
+      }
+    ],
+    "else": [
+      {
+        "score": "{{0}}"
+      }
+    ]
   },
   {
     "condition": {
       "left": "steps.step1.score",
       "right": "500",
-      "condition": "greater_than",
+      "operator": "greater_than",
       "then": [
         {
           "echo": "Credit avaliable",
