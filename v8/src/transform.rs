@@ -279,8 +279,42 @@ mod test {
                     },
                 ],
             ),
-            Pipeline::new("pipeline_id_2".to_string(), vec![]),
-            Pipeline::new("pipeline_id_3".to_string(), vec![]),
+            Pipeline::new(
+                "pipeline_id_2".to_string(),
+                vec![StepWorker {
+                    payload: Some(Payload::from(r#"{"score": "{{0}}"}"#)),
+                    ..default::Default::default()
+                }],
+            ),
+            Pipeline::new(
+                "pipeline_id_3".to_string(),
+                vec![StepWorker {
+                    condition: Some(Condition {
+                        left: Payload::from("{{steps.step1.score}}"),
+                        right: Payload::from("500"),
+                        operator: Operator::GreaterThan,
+                    }),
+                    then_case: Some(ID::from("pipeline_id_7")),
+                    else_case: Some(ID::from("pipeline_id_8")),
+                    ..default::Default::default()
+                }],
+            ),
+            Pipeline::new(
+                "pipeline_id_4".to_string(),
+                vec![StepWorker {
+                    name: Some("Credit not avaliable".to_string()),
+                    payload: Some(Payload::from(r#"{"score": "{{false}}"}"#)),
+                    ..default::Default::default()
+                }],
+            ),
+            Pipeline::new(
+                "pipeline_id_5".to_string(),
+                vec![StepWorker {
+                    name: Some("Credit avaliable".to_string()),
+                    payload: Some(Payload::from(r#"{"resul": "{{true}}"}"#)),
+                    ..default::Default::default()
+                }],
+            ),
         ];
 
         let result = transform_json(&original).unwrap();
