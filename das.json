@@ -1,65 +1,52 @@
 {
+    "pipeline_id_4": [
+        {
+            "score": 0
+        }
+    ],
+    "pipeline_id_2": [
+        {
+            "condition": {
+                "right": 500,
+                "operator": "equal",
+                "left": "steps.step1.score"
+            },
+            "then": "pipeline_id_3"
+        }
+    ],
+    "pipeline_id_6": [
+        {
+            "name": "Credit not avaliable",
+            "payload": {
+                "score": false
+            }
+        }
+    ],
     "pipeline_id_0": [
         {
             "name": "Start"
         },
         {
-            "id": "step1",
+            "else": "pipeline_id_4",
             "then": "pipeline_id_1",
+            "id": "step1",
             "condition": {
                 "operator": "greater_than",
                 "right": "context.credit_used",
                 "left": "context.credit"
-            },
-            "else": "pipeline_id_4"
+            }
         },
         {
-            "condition": {
-                "left": "steps.step1.score",
-                "operator": "greater_than",
-                "right": "500"
-            },
+            "then": "pipeline_id_5",
             "else": "pipeline_id_6",
-            "then": "pipeline_id_5"
+            "condition": {
+                "right": 500,
+                "left": "steps.step1.score",
+                "operator": "greater_than"
+            }
         },
         {
             "name": "End"
-        }
-    ],
-    "pipeline_id_3": [
-        {
-            "return": true
-        }
-    ],
-    "pipeline_id_2": [
-        {
-            "then": "pipeline_id_3",
-            "condition": {
-                "operator": "equal",
-                "left": "steps.step1.score",
-                "right": "500"
-            }
-        }
-    ],
-    "pipeline_id_5": [
-        {
-            "payload": {
-                "resul": "true"
-            },
-            "name": "Credit avaliable"
-        }
-    ],
-    "pipeline_id_4": [
-        {
-            "score": "0"
-        }
-    ],
-    "pipeline_id_6": [
-        {
-            "payload": {
-                "score": "false"
-            },
-            "name": "Credit not avaliable"
         }
     ],
     "pipeline_id_1": [
@@ -70,27 +57,40 @@
         },
         {
             "condition": {
-                "right": "10",
+                "left": "steps.step1.score",
+                "right": 10,
+                "operator": "greater_than"
+            }
+        },
+        {
+            "condition": {
+                "right": 500,
                 "operator": "greater_than",
                 "left": "steps.step1.score"
             }
         },
         {
             "condition": {
-                "right": "500",
-                "operator": "greater_than",
-                "left": "steps.step1.score"
-            }
-        },
-        {
-            "condition": {
-                "right": "100000",
-                "operator": "less_than",
-                "left": "steps.step1.score"
+                "left": "steps.step1.score",
+                "right": 100000,
+                "operator": "less_than"
             }
         },
         {
             "then": "pipeline_id_2"
+        }
+    ],
+    "pipeline_id_5": [
+        {
+            "name": "Credit avaliable",
+            "payload": {
+                "result": true
+            }
+        }
+    ],
+    "pipeline_id_3": [
+        {
+            "return": true
         }
     ]
 }

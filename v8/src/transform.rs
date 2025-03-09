@@ -216,7 +216,7 @@ mod test {
                 Pipeline::new(
                     ID::from("pipeline_id_2"),
                     vec![StepWorker {
-                        payload: Some(Payload::from(r#"{"score": "{{0}}"}"#)),
+                        payload: Some(Payload::from(r#"{"score": "0"}"#)),
                         ..default::Default::default()
                     }],
                 ),
@@ -243,7 +243,7 @@ mod test {
                     ID::from("pipeline_id_4"),
                     vec![StepWorker {
                         name: Some("Credit not avaliable".to_string()),
-                        payload: Some(Payload::from(r#"{"score": "{{false}}"}"#)),
+                        payload: Some(Payload::from(r#"{"score": "false"}"#)),
                         ..default::Default::default()
                     }],
                 ),
@@ -254,7 +254,18 @@ mod test {
                     ID::from("pipeline_id_5"),
                     vec![StepWorker {
                         name: Some("Credit avaliable".to_string()),
-                        payload: Some(Payload::from(r#"{"resul": "{{true}}"}"#)),
+                        payload: Some(Payload::from(r#"{"resul": "true"}"#)),
+                        ..default::Default::default()
+                    }],
+                ),
+            );
+            map.insert(
+                ID::from("pipeline_id_6"),
+                Pipeline::new(
+                    ID::from("pipeline_id_6"),
+                    vec![StepWorker {
+                        name: Some("Credit avaliable".to_string()),
+                        payload: Some(Payload::from(r#"{"score": "false"}"#)),
                         ..default::Default::default()
                     }],
                 ),
