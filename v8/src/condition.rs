@@ -77,9 +77,10 @@ impl TryFrom<&Value> for Condition {
                     operator,
                 })
             }
-            None => Err(ConditionError::InvalidOperator(
-                "does not exist".to_string(),
-            )),
+            None => Err(ConditionError::InvalidOperator(format!(
+                "does not exist: {:?}",
+                value
+            ))),
         }
     }
 }

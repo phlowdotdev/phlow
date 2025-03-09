@@ -17,7 +17,7 @@ pub fn transform_json(input: &Value) -> Result<HashMap<ID, Pipeline>, TransformE
 
     process_raw_steps(input, &mut id_counter, &mut map);
 
-    value_to_structs(&Value::from(map))
+    value_to_structs(&map)
 }
 
 fn process_raw_steps(
@@ -35,12 +35,10 @@ fn process_raw_steps(
             if let Value::Object(obj) = item {
                 let mut new_obj = obj.clone();
 
-                // Processa `condition` se existir
                 if let Some(condition) = obj.get("condition") {
                     if let Value::Object(cond_obj) = condition {
                         let mut new_cond = cond_obj.clone();
 
-                        // Substitui `then` e `else` por novos IDs
                         if let Some(then) = cond_obj.get("then") {
                             new_cond.insert(
                                 "then".to_string(),
@@ -58,7 +56,6 @@ fn process_raw_steps(
                     }
                 }
 
-                // Adiciona o objeto processado à nova array
                 new_array.push(Value::Object(new_obj));
             } else {
                 new_array.push(item.clone());
@@ -70,25 +67,23 @@ fn process_raw_steps(
     Value::from(key)
 }
 
-fn value_to_structs(value: &Value) -> Result<HashMap<ID, Pipeline>, TransformError> {
+fn value_to_structs(map: &HashMap<String, Value>) -> Result<HashMap<ID, Pipeline>, TransformError> {
     let mut pipelines = HashMap::new();
 
-    if let Value::Object(obj) = value {
-        for (key, val) in obj.iter() {
-            if let Value::Array(arr) = val {
-                let mut steps = Vec::new();
+    for (key, val) in map.iter() {
+        if let Value::Array(arr) = val {
+            let mut steps = Vec::new();
 
-                for item in arr {
-                    let step_worker =
-                        StepWorker::try_from(value).map_err(TransformError::InnerStepError)?;
-                    steps.push(step_worker);
-                }
-
-                pipelines.insert(
-                    key.as_string_b().as_string(),
-                    Pipeline::new(key.as_string_b().as_string(), steps),
-                );
+            for item in arr.into_iter() {
+                let step_worker =
+                    StepWorker::try_from(item).map_err(TransformError::InnerStepError)?;
+                steps.push(step_worker);
             }
+
+            pipelines.insert(
+                ID::from(key.clone()),
+                Pipeline::new(ID::from(key.clone()), steps),
+            );
         }
     }
 
@@ -112,92 +107,92 @@ mod test {
         let original = Valu3Value::json_to_value(
             r#"
             [
-          {
-            "name": "Start"
-          },
-          {
-            "id": "step1",
-            "condition": {
-              "left": "context.credit",
-              "right": "context.credit_used",
-              "condition": "greater_than",
-              "then": [
-                {
-                  "payload": {
-                    "score": "{{context.credit - context.credit_used}}"
-                  },
-                  "steps": [
+              {
+                "name": "Start"
+              },
+              {
+                "id": "step1",
+                "condition": {
+                  "left": "context.credit",
+                  "right": "context.credit_used",
+                  "operator": "greater_than",
+                  "then": [
                     {
-                      "condition": {
-                        "left": "{{steps.step1.score}}",
-                        "right": "10",
-                        "condition": "greater_than"
-                      }
-                    },
-                    {
-                      "condition": {
-                        "left": "{{steps.step1.score}}",
-                        "right": "500",
-                        "condition": "greater_than"
-                      }
-                    },
-                    {
-                      "condition": {
-                        "left": "{{steps.step1.score}}",
-                        "right": "100000",
-                        "condition": "less_than"
-                      }
-                    },
-                    {
-                      "then": {
-                        "name": "Credit avaliable",
-                        "condition": {
-                          "left": "{{steps.step1.score}}",
-                          "right": "500",
-                          "condition": "equal"
+                      "payload": {
+                        "score": "context.credit - context.credit_used"
+                      },
+                      "steps": [
+                        {
+                          "condition": {
+                            "left": "steps.step1.score",
+                            "right": "10",
+                            "operator": "greater_than"
+                          }
                         },
-                        "then": {
-                          "return": true
+                        {
+                          "condition": {
+                            "left": "steps.step1.score",
+                            "right": "500",
+                            "operator": "greater_than"
+                          }
+                        },
+                        {
+                          "condition": {
+                            "left": "steps.step1.score",
+                            "right": "100000",
+                            "operator": "less_than"
+                          }
+                        },
+                        {
+                          "then": {
+                            "name": "Credit avaliable",
+                            "condition": {
+                              "left": "steps.step1.score",
+                              "right": "500",
+                              "operator": "equal"
+                            },
+                            "then": {
+                              "return": true
+                            }
+                          }
                         }
+                      ]
+                    }
+                  ],
+                  "else": [
+                    {
+                      "score": "{{0}}"
+                    }
+                  ]
+                }
+              },
+              {
+                "condition": {
+                  "left": "steps.step1.score",
+                  "right": "500",
+                  "operator": "greater_than",
+                  "then": [
+                    {
+                      "name": "Credit avaliable",
+                      "payload": {
+                        "resul": "{{true}}"
+                      }
+                    }
+                  ],
+                  "else": [
+                    {
+                      "name": "Credit not avaliable",
+                      "payload": {
+                        "score": "{{false}}"
                       }
                     }
                   ]
                 }
-              ],
-              "else": [
-                {
-                  "score": "{{0}}"
-                }
-              ]
-            }
-          },
-          {
-            "condition": {
-              "left": "{{steps.step1.score}}",
-              "right": "500",
-              "condition": "greater_than",
-              "then": [
-                {
-                  "name": "Credit avaliable",
-                  "payload": {
-                    "resul": "{{true}}"
-                  }
-                }
-              ],
-              "else": [
-                {
-                  "name": "Credit not avaliable",
-                  "payload": {
-                    "score": "{{false}}"
-                  }
-                }
-              ]
-            }
-          },
-          {
-            "name": "End"
-          }
-        ]
+              },
+              {
+                "name": "End"
+              }
+            ]
         "#,
         )
         .unwrap();
@@ -226,7 +221,7 @@ mod test {
                         },
                         StepWorker {
                             condition: Some(Condition {
-                                left: Payload::from("{{steps.step1.score}}"),
+                                left: Payload::from("steps.step1.score"),
                                 right: Payload::from("500"),
                                 operator: Operator::GreaterThan,
                             }),
@@ -244,14 +239,14 @@ mod test {
                     vec![
                         StepWorker {
                             payload: Some(Payload::from(
-                                r#"{"score": "{{context.credit - context.credit_used}}"}"#,
+                                r#"{"score": "context.credit - context.credit_used"}"#,
                             )),
                             then_case: Some(ID::from("pipeline_id_5")),
                             ..default::Default::default()
                         },
                         StepWorker {
                             condition: Some(Condition {
-                                left: Payload::from("{{steps.step1.score}}"),
+                                left: Payload::from("steps.step1.score"),
                                 right: Payload::from("10"),
                                 operator: Operator::GreaterThan,
                             }),
@@ -259,7 +254,7 @@ mod test {
                         },
                         StepWorker {
                             condition: Some(Condition {
-                                left: Payload::from("{{steps.step1.score}}"),
+                                left: Payload::from("steps.step1.score"),
                                 right: Payload::from("500"),
                                 operator: Operator::GreaterThan,
                             }),
@@ -267,7 +262,7 @@ mod test {
                         },
                         StepWorker {
                             condition: Some(Condition {
-                                left: Payload::from("{{steps.step1.score}}"),
+                                left: Payload::from("steps.step1.score"),
                                 right: Payload::from("100000"),
                                 operator: Operator::LessThan,
                             }),
@@ -276,7 +271,7 @@ mod test {
                         StepWorker {
                             name: Some("Credit avaliable".to_string()),
                             condition: Some(Condition {
-                                left: Payload::from("{{steps.step1.score}}"),
+                                left: Payload::from("steps.step1.score"),
                                 right: Payload::from("500"),
                                 operator: Operator::Equal,
                             }),
@@ -302,7 +297,7 @@ mod test {
                     ID::from("pipeline_id_3"),
                     vec![StepWorker {
                         condition: Some(Condition {
-                            left: Payload::from("{{steps.step1.score}}"),
+                            left: Payload::from("steps.step1.score"),
                             right: Payload::from("500"),
                             operator: Operator::GreaterThan,
                         }),

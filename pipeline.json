@@ -11,26 +11,26 @@
       "then": [
         {
           "payload": {
-            "score": "{{context.credit - context.credit_used}}"
+            "score": "context.credit - context.credit_used"
           },
           "steps": [
             {
               "condition": {
-                "left": "{{steps.step1.score}}",
+                "left": "steps.step1.score",
                 "right": "10",
                 "condition": "greater_than"
               }
             },
             {
               "condition": {
-                "left": "{{steps.step1.score}}",
+                "left": "steps.step1.score",
                 "right": "500",
                 "condition": "greater_than"
               }
             },
             {
               "condition": {
-                "left": "{{steps.step1.score}}",
+                "left": "steps.step1.score",
                 "right": "100000",
                 "condition": "less_than"
               }
@@ -39,7 +39,7 @@
               "then": {
                 "echo": "Credit avaliable",
                 "condition": {
-                  "left": "{{steps.step1.score}}",
+                  "left": "steps.step1.score",
                   "right": "500",
                   "condition": "equal"
                 },
@@ -60,7 +60,7 @@
   },
   {
     "condition": {
-      "left": "{{steps.step1.score}}",
+      "left": "steps.step1.score",
       "right": "500",
       "condition": "greater_than",
       "then": [
