@@ -115,11 +115,6 @@ mod test {
             &mut map,
         );
 
-        println!(
-            "{:?}",
-            map.to_value().to_json(valu3::prelude::JsonMode::Inline)
-        );
-
         assert_eq!(map.to_value(), Valu3Value::json_to_value(&target).unwrap());
     }
 
