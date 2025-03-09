@@ -48,21 +48,17 @@ struct V8 {
     params: Option<Value>,
 }
 
-impl V8 {
-    fn new(pipelines: HashMap<ID, Pipeline>, params: Option<Value>) -> Self {
-        Self {
-            pipelines,
-            main: ID::from("pipeline_id_0"),
-            params,
-        }
-    }
-}
+impl V8 {}
 
 impl TryFrom<&str> for V8 {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         let (pipelines, params) = json_to_pipelines(value).map_err(Error::TransformError)?;
-        Ok(Self::new(pipelines, params))
+        Ok(Self {
+            pipelines,
+            main: ID::from("pipeline_id_0"),
+            params,
+        })
     }
 }
