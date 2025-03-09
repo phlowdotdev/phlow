@@ -1,14 +1,12 @@
 use crate::{
     id::ID,
-    payload::PayloadError,
     pipeline::{Pipeline, PipelineError},
     step_worker::NextStep,
-    transform::{get_pipeline_id, json_to_pipelines, TransformError},
+    transform::{json_to_pipelines, TransformError},
 };
 use serde::Serialize;
 use std::collections::HashMap;
 use valu3::value::Value;
-use valu3::Error as ValueError;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Context {
@@ -34,14 +32,9 @@ impl Context {
 }
 #[derive(Debug)]
 pub enum Error {
-    PipelineNotFound,
-    JsonParseError(ValueError),
     TransformError(TransformError),
-    InvalidPipeline(ID),
-    InvalidCondition,
-    InvalidStep(ID),
-    PayloadError(PayloadError),
     PipelineError(PipelineError),
+    PipelineNotFound,
 }
 
 pub type PipelineMap = HashMap<usize, Pipeline>;
