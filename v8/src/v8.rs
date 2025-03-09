@@ -2,7 +2,7 @@ use crate::{
     id::ID,
     payload::PayloadError,
     pipeline::Pipeline,
-    transform::{json_to_pipelines, TransformError},
+    transform::{get_pipeline_id, json_to_pipelines, TransformError},
 };
 use serde::Serialize;
 use std::collections::HashMap;
@@ -57,7 +57,7 @@ impl TryFrom<&str> for V8 {
         let (pipelines, params) = json_to_pipelines(value).map_err(Error::TransformError)?;
         Ok(Self {
             pipelines,
-            main: ID::from("pipeline_id_0"),
+            main: ID::from(get_pipeline_id(0)),
             params,
         })
     }

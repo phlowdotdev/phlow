@@ -32,12 +32,16 @@ pub(crate) fn transform_json(input: &Value) -> Result<HashMap<ID, Pipeline>, Tra
     value_to_structs(&map)
 }
 
+pub(crate) fn get_pipeline_id(index: usize) -> String {
+    format!("pipeline_id_{}", index)
+}
+
 pub(crate) fn process_raw_steps(
     input: &Value,
     id_counter: &mut usize,
     map: &mut HashMap<String, Value>,
 ) -> Value {
-    let key = format!("pipeline_id_{}", *id_counter);
+    let key = get_pipeline_id(*id_counter);
     *id_counter += 1;
 
     if let Value::Object(pipeline) = input {
