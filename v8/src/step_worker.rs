@@ -1,17 +1,22 @@
 use crate::{
     condition::{Condition, ConditionError},
     id::ID,
-    payload::Payload,
-    v8::{Context, Error},
+    payload::{Payload, PayloadError},
+    transform::TransformError,
+    v8::Context,
 };
 use serde::Serialize;
-use valu3::{prelude::StringBehavior, value::Value};
-
-pub type Output = Value;
+use valu3::{prelude::StringBehavior, value::Value, Error as ValueError};
 
 #[derive(Debug)]
 pub enum StepWorkerError {
     ConditionError(ConditionError),
+    PipelineNotFound,
+    JsonParseError(ValueError),
+    InvalidPipeline(ID),
+    InvalidCondition,
+    InvalidStep(ID),
+    PayloadError(PayloadError),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -23,7 +28,7 @@ pub enum NextStep {
 
 pub struct StepOutput {
     pub next_step: NextStep,
-    pub output: Option<Output>,
+    pub payload: Option<Value>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -64,34 +69,45 @@ impl StepWorker {
         &self.id
     }
 
-    fn evaluate_payload(&self, context: &Context) -> Result<Option<Output>, Error> {
+    fn evaluate_payload(&self, context: &Context) -> Result<Option<Value>, StepWorkerError> {
         if let Some(ref payload) = self.payload {
-            let output = Some(payload.evaluate(context).map_err(Error::PayloadError)?);
-            Ok(output)
+            let Value = Some(
+                payload
+                    .evaluate(context)
+                    .map_err(StepWorkerError::PayloadError)?,
+            );
+            Ok(Value)
         } else {
             Ok(None)
         }
     }
 
-    fn evaluate_return(&self, context: &Context) -> Result<Option<Output>, Error> {
+    fn evaluate_return(&self, context: &Context) -> Result<Option<Value>, StepWorkerError> {
         if let Some(ref return_case) = self.return_case {
-            let output = Some(return_case.evaluate(context).map_err(Error::PayloadError)?);
-            Ok(output)
+            let Value = Some(
+                return_case
+                    .evaluate(context)
+                    .map_err(StepWorkerError::PayloadError)?,
+            );
+            Ok(Value)
         } else {
             Ok(None)
         }
     }
 
-    pub fn execute(&self, context: &Context) -> Result<StepOutput, Error> {
+    pub fn execute(&self, context: &Context) -> Result<StepOutput, StepWorkerError> {
         if let Some(return_case) = self.evaluate_return(context)? {
             return Ok(StepOutput {
                 next_step: NextStep::Stop,
-                output: Some(return_case),
+                payload: Some(return_case),
             });
         }
 
         if let Some(condition) = &self.condition {
-            let (next_step, output) = if condition.evaluate(context)? {
+            let (next_step, Value) = if condition
+                .evaluate(context)
+                .map_err(StepWorkerError::ConditionError)?
+            {
                 let next_step = if let Some(ref then_case) = self.then_case {
                     NextStep::Step(then_case.clone())
                 } else {
@@ -109,12 +125,15 @@ impl StepWorker {
                 (next_step, None)
             };
 
-            return Ok(StepOutput { next_step, output });
+            return Ok(StepOutput {
+                next_step,
+                payload: Value,
+            });
         }
 
         return Ok(StepOutput {
             next_step: NextStep::Next,
-            output: self.evaluate_payload(context)?,
+            payload: self.evaluate_payload(context)?,
         });
     }
 }
@@ -207,7 +226,7 @@ mod test {
         let result = step.execute(&context).unwrap();
 
         assert_eq!(result.next_step, NextStep::Next);
-        assert_eq!(result.output, Some(Value::from(10i64)));
+        assert_eq!(result.payload, Some(Value::from(10i64)));
     }
 
     #[test]
@@ -228,7 +247,7 @@ mod test {
         let result = step.execute(&context).unwrap();
 
         assert_eq!(result.next_step, NextStep::Next);
-        assert_eq!(result.output, Some(Value::from(10i64)));
+        assert_eq!(result.payload, Some(Value::from(10i64)));
     }
 
     #[test]
@@ -250,7 +269,7 @@ mod test {
         let result = step.execute(&context).unwrap();
 
         assert_eq!(result.next_step, NextStep::Step(ID::from("then_case")));
-        assert_eq!(result.output, Some(Value::from(10i64)));
+        assert_eq!(result.payload, Some(Value::from(10i64)));
     }
 
     #[test]
@@ -272,7 +291,7 @@ mod test {
         let result = step.execute(&context).unwrap();
 
         assert_eq!(result.next_step, NextStep::Step(ID::from("else_case")));
-        assert_eq!(result.output, None);
+        assert_eq!(result.payload, None);
     }
 
     #[test]
@@ -288,7 +307,7 @@ mod test {
         let result = step.execute(&context).unwrap();
 
         assert_eq!(result.next_step, NextStep::Stop);
-        assert_eq!(result.output, Some(Value::from(10i64)));
+        assert_eq!(result.payload, Some(Value::from(10i64)));
     }
 
     #[test]
@@ -305,7 +324,7 @@ mod test {
         let result = step.execute(&context).unwrap();
 
         assert_eq!(result.next_step, NextStep::Stop);
-        assert_eq!(result.output, Some(Value::from(20i64)));
+        assert_eq!(result.payload, Some(Value::from(20i64)));
     }
 
     #[test]
@@ -326,7 +345,7 @@ mod test {
         let result = step.execute(&context).unwrap();
 
         assert_eq!(result.next_step, NextStep::Stop);
-        assert_eq!(result.output, Some(Value::from(10i64)));
+        assert_eq!(result.payload, Some(Value::from(10i64)));
     }
 
     #[test]
@@ -347,7 +366,7 @@ mod test {
         let result = step.execute(&context).unwrap();
 
         assert_eq!(result.next_step, NextStep::Stop);
-        assert_eq!(result.output, Some(Value::from("Ok")));
+        assert_eq!(result.payload, Some(Value::from("Ok")));
     }
 
     #[test]
@@ -368,6 +387,6 @@ mod test {
         let result = step.execute(&context).unwrap();
 
         assert_eq!(result.next_step, NextStep::Stop);
-        assert_eq!(result.output, Some(Value::from("Ok")));
+        assert_eq!(result.payload, Some(Value::from("Ok")));
     }
 }

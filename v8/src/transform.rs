@@ -102,7 +102,10 @@ fn value_to_structs(map: &HashMap<String, Value>) -> Result<HashMap<ID, Pipeline
 
             pipelines.insert(
                 ID::from(pipeline_id),
-                Pipeline::new(ID::from(pipeline_id), steps),
+                Pipeline {
+                    id: ID::from(pipeline_id),
+                    steps,
+                },
             );
         }
     }

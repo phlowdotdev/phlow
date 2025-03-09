@@ -10,6 +10,10 @@ impl ID {
     pub fn new() -> Self {
         Self(None)
     }
+
+    pub fn is_some(&self) -> bool {
+        self.0.is_some()
+    }
 }
 
 impl From<String> for ID {

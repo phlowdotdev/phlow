@@ -2,15 +2,16 @@ use serde::Serialize;
 use valu3::{prelude::StringBehavior, value::Value};
 
 use crate::{
-    payload::Payload,
-    v8::{Context, Error},
+    payload::{Payload, PayloadError},
+    v8::Context,
 };
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug)]
 pub enum ConditionError {
     InvalidOperator(String),
     RightInvalid(String),
     LeftInvalid(String),
+    PayloadError(PayloadError),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -97,15 +98,15 @@ impl Condition {
         }
     }
 
-    pub fn evaluate(&self, context: &Context) -> Result<bool, Error> {
+    pub fn evaluate(&self, context: &Context) -> Result<bool, ConditionError> {
         let left = self
             .left
             .evaluate_variable(context)
-            .map_err(Error::PayloadError)?;
+            .map_err(ConditionError::PayloadError)?;
         let right = self
             .right
             .evaluate_variable(context)
-            .map_err(Error::PayloadError)?;
+            .map_err(ConditionError::PayloadError)?;
 
         match self.operator {
             Operator::Equal => Ok(left.equal(&right)),
