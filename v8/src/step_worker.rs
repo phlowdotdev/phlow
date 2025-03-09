@@ -109,20 +109,10 @@ impl TryFrom<&Value> for StepWorker {
 
     fn try_from(value: &Value) -> Result<Self, StepWorkerError> {
         let id: Option<ID> = match value.get("id") {
-            Some(id) => Some(ID::from(id.to_string())),
+            Some(id) => Some(ID::from(id)),
             None => None,
         };
         let name = value.get("name").map(|name| name.to_string());
-        let step_type = value
-            .get("step_type")
-            .map(|step_type| match step_type.as_str() {
-                "default" => StepType::Default,
-                "then_case" => StepType::ThenCase,
-                "else_case" => StepType::ElseCase,
-                _ => unreachable!(),
-            })
-            .unwrap_or(StepType::Default);
-
         let condition = {
             if let Some(condition) = value
                 .get("condition")
@@ -133,10 +123,10 @@ impl TryFrom<&Value> for StepWorker {
                 None
             }
         };
-
-        let payload = value
-            .get("payload")
-            .map(|payload| Payload::new(payload.to_string()));
+        let payload = match value.get("payload") {
+            Some(payload) => Some(Payload::new(payload.to_string())),
+            None => None,
+        };
         let then_case = match value.get("then_case") {
             Some(then_case) => Some(ID::from(then_case.to_string())),
             None => None,
@@ -148,6 +138,14 @@ impl TryFrom<&Value> for StepWorker {
         let return_case = match value.get("return_case") {
             Some(return_case) => Some(Payload::new(return_case.to_string())),
             None => None,
+        };
+
+        let step_type = if then_case.is_some() {
+            StepType::ThenCase
+        } else if else_case.is_some() {
+            StepType::ElseCase
+        } else {
+            StepType::Default
         };
 
         Ok(Self {
