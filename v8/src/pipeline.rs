@@ -22,7 +22,7 @@ impl Pipeline {
         Self { id, steps }
     }
 
-    pub fn execute(&self, context: &mut Context) -> Result<NextStep, PipelineError> {
+    pub fn execute(&self, context: &mut Context) -> Result<Option<NextStep>, PipelineError> {
         for step in self.steps.iter() {
             match step.execute(&context) {
                 Ok(step_output) => {
@@ -33,7 +33,7 @@ impl Pipeline {
                     }
 
                     if let NextStep::Pipeline(_) | NextStep::Stop = step_output.next_step {
-                        return Ok(step_output.next_step);
+                        return Ok(Some(step_output.next_step));
                     }
                 }
                 Err(err) => {
@@ -42,6 +42,6 @@ impl Pipeline {
             }
         }
 
-        Ok(NextStep::Next)
+        Ok(None)
     }
 }

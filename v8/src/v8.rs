@@ -65,14 +65,16 @@ impl V8 {
 
             match pipeline.execute(&mut context) {
                 Ok(next_step) => match next_step {
-                    NextStep::Next => {
-                        return Ok(context);
-                    }
-                    NextStep::Pipeline(id) => {
-                        current = id;
-                    }
-                    NextStep::Stop => {
-                        return Ok(context);
+                    Some(next) => match next {
+                        NextStep::Pipeline(id) => {
+                            current = id as usize;
+                        }
+                        _ => {
+                            break Ok(context);
+                        }
+                    },
+                    None => {
+                        break Ok(context);
                     }
                 },
                 Err(err) => {
