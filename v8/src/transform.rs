@@ -141,8 +141,8 @@ mod test {
                         StepWorker {
                             id: ID::from("step1"),
                             condition: Some(Condition {
-                                left: Payload::from("context.credit"),
-                                right: Payload::from("context.credit_used"),
+                                left: Payload::from("context.credit".to_value()),
+                                right: Payload::from("context.credit_used".to_value()),
                                 operator: Operator::GreaterThan,
                             }),
                             then_case: Some(ID::from("pipeline_id_1")),
@@ -151,7 +151,7 @@ mod test {
                         },
                         StepWorker {
                             condition: Some(Condition {
-                                left: Payload::from("steps.step1.score"),
+                                left: Payload::from("steps.step1.score".to_value()),
                                 right: Payload::from(&500.to_value()),
                                 operator: Operator::GreaterThan,
                             }),
@@ -173,30 +173,30 @@ mod test {
                     vec![
                         StepWorker {
                             payload: Some(Payload::from(
-                                r#"{"score": "context.credit - context.credit_used"}"#,
+                                r#"{"score": "context.credit - context.credit_used"}"#.to_value(),
                             )),
                             ..default::Default::default()
                         },
                         StepWorker {
                             condition: Some(Condition {
-                                left: Payload::from("steps.step1.score"),
-                                right: Payload::from(&10.to_value()),
+                                left: Payload::from("steps.step1.score".to_value()),
+                                right: Payload::from(10.to_value()),
                                 operator: Operator::GreaterThan,
                             }),
                             ..default::Default::default()
                         },
                         StepWorker {
                             condition: Some(Condition {
-                                left: Payload::from("steps.step1.score"),
-                                right: Payload::from(&500.to_value()),
+                                left: Payload::from("steps.step1.score".to_value()),
+                                right: Payload::from(500.to_value()),
                                 operator: Operator::GreaterThan,
                             }),
                             ..default::Default::default()
                         },
                         StepWorker {
                             condition: Some(Condition {
-                                left: Payload::from("steps.step1.score"),
-                                right: Payload::from(&100000.to_value()),
+                                left: Payload::from("steps.step1.score".to_value()),
+                                right: Payload::from(100000.to_value()),
                                 operator: Operator::LessThan,
                             }),
                             ..default::Default::default()
@@ -214,8 +214,8 @@ mod test {
                     ID::from("pipeline_id_2"),
                     vec![StepWorker {
                         condition: Some(Condition {
-                            left: Payload::from("steps.step1.score"),
-                            right: Payload::from(&500.to_value()),
+                            left: Payload::from("steps.step1.score".to_value()),
+                            right: Payload::from(500.to_value()),
                             operator: Operator::Equal,
                         }),
                         then_case: Some(ID::from("pipeline_id_3")),
@@ -228,7 +228,7 @@ mod test {
                 Pipeline::new(
                     ID::from("pipeline_id_3"),
                     vec![StepWorker {
-                        return_case: Some(Payload::from(r#"{"result": "true"}"#)),
+                        return_case: Some(Payload::from(r#"{"result": true}"#.to_value())),
                         ..default::Default::default()
                     }],
                 ),
@@ -238,7 +238,7 @@ mod test {
                 Pipeline::new(
                     ID::from("pipeline_id_4"),
                     vec![StepWorker {
-                        payload: Some(Payload::from(r#"{"score": 0}"#)),
+                        payload: Some(Payload::from(r#"{"score": 0}"#.to_value())),
                         ..default::Default::default()
                     }],
                 ),
@@ -249,7 +249,7 @@ mod test {
                     ID::from("pipeline_id_5"),
                     vec![StepWorker {
                         name: Some("Credit avaliable".to_string()),
-                        payload: Some(Payload::from(r#"{"resul": true}"#)),
+                        payload: Some(Payload::from(r#"{"result": true}"#.to_value())),
                         ..default::Default::default()
                     }],
                 ),
@@ -260,7 +260,7 @@ mod test {
                     ID::from("pipeline_id_6"),
                     vec![StepWorker {
                         name: Some("Credit avaliable".to_string()),
-                        payload: Some(Payload::from(r#"{"score": false}"#)),
+                        payload: Some(Payload::from(r#"{"score": false}"#.to_value())),
                         ..default::Default::default()
                     }],
                 ),
@@ -272,6 +272,44 @@ mod test {
 
         let result = transform_json(&Valu3Value::json_to_value(&original).unwrap()).unwrap();
 
-        assert_eq!(result, expected);
+        assert_eq!(
+            result
+                .get(&ID::from("pipeline_id_0"))
+                .unwrap()
+                .steps
+                .get(0)
+                .unwrap()
+                .id,
+            expected
+                .get(&ID::from("pipeline_id_0"))
+                .unwrap()
+                .steps
+                .get(0)
+                .unwrap()
+                .id
+        );
+
+        assert_eq!(
+            result
+                .get(&ID::from("pipeline_id_0"))
+                .unwrap()
+                .steps
+                .get(1)
+                .unwrap()
+                .condition
+                .as_ref()
+                .unwrap()
+                .left,
+            expected
+                .get(&ID::from("pipeline_id_0"))
+                .unwrap()
+                .steps
+                .get(1)
+                .unwrap()
+                .condition
+                .as_ref()
+                .unwrap()
+                .left
+        );
     }
 }

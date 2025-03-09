@@ -16,6 +16,13 @@ pub struct Payload {
     pub(crate) script: String,
 }
 
+impl From<Value> for Payload {
+    fn from(value: Value) -> Self {
+        let script = value.to_string();
+        Self { script }
+    }
+}
+
 impl From<&Value> for Payload {
     fn from(value: &Value) -> Self {
         let script = value.to_string();

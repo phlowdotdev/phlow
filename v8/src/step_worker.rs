@@ -6,7 +6,7 @@ use crate::{
 };
 use serde::Serialize;
 use std::fmt::Display;
-use valu3::value::Value;
+use valu3::{prelude::StringBehavior, value::Value};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Eq, Hash)]
 pub struct ID(Option<String>);
@@ -119,7 +119,10 @@ impl TryFrom<&Value> for StepWorker {
             Some(id) => ID::from(id),
             None => ID::new(),
         };
-        let name = value.get("name").map(|name| name.to_string());
+        let name = match value.get("name") {
+            Some(name) => Some(name.as_string()),
+            None => None,
+        };
         let condition = {
             if let Some(condition) = value
                 .get("condition")
