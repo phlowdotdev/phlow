@@ -12,12 +12,12 @@ use valu3::Error as ValueError;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Context {
-    pub(crate) params: Value,
+    pub(crate) params: Option<Value>,
     pub(crate) steps: HashMap<ID, Value>,
 }
 
 impl Context {
-    pub fn new(params: Value) -> Self {
+    pub fn new(params: Option<Value>) -> Self {
         Self {
             params,
             steps: HashMap::new(),
@@ -54,7 +54,7 @@ struct V8 {
 
 impl V8 {
     pub fn execute(&self) -> Result<Context, Error> {
-        let mut context = Context::new(self.params.clone().unwrap_or_default());
+        let mut context = Context::new(self.params.clone());
 
         let mut current = self.main;
         loop {
