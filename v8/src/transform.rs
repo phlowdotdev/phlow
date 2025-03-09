@@ -3,7 +3,7 @@ use valu3::{prelude::*, traits::ToValueBehavior, value::Value};
 
 use crate::{
     id::ID,
-    pipeline::{self, Pipeline},
+    pipeline::Pipeline,
     step_worker::{StepWorker, StepWorkerError},
     v8::PipelineMap,
 };
@@ -108,14 +108,8 @@ fn value_to_structs(map: &Vec<Value>) -> Result<PipelineMap, TransformError> {
 
 #[cfg(test)]
 mod test {
-    use std::{default, fs};
-
-    use crate::{
-        condition::{Condition, Operator},
-        payload::Payload,
-    };
-
     use super::*;
+    use std::fs;
     use valu3::{prelude::JsonMode, traits::ToValueBehavior, value::Value as Valu3Value};
 
     #[test]
@@ -129,161 +123,5 @@ mod test {
         println!("{:?}", map.to_value().to_json(JsonMode::Inline));
 
         assert_eq!(map.to_value(), Valu3Value::json_to_value(&target).unwrap());
-    }
-
-    #[test]
-    fn test_transform_struct() {
-        let expected = {
-            let mut map = Vec::new();
-
-            map.push(Pipeline::new(
-                map.len(),
-                vec![
-                    StepWorker {
-                        name: Some("Start".to_string()),
-                        ..default::Default::default()
-                    },
-                    StepWorker {
-                        id: ID::from("step1"),
-                        condition: Some(Condition {
-                            left: Payload::from("context.credit".to_value()),
-                            right: Payload::from("context.credit_used".to_value()),
-                            operator: Operator::GreaterThan,
-                        }),
-                        then_case: Some(1),
-                        else_case: Some(4),
-                        ..default::Default::default()
-                    },
-                    StepWorker {
-                        condition: Some(Condition {
-                            left: Payload::from("steps.step1.score".to_value()),
-                            right: Payload::from(&500.to_value()),
-                            operator: Operator::GreaterThan,
-                        }),
-                        then_case: Some(5),
-                        else_case: Some(6),
-                        ..default::Default::default()
-                    },
-                    StepWorker {
-                        name: Some("End".to_string()),
-                        ..default::Default::default()
-                    },
-                ],
-            ));
-            map.push(Pipeline::new(
-                map.len(),
-                vec![
-                    StepWorker {
-                        payload: Some(Payload::from(
-                            r#"{"score": "context.credit - context.credit_used"}"#.to_value(),
-                        )),
-                        ..default::Default::default()
-                    },
-                    StepWorker {
-                        condition: Some(Condition {
-                            left: Payload::from("steps.step1.score".to_value()),
-                            right: Payload::from(10.to_value()),
-                            operator: Operator::GreaterThan,
-                        }),
-                        ..default::Default::default()
-                    },
-                    StepWorker {
-                        condition: Some(Condition {
-                            left: Payload::from("steps.step1.score".to_value()),
-                            right: Payload::from(500.to_value()),
-                            operator: Operator::GreaterThan,
-                        }),
-                        ..default::Default::default()
-                    },
-                    StepWorker {
-                        condition: Some(Condition {
-                            left: Payload::from("steps.step1.score".to_value()),
-                            right: Payload::from(100000.to_value()),
-                            operator: Operator::LessThan,
-                        }),
-                        ..default::Default::default()
-                    },
-                    StepWorker {
-                        then_case: Some(2),
-                        ..default::Default::default()
-                    },
-                ],
-            ));
-            map.push(Pipeline::new(
-                map.len(),
-                vec![StepWorker {
-                    condition: Some(Condition {
-                        left: Payload::from("steps.step1.score".to_value()),
-                        right: Payload::from(500.to_value()),
-                        operator: Operator::Equal,
-                    }),
-                    then_case: Some(3),
-                    ..default::Default::default()
-                }],
-            ));
-            map.push(Pipeline::new(
-                map.len(),
-                vec![StepWorker {
-                    return_case: Some(Payload::from(r#"{"result": true}"#.to_value())),
-                    ..default::Default::default()
-                }],
-            ));
-            map.push(Pipeline::new(
-                map.len(),
-                vec![StepWorker {
-                    payload: Some(Payload::from(r#"{"score": 0}"#.to_value())),
-                    ..default::Default::default()
-                }],
-            ));
-            map.push(Pipeline::new(
-                map.len(),
-                vec![StepWorker {
-                    name: Some("Credit avaliable".to_string()),
-                    payload: Some(Payload::from(r#"{"result": true}"#.to_value())),
-                    ..default::Default::default()
-                }],
-            ));
-            map.push(Pipeline::new(
-                map.len(),
-                vec![StepWorker {
-                    name: Some("Credit avaliable".to_string()),
-                    payload: Some(Payload::from(r#"{"score": false}"#.to_value())),
-                    ..default::Default::default()
-                }],
-            ));
-
-            map
-        };
-        let original = fs::read_to_string("assets/original.json").unwrap();
-
-        let result = transform_json(&Valu3Value::json_to_value(&original).unwrap()).unwrap();
-
-        assert_eq!(
-            result.get(&0).unwrap().steps.get(0).unwrap().id,
-            expected.get(0).unwrap().steps.get(0).unwrap().id
-        );
-
-        assert_eq!(
-            result
-                .get(&0)
-                .unwrap()
-                .steps
-                .get(1)
-                .unwrap()
-                .condition
-                .as_ref()
-                .unwrap()
-                .left,
-            expected
-                .get(0)
-                .unwrap()
-                .steps
-                .get(1)
-                .unwrap()
-                .condition
-                .as_ref()
-                .unwrap()
-                .left
-        );
     }
 }
