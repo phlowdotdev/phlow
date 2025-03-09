@@ -30,40 +30,26 @@ pub(crate) fn process_raw_steps(
 
     let mut new_array = Vec::new();
 
-    if let Value::Object(main_obj) = input {
-        let main_steps = match main_obj.get("steps") {
+    if let Value::Object(pipeline) = input {
+        let steps = match pipeline.get("steps") {
             Some(Value::Array(arr)) => arr,
             _ => return Value::from(new_array),
         };
 
-        for item in main_steps.into_iter() {
-            if let Value::Object(obj) = item {
-                let mut new_obj = obj.clone();
+        for step in steps.into_iter() {
+            if let Value::Object(step) = step {
+                let mut new_step = step.clone();
 
-                if let Some(condition) = obj.get("condition") {
-                    if let Value::Object(cond_obj) = condition {
-                        let mut new_cond = cond_obj.clone();
-
-                        if let Some(then) = cond_obj.get("then") {
-                            new_cond.insert(
-                                "then".to_string(),
-                                process_raw_steps(then, id_counter, map),
-                            );
-                        }
-                        if let Some(els) = cond_obj.get("else") {
-                            new_cond.insert(
-                                "else".to_string(),
-                                process_raw_steps(els, id_counter, map),
-                            );
-                        }
-
-                        new_obj.insert("condition".to_string(), Value::Object(new_cond));
-                    }
+                if let Some(then) = step.get("then") {
+                    new_step.insert("then".to_string(), process_raw_steps(then, id_counter, map));
+                }
+                if let Some(els) = step.get("else") {
+                    new_step.insert("else".to_string(), process_raw_steps(els, id_counter, map));
                 }
 
-                new_array.push(Value::Object(new_obj));
+                new_array.push(Value::Object(new_step));
             } else {
-                new_array.push(item.clone());
+                new_array.push(step.clone());
             }
         }
     }
@@ -111,7 +97,8 @@ mod test {
     fn test_transform_value() {
         let mut id_counter = 0;
         let mut map = HashMap::new();
-        let original = fs::read_to_string("assets/pipeline.json").unwrap();
+        let original = fs::read_to_string("assets/original.json").unwrap();
+        let target = fs::read_to_string("assets/target.json").unwrap();
 
         process_raw_steps(
             &Valu3Value::json_to_value(&original).unwrap(),
@@ -119,10 +106,7 @@ mod test {
             &mut map,
         );
 
-        println!(
-            "{:?}",
-            map.to_value().to_json(valu3::prelude::JsonMode::Inline)
-        );
+        assert_eq!(map.to_value(), Valu3Value::json_to_value(&target).unwrap());
     }
 
     #[test]
