@@ -213,12 +213,8 @@ mod test {
                     StepWorker {
                         id: Some(ID::from("step1")),
                         condition: Some(Condition {
-                            left: Payload {
-                                script: "context.credit".to_string(),
-                            },
-                            right: Payload {
-                                script: "context.credit_used".to_string(),
-                            },
+                            left: Payload::from("context.credit"),
+                            right: Payload::from("context.credit_used"),
                             operator: Operator::GreaterThan,
                         }),
                         then_case: Some(ID::from("pipeline_id_1")),
@@ -227,12 +223,8 @@ mod test {
                     },
                     StepWorker {
                         condition: Some(Condition {
-                            left: Payload {
-                                script: "{{steps.step1.score}}".to_string(),
-                            },
-                            right: Payload {
-                                script: "500".to_string(),
-                            },
+                            left: Payload::from("{{steps.step1.score}}"),
+                            right: Payload::from("500"),
                             operator: Operator::GreaterThan,
                         }),
                         then_case: Some(ID::from("pipeline_id_3")),
@@ -241,7 +233,52 @@ mod test {
                     },
                 ],
             ),
-            Pipeline::new("pipeline_id_1".to_string(), vec![]),
+            Pipeline::new(
+                "pipeline_id_1".to_string(),
+                vec![
+                    StepWorker {
+                        payload: Some(Payload::from(
+                            r#"{"score": "{{context.credit - context.credit_used}}"}"#,
+                        )),
+                        then_case: Some(ID::from("pipeline_id_5")),
+                        ..default::Default::default()
+                    },
+                    StepWorker {
+                        condition: Some(Condition {
+                            left: Payload::from("{{steps.step1.score}}"),
+                            right: Payload::from("10"),
+                            operator: Operator::GreaterThan,
+                        }),
+                        ..default::Default::default()
+                    },
+                    StepWorker {
+                        condition: Some(Condition {
+                            left: Payload::from("{{steps.step1.score}}"),
+                            right: Payload::from("500"),
+                            operator: Operator::GreaterThan,
+                        }),
+                        ..default::Default::default()
+                    },
+                    StepWorker {
+                        condition: Some(Condition {
+                            left: Payload::from("{{steps.step1.score}}"),
+                            right: Payload::from("100000"),
+                            operator: Operator::LessThan,
+                        }),
+                        ..default::Default::default()
+                    },
+                    StepWorker {
+                        name: Some("Credit avaliable".to_string()),
+                        condition: Some(Condition {
+                            left: Payload::from("{{steps.step1.score}}"),
+                            right: Payload::from("500"),
+                            operator: Operator::Equal,
+                        }),
+                        then_case: Some(ID::from("pipeline_id_6")),
+                        ..default::Default::default()
+                    },
+                ],
+            ),
             Pipeline::new("pipeline_id_2".to_string(), vec![]),
             Pipeline::new("pipeline_id_3".to_string(), vec![]),
         ];

@@ -23,6 +23,13 @@ impl From<&Value> for Payload {
     }
 }
 
+impl From<&str> for Payload {
+    fn from(value: &str) -> Self {
+        let script = value.to_string();
+        Self { script }
+    }
+}
+
 impl Payload {
     pub fn new(script: String) -> Self {
         Self { script }
