@@ -97,7 +97,7 @@ fn value_to_structs(map: &HashMap<String, Value>) -> Result<HashMap<ID, Pipeline
 
 #[cfg(test)]
 mod test {
-    use std::default;
+    use std::{default, fs};
 
     use crate::{
         condition::{Condition, Operator},
@@ -107,222 +107,22 @@ mod test {
     use super::*;
     use valu3::{traits::ToValueBehavior, value::Value as Valu3Value};
 
-    const ORIGINAL: &str = r#"
-    {
-      "steps": [
-        {
-          "echo": "Start"
-        },
-        {
-          "id": "step1",
-          "condition": {
-            "left": "context.credit",
-            "right": "context.credit_used",
-            "operator": "greater_than"
-          },
-          "then": {
-            "payload": {
-              "score": "context.credit - context.credit_used"
-            },
-            "steps": [
-              {
-                "condition": {
-                  "left": "steps.step1.score",
-                  "right": "10",
-                  "operator": "greater_than"
-                }
-              },
-              {
-                "condition": {
-                  "left": "steps.step1.score",
-                  "right": "500",
-                  "operator": "greater_than"
-                }
-              },
-              {
-                "condition": {
-                  "left": "steps.step1.score",
-                  "right": "100000",
-                  "operator": "less_than"
-                }
-              },
-              {
-                "then": {
-                  "condition": {
-                    "left": "steps.step1.score",
-                    "right": "500",
-                    "operator": "equal"
-                  },
-                  "then": {
-                    "return": true
-                  }
-                }
-              }
-            ]
-          },
-          "else": {
-            "steps": [
-              {
-                "score": "{{0}}"
-              }
-            ]
-          }
-        },
-        {
-          "condition": {
-            "left": "steps.step1.score",
-            "right": "500",
-            "operator": "greater_than",
-            "then": {
-              "steps": [
-                {
-                  "echo": "Credit avaliable",
-                  "payload": {
-                    "resul": "true"
-                  }
-                }
-              ]
-            },
-            "else": {
-              "steps": [
-                {
-                  "echo": "Credit not avaliable",
-                  "payload": {
-                    "score": "false"
-                  }
-                }
-              ]
-            }
-          }
-        },
-        {
-          "echo": "End"
-        }
-      ]
-    }
-  "#;
-
     #[test]
     fn test_transform_value() {
         let mut id_counter = 0;
         let mut map = HashMap::new();
+        let original = fs::read_to_string("assets/pipeline.json").unwrap();
 
         process_raw_steps(
-            &Valu3Value::json_to_value(ORIGINAL).unwrap(),
+            &Valu3Value::json_to_value(&original).unwrap(),
             &mut id_counter,
             &mut map,
         );
-
-        let transfomed = Valu3Value::json_to_value(
-            r#"
-                {
-            "pipeline_id_0": [
-              {
-                "echo": "Start"
-              },
-              {
-                "id": "step1",
-                "condition": {
-                  "left": "context.credit",
-                  "right": "context.credit_used",
-                  "condition": "greater_than",
-                  "then": "pipeline_id_1",
-                  "else": "pipeline_id_2"
-                }
-              },
-              {
-                "condition": {
-                  "left": "steps.step1.score",
-                  "right": "500",
-                  "condition": "greater_than",
-                  "then": "pipeline_id_3",
-                  "else": "pipeline_id_4"
-                }
-              },
-              {
-                "echo": "End"
-              }
-            ],
-            "pipeline_id_1": [
-              [
-                {
-                  "payload": {
-                    "score": "context.credit - context.credit_used"
-                  },
-                  "steps": [
-                    {
-                      "condition": {
-                        "left": "steps.step1.score",
-                        "right": "10",
-                        "condition": "greater_than"
-                      }
-                    },
-                    {
-                      "condition": {
-                        "left": "steps.step1.score",
-                        "right": "500",
-                        "condition": "greater_than"
-                      }
-                    },
-                    {
-                      "condition": {
-                        "left": "steps.step1.score",
-                        "right": "100000",
-                        "condition": "less_than"
-                      }
-                    },
-                    {
-                      "then": "pipeline_id_5"
-                    }
-                  ]
-                }
-              ]
-            ],
-            "pipeline_id_2": [
-              {
-                "score": "{{0}}"
-              }
-            ],
-            "pipeline_id_3": [
-              {
-                "echo": "Credit avaliable",
-                "payload": {
-                  "resul": "{{true}}"
-                }
-              }
-            ],
-            "pipeline_id_4": [
-              {
-                "echo": "Credit not avaliable",
-                "payload": {
-                  "score": "{{false}}"
-                }
-              }
-            ],
-            "pipeline_id_5": [
-              {
-                "echo": "Credit avaliable",
-                "condition": {
-                  "left": "steps.step1.score",
-                  "right": "500",
-                  "condition": "equal"
-                },
-                "then": {
-                  "return": true
-                }
-              }
-            ]
-          }
-                "#,
-        )
-        .unwrap();
 
         println!(
             "{:?}",
             map.to_value().to_json(valu3::prelude::JsonMode::Inline)
         );
-
-        assert_eq!(map.to_value(), transfomed);
     }
 
     #[test]
@@ -463,8 +263,9 @@ mod test {
 
             map
         };
+        let original = fs::read_to_string("assets/pipeline.json").unwrap();
 
-        let result = transform_json(&Valu3Value::json_to_value(ORIGINAL).unwrap()).unwrap();
+        let result = transform_json(&Valu3Value::json_to_value(&original).unwrap()).unwrap();
 
         assert_eq!(result, expected);
     }

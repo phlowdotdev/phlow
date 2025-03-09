@@ -62,27 +62,27 @@
       "condition": {
         "left": "steps.step1.score",
         "right": "500",
-        "operator": "greater_than",
-        "then": {
-          "steps": [
-            {
-              "echo": "Credit avaliable",
-              "payload": {
-                "resul": "true"
-              }
+        "operator": "greater_than"
+      },
+      "then": {
+        "steps": [
+          {
+            "echo": "Credit avaliable",
+            "payload": {
+              "resul": "true"
             }
-          ]
-        },
-        "else": {
-          "steps": [
-            {
-              "echo": "Credit not avaliable",
-              "payload": {
-                "score": "false"
-              }
+          }
+        ]
+      },
+      "else": {
+        "steps": [
+          {
+            "echo": "Credit not avaliable",
+            "payload": {
+              "score": "false"
             }
-          ]
-        }
+          }
+        ]
       }
     },
     {
