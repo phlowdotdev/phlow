@@ -45,13 +45,15 @@ pub enum Error {
 struct V8 {
     pipelines: HashMap<ID, Pipeline>,
     main: ID,
+    params: Option<Value>,
 }
 
 impl V8 {
-    fn new(pipelines: HashMap<ID, Pipeline>) -> Self {
+    fn new(pipelines: HashMap<ID, Pipeline>, params: Option<Value>) -> Self {
         Self {
             pipelines,
             main: ID::from("pipeline_id_0"),
+            params,
         }
     }
 }
@@ -60,7 +62,7 @@ impl TryFrom<&str> for V8 {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let pipelines = json_to_pipelines(value).map_err(Error::TransformError)?;
-        Ok(Self::new(pipelines))
+        let (pipelines, params) = json_to_pipelines(value).map_err(Error::TransformError)?;
+        Ok(Self::new(pipelines, params))
     }
 }

@@ -3,7 +3,7 @@ use valu3::{prelude::ObjectBehavior, traits::ToValueBehavior, value::Value};
 
 use crate::{
     id::ID,
-    pipeline::Pipeline,
+    pipeline::{self, Pipeline},
     step_worker::{StepWorker, StepWorkerError},
 };
 
@@ -13,10 +13,14 @@ pub enum TransformError {
     Parser(valu3::Error),
 }
 
-pub(crate) fn json_to_pipelines(input: &str) -> Result<HashMap<ID, Pipeline>, TransformError> {
+pub(crate) fn json_to_pipelines(
+    input: &str,
+) -> Result<(HashMap<ID, Pipeline>, Option<Value>), TransformError> {
     let value = Value::json_to_value(input).map_err(TransformError::Parser)?;
+    let params = value.get("params").cloned();
+    let pipelines = transform_json(&value)?;
 
-    transform_json(&value)
+    Ok((pipelines, params))
 }
 
 pub(crate) fn transform_json(input: &Value) -> Result<HashMap<ID, Pipeline>, TransformError> {

@@ -10,13 +10,13 @@
     {
       "id": "step1",
       "condition": {
-        "left": "context.credit",
-        "right": "context.credit_used",
+        "left": "params.credit",
+        "right": "params.credit_used",
         "operator": "greater_than"
       },
       "then": {
         "payload": {
-          "score": "context.credit - context.credit_used"
+          "score": "params.credit - params.credit_used"
         },
         "steps": [
           {
