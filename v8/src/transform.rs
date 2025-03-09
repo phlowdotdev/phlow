@@ -97,6 +97,13 @@ fn value_to_structs(value: &Value) -> Result<HashMap<ID, Pipeline>, TransformErr
 
 #[cfg(test)]
 mod test {
+    use std::default;
+
+    use crate::{
+        condition::{Condition, Operator},
+        payload::Payload,
+    };
+
     use super::*;
     use valu3::value::Value as Valu3Value;
 
@@ -111,8 +118,8 @@ mod test {
           {
             "id": "step1",
             "condition": {
-              "left": "{{context.credit}}",
-              "right": "{{context.credit_used}}",
+              "left": "context.credit",
+              "right": "context.credit_used",
               "condition": "greater_than",
               "then": [
                 {
@@ -195,8 +202,50 @@ mod test {
         )
         .unwrap();
 
-        let result = transform_json(&original).unwrap();
+        let expected = vec![
+            Pipeline::new(
+                "pipeline_id_0".to_string(),
+                vec![
+                    StepWorker {
+                        name: Some("Start".to_string()),
+                        ..default::Default::default()
+                    },
+                    StepWorker {
+                        id: Some(ID::from("step1")),
+                        condition: Some(Condition {
+                            left: Payload {
+                                script: "context.credit".to_string(),
+                            },
+                            right: Payload {
+                                script: "context.credit_used".to_string(),
+                            },
+                            operator: Operator::GreaterThan,
+                        }),
+                        then_case: Some(ID::from("pipeline_id_1")),
+                        else_case: Some(ID::from("pipeline_id_2")),
+                        ..default::Default::default()
+                    },
+                    StepWorker {
+                        condition: Some(Condition {
+                            left: Payload {
+                                script: "{{steps.step1.score}}".to_string(),
+                            },
+                            right: Payload {
+                                script: "500".to_string(),
+                            },
+                            operator: Operator::GreaterThan,
+                        }),
+                        then_case: Some(ID::from("pipeline_id_3")),
+                        else_case: Some(ID::from("pipeline_id_4")),
+                        ..default::Default::default()
+                    },
+                ],
+            ),
+            Pipeline::new("pipeline_id_1".to_string(), vec![]),
+            Pipeline::new("pipeline_id_2".to_string(), vec![]),
+            Pipeline::new("pipeline_id_3".to_string(), vec![]),
+        ];
 
-        println!("{:?}", result);
+        let result = transform_json(&original).unwrap();
     }
 }

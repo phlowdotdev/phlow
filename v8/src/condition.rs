@@ -48,9 +48,9 @@ impl From<&Value> for Operator {
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Condition {
-    left: Payload,
-    right: Payload,
-    operator: Operator,
+    pub(crate) left: Payload,
+    pub(crate) right: Payload,
+    pub(crate) operator: Operator,
 }
 
 impl TryFrom<&Value> for Condition {

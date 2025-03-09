@@ -34,7 +34,13 @@ pub enum StepType {
     ElseCase,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+impl Default for StepType {
+    fn default() -> Self {
+        StepType::Default
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Default)]
 pub struct StepWorker {
     pub(crate) id: Option<String>,
     pub(crate) name: Option<String>,

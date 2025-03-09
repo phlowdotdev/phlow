@@ -6,8 +6,8 @@
     {
       "id": "step1",
       "condition": {
-        "left": "{{context.credit}}",
-        "right": "{{context.credit_used}}",
+        "left": "context.credit",
+        "right": "context.credit_used",
         "condition": "greater_than",
         "then": "pipeline_id_1",
         "else": "pipeline_id_2"

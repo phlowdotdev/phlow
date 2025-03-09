@@ -13,7 +13,7 @@ pub enum PayloadError {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Payload {
-    script: String,
+    pub(crate) script: String,
 }
 
 impl From<&Value> for Payload {
