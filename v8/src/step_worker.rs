@@ -131,7 +131,6 @@ impl TryFrom<&Value> for StepWorker {
             Some(name) => Some(name.as_string()),
             None => None,
         };
-        let request = value.get("request").cloned();
         let condition = {
             if let Some(condition) = value
                 .get("condition")
