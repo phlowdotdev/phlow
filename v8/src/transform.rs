@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use valu3::value::Value;
+use valu3::{prelude::ObjectBehavior, traits::ToValueBehavior, value::Value};
 
 use crate::{
     pipeline::Pipeline,
@@ -31,6 +31,8 @@ pub(crate) fn process_raw_steps(
     if let Value::Object(pipeline) = input {
         let mut new_pipeline = pipeline.clone();
 
+        new_pipeline.remove(&"steps");
+
         if let Some(then) = pipeline.get("then") {
             new_pipeline.insert("then".to_string(), process_raw_steps(then, id_counter, map));
         }
@@ -38,9 +40,13 @@ pub(crate) fn process_raw_steps(
             new_pipeline.insert("else".to_string(), process_raw_steps(els, id_counter, map));
         }
 
-        if let Some(steps) = pipeline.get("steps") {
-            let mut new_steps = Vec::new();
+        let mut new_steps = if new_pipeline.is_empty() {
+            vec![]
+        } else {
+            vec![new_pipeline.to_value()]
+        };
 
+        if let Some(steps) = pipeline.get("steps") {
             if let Value::Array(steps) = steps {
                 for step in steps.into_iter() {
                     let mut new_step = step.clone();
@@ -57,11 +63,9 @@ pub(crate) fn process_raw_steps(
                     new_steps.push(new_step);
                 }
             }
-
-            new_pipeline.insert("steps".to_string(), Value::from(new_steps));
         }
 
-        map.insert(key.clone(), Value::from(new_pipeline));
+        map.insert(key.clone(), Value::from(new_steps));
     }
 
     Value::from(key)
@@ -71,14 +75,14 @@ fn value_to_structs(map: &HashMap<String, Value>) -> Result<HashMap<ID, Pipeline
     let mut pipelines = HashMap::new();
 
     for (key, val) in map.iter() {
-        if let Value::Array(arr) = val {
+        if let Value::Object(obj) = val {
             let mut steps = Vec::new();
 
-            for item in arr.into_iter() {
-                let step_worker =
-                    StepWorker::try_from(item).map_err(TransformError::InnerStepError)?;
-                steps.push(step_worker);
-            }
+            // for item in arr.into_iter() {
+            //     let step_worker =
+            //         StepWorker::try_from(item).map_err(TransformError::InnerStepError)?;
+            //     steps.push(step_worker);
+            // }
 
             pipelines.insert(
                 ID::from(key.clone()),
@@ -100,7 +104,7 @@ mod test {
     };
 
     use super::*;
-    use valu3::{traits::ToValueBehavior, value::Value as Valu3Value};
+    use valu3::{prelude::JsonMode, traits::ToValueBehavior, value::Value as Valu3Value};
 
     #[test]
     fn test_transform_value() {
@@ -114,6 +118,8 @@ mod test {
             &mut id_counter,
             &mut map,
         );
+
+        println!("{:?}", map.to_value().to_json(JsonMode::Inline));
 
         assert_eq!(map.to_value(), Valu3Value::json_to_value(&target).unwrap());
     }
@@ -256,7 +262,7 @@ mod test {
 
             map
         };
-        let original = fs::read_to_string("assets/pipeline.json").unwrap();
+        let original = fs::read_to_string("assets/original.json").unwrap();
 
         let result = transform_json(&Valu3Value::json_to_value(&original).unwrap()).unwrap();
 
