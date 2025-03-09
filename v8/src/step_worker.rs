@@ -1,11 +1,10 @@
 use crate::{
     condition::{Condition, ConditionError},
     payload::Payload,
-    pipeline::{Context, Step},
     Error,
 };
 use serde::Serialize;
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 use valu3::{prelude::StringBehavior, value::Value};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Eq, Hash)]
@@ -99,9 +98,33 @@ impl Default for StepType {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Context {
+    pub(crate) request: Value,
+    pub(crate) steps: HashMap<ID, Output>,
+}
+
+impl Context {
+    pub fn new(request: Value) -> Self {
+        Self {
+            request,
+            steps: HashMap::new(),
+        }
+    }
+
+    pub fn add_step_output(&mut self, step: &StepWorker, output: Output) {
+        self.steps.insert(step.get_id().clone(), output);
+    }
+
+    pub fn get_step_output(&self, step: &StepWorker) -> Option<&Output> {
+        self.steps.get(&step.get_id())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Default)]
 pub struct StepWorker {
     pub(crate) id: ID,
+    pub(crate) request: Option<Value>,
     pub(crate) name: Option<String>,
     pub(crate) step_type: StepType,
     pub(crate) condition: Option<Condition>,
@@ -111,108 +134,7 @@ pub struct StepWorker {
     pub(crate) return_case: Option<Payload>,
 }
 
-impl TryFrom<&Value> for StepWorker {
-    type Error = StepWorkerError;
-
-    fn try_from(value: &Value) -> Result<Self, StepWorkerError> {
-        let id = match value.get("id") {
-            Some(id) => ID::from(id),
-            None => ID::new(),
-        };
-        let name = match value.get("name") {
-            Some(name) => Some(name.as_string()),
-            None => None,
-        };
-        let condition = {
-            if let Some(condition) = value
-                .get("condition")
-                .map(|condition| Condition::try_from(condition))
-            {
-                Some(condition.map_err(StepWorkerError::ConditionError)?)
-            } else {
-                None
-            }
-        };
-        let payload = match value.get("payload") {
-            Some(payload) => Some(Payload::new(payload.to_string())),
-            None => None,
-        };
-        let then_case = match value.get("then_case") {
-            Some(then_case) => Some(ID::from(then_case.to_string())),
-            None => None,
-        };
-        let else_case = match value.get("else_case") {
-            Some(else_case) => Some(ID::from(else_case.to_string())),
-            None => None,
-        };
-        let return_case = match value.get("return_case") {
-            Some(return_case) => Some(Payload::new(return_case.to_string())),
-            None => None,
-        };
-
-        let step_type = if then_case.is_some() {
-            StepType::ThenCase
-        } else if else_case.is_some() {
-            StepType::ElseCase
-        } else {
-            StepType::Default
-        };
-
-        Ok(Self {
-            id,
-            name,
-            step_type,
-            condition,
-            payload,
-            then_case,
-            else_case,
-            return_case,
-        })
-    }
-}
-
-impl From<Step> for StepWorker {
-    fn from(step: Step) -> Self {
-        Self {
-            id: if let Some(id) = step.id {
-                ID::from(id)
-            } else {
-                ID::new()
-            },
-            name: step.name,
-            step_type: step.step_type,
-            condition: step.condition,
-            payload: step.payload,
-            then_case: None,
-            else_case: None,
-            return_case: step.return_case,
-        }
-    }
-}
-
 impl StepWorker {
-    pub fn new(
-        id: ID,
-        name: Option<String>,
-        step_type: StepType,
-        condition: Option<Condition>,
-        payload: Option<Payload>,
-        then_case: Option<ID>,
-        else_case: Option<ID>,
-        return_case: Option<Payload>,
-    ) -> Self {
-        Self {
-            id,
-            name,
-            step_type,
-            condition,
-            payload,
-            then_case,
-            else_case,
-            return_case,
-        }
-    }
-
     pub fn add_then_case(&mut self, then_case: ID) {
         self.then_case = Some(then_case);
     }
@@ -280,6 +202,68 @@ impl StepWorker {
     }
 }
 
+impl TryFrom<&Value> for StepWorker {
+    type Error = StepWorkerError;
+
+    fn try_from(value: &Value) -> Result<Self, StepWorkerError> {
+        let id = match value.get("id") {
+            Some(id) => ID::from(id),
+            None => ID::new(),
+        };
+        let name = match value.get("name") {
+            Some(name) => Some(name.as_string()),
+            None => None,
+        };
+        let request = value.get("request").cloned();
+        let condition = {
+            if let Some(condition) = value
+                .get("condition")
+                .map(|condition| Condition::try_from(condition))
+            {
+                Some(condition.map_err(StepWorkerError::ConditionError)?)
+            } else {
+                None
+            }
+        };
+        let payload = match value.get("payload") {
+            Some(payload) => Some(Payload::new(payload.to_string())),
+            None => None,
+        };
+        let then_case = match value.get("then_case") {
+            Some(then_case) => Some(ID::from(then_case.to_string())),
+            None => None,
+        };
+        let else_case = match value.get("else_case") {
+            Some(else_case) => Some(ID::from(else_case.to_string())),
+            None => None,
+        };
+        let return_case = match value.get("return_case") {
+            Some(return_case) => Some(Payload::new(return_case.to_string())),
+            None => None,
+        };
+
+        let step_type = if then_case.is_some() {
+            StepType::ThenCase
+        } else if else_case.is_some() {
+            StepType::ElseCase
+        } else {
+            StepType::Default
+        };
+
+        Ok(Self {
+            id,
+            request,
+            name,
+            step_type,
+            condition,
+            payload,
+            then_case,
+            else_case,
+            return_case,
+        })
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -287,32 +271,21 @@ mod test {
 
     #[test]
     fn test_step_get_reference_id() {
-        let step = StepWorker::new(
-            ID::from("id"),
-            Some("name".to_string()),
-            StepType::Default,
-            None,
-            None,
-            None,
-            None,
-            None,
-        );
+        let step = StepWorker {
+            id: ID::from("id"),
+            name: Some("name".to_string()),
+            ..Default::default()
+        };
 
         assert_eq!(step.get_id(), &ID::from("id"));
     }
 
     #[test]
     fn test_step_execute() {
-        let step = StepWorker::new(
-            ID::new(),
-            None,
-            StepType::Default,
-            None,
-            Some(Payload::new("10".to_string())),
-            None,
-            None,
-            None,
-        );
+        let step = StepWorker {
+            payload: Some(Payload::new("10".to_string())),
+            ..Default::default()
+        };
 
         let context = Context::new(Value::Null);
 
@@ -324,20 +297,16 @@ mod test {
 
     #[test]
     fn test_step_execute_with_condition() {
-        let step = StepWorker::new(
-            ID::new(),
-            None,
-            StepType::Default,
-            Some(Condition::new(
+        let step = StepWorker {
+            id: ID::new(),
+            condition: Some(Condition::new(
                 Payload::new("10".to_string()),
                 Payload::new("20".to_string()),
                 crate::condition::Operator::NotEqual,
             )),
-            Some(Payload::new("10".to_string())),
-            None,
-            None,
-            None,
-        );
+            payload: Some(Payload::new("10".to_string())),
+            ..Default::default()
+        };
 
         let context = Context::new(Value::Null);
 
@@ -349,20 +318,17 @@ mod test {
 
     #[test]
     fn test_step_execute_with_condition_then_case() {
-        let step = StepWorker::new(
-            ID::new(),
-            None,
-            StepType::Default,
-            Some(Condition::new(
+        let step = StepWorker {
+            id: ID::new(),
+            condition: Some(Condition::new(
                 Payload::new("10".to_string()),
                 Payload::new("20".to_string()),
                 crate::condition::Operator::NotEqual,
             )),
-            Some(Payload::new("10".to_string())),
-            Some(ID::from("then_case")),
-            None,
-            None,
-        );
+            payload: Some(Payload::new("10".to_string())),
+            then_case: Some(ID::from("then_case")),
+            ..Default::default()
+        };
 
         let context = Context::new(Value::Null);
 
@@ -374,20 +340,17 @@ mod test {
 
     #[test]
     fn test_step_execute_with_condition_else_case() {
-        let step = StepWorker::new(
-            ID::new(),
-            None,
-            StepType::Default,
-            Some(Condition::new(
+        let step = StepWorker {
+            id: ID::new(),
+            condition: Some(Condition::new(
                 Payload::new("10".to_string()),
                 Payload::new("20".to_string()),
                 crate::condition::Operator::Equal,
             )),
-            Some(Payload::new("10".to_string())),
-            None,
-            Some(ID::from("else_case")),
-            None,
-        );
+            payload: Some(Payload::new("10".to_string())),
+            else_case: Some(ID::from("else_case")),
+            ..Default::default()
+        };
 
         let context = Context::new(Value::Null);
 
@@ -399,16 +362,11 @@ mod test {
 
     #[test]
     fn test_step_execute_with_return_case() {
-        let step = StepWorker::new(
-            ID::new(),
-            None,
-            StepType::Default,
-            None,
-            None,
-            None,
-            None,
-            Some(Payload::new("10".to_string())),
-        );
+        let step = StepWorker {
+            id: ID::new(),
+            return_case: Some(Payload::new("10".to_string())),
+            ..Default::default()
+        };
 
         let context = Context::new(Value::Null);
 
@@ -420,16 +378,12 @@ mod test {
 
     #[test]
     fn test_step_execute_with_return_case_and_payload() {
-        let step = StepWorker::new(
-            ID::new(),
-            None,
-            StepType::Default,
-            None,
-            Some(Payload::new("10".to_string())),
-            None,
-            None,
-            Some(Payload::new("20".to_string())),
-        );
+        let step = StepWorker {
+            id: ID::new(),
+            payload: Some(Payload::new("10".to_string())),
+            return_case: Some(Payload::new("20".to_string())),
+            ..Default::default()
+        };
 
         let context = Context::new(Value::Null);
 
@@ -441,20 +395,16 @@ mod test {
 
     #[test]
     fn test_step_execute_with_return_case_and_condition() {
-        let step = StepWorker::new(
-            ID::new(),
-            None,
-            StepType::Default,
-            Some(Condition::new(
+        let step = StepWorker {
+            id: ID::new(),
+            condition: Some(Condition::new(
                 Payload::new("10".to_string()),
                 Payload::new("10".to_string()),
                 crate::condition::Operator::Equal,
             )),
-            None,
-            None,
-            None,
-            Some(Payload::new("10".to_string())),
-        );
+            return_case: Some(Payload::new("10".to_string())),
+            ..Default::default()
+        };
 
         let context = Context::new(Value::Null);
 
@@ -466,20 +416,17 @@ mod test {
 
     #[test]
     fn test_step_execute_with_return_case_and_condition_then_case() {
-        let step = StepWorker::new(
-            ID::new(),
-            None,
-            StepType::Default,
-            Some(Condition::new(
+        let step = StepWorker {
+            id: ID::new(),
+            condition: Some(Condition::new(
                 Payload::new("10".to_string()),
                 Payload::new("10".to_string()),
                 crate::condition::Operator::Equal,
             )),
-            None,
-            Some(ID::from("then_case")),
-            None,
-            Some(Payload::new(r#""Ok""#.to_string())),
-        );
+            then_case: Some(ID::from("then_case")),
+            return_case: Some(Payload::new(r#""Ok""#.to_string())),
+            ..Default::default()
+        };
 
         let context = Context::new(Value::Null);
         let result = step.execute(&context).unwrap();
@@ -490,20 +437,17 @@ mod test {
 
     #[test]
     fn test_step_execute_with_return_case_and_condition_else_case() {
-        let step = StepWorker::new(
-            ID::new(),
-            None,
-            StepType::Default,
-            Some(Condition::new(
+        let step = StepWorker {
+            id: ID::new(),
+            condition: Some(Condition::new(
                 Payload::new("10".to_string()),
                 Payload::new("20".to_string()),
                 crate::condition::Operator::Equal,
             )),
-            None,
-            None,
-            Some(ID::from("else_case")),
-            Some(Payload::new(r#""Ok""#.to_string())),
-        );
+            else_case: Some(ID::from("else_case")),
+            return_case: Some(Payload::new(r#""Ok""#.to_string())),
+            ..Default::default()
+        };
 
         let context = Context::new(Value::Null);
         let result = step.execute(&context).unwrap();

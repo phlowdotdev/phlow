@@ -1,4 +1,4 @@
-use crate::pipeline::Context;
+use crate::step_worker::Context;
 use crate::variable::Variable;
 use rhai::plugin::*;
 use rhai::serde::{from_dynamic, to_dynamic};
@@ -47,7 +47,7 @@ impl Payload {
         let mut scope = Scope::new();
 
         let steps: Dynamic = to_dynamic(context.steps.clone()).unwrap();
-        let context: Dynamic = to_dynamic(context.context.clone()).unwrap();
+        let context: Dynamic = to_dynamic(context.request.clone()).unwrap();
 
         scope.push_constant("steps", steps);
         scope.push_constant("context", context);
@@ -70,7 +70,7 @@ impl Payload {
 #[cfg(test)]
 mod test {
     use crate::{
-        step_worker::{StepType, ID},
+        step_worker::{Context, ID},
         StepWorker,
     };
 
@@ -161,16 +161,10 @@ mod test {
    
             a + b
         "#;
-        let step = StepWorker::new(
-            ID::from("me"),
-            None,
-            StepType::Default,
-            None,
-            None,
-            None,
-            None,
-            None,
-        );
+        let step = StepWorker {
+            id: ID::from("me"),
+            ..Default::default()
+        };
 
         let mut context = Context::new(Value::Null);
         context.add_step_output(&step, {

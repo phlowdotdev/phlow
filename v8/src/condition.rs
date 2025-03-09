@@ -1,7 +1,7 @@
 use serde::Serialize;
 use valu3::{prelude::StringBehavior, value::Value};
 
-use crate::{payload::Payload, pipeline::Context, Error};
+use crate::{payload::Payload, step_worker::Context, Error};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum ConditionError {
@@ -123,6 +123,8 @@ impl Condition {
 
 #[cfg(test)]
 mod test {
+    use crate::step_worker::Context;
+
     use super::*;
     use valu3::value::Value;
 

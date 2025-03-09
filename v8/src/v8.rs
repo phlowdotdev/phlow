@@ -22,18 +22,6 @@ impl V8 {
             main: ID::from("pipeline_id_0"),
         }
     }
-
-    fn add_pipeline(&mut self, pipeline: Pipeline) {
-        self.pipelines.insert(pipeline.id.clone(), pipeline);
-    }
-
-    fn get_pipeline(&self, id: ID) -> Option<&Pipeline> {
-        self.pipelines.get(&id)
-    }
-
-    fn get_main_pipeline(&self) -> Option<&Pipeline> {
-        self.pipelines.get(&self.main)
-    }
 }
 
 impl TryFrom<&str> for V8 {

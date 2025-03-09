@@ -7,7 +7,7 @@ mod v8;
 mod variable;
 use std::collections::HashMap;
 
-use pipeline::{Pipeline, Step};
+use pipeline::Pipeline;
 use step_worker::{StepWorker, ID};
 use valu3::Error as ValueError;
 
@@ -23,19 +23,4 @@ pub enum Error {
 struct V8 {
     pipelines: HashMap<ID, Pipeline>,
     main: ID,
-}
-
-fn steps_to_pipelines(steps: Vec<Step>) -> Vec<Pipeline> {
-    let mut pipelines = HashMap::new();
-
-    for step in steps {
-        let step_worker = StepWorker::from(step);
-        let pipeline = Pipeline::new(ID::new(), vec![step_worker]);
-        pipelines.insert(pipeline.id.clone(), pipeline);
-    }
-
-    pipelines
-        .into_iter()
-        .map(|(_, pipeline)| pipeline)
-        .collect()
 }
