@@ -28,33 +28,42 @@ pub(crate) fn process_raw_steps(
     let key = format!("pipeline_id_{}", *id_counter);
     *id_counter += 1;
 
-    let mut new_array = Vec::new();
-
     if let Value::Object(pipeline) = input {
-        let steps = match pipeline.get("steps") {
-            Some(Value::Array(arr)) => arr,
-            _ => return Value::from(new_array),
-        };
+        let mut new_pipeline = pipeline.clone();
 
-        for step in steps.into_iter() {
-            if let Value::Object(step) = step {
-                let mut new_step = step.clone();
-
-                if let Some(then) = step.get("then") {
-                    new_step.insert("then".to_string(), process_raw_steps(then, id_counter, map));
-                }
-                if let Some(els) = step.get("else") {
-                    new_step.insert("else".to_string(), process_raw_steps(els, id_counter, map));
-                }
-
-                new_array.push(Value::Object(new_step));
-            } else {
-                new_array.push(step.clone());
-            }
+        if let Some(then) = pipeline.get("then") {
+            new_pipeline.insert("then".to_string(), process_raw_steps(then, id_counter, map));
         }
+        if let Some(els) = pipeline.get("else") {
+            new_pipeline.insert("else".to_string(), process_raw_steps(els, id_counter, map));
+        }
+
+        if let Some(steps) = pipeline.get("steps") {
+            let mut new_steps = Vec::new();
+
+            if let Value::Array(steps) = steps {
+                for step in steps.into_iter() {
+                    let mut new_step = step.clone();
+
+                    if let Some(then) = step.get("then") {
+                        new_step
+                            .insert("then".to_string(), process_raw_steps(then, id_counter, map));
+                    }
+                    if let Some(els) = step.get("else") {
+                        new_step
+                            .insert("else".to_string(), process_raw_steps(els, id_counter, map));
+                    }
+
+                    new_steps.push(new_step);
+                }
+            }
+
+            new_pipeline.insert("steps".to_string(), Value::from(new_steps));
+        }
+
+        map.insert(key.clone(), Value::from(new_pipeline));
     }
 
-    map.insert(key.clone(), Value::from(new_array));
     Value::from(key)
 }
 
@@ -104,6 +113,11 @@ mod test {
             &Valu3Value::json_to_value(&original).unwrap(),
             &mut id_counter,
             &mut map,
+        );
+
+        println!(
+            "{:?}",
+            map.to_value().to_json(valu3::prelude::JsonMode::Inline)
         );
 
         assert_eq!(map.to_value(), Valu3Value::json_to_value(&target).unwrap());

@@ -1,76 +1,100 @@
 {
-    "pipeline_id_3": [
-        {
-            "score": "0"
-        }
-    ],
-    "pipeline_id_5": [
-        {
-            "payload": {
-                "score": "false"
+    "pipeline_id_1": {
+        "payload": {
+            "score": "context.credit - context.credit_used"
+        },
+        "steps": [
+            {
+                "condition": {
+                    "right": "10",
+                    "left": "steps.step1.score",
+                    "operator": "greater_than"
+                }
             },
-            "echo": "Credit not avaliable"
-        }
-    ],
-    "pipeline_id_1": [
-        {
-            "condition": {
-                "left": "steps.step1.score",
-                "operator": "greater_than",
-                "right": "10"
-            }
-        },
-        {
-            "condition": {
-                "right": "500",
-                "left": "steps.step1.score",
-                "operator": "greater_than"
-            }
-        },
-        {
-            "condition": {
-                "operator": "less_than",
-                "right": "100000",
-                "left": "steps.step1.score"
-            }
-        },
-        {
-            "then": []
-        }
-    ],
-    "pipeline_id_0": [
-        {
-            "echo": "Start"
-        },
-        {
-            "condition": {
-                "operator": "greater_than",
-                "right": "context.credit_used",
-                "left": "context.credit"
+            {
+                "condition": {
+                    "operator": "greater_than",
+                    "left": "steps.step1.score",
+                    "right": "500"
+                }
             },
-            "else": "pipeline_id_3",
-            "then": "pipeline_id_1",
-            "id": "step1"
-        },
-        {
-            "else": "pipeline_id_5",
-            "then": "pipeline_id_4",
-            "condition": {
-                "right": "500",
-                "left": "steps.step1.score",
-                "operator": "greater_than"
+            {
+                "condition": {
+                    "right": "100000",
+                    "operator": "less_than",
+                    "left": "steps.step1.score"
+                }
+            },
+            {
+                "then": "pipeline_id_2"
             }
-        },
-        {
-            "echo": "End"
-        }
-    ],
-    "pipeline_id_4": [
-        {
-            "echo": "Credit avaliable",
-            "payload": {
-                "resul": "true"
+        ]
+    },
+    "pipeline_id_5": {
+        "steps": [
+            {
+                "name": "Credit avaliable",
+                "payload": {
+                    "resul": "true"
+                }
             }
-        }
-    ]
+        ]
+    },
+    "pipeline_id_3": {
+        "return": true
+    },
+    "pipeline_id_0": {
+        "steps": [
+            {
+                "name": "Start"
+            },
+            {
+                "id": "step1",
+                "then": "pipeline_id_1",
+                "else": "pipeline_id_4",
+                "condition": {
+                    "left": "context.credit",
+                    "right": "context.credit_used",
+                    "operator": "greater_than"
+                }
+            },
+            {
+                "else": "pipeline_id_6",
+                "condition": {
+                    "left": "steps.step1.score",
+                    "right": "500",
+                    "operator": "greater_than"
+                },
+                "then": "pipeline_id_5"
+            },
+            {
+                "name": "End"
+            }
+        ]
+    },
+    "pipeline_id_4": {
+        "steps": [
+            {
+                "score": "0"
+            }
+        ]
+    },
+    "pipeline_id_2": {
+        "condition": {
+            "left": "steps.step1.score",
+            "operator": "equal",
+            "right": "500"
+        },
+        "then": "pipeline_id_3"
+    },
+    "pipeline_id_6": {
+        "steps": [
+            {
+                "name": "Credit not avaliable",
+                "payload": {
+                    "score": "false"
+                }
+            }
+        ]
+    }
 }
