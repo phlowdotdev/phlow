@@ -1,4 +1,8 @@
 {
+  "params": {
+    "credit": 1000,
+    "credit_used": 500
+  },
   "steps": [
     {
       "name": "Start"

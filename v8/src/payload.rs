@@ -1,4 +1,4 @@
-use crate::step_worker::Context;
+use crate::v8::Context;
 use crate::variable::Variable;
 use rhai::plugin::*;
 use rhai::serde::{from_dynamic, to_dynamic};
@@ -69,10 +69,7 @@ impl Payload {
 
 #[cfg(test)]
 mod test {
-    use crate::{
-        step_worker::{Context, ID},
-        StepWorker,
-    };
+    use crate::{id::ID, step_worker::StepWorker};
 
     use super::*;
     use std::collections::HashMap;
@@ -167,7 +164,7 @@ mod test {
         };
 
         let mut context = Context::new(Value::Null);
-        context.add_step_output(&step, {
+        context.add_step_output(step.get_id().clone(), {
             let mut map = HashMap::new();
             map.insert("a".to_string(), Value::from(10i64));
             map.insert("b".to_string(), Value::from(20i64));

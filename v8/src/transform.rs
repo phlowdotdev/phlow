@@ -2,8 +2,9 @@ use std::collections::HashMap;
 use valu3::{prelude::ObjectBehavior, traits::ToValueBehavior, value::Value};
 
 use crate::{
+    id::ID,
     pipeline::Pipeline,
-    step_worker::{StepWorker, StepWorkerError, ID},
+    step_worker::{StepWorker, StepWorkerError},
 };
 
 #[derive(Debug)]

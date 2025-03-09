@@ -1,70 +1,11 @@
 use crate::{
     condition::{Condition, ConditionError},
+    id::ID,
     payload::Payload,
-    Error,
+    v8::{Context, Error},
 };
 use serde::Serialize;
-use std::{collections::HashMap, fmt::Display};
 use valu3::{prelude::StringBehavior, value::Value};
-
-#[derive(Debug, Clone, PartialEq, Serialize, Eq, Hash)]
-pub struct ID(Option<String>);
-
-impl ID {
-    pub fn new() -> Self {
-        Self(None)
-    }
-}
-
-impl From<String> for ID {
-    fn from(id: String) -> Self {
-        Self(Some(id))
-    }
-}
-
-impl From<&Value> for ID {
-    fn from(value: &Value) -> Self {
-        Self::from(value.to_string())
-    }
-}
-
-impl From<Value> for ID {
-    fn from(value: Value) -> Self {
-        Self::from(value.to_string())
-    }
-}
-
-impl From<&String> for ID {
-    fn from(id: &String) -> Self {
-        Self::from(id.to_string())
-    }
-}
-
-impl From<&str> for ID {
-    fn from(id: &str) -> Self {
-        Self::from(id.to_string())
-    }
-}
-
-impl Display for ID {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            if self.0.is_some() {
-                self.0.as_ref().unwrap()
-            } else {
-                ""
-            }
-        )
-    }
-}
-
-impl Default for ID {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 pub type Output = Value;
 
@@ -98,33 +39,9 @@ impl Default for StepType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct Context {
-    pub(crate) params: Value,
-    pub(crate) steps: HashMap<ID, Output>,
-}
-
-impl Context {
-    pub fn new(params: Value) -> Self {
-        Self {
-            params,
-            steps: HashMap::new(),
-        }
-    }
-
-    pub fn add_step_output(&mut self, step: &StepWorker, output: Output) {
-        self.steps.insert(step.get_id().clone(), output);
-    }
-
-    pub fn get_step_output(&self, step: &StepWorker) -> Option<&Output> {
-        self.steps.get(&step.get_id())
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Serialize, Default)]
 pub struct StepWorker {
     pub(crate) id: ID,
-    pub(crate) params: Option<Value>,
     pub(crate) name: Option<String>,
     pub(crate) step_type: StepType,
     pub(crate) condition: Option<Condition>,
@@ -252,7 +169,6 @@ impl TryFrom<&Value> for StepWorker {
 
         Ok(Self {
             id,
-            params: request,
             name,
             step_type,
             condition,
