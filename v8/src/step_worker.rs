@@ -9,47 +9,55 @@ use std::fmt::Display;
 use valu3::value::Value;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Eq, Hash)]
-pub struct ID(String);
+pub struct ID(Option<String>);
 
 impl ID {
     pub fn new() -> Self {
-        Self(uuid::Uuid::new_v4().to_string())
+        Self(None)
     }
 }
 
 impl From<String> for ID {
     fn from(id: String) -> Self {
-        Self(id)
+        Self(Some(id))
     }
 }
 
 impl From<&Value> for ID {
-    fn from(id: &Value) -> Self {
-        Self(id.to_string())
+    fn from(value: &Value) -> Self {
+        Self::from(value.to_string())
     }
 }
 
 impl From<Value> for ID {
-    fn from(id: Value) -> Self {
-        Self(id.to_string())
+    fn from(value: Value) -> Self {
+        Self::from(value.to_string())
     }
 }
 
 impl From<&String> for ID {
     fn from(id: &String) -> Self {
-        Self(id.clone())
+        Self::from(id.to_string())
     }
 }
 
 impl From<&str> for ID {
     fn from(id: &str) -> Self {
-        Self(id.to_string())
+        Self::from(id.to_string())
     }
 }
 
 impl Display for ID {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        write!(
+            f,
+            "{}",
+            if self.0.is_some() {
+                self.0.as_ref().unwrap()
+            } else {
+                ""
+            }
+        )
     }
 }
 
