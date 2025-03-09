@@ -213,7 +213,12 @@ mod test {
                 Pipeline::new(
                     ID::from("pipeline_id_2"),
                     vec![StepWorker {
-                        payload: Some(Payload::from(r#"{"score": "0"}"#)),
+                        condition: Some(Condition {
+                            left: Payload::from("steps.step1.score"),
+                            right: Payload::from(&500.to_value()),
+                            operator: Operator::Equal,
+                        }),
+                        then_case: Some(ID::from("pipeline_id_3")),
                         ..default::Default::default()
                     }],
                 ),
@@ -223,13 +228,7 @@ mod test {
                 Pipeline::new(
                     ID::from("pipeline_id_3"),
                     vec![StepWorker {
-                        condition: Some(Condition {
-                            left: Payload::from("steps.step1.score"),
-                            right: Payload::from("500"),
-                            operator: Operator::GreaterThan,
-                        }),
-                        then_case: Some(ID::from("pipeline_id_7")),
-                        else_case: Some(ID::from("pipeline_id_8")),
+                        return_case: Some(Payload::from(r#"{"result": "true"}"#)),
                         ..default::Default::default()
                     }],
                 ),
