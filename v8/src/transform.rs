@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use valu3::{prelude::ObjectBehavior, traits::ToValueBehavior, value::Value};
+use valu3::{prelude::*, traits::ToValueBehavior, value::Value};
 
 use crate::{
     id::ID,
@@ -76,7 +76,7 @@ pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
         map.push(new_steps.to_value());
     }
 
-    (map.len() - 1).to_value()
+    Number::from((map.len() - 1) as u128).to_value()
 }
 
 fn value_to_structs(map: &Vec<Value>) -> Result<PipelineMap, TransformError> {
