@@ -91,3 +91,39 @@ impl TryFrom<&str> for V8 {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use valu3::value::Value;
+
+    #[test]
+    fn test_v8() {
+        let v8 = V8::try_from(
+            r#"{
+            "params": {
+                "requested": 10000.00,
+                "score": 60
+            },
+            "pipelines": [
+                {
+                    "steps": [
+                        {
+                            "params": {
+                                "name": "name",
+                                "value": "Hello, {{name}}"
+                            }
+                        },
+                        {
+                            "params": {
+                                "message": "{{name}}"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }"#,
+        )
+        .unwrap();
+    }
+}
