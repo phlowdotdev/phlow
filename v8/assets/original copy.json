@@ -33,7 +33,7 @@
           {
             "condition": {
               "left": "steps.approved.total",
-              "right": 10000.00,
+              "right": "params.requested",
               "operator": "greater_than"
             },
             "then": {
