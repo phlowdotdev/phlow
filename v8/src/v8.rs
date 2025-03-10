@@ -46,9 +46,7 @@ struct V8 {
 }
 
 impl V8 {
-    pub fn execute(&self) -> Result<Context, Error> {
-        let mut context = Context::new(self.params.clone());
-
+    pub fn execute_context(&self, context: &mut Context) -> Result<(), Error> {
         let mut current = self.main;
         loop {
             let pipeline = self
@@ -56,18 +54,18 @@ impl V8 {
                 .get(&current)
                 .ok_or(Error::PipelineNotFound)?;
 
-            match pipeline.execute(&mut context) {
+            match pipeline.execute(context) {
                 Ok(next_step) => match next_step {
                     Some(next) => match next {
                         NextStep::Pipeline(id) => {
                             current = id as usize;
                         }
                         _ => {
-                            break Ok(context);
+                            break Ok(());
                         }
                     },
                     None => {
-                        break Ok(context);
+                        break Ok(());
                     }
                 },
                 Err(err) => {
@@ -76,12 +74,18 @@ impl V8 {
             }
         }
     }
+
+    pub fn execute(&self) -> Result<Context, Error> {
+        let mut context = Context::new(self.params.clone());
+        self.execute_context(&mut context)?;
+        Ok(context)
+    }
 }
 
-impl TryFrom<&str> for V8 {
+impl TryFrom<&String> for V8 {
     type Error = Error;
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
         let (pipelines, params) = json_to_pipelines(value).map_err(Error::TransformError)?;
 
         Ok(Self {
@@ -94,36 +98,66 @@ impl TryFrom<&str> for V8 {
 
 #[cfg(test)]
 mod tests {
+    use valu3::json;
+    use valu3::prelude::*;
     use super::*;
-    use valu3::value::Value;
+    use std::fs;
 
     #[test]
     fn test_v8() {
-        let v8 = V8::try_from(
-            r#"{
-            "params": {
-                "requested": 10000.00,
-                "score": 60
-            },
-            "pipelines": [
-                {
-                    "steps": [
-                        {
-                            "params": {
-                                "name": "name",
-                                "value": "Hello, {{name}}"
-                            }
-                        },
-                        {
-                            "params": {
-                                "message": "{{name}}"
-                            }
-                        }
-                    ]
+        let original = json!({
+            "steps": [
+              {
+                "condition": {
+                  "left": "params.requested",
+                  "right": "params.pre-approved",
+                  "operator": "less_than"
+                },
+                "then": {
+                  "payload": "params.requested"
+                },
+                "else": {
+                  "steps": [
+                    {
+                      "condition": {
+                        "left": "params.score",
+                        "right": 0.5,
+                        "operator": "greater_than"
+                      }
+                    },
+                    {
+                      "id": "approved",
+                      "payload": {
+                        "total": "(params.requested * 0.3) + params.pre-approved"
+                      }
+                    },
+                    {
+                      "condition": {
+                        "left": "steps.approved.total",
+                        "right": "params.requested",
+                        "operator": "greater_than"
+                      },
+                      "then": {
+                        "return": "params.requested"
+                      },
+                      "else": {
+                        "return": "steps.approved.total"
+                      }
+                    }
+                  ]
                 }
+              }
             ]
-        }"#,
-        )
-        .unwrap();
+          });
+          
+        let v8 = V8::try_from(&original).unwrap();
+        let context = {
+            let mut map = HashMap::new();
+            map.insert("name".to_string(), Value::String("John".to_string()));
+            Value::Object(map)
+        }
+        let context = v8.execute_context().unwrap();
+
+        assert_eq!()
     }
 }

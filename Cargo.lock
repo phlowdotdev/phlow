@@ -563,9 +563,9 @@ dependencies = [
 
 [[package]]
 name = "valu3"
-version = "0.7.2"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5801411a49e2925d1c5027380da19019fd11e6a444488b0ad789768bfe6d895a"
+checksum = "d138a8b666fb1f1b14468ff9db822ea07ba675266d2776b0c8c22ffe2cca933f"
 dependencies = [
  "bincode",
  "chrono",
@@ -578,9 +578,9 @@ dependencies = [
 
 [[package]]
 name = "valu3-derive"
-version = "0.7.2"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0e922c51fb2a80e0b46a13ce08230ed7ea1b5fa2f492193a4c232b742d55fea"
+checksum = "c4d543e11030c9843fcd583dacabdffd707ba4bb344565d6460ccb09176f3b70"
 dependencies = [
  "proc-macro2",
  "quote",
