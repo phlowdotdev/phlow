@@ -10,69 +10,10 @@
       "condition": {
         "left": "params.requested",
         "right": "params.pre-approved",
-        "operator": "greater_than"
+        "operator": "less_than"
       },
       "then": {
-        "payload": {
-          "credit": "params.requested",
-          "credit_used": "params.pre-approved"
-        },
-        "steps": [
-          {
-            "condition": {
-              "left": "params.credit",
-              "right": "params.credit_used",
-              "operator": "greater_than"
-            },
-            "then": {
-              "payload": {
-                "score": "params.credit - params.credit_used"
-              },
-              "steps": [
-                {
-                  "condition": {
-                    "left": "steps.step1.score",
-                    "right": 10,
-                    "operator": "greater_than"
-                  }
-                },
-                {
-                  "condition": {
-                    "left": "steps.step1.score",
-                    "right": 500,
-                    "operator": "greater_than"
-                  }
-                },
-                {
-                  "condition": {
-                    "left": "steps.step1.score",
-                    "right": 100000,
-                    "operator": "less_than"
-                  }
-                },
-                {
-                  "then": {
-                    "condition": {
-                      "left": "steps.step1.score",
-                      "right": 500,
-                      "operator": "equal"
-                    },
-                    "then": {
-                      "return": true
-                    }
-                  }
-                }
-              ]
-            },
-            "else": {
-              "steps": [
-                {
-                  "score": 0
-                }
-              ]
-            }
-          }
-        ]
+        "payload": "params.requested"
       },
       "else": {
         "steps": [
