@@ -37,7 +37,7 @@
               "operator": "greater_than"
             },
             "then": {
-              "return": 10000.00
+              "return": "params.requested"
             },
             "else": {
               "return": "steps.approved.total"
