@@ -6,7 +6,7 @@ use crate::{
 };
 use serde::Serialize;
 use std::collections::HashMap;
-use valu3::{prelude::JsonMode, prelude::*};
+use valu3::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Context {
@@ -102,7 +102,7 @@ impl TryFrom<&Value> for V8 {
 
     fn try_from(value: &Value) -> Result<Self, Self::Error> {
         let pipelines = value_to_pipelines(&value).map_err(Error::TransformError)?;
-        println!("{:?}", pipelines);
+
         Ok(Self {
             pipelines,
             params: None,
@@ -114,7 +114,6 @@ impl TryFrom<&Value> for V8 {
 mod tests {
     use super::*;
     use valu3::json;
-    use valu3::prelude::*;
 
     #[test]
     fn test_v8() {
@@ -123,7 +122,7 @@ mod tests {
             {
               "condition": {
                 "left": "params.requested",
-                "right": "params.pre-approved",
+                "right": "params.pre_approved",
                 "operator": "less_than_or_equal"
               },
               "then": {
@@ -141,7 +140,7 @@ mod tests {
                   {
                     "id": "approved",
                     "payload": {
-                      "total": "(params.requested * 0.3) + params.pre-approved"
+                      "total": "(params.requested * 0.3) + params.pre_approved"
                     }
                   },
                   {
@@ -166,11 +165,9 @@ mod tests {
         let v8 = V8::try_from(&original).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
-            "pre-approved": 10000.00,
+            "pre_approved": 1000000.00,
             "score": 0.6
         })));
-
-        println!("{:?}", context);
 
         let result = v8.execute_context(&mut context).unwrap();
 

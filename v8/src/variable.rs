@@ -1,5 +1,8 @@
 use regex::Regex;
-use valu3::{prelude::StringBehavior, value::Value};
+use valu3::{
+    prelude::{NumberBehavior, StringBehavior},
+    value::Value,
+};
 
 #[derive(Debug, PartialEq)]
 pub struct Variable {
@@ -16,23 +19,113 @@ impl Variable {
     }
 
     pub fn equal(&self, other: &Variable) -> bool {
-        self.value == other.value
+        match (self, other) {
+            (
+                Variable {
+                    value: Value::Number(left),
+                    ..
+                },
+                Variable {
+                    value: Value::Number(right),
+                    ..
+                },
+            ) => {
+                if left.is_float() {
+                    left.to_f64() == right.to_f64()
+                } else {
+                    left.to_i64() == right.to_i64()
+                }
+            }
+            _ => self.get() == other.get(),
+        }
     }
 
     pub fn greater_than(&self, other: &Variable) -> bool {
-        self.value > other.value
+        match (self, other) {
+            (
+                Variable {
+                    value: Value::Number(left),
+                    ..
+                },
+                Variable {
+                    value: Value::Number(right),
+                    ..
+                },
+            ) => {
+                if left.is_float() {
+                    left.to_f64() > right.to_f64()
+                } else {
+                    left.to_i64() > right.to_i64()
+                }
+            }
+            _ => self.get() > other.get(),
+        }
     }
 
     pub fn less_than(&self, other: &Variable) -> bool {
-        self.value < other.value
+        match (self, other) {
+            (
+                Variable {
+                    value: Value::Number(left),
+                    ..
+                },
+                Variable {
+                    value: Value::Number(right),
+                    ..
+                },
+            ) => {
+                if left.is_float() {
+                    left.to_f64() < right.to_f64()
+                } else {
+                    left.to_i64() < right.to_i64()
+                }
+            }
+            _ => self.get() < other.get(),
+        }
     }
 
     pub fn greater_than_or_equal(&self, other: &Variable) -> bool {
-        self.value >= other.value
+        match (self, other) {
+            (
+                Variable {
+                    value: Value::Number(left),
+                    ..
+                },
+                Variable {
+                    value: Value::Number(right),
+                    ..
+                },
+            ) => {
+                if left.is_float() {
+                    left.to_f64() <= right.to_f64()
+                } else {
+                    left.to_i64() <= right.to_i64()
+                }
+            }
+            _ => self.get() < other.get(),
+        }
     }
 
     pub fn less_than_or_equal(&self, other: &Variable) -> bool {
-        self.value <= other.value
+        match (self, other) {
+            (
+                Variable {
+                    value: Value::Number(left),
+                    ..
+                },
+                Variable {
+                    value: Value::Number(right),
+                    ..
+                },
+            ) => {
+                if left.is_float() {
+                    left.to_f64() >= right.to_f64()
+                } else {
+                    left.to_i64() >= right.to_i64()
+                }
+            }
+            _ => self.get() < other.get(),
+        }
     }
 
     pub fn contains(&self, other: &Variable) -> bool {

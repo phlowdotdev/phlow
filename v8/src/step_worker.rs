@@ -1,7 +1,7 @@
 use crate::{
     condition::{Condition, ConditionError},
     id::ID,
-    payload::{Payload, PayloadError},
+    script::{Script, ScriptError},
     v8::Context,
 };
 use serde::Serialize;
@@ -16,7 +16,7 @@ pub enum StepWorkerError {
     InvalidPipeline(ID),
     InvalidCondition,
     InvalidStep(ID),
-    PayloadError(PayloadError),
+    PayloadError(ScriptError),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -51,10 +51,10 @@ pub struct StepWorker {
     pub(crate) name: Option<String>,
     pub(crate) step_type: StepType,
     pub(crate) condition: Option<Condition>,
-    pub(crate) payload: Option<Payload>,
+    pub(crate) payload: Option<Script>,
     pub(crate) then_case: Option<usize>,
     pub(crate) else_case: Option<usize>,
-    pub(crate) return_case: Option<Payload>,
+    pub(crate) return_case: Option<Script>,
 }
 
 impl StepWorker {
@@ -72,12 +72,12 @@ impl StepWorker {
 
     fn evaluate_payload(&self, context: &Context) -> Result<Option<Value>, StepWorkerError> {
         if let Some(ref payload) = self.payload {
-            let Value = Some(
+            let value = Some(
                 payload
                     .evaluate(context)
                     .map_err(StepWorkerError::PayloadError)?,
             );
-            Ok(Value)
+            Ok(value)
         } else {
             Ok(None)
         }
@@ -85,12 +85,12 @@ impl StepWorker {
 
     fn evaluate_return(&self, context: &Context) -> Result<Option<Value>, StepWorkerError> {
         if let Some(ref return_case) = self.return_case {
-            let Value = Some(
+            let value = Some(
                 return_case
                     .evaluate(context)
                     .map_err(StepWorkerError::PayloadError)?,
             );
-            Ok(Value)
+            Ok(value)
         } else {
             Ok(None)
         }
@@ -159,7 +159,7 @@ impl TryFrom<&Value> for StepWorker {
             }
         };
         let payload = match value.get("payload") {
-            Some(payload) => Some(Payload::new(payload.to_string())),
+            Some(payload) => Some(Script::new(payload.to_string())),
             None => None,
         };
         let then_case = match value.get("then_case") {
@@ -177,7 +177,7 @@ impl TryFrom<&Value> for StepWorker {
             None => None,
         };
         let return_case = match value.get("return_case") {
-            Some(return_case) => Some(Payload::new(return_case.to_string())),
+            Some(return_case) => Some(Script::new(return_case.to_string())),
             None => None,
         };
 
@@ -221,7 +221,7 @@ mod test {
     #[test]
     fn test_step_execute() {
         let step = StepWorker {
-            payload: Some(Payload::new("10".to_string())),
+            payload: Some(Script::new("10".to_string())),
             ..Default::default()
         };
 
@@ -237,12 +237,12 @@ mod test {
     fn test_step_execute_with_condition() {
         let step = StepWorker {
             id: ID::new(),
-            condition: Some(Condition::new(
-                Payload::new("10".to_string()),
-                Payload::new("20".to_string()),
+            condition: Some(Condition::from((
+                "10".to_string(),
+                "20".to_string(),
                 crate::condition::Operator::NotEqual,
-            )),
-            payload: Some(Payload::new("10".to_string())),
+            ))),
+            payload: Some(Script::new("10".to_string())),
             ..Default::default()
         };
 
@@ -258,12 +258,12 @@ mod test {
     fn test_step_execute_with_condition_then_case() {
         let step = StepWorker {
             id: ID::new(),
-            condition: Some(Condition::new(
-                Payload::new("10".to_string()),
-                Payload::new("20".to_string()),
+            condition: Some(Condition::from((
+                "10".to_string(),
+                "20".to_string(),
                 crate::condition::Operator::NotEqual,
-            )),
-            payload: Some(Payload::new("10".to_string())),
+            ))),
+            payload: Some(Script::new("10".to_string())),
             then_case: Some(0),
             ..Default::default()
         };
@@ -280,12 +280,12 @@ mod test {
     fn test_step_execute_with_condition_else_case() {
         let step = StepWorker {
             id: ID::new(),
-            condition: Some(Condition::new(
-                Payload::new("10".to_string()),
-                Payload::new("20".to_string()),
+            condition: Some(Condition::from((
+                "10".to_string(),
+                "20".to_string(),
                 crate::condition::Operator::Equal,
-            )),
-            payload: Some(Payload::new("10".to_string())),
+            ))),
+            payload: Some(Script::new("10".to_string())),
             else_case: Some(1),
             ..Default::default()
         };
@@ -302,7 +302,7 @@ mod test {
     fn test_step_execute_with_return_case() {
         let step = StepWorker {
             id: ID::new(),
-            return_case: Some(Payload::new("10".to_string())),
+            return_case: Some(Script::new("10".to_string())),
             ..Default::default()
         };
 
@@ -318,8 +318,8 @@ mod test {
     fn test_step_execute_with_return_case_and_payload() {
         let step = StepWorker {
             id: ID::new(),
-            payload: Some(Payload::new("10".to_string())),
-            return_case: Some(Payload::new("20".to_string())),
+            payload: Some(Script::new("10".to_string())),
+            return_case: Some(Script::new("20".to_string())),
             ..Default::default()
         };
 
@@ -335,12 +335,12 @@ mod test {
     fn test_step_execute_with_return_case_and_condition() {
         let step = StepWorker {
             id: ID::new(),
-            condition: Some(Condition::new(
-                Payload::new("10".to_string()),
-                Payload::new("10".to_string()),
+            condition: Some(Condition::from((
+                "10".to_string(),
+                "20".to_string(),
                 crate::condition::Operator::Equal,
-            )),
-            return_case: Some(Payload::new("10".to_string())),
+            ))),
+            return_case: Some(Script::new("10".to_string())),
             ..Default::default()
         };
 
@@ -356,13 +356,13 @@ mod test {
     fn test_step_execute_with_return_case_and_condition_then_case() {
         let step = StepWorker {
             id: ID::new(),
-            condition: Some(Condition::new(
-                Payload::new("10".to_string()),
-                Payload::new("10".to_string()),
+            condition: Some(Condition::from((
+                "10".to_string(),
+                "20".to_string(),
                 crate::condition::Operator::Equal,
-            )),
+            ))),
             then_case: Some(0),
-            return_case: Some(Payload::new(r#""Ok""#.to_string())),
+            return_case: Some(Script::new(r#""Ok""#.to_string())),
             ..Default::default()
         };
 
@@ -377,13 +377,13 @@ mod test {
     fn test_step_execute_with_return_case_and_condition_else_case() {
         let step = StepWorker {
             id: ID::new(),
-            condition: Some(Condition::new(
-                Payload::new("10".to_string()),
-                Payload::new("20".to_string()),
+            condition: Some(Condition::from((
+                "10".to_string(),
+                "20".to_string(),
                 crate::condition::Operator::Equal,
-            )),
+            ))),
             else_case: Some(0),
-            return_case: Some(Payload::new(r#""Ok""#.to_string())),
+            return_case: Some(Script::new(r#""Ok""#.to_string())),
             ..Default::default()
         };
 

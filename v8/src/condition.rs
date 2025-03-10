@@ -2,7 +2,7 @@ use serde::Serialize;
 use valu3::{prelude::StringBehavior, value::Value};
 
 use crate::{
-    payload::{Payload, PayloadError},
+    script::{Script, ScriptError},
     v8::Context,
 };
 
@@ -11,11 +11,13 @@ pub enum ConditionError {
     InvalidOperator(String),
     RightInvalid(String),
     LeftInvalid(String),
-    PayloadError(PayloadError),
+    ScriptError(ScriptError),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum Operator {
+    Or,
+    And,
     Equal,
     NotEqual,
     GreaterThan,
@@ -33,6 +35,8 @@ pub enum Operator {
 impl From<&Value> for Operator {
     fn from(value: &Value) -> Self {
         match value.as_str() {
+            "or" => Operator::Or,
+            "and" => Operator::And,
             "equal" => Operator::Equal,
             "not_equal" => Operator::NotEqual,
             "greater_than" => Operator::GreaterThan,
@@ -52,9 +56,94 @@ impl From<&Value> for Operator {
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Condition {
-    pub(crate) left: Payload,
-    pub(crate) right: Payload,
-    pub(crate) operator: Operator,
+    pub(crate) expression: Script,
+}
+
+impl Condition {
+    pub fn new(left: String, right: String, operator: Operator) -> Self {
+        let expression = {
+            match operator {
+                Operator::Or => {
+                    let query = format!("{} || {}", left, right);
+                    query
+                }
+                Operator::And => {
+                    let query = format!("{} && {}", left, right);
+                    query
+                }
+                Operator::Equal => {
+                    let query = format!("{} == {}", left, right);
+                    query
+                }
+                Operator::NotEqual => {
+                    let query = format!("{} != {}", left, right);
+                    query
+                }
+                Operator::GreaterThan => {
+                    let query = format!("{} > {}", left, right);
+                    query
+                }
+                Operator::LessThan => {
+                    let query = format!("{} < {}", left, right);
+                    query
+                }
+                Operator::GreaterThanOrEqual => {
+                    let query = format!("{} >= {}", left, right);
+                    query
+                }
+                Operator::LessThanOrEqual => {
+                    let query = format!("{} <= {}", left, right);
+                    query
+                }
+                Operator::Contains => {
+                    let query = format!("({} in {})", left, right);
+                    query
+                }
+                Operator::NotContains => {
+                    let query = format!("{} !in {}", left, right);
+                    query
+                }
+                Operator::StartsWith => {
+                    let query = format!("{} starts_with {}", left, right);
+                    query
+                }
+                Operator::EndsWith => {
+                    let query = format!("{} ends_with {}", left, right);
+                    query
+                }
+                Operator::Regex => {
+                    let query = format!("{} search {}", left, right);
+                    query
+                }
+                Operator::NotRegex => {
+                    let query = format!("!({} search {})", left, right);
+                    query
+                }
+            }
+        };
+
+        Self {
+            expression: Script::new(expression),
+        }
+    }
+
+    pub fn evaluate(&self, context: &Context) -> Result<bool, ConditionError> {
+        let result = self
+            .expression
+            .evaluate(context)
+            .map_err(ConditionError::ScriptError)?;
+
+        match result {
+            Value::Boolean(result) => Ok(result),
+            _ => Err(ConditionError::ScriptError(ScriptError::InvalidType)),
+        }
+    }
+}
+
+impl From<(String, String, Operator)> for Condition {
+    fn from((left, right, operator): (String, String, Operator)) -> Self {
+        Self::new(left, right, operator)
+    }
 }
 
 impl TryFrom<&Value> for Condition {
@@ -62,82 +151,35 @@ impl TryFrom<&Value> for Condition {
 
     fn try_from(value: &Value) -> Result<Self, ConditionError> {
         let left = match value.get("left") {
-            Some(left) => Payload::from(left),
+            Some(left) => left.to_json(valu3::prelude::JsonMode::Inline),
             None => return Err(ConditionError::LeftInvalid("does not exist".to_string())),
         };
 
         let right = match value.get("right") {
-            Some(right) => Payload::from(right),
+            Some(right) => right.to_json(valu3::prelude::JsonMode::Inline),
             None => return Err(ConditionError::RightInvalid("does not exist".to_string())),
         };
 
-        match value.get("operator") {
-            Some(operator) => {
-                let operator = Operator::from(operator);
-
-                Ok(Self {
-                    left,
-                    right,
-                    operator,
-                })
+        let operator = match value.get("operator") {
+            Some(operator) => Operator::from(operator),
+            None => {
+                return Err(ConditionError::InvalidOperator(
+                    "does not exist".to_string(),
+                ))
             }
-            None => Err(ConditionError::InvalidOperator(format!(
-                "does not exist: {:?}",
-                value
-            ))),
-        }
-    }
-}
+        };
 
-impl Condition {
-    pub fn new(left: Payload, right: Payload, operator: Operator) -> Self {
-        Self {
-            left,
-            right,
-            operator,
-        }
-    }
-
-    pub fn evaluate(&self, context: &Context) -> Result<bool, ConditionError> {
-        let left = self
-            .left
-            .evaluate_variable(context)
-            .map_err(ConditionError::PayloadError)?;
-        let right = self
-            .right
-            .evaluate_variable(context)
-            .map_err(ConditionError::PayloadError)?;
-
-        println!("---------------------------------------------");
-        println!("{:?} {:?} {:?}", left, self.operator, right);
-
-        match self.operator {
-            Operator::Equal => Ok(left.equal(&right)),
-            Operator::NotEqual => Ok(!left.equal(&right)),
-            Operator::GreaterThan => Ok(left.greater_than(&right)),
-            Operator::LessThan => Ok(left.less_than(&right)),
-            Operator::GreaterThanOrEqual => Ok(left.greater_than_or_equal(&right)),
-            Operator::LessThanOrEqual => Ok(left.less_than_or_equal(&right)),
-            Operator::Contains => Ok(left.contains(&right)),
-            Operator::NotContains => Ok(!left.contains(&right)),
-            Operator::StartsWith => Ok(left.starts_with(&right)),
-            Operator::EndsWith => Ok(left.ends_with(&right)),
-            Operator::Regex => Ok(left.regex(&right)),
-            Operator::NotRegex => Ok(!left.regex(&right)),
-        }
+        Ok(Self::new(left, right, operator))
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use valu3::value::Value;
 
     #[test]
     fn test_condition_execute_equal() {
-        let left = Payload::new("10".to_string());
-        let right = Payload::new("20".to_string());
-        let condition = Condition::new(left, right, Operator::Equal);
+        let condition = Condition::new("10".to_string(), "20".to_string(), Operator::Equal);
 
         let context = Context::new(None);
 
@@ -147,9 +189,7 @@ mod test {
 
     #[test]
     fn test_condition_execute_not_equal() {
-        let left = Payload::new("10".to_string());
-        let right = Payload::new("20".to_string());
-        let condition = Condition::new(left, right, Operator::NotEqual);
+        let condition = Condition::new("10".to_string(), "20".to_string(), Operator::NotEqual);
 
         let context = Context::new(None);
 
@@ -159,9 +199,7 @@ mod test {
 
     #[test]
     fn test_condition_execute_greater_than() {
-        let left = Payload::new("10".to_string());
-        let right = Payload::new("20".to_string());
-        let condition = Condition::new(left, right, Operator::GreaterThan);
+        let condition = Condition::new("10".to_string(), "20".to_string(), Operator::GreaterThan);
 
         let context = Context::new(None);
 
@@ -171,9 +209,11 @@ mod test {
 
     #[test]
     fn test_condition_execute_contains() {
-        let left = Payload::new(r#""hello world""#.to_string());
-        let right = Payload::new(r#""hello""#.to_string());
-        let condition = Condition::new(left, right, Operator::Contains);
+        let condition = Condition::new(
+            r#""hello""#.to_string(),
+            r#""hello world""#.to_string(),
+            Operator::Contains,
+        );
 
         let context = Context::new(None);
 
@@ -183,9 +223,12 @@ mod test {
 
     #[test]
     fn test_condition_execute_regex() {
-        let left = Payload::new(r#""hello world""#.to_string());
-        let right = Payload::new(r#""hello""#.to_string());
-        let condition = Condition::new(left, right, Operator::Regex);
+        let condition = Condition::new(
+            // regex find "hello" in "hello world"
+            r#""hello""#.to_string(),
+            r#""hello world""#.to_string(),
+            Operator::Regex,
+        );
 
         let context = Context::new(None);
 
@@ -195,9 +238,11 @@ mod test {
 
     #[test]
     fn test_condition_execute_not_regex() {
-        let left = Payload::new(r#""hello world""#.to_string());
-        let right = Payload::new(r#""hello""#.to_string());
-        let condition = Condition::new(left, right, Operator::NotRegex);
+        let condition = Condition::new(
+            r#""hello""#.to_string(),
+            r#""hello world""#.to_string(),
+            Operator::NotRegex,
+        );
 
         let context = Context::new(None);
 
@@ -207,9 +252,11 @@ mod test {
 
     #[test]
     fn test_condition_execute_start_with() {
-        let left = Payload::new(r#""hello world""#.to_string());
-        let right = Payload::new(r#""hello""#.to_string());
-        let condition = Condition::new(left, right, Operator::StartsWith);
+        let condition = Condition::new(
+            r#""hello world""#.to_string(),
+            r#""hello""#.to_string(),
+            Operator::StartsWith,
+        );
 
         let context = Context::new(None);
 
@@ -219,31 +266,15 @@ mod test {
 
     #[test]
     fn test_condition_execute_end_with() {
-        let left = Payload::new(r#""hello world""#.to_string());
-        let right = Payload::new(r#""world""#.to_string());
-        let condition = Condition::new(left, right, Operator::EndsWith);
+        let condition = Condition::new(
+            r#""hello world""#.to_string(),
+            r#""world""#.to_string(),
+            Operator::EndsWith,
+        );
 
         let context = Context::new(None);
 
         let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, true);
-    }
-
-    #[test]
-    fn test_condition_from_value() {
-        let value = Value::json_to_value(
-            r#"{
-            "left": 10,
-            "right": 20,
-            "operator": "greater_than"
-        }"#,
-        )
-        .unwrap();
-
-        let condition = Condition::try_from(&value).unwrap();
-
-        assert_eq!(condition.left, Payload::new("10".to_string()));
-        assert_eq!(condition.right, Payload::new("20".to_string()));
-        assert_eq!(condition.operator, Operator::GreaterThan);
     }
 }

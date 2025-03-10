@@ -1,5 +1,6 @@
 use crate::v8::Context;
 use crate::variable::Variable;
+use regex::Regex;
 use rhai::plugin::*;
 use rhai::serde::{from_dynamic, to_dynamic};
 use rhai::{Engine, EvalAltResult, Scope};
@@ -7,43 +8,71 @@ use serde::{Deserialize, Serialize};
 use valu3::value::Value;
 
 #[derive(Debug)]
-pub enum PayloadError {
+pub enum ScriptError {
     EvalError(Box<EvalAltResult>),
+    InvalidType,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Payload {
+pub struct Script {
     pub(crate) script: String,
 }
 
-impl From<Value> for Payload {
+impl From<Value> for Script {
     fn from(value: Value) -> Self {
         let script = value.to_string();
-        Self { script }
+        Self::new(script)
     }
 }
 
-impl From<&Value> for Payload {
+impl From<&Value> for Script {
     fn from(value: &Value) -> Self {
         let script = value.to_string();
-        Self { script }
+        Self::new(script)
     }
 }
 
-impl From<&str> for Payload {
+impl From<&str> for Script {
     fn from(value: &str) -> Self {
         let script = value.to_string();
-        Self { script }
+        Self::new(script)
     }
 }
 
-impl Payload {
+impl Script {
     pub fn new(script: String) -> Self {
         Self { script }
     }
 
-    pub fn evaluate(&self, context: &Context) -> Result<Value, PayloadError> {
-        let engine = Engine::new();
+    fn remove_quotes(script: &str) -> String {
+        let script = script.trim();
+        let script = script.trim_start_matches('"');
+        let script = script.trim_end_matches('"');
+
+        script.to_string()
+    }
+
+    pub fn evaluate(&self, context: &Context) -> Result<Value, ScriptError> {
+        let mut engine = Engine::new();
+
+        engine
+            .register_custom_operator("starts_with", 80)
+            .unwrap()
+            .register_fn("start_withs", |x: String, y: String| x.starts_with(&y));
+
+        engine
+            .register_custom_operator("ends_with", 81)
+            .unwrap()
+            .register_fn("ends_with", |x: String, y: String| x.ends_with(&y));
+
+        engine
+            .register_custom_operator("search", 82)
+            .unwrap()
+            .register_fn("search", |x: String, y: String| {
+                // regex
+                Regex::new(&x).unwrap().is_match(&y)
+            });
+
         let mut scope = Scope::new();
 
         let steps: Dynamic = to_dynamic(context.steps.clone()).unwrap();
@@ -52,16 +81,18 @@ impl Payload {
         scope.push_constant("steps", steps);
         scope.push_constant("params", params);
 
+        println!("script: {}", self.script);
+
         let result = engine
             .eval_with_scope(&mut scope, &self.script)
-            .map_err(PayloadError::EvalError)?;
+            .map_err(ScriptError::EvalError)?;
 
         let result: Value = from_dynamic(&result).unwrap();
-        println!("result {:?}", result);
+
         Ok(result)
     }
 
-    pub fn evaluate_variable(&self, context: &Context) -> Result<Variable, PayloadError> {
+    pub fn evaluate_variable(&self, context: &Context) -> Result<Variable, ScriptError> {
         let value = self.evaluate(context)?;
         Ok(Variable::new(value))
     }
@@ -84,7 +115,7 @@ mod test {
         "#;
 
         let context = Context::new(None);
-        let payload = Payload::new(script.to_string());
+        let payload = Script::new(script.to_string());
 
         let result = payload.evaluate(&context).unwrap();
         assert_eq!(result, Value::from(30i64));
@@ -104,7 +135,7 @@ mod test {
         "#;
 
         let context = Context::new(None);
-        let payload = Payload::new(script.to_string());
+        let payload = Script::new(script.to_string());
 
         let result = payload.evaluate(&context).unwrap();
         let expected = Value::from({
@@ -123,7 +154,7 @@ mod test {
         let script = r#""hello world""#;
 
         let context = Context::new(None);
-        let payload = Payload::new(script.to_string());
+        let payload = Script::new(script.to_string());
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from("hello world")));
@@ -144,7 +175,7 @@ mod test {
             map
         })));
 
-        let payload = Payload::new(script.to_string());
+        let payload = Script::new(script.to_string());
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from(30i64)));
@@ -161,7 +192,7 @@ mod test {
             map
         })));
 
-        let payload = Payload::new(script.to_string());
+        let payload = Script::new(script.to_string());
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from(10i64)));
@@ -188,7 +219,7 @@ mod test {
             map.to_value()
         });
 
-        let payload = Payload::new(script.to_string());
+        let payload = Script::new(script.to_string());
         let variable = payload.evaluate_variable(&context).unwrap();
 
         assert_eq!(variable, Variable::new(Value::from(30i64)));

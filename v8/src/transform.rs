@@ -105,7 +105,7 @@ fn value_to_structs(map: &Vec<Value>) -> Result<PipelineMap, TransformError> {
 mod test {
     use super::*;
     use std::fs;
-    use valu3::{prelude::JsonMode, traits::ToValueBehavior, value::Value as Valu3Value};
+    use valu3::{traits::ToValueBehavior, value::Value as Valu3Value};
 
     #[test]
     fn test_transform_value() {
@@ -114,8 +114,6 @@ mod test {
         let target = fs::read_to_string("assets/target.json").unwrap();
 
         process_raw_steps(&Valu3Value::json_to_value(&original).unwrap(), &mut map);
-
-        println!("{:?}", map.to_value().to_json(JsonMode::Inline));
 
         assert_eq!(map.to_value(), Valu3Value::json_to_value(&target).unwrap());
     }
