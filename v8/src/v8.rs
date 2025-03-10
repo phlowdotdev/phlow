@@ -83,6 +83,7 @@ impl TryFrom<&str> for V8 {
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         let (pipelines, params) = json_to_pipelines(value).map_err(Error::TransformError)?;
+
         Ok(Self {
             pipelines,
             main: 0,

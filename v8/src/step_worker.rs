@@ -227,7 +227,7 @@ mod test {
             ..Default::default()
         };
 
-        let context = Context::new(Value::Null);
+        let context = Context::new(None);
 
         let result = step.execute(&context).unwrap();
 
@@ -248,7 +248,7 @@ mod test {
             ..Default::default()
         };
 
-        let context = Context::new(Value::Null);
+        let context = Context::new(None);
 
         let result = step.execute(&context).unwrap();
 
@@ -270,7 +270,7 @@ mod test {
             ..Default::default()
         };
 
-        let context = Context::new(Value::Null);
+        let context = Context::new(None);
 
         let result = step.execute(&context).unwrap();
 
@@ -292,7 +292,7 @@ mod test {
             ..Default::default()
         };
 
-        let context = Context::new(Value::Null);
+        let context = Context::new(None);
 
         let result = step.execute(&context).unwrap();
 
@@ -308,7 +308,7 @@ mod test {
             ..Default::default()
         };
 
-        let context = Context::new(Value::Null);
+        let context = Context::new(None);
 
         let result = step.execute(&context).unwrap();
 
@@ -325,7 +325,7 @@ mod test {
             ..Default::default()
         };
 
-        let context = Context::new(Value::Null);
+        let context = Context::new(None);
 
         let result = step.execute(&context).unwrap();
 
@@ -346,7 +346,7 @@ mod test {
             ..Default::default()
         };
 
-        let context = Context::new(Value::Null);
+        let context = Context::new(None);
 
         let result = step.execute(&context).unwrap();
 
@@ -368,7 +368,7 @@ mod test {
             ..Default::default()
         };
 
-        let context = Context::new(Value::Null);
+        let context = Context::new(None);
         let output = step.execute(&context).unwrap();
 
         assert_eq!(output.next_step, NextStep::Stop);
@@ -389,7 +389,7 @@ mod test {
             ..Default::default()
         };
 
-        let context = Context::new(Value::Null);
+        let context = Context::new(None);
         let result = step.execute(&context).unwrap();
 
         assert_eq!(result.next_step, NextStep::Stop);

@@ -83,7 +83,7 @@ mod test {
             a + b
         "#;
 
-        let context = Context::new(Value::Null);
+        let context = Context::new(None);
         let payload = Payload::new(script.to_string());
 
         let result = payload.evaluate(&context).unwrap();
@@ -103,7 +103,7 @@ mod test {
             }
         "#;
 
-        let context = Context::new(Value::Null);
+        let context = Context::new(None);
         let payload = Payload::new(script.to_string());
 
         let result = payload.evaluate(&context).unwrap();
@@ -122,7 +122,7 @@ mod test {
     fn test_payload_execute_variable() {
         let script = r#""hello world""#;
 
-        let context = Context::new(Value::Null);
+        let context = Context::new(None);
         let payload = Payload::new(script.to_string());
 
         let variable = payload.evaluate_variable(&context).unwrap();
@@ -137,12 +137,12 @@ mod test {
             a + b
         "#;
 
-        let context = Context::new(Value::from({
+        let context = Context::new(Some(Value::from({
             let mut map = HashMap::new();
             map.insert("a".to_string(), Value::from(10i64));
             map.insert("b".to_string(), Value::from(20i64));
             map
-        }));
+        })));
 
         let payload = Payload::new(script.to_string());
 
@@ -163,7 +163,7 @@ mod test {
             ..Default::default()
         };
 
-        let mut context = Context::new(Value::Null);
+        let mut context = Context::new(None);
         context.add_step_output(step.get_id().clone(), {
             let mut map = HashMap::new();
             map.insert("a".to_string(), Value::from(10i64));

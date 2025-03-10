@@ -136,7 +136,7 @@ mod test {
         let right = Payload::new("20".to_string());
         let condition = Condition::new(left, right, Operator::Equal);
 
-        let context = Context::new(Value::Null);
+        let context = Context::new(None);
 
         let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, false);
@@ -148,7 +148,7 @@ mod test {
         let right = Payload::new("20".to_string());
         let condition = Condition::new(left, right, Operator::NotEqual);
 
-        let context = Context::new(Value::Null);
+        let context = Context::new(None);
 
         let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, true);
@@ -160,7 +160,7 @@ mod test {
         let right = Payload::new("20".to_string());
         let condition = Condition::new(left, right, Operator::GreaterThan);
 
-        let context = Context::new(Value::Null);
+        let context = Context::new(None);
 
         let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, false);
@@ -172,7 +172,7 @@ mod test {
         let right = Payload::new(r#""hello""#.to_string());
         let condition = Condition::new(left, right, Operator::Contains);
 
-        let context = Context::new(Value::Null);
+        let context = Context::new(None);
 
         let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, true);
@@ -184,7 +184,7 @@ mod test {
         let right = Payload::new(r#""hello""#.to_string());
         let condition = Condition::new(left, right, Operator::Regex);
 
-        let context = Context::new(Value::Null);
+        let context = Context::new(None);
 
         let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, true);
@@ -196,7 +196,7 @@ mod test {
         let right = Payload::new(r#""hello""#.to_string());
         let condition = Condition::new(left, right, Operator::NotRegex);
 
-        let context = Context::new(Value::Null);
+        let context = Context::new(None);
 
         let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, false);
@@ -208,7 +208,7 @@ mod test {
         let right = Payload::new(r#""hello""#.to_string());
         let condition = Condition::new(left, right, Operator::StartsWith);
 
-        let context = Context::new(Value::Null);
+        let context = Context::new(None);
 
         let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, true);
@@ -220,7 +220,7 @@ mod test {
         let right = Payload::new(r#""world""#.to_string());
         let condition = Condition::new(left, right, Operator::EndsWith);
 
-        let context = Context::new(Value::Null);
+        let context = Context::new(None);
 
         let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, true);
