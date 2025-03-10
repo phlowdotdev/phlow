@@ -115,9 +115,8 @@ mod tests {
     use super::*;
     use valu3::json;
 
-    #[test]
-    fn test_v8() {
-        let original = json!({
+    fn get_original() -> Value {
+        json!({
           "steps": [
             {
               "condition": {
@@ -160,17 +159,36 @@ mod tests {
               }
             }
           ]
-        });
+        })
+    }
 
+    #[test]
+    fn test_v8_original_1() {
+        let original = get_original();
         let v8 = V8::try_from(&original).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
-            "pre_approved": 1000000.00,
+            "pre_approved": 10000.00,
             "score": 0.6
         })));
 
         let result = v8.execute_context(&mut context).unwrap();
 
-        assert_eq!(result, Some(json!(3000.0)));
+        assert_eq!(result, Some(json!(10000.0)));
+    }
+
+    #[test]
+    fn test_v8_original_2() {
+        let original = get_original();
+        let v8 = V8::try_from(&original).unwrap();
+        let mut context = Context::new(Some(json!({
+            "requested": 10000.00,
+            "pre_approved": 500.00,
+            "score": 0.6
+        })));
+
+        let result = v8.execute_context(&mut context).unwrap();
+
+        assert_eq!(result, Some(json!(10000.0)));
     }
 }

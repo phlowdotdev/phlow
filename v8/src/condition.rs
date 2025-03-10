@@ -127,13 +127,6 @@ impl Condition {
         }
     }
 
-    fn remove_quotes(script: &str) -> String {
-        let mut script = script.to_string();
-        script.pop();
-        script.remove(0);
-        script
-    }
-
     pub fn evaluate(&self, context: &Context) -> Result<bool, ConditionError> {
         let result = self
             .expression
@@ -158,13 +151,7 @@ impl TryFrom<&Value> for Condition {
 
     fn try_from(value: &Value) -> Result<Self, ConditionError> {
         let left = match value.get("left") {
-            Some(left) => {
-                if let Value::String(left) = left {
-                    left.to_string()
-                } else {
-                    left.to_json(valu3::prelude::JsonMode::Inline)
-                }
-            }
+            Some(left) => left.to_string(),
             None => return Err(ConditionError::LeftInvalid("does not exist".to_string())),
         };
 
