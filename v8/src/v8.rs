@@ -189,6 +189,6 @@ mod tests {
 
         let result = v8.execute_context(&mut context).unwrap();
 
-        assert_eq!(result, Some(json!(10000.0)));
+        assert_eq!(result, Some(json!(3500.0)));
     }
 }

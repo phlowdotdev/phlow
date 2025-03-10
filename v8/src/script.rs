@@ -22,10 +22,10 @@ pub struct Script {
 }
 
 impl Script {
-    fn new(script: String) -> Self {
+    fn new(script: &Value) -> Self {
         let mut map_index = HashMap::new();
         let mut counter = 0;
-        let map_extracted = extract_primitives(&Value::from(script), &mut map_index, &mut counter);
+        let map_extracted = extract_primitives(&script, &mut map_index, &mut counter);
 
         Self {
             map_extracted,
@@ -62,17 +62,18 @@ impl Script {
         scope.push_constant("steps", steps);
         scope.push_constant("params", params);
 
-        let mut new_map_index: HashMap<usize, Value> = HashMap::new();
+        let mut result_map: HashMap<usize, Value> = HashMap::new();
 
         for (key, value) in self.map_index.iter() {
+            println!("mapper {}: {}", key, value);
             let value = engine
                 .eval_with_scope(&mut scope, &value.to_string())
                 .map_err(ScriptError::EvalError)?;
 
-            new_map_index.insert(*key, from_dynamic(&value).unwrap());
+            result_map.insert(*key, from_dynamic(&value).unwrap());
         }
 
-        let result = replace_primitives(&self.map_extracted, &new_map_index);
+        let result = replace_primitives(&self.map_extracted, &result_map);
 
         Ok(result)
     }
@@ -83,14 +84,14 @@ impl Script {
     }
 }
 
-impl From<&str> for Script {
-    fn from(value: &str) -> Self {
-        Self::new(value.to_string())
+impl From<Value> for Script {
+    fn from(value: Value) -> Self {
+        Self::new(&value)
     }
 }
 
-impl From<String> for Script {
-    fn from(value: String) -> Self {
+impl From<&Value> for Script {
+    fn from(value: &Value) -> Self {
         Self::new(value)
     }
 }
@@ -211,7 +212,7 @@ mod test {
         "#;
 
         let context = Context::new(None);
-        let payload = Script::from(script.to_string());
+        let payload = Script::from(script.to_value());
 
         let result = payload.evaluate(&context).unwrap();
         assert_eq!(result, Value::from(30i64));
@@ -231,7 +232,7 @@ mod test {
         "#;
 
         let context = Context::new(None);
-        let payload = Script::from(script.to_string());
+        let payload = Script::from(script.to_value());
 
         let result = payload.evaluate(&context).unwrap();
         let expected = Value::from({
@@ -250,7 +251,7 @@ mod test {
         let script = r#""hello world""#;
 
         let context = Context::new(None);
-        let payload = Script::from(script.to_string());
+        let payload = Script::from(script.to_value());
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from("hello world")));
@@ -271,7 +272,7 @@ mod test {
             map
         })));
 
-        let payload = Script::from(script.to_string());
+        let payload = Script::from(script.to_value());
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from(30i64)));
@@ -288,7 +289,7 @@ mod test {
             map
         })));
 
-        let payload = Script::from(script.to_string());
+        let payload = Script::from(script.to_value());
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from(10i64)));
@@ -315,7 +316,7 @@ mod test {
             map.to_value()
         });
 
-        let payload = Script::from(script.to_string());
+        let payload = Script::from(script.to_value());
         let variable = payload.evaluate_variable(&context).unwrap();
 
         assert_eq!(variable, Variable::new(Value::from(30i64)));

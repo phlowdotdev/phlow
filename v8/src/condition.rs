@@ -1,5 +1,5 @@
 use serde::Serialize;
-use valu3::{prelude::StringBehavior, value::Value};
+use valu3::{prelude::StringBehavior, traits::ToValueBehavior, value::Value};
 
 use crate::{
     script::{Script, ScriptError},
@@ -123,7 +123,7 @@ impl Condition {
         };
 
         Self {
-            expression: Script::from(expression),
+            expression: Script::from(expression.to_value()),
         }
     }
 
