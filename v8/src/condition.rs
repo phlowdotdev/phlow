@@ -61,6 +61,9 @@ pub struct Condition {
 
 impl Condition {
     pub fn new(left: String, right: String, operator: Operator) -> Self {
+        let left = Self::remove_quotes(&left);
+        let right = Self::remove_quotes(&right);
+
         let expression = {
             match operator {
                 Operator::Or => {
@@ -123,8 +126,15 @@ impl Condition {
         };
 
         Self {
-            expression: Script::new(expression),
+            expression: Script::from(expression),
         }
+    }
+
+    fn remove_quotes(script: &str) -> String {
+        let mut script = script.to_string();
+        script.pop();
+        script.remove(0);
+        script
     }
 
     pub fn evaluate(&self, context: &Context) -> Result<bool, ConditionError> {

@@ -159,7 +159,7 @@ impl TryFrom<&Value> for StepWorker {
             }
         };
         let payload = match value.get("payload") {
-            Some(payload) => Some(Script::new(payload.to_string())),
+            Some(payload) => Some(Script::from(payload.to_string())),
             None => None,
         };
         let then_case = match value.get("then_case") {
@@ -177,7 +177,7 @@ impl TryFrom<&Value> for StepWorker {
             None => None,
         };
         let return_case = match value.get("return_case") {
-            Some(return_case) => Some(Script::new(return_case.to_string())),
+            Some(return_case) => Some(Script::from(return_case.to_string())),
             None => None,
         };
 
@@ -221,7 +221,7 @@ mod test {
     #[test]
     fn test_step_execute() {
         let step = StepWorker {
-            payload: Some(Script::new("10".to_string())),
+            payload: Some(Script::from("10".to_string())),
             ..Default::default()
         };
 
@@ -242,7 +242,7 @@ mod test {
                 "20".to_string(),
                 crate::condition::Operator::NotEqual,
             ))),
-            payload: Some(Script::new("10".to_string())),
+            payload: Some(Script::from("10".to_string())),
             ..Default::default()
         };
 
@@ -263,7 +263,7 @@ mod test {
                 "20".to_string(),
                 crate::condition::Operator::NotEqual,
             ))),
-            payload: Some(Script::new("10".to_string())),
+            payload: Some(Script::from("10".to_string())),
             then_case: Some(0),
             ..Default::default()
         };
@@ -285,7 +285,7 @@ mod test {
                 "20".to_string(),
                 crate::condition::Operator::Equal,
             ))),
-            payload: Some(Script::new("10".to_string())),
+            payload: Some(Script::from("10".to_string())),
             else_case: Some(1),
             ..Default::default()
         };
@@ -302,7 +302,7 @@ mod test {
     fn test_step_execute_with_return_case() {
         let step = StepWorker {
             id: ID::new(),
-            return_case: Some(Script::new("10".to_string())),
+            return_case: Some(Script::from("10".to_string())),
             ..Default::default()
         };
 
@@ -318,8 +318,8 @@ mod test {
     fn test_step_execute_with_return_case_and_payload() {
         let step = StepWorker {
             id: ID::new(),
-            payload: Some(Script::new("10".to_string())),
-            return_case: Some(Script::new("20".to_string())),
+            payload: Some(Script::from("10".to_string())),
+            return_case: Some(Script::from("20".to_string())),
             ..Default::default()
         };
 
@@ -340,7 +340,7 @@ mod test {
                 "20".to_string(),
                 crate::condition::Operator::Equal,
             ))),
-            return_case: Some(Script::new("10".to_string())),
+            return_case: Some(Script::from("10".to_string())),
             ..Default::default()
         };
 
@@ -362,7 +362,7 @@ mod test {
                 crate::condition::Operator::Equal,
             ))),
             then_case: Some(0),
-            return_case: Some(Script::new(r#""Ok""#.to_string())),
+            return_case: Some(Script::from(r#""Ok""#.to_string())),
             ..Default::default()
         };
 
@@ -383,7 +383,7 @@ mod test {
                 crate::condition::Operator::Equal,
             ))),
             else_case: Some(0),
-            return_case: Some(Script::new(r#""Ok""#.to_string())),
+            return_case: Some(Script::from(r#""Ok""#.to_string())),
             ..Default::default()
         };
 

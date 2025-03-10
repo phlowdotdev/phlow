@@ -13,32 +13,9 @@ pub enum ScriptError {
     InvalidType,
 }
 
-/// Remove first and last quotes from a string
-fn remove_quotes(script: &str) -> String {
-    let script = script.trim();
-    let script = script.trim_start_matches('"');
-    let script = script.trim_end_matches('"');
-
-    script.to_string()
-}
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Script {
     pub(crate) script: String,
-}
-
-impl From<Value> for Script {
-    fn from(value: Value) -> Self {
-        let script = value.to_string();
-        Self::new(remove_quotes(&script))
-    }
-}
-
-impl From<&Value> for Script {
-    fn from(value: &Value) -> Self {
-        let script = value.to_string();
-        Self::new(remove_quotes(&script))
-    }
 }
 
 impl From<&str> for Script {
@@ -54,14 +31,8 @@ impl From<String> for Script {
     }
 }
 
-impl From<&String> for Script {
-    fn from(value: &String) -> Self {
-        Self::new(value.clone())
-    }
-}
-
 impl Script {
-    pub fn new(script: String) -> Self {
+    fn new(script: String) -> Self {
         Self { script }
     }
 
@@ -128,7 +99,7 @@ mod test {
         "#;
 
         let context = Context::new(None);
-        let payload = Script::new(script.to_string());
+        let payload = Script::from(script.to_string());
 
         let result = payload.evaluate(&context).unwrap();
         assert_eq!(result, Value::from(30i64));
@@ -148,7 +119,7 @@ mod test {
         "#;
 
         let context = Context::new(None);
-        let payload = Script::new(script.to_string());
+        let payload = Script::from(script.to_string());
 
         let result = payload.evaluate(&context).unwrap();
         let expected = Value::from({
@@ -167,7 +138,7 @@ mod test {
         let script = r#""hello world""#;
 
         let context = Context::new(None);
-        let payload = Script::new(script.to_string());
+        let payload = Script::from(script.to_string());
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from("hello world")));
@@ -188,7 +159,7 @@ mod test {
             map
         })));
 
-        let payload = Script::new(script.to_string());
+        let payload = Script::from(script.to_string());
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from(30i64)));
@@ -205,7 +176,7 @@ mod test {
             map
         })));
 
-        let payload = Script::new(script.to_string());
+        let payload = Script::from(script.to_string());
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from(10i64)));
@@ -232,7 +203,7 @@ mod test {
             map.to_value()
         });
 
-        let payload = Script::new(script.to_string());
+        let payload = Script::from(script.to_string());
         let variable = payload.evaluate_variable(&context).unwrap();
 
         assert_eq!(variable, Variable::new(Value::from(30i64)));
