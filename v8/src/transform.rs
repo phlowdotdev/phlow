@@ -19,22 +19,17 @@ pub(crate) fn json_to_pipelines(
 ) -> Result<(PipelineMap, Option<Value>), TransformError> {
     let value = Value::json_to_value(input).map_err(TransformError::Parser)?;
     let params = value.get("params").cloned();
-    let pipelines = transform_json(&value)?;
+    let pipelines = value_to_pipelines(&value)?;
 
     Ok((pipelines, params))
 }
 
-pub(crate) fn transform_json(input: &Value) -> Result<PipelineMap, TransformError> {
-    let mut id_counter = 0;
+pub(crate) fn value_to_pipelines(input: &Value) -> Result<PipelineMap, TransformError> {
     let mut map = Vec::new();
 
     process_raw_steps(input, &mut map);
 
     value_to_structs(&map)
-}
-
-pub(crate) fn get_pipeline_id(index: usize) -> u64 {
-    index as u64
 }
 
 pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {

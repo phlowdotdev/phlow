@@ -26,6 +26,7 @@ pub enum NextStep {
     Next,
 }
 
+#[derive(Debug)]
 pub struct StepOutput {
     pub next_step: NextStep,
     pub payload: Option<Value>,
@@ -104,7 +105,7 @@ impl StepWorker {
         }
 
         if let Some(condition) = &self.condition {
-            let (next_step, Value) = if condition
+            let (next_step, payload) = if condition
                 .evaluate(context)
                 .map_err(StepWorkerError::ConditionError)?
             {
@@ -125,10 +126,7 @@ impl StepWorker {
                 (next_step, None)
             };
 
-            return Ok(StepOutput {
-                next_step,
-                payload: Value,
-            });
+            return Ok(StepOutput { next_step, payload });
         }
 
         return Ok(StepOutput {

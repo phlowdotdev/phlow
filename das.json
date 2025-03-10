@@ -1,96 +1,44 @@
 {
-    "pipeline_id_4": [
-        {
-            "score": 0
-        }
-    ],
-    "pipeline_id_2": [
+    "steps": [
         {
             "condition": {
-                "right": 500,
-                "operator": "equal",
-                "left": "steps.step1.score"
+                "operator": "less_than",
+                "right": "params.pre-approved",
+                "left": "params.requested"
             },
-            "then": "pipeline_id_3"
-        }
-    ],
-    "pipeline_id_6": [
-        {
-            "name": "Credit not avaliable",
-            "payload": {
-                "score": false
+            "then": {
+                "return": "params.requested"
+            },
+            "else": {
+                "steps": [
+                    {
+                        "condition": {
+                            "right": 0.5,
+                            "operator": "greater_than",
+                            "left": "params.score"
+                        }
+                    },
+                    {
+                        "id": "approved",
+                        "payload": {
+                            "total": "(params.requested * 0.3) + params.pre-approved"
+                        }
+                    },
+                    {
+                        "else": {
+                            "return": "steps.approved.total"
+                        },
+                        "then": {
+                            "return": "params.requested"
+                        },
+                        "condition": {
+                            "operator": "greater_than",
+                            "left": "steps.approved.total",
+                            "right": "params.requested"
+                        }
+                    }
+                ]
             }
-        }
-    ],
-    "pipeline_id_0": [
-        {
-            "name": "Start"
-        },
-        {
-            "else": "pipeline_id_4",
-            "then": "pipeline_id_1",
-            "id": "step1",
-            "condition": {
-                "operator": "greater_than",
-                "right": "context.credit_used",
-                "left": "context.credit"
-            }
-        },
-        {
-            "then": "pipeline_id_5",
-            "else": "pipeline_id_6",
-            "condition": {
-                "right": 500,
-                "left": "steps.step1.score",
-                "operator": "greater_than"
-            }
-        },
-        {
-            "name": "End"
-        }
-    ],
-    "pipeline_id_1": [
-        {
-            "payload": {
-                "score": "context.credit - context.credit_used"
-            }
-        },
-        {
-            "condition": {
-                "left": "steps.step1.score",
-                "right": 10,
-                "operator": "greater_than"
-            }
-        },
-        {
-            "condition": {
-                "right": 500,
-                "operator": "greater_than",
-                "left": "steps.step1.score"
-            }
-        },
-        {
-            "condition": {
-                "left": "steps.step1.score",
-                "right": 100000,
-                "operator": "less_than"
-            }
-        },
-        {
-            "then": "pipeline_id_2"
-        }
-    ],
-    "pipeline_id_5": [
-        {
-            "name": "Credit avaliable",
-            "payload": {
-                "result": true
-            }
-        }
-    ],
-    "pipeline_id_3": [
-        {
-            "return": true
         }
     ]
 }

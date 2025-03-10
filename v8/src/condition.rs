@@ -108,6 +108,9 @@ impl Condition {
             .evaluate_variable(context)
             .map_err(ConditionError::PayloadError)?;
 
+        println!("---------------------------------------------");
+        println!("{:?} {:?} {:?}", left, self.operator, right);
+
         match self.operator {
             Operator::Equal => Ok(left.equal(&right)),
             Operator::NotEqual => Ok(!left.equal(&right)),

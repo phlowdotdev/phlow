@@ -2,11 +2,11 @@ use crate::{
     id::ID,
     pipeline::{Pipeline, PipelineError},
     step_worker::NextStep,
-    transform::{json_to_pipelines, TransformError},
+    transform::{json_to_pipelines, value_to_pipelines, TransformError},
 };
 use serde::Serialize;
 use std::collections::HashMap;
-use valu3::value::Value;
+use valu3::{prelude::JsonMode, prelude::*};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Context {
@@ -39,15 +39,20 @@ pub enum Error {
 
 pub type PipelineMap = HashMap<usize, Pipeline>;
 
+#[derive(Debug, Default)]
 struct V8 {
     pipelines: PipelineMap,
-    main: usize,
     params: Option<Value>,
 }
 
 impl V8 {
-    pub fn execute_context(&self, context: &mut Context) -> Result<(), Error> {
-        let mut current = self.main;
+    pub fn execute_context(&self, context: &mut Context) -> Result<Option<Value>, Error> {
+        if self.pipelines.is_empty() {
+            return Ok(None);
+        }
+
+        let mut current = self.pipelines.len() - 1;
+
         loop {
             let pipeline = self
                 .pipelines
@@ -55,17 +60,17 @@ impl V8 {
                 .ok_or(Error::PipelineNotFound)?;
 
             match pipeline.execute(context) {
-                Ok(next_step) => match next_step {
-                    Some(next) => match next {
-                        NextStep::Pipeline(id) => {
-                            current = id as usize;
+                Ok(step_output) => match step_output {
+                    Some(step_output) => match step_output.next_step {
+                        NextStep::Next | NextStep::Stop => {
+                            return Ok(step_output.payload);
                         }
-                        _ => {
-                            break Ok(());
+                        NextStep::Pipeline(id) => {
+                            current = id;
                         }
                     },
                     None => {
-                        break Ok(());
+                        return Ok(None);
                     }
                 },
                 Err(err) => {
@@ -88,76 +93,87 @@ impl TryFrom<&String> for V8 {
     fn try_from(value: &String) -> Result<Self, Self::Error> {
         let (pipelines, params) = json_to_pipelines(value).map_err(Error::TransformError)?;
 
+        Ok(Self { pipelines, params })
+    }
+}
+
+impl TryFrom<&Value> for V8 {
+    type Error = Error;
+
+    fn try_from(value: &Value) -> Result<Self, Self::Error> {
+        let pipelines = value_to_pipelines(&value).map_err(Error::TransformError)?;
+        println!("{:?}", pipelines);
         Ok(Self {
             pipelines,
-            main: 0,
-            params,
+            params: None,
         })
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use valu3::json;
     use valu3::prelude::*;
-    use super::*;
-    use std::fs;
 
     #[test]
     fn test_v8() {
         let original = json!({
-            "steps": [
-              {
-                "condition": {
-                  "left": "params.requested",
-                  "right": "params.pre-approved",
-                  "operator": "less_than"
-                },
-                "then": {
-                  "payload": "params.requested"
-                },
-                "else": {
-                  "steps": [
-                    {
-                      "condition": {
-                        "left": "params.score",
-                        "right": 0.5,
-                        "operator": "greater_than"
-                      }
-                    },
-                    {
-                      "id": "approved",
-                      "payload": {
-                        "total": "(params.requested * 0.3) + params.pre-approved"
-                      }
-                    },
-                    {
-                      "condition": {
-                        "left": "steps.approved.total",
-                        "right": "params.requested",
-                        "operator": "greater_than"
-                      },
-                      "then": {
-                        "return": "params.requested"
-                      },
-                      "else": {
-                        "return": "steps.approved.total"
-                      }
+          "steps": [
+            {
+              "condition": {
+                "left": "params.requested",
+                "right": "params.pre-approved",
+                "operator": "less_than_or_equal"
+              },
+              "then": {
+                "return": "params.requested"
+              },
+              "else": {
+                "steps": [
+                  {
+                    "condition": {
+                      "left": "params.score",
+                      "right": 0.5,
+                      "operator": "greater_than_or_equal"
                     }
-                  ]
-                }
+                  },
+                  {
+                    "id": "approved",
+                    "payload": {
+                      "total": "(params.requested * 0.3) + params.pre-approved"
+                    }
+                  },
+                  {
+                    "condition": {
+                      "left": "steps.approved.total",
+                      "right": "params.requested",
+                      "operator": "greater_than_or_equal"
+                    },
+                    "then": {
+                      "return": "params.requested"
+                    },
+                    "else": {
+                      "return": "steps.approved.total"
+                    }
+                  }
+                ]
               }
-            ]
-          });
-          
-        let v8 = V8::try_from(&original).unwrap();
-        let context = {
-            let mut map = HashMap::new();
-            map.insert("name".to_string(), Value::String("John".to_string()));
-            Value::Object(map)
-        }
-        let context = v8.execute_context().unwrap();
+            }
+          ]
+        });
 
-        assert_eq!()
+        let v8 = V8::try_from(&original).unwrap();
+        let mut context = Context::new(Some(json!({
+            "requested": 10000.00,
+            "pre-approved": 10000.00,
+            "score": 0.6
+        })));
+
+        println!("{:?}", context);
+
+        let result = v8.execute_context(&mut context).unwrap();
+
+        assert_eq!(result, Some(json!(3000.0)));
     }
 }

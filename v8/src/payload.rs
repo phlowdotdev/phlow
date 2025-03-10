@@ -47,17 +47,17 @@ impl Payload {
         let mut scope = Scope::new();
 
         let steps: Dynamic = to_dynamic(context.steps.clone()).unwrap();
-        let context: Dynamic = to_dynamic(context.params.clone()).unwrap();
+        let params: Dynamic = to_dynamic(context.params.clone()).unwrap();
 
         scope.push_constant("steps", steps);
-        scope.push_constant("context", context);
+        scope.push_constant("params", params);
 
         let result = engine
             .eval_with_scope(&mut scope, &self.script)
             .map_err(PayloadError::EvalError)?;
 
         let result: Value = from_dynamic(&result).unwrap();
-
+        println!("result {:?}", result);
         Ok(result)
     }
 
@@ -132,8 +132,8 @@ mod test {
     #[test]
     fn test_payload_execute_variable_context() {
         let script = r#"
-            let a = context.a;
-            let b = context.b;
+            let a = params.a;
+            let b = params.b;
             a + b
         "#;
 
@@ -148,6 +148,23 @@ mod test {
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from(30i64)));
+    }
+
+    #[test]
+    fn test_payload_execute_variable_context_params() {
+        let script = r#"params.a"#;
+
+        let context = Context::new(Some(Value::from({
+            let mut map = HashMap::new();
+            map.insert("a".to_string(), Value::from(10i64));
+            map.insert("b".to_string(), Value::from(20i64));
+            map
+        })));
+
+        let payload = Payload::new(script.to_string());
+
+        let variable = payload.evaluate_variable(&context).unwrap();
+        assert_eq!(variable, Variable::new(Value::from(10i64)));
     }
 
     #[test]
