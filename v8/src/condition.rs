@@ -61,9 +61,6 @@ pub struct Condition {
 
 impl Condition {
     pub fn new(left: String, right: String, operator: Operator) -> Self {
-        let left = Self::remove_quotes(&left);
-        let right = Self::remove_quotes(&right);
-
         let expression = {
             match operator {
                 Operator::Or => {
@@ -161,12 +158,24 @@ impl TryFrom<&Value> for Condition {
 
     fn try_from(value: &Value) -> Result<Self, ConditionError> {
         let left = match value.get("left") {
-            Some(left) => left.to_json(valu3::prelude::JsonMode::Inline),
+            Some(left) => {
+                if let Value::String(left) = left {
+                    left.to_string()
+                } else {
+                    left.to_json(valu3::prelude::JsonMode::Inline)
+                }
+            }
             None => return Err(ConditionError::LeftInvalid("does not exist".to_string())),
         };
 
         let right = match value.get("right") {
-            Some(right) => right.to_json(valu3::prelude::JsonMode::Inline),
+            Some(right) => {
+                if let Value::String(right) = right {
+                    right.to_string()
+                } else {
+                    right.to_json(valu3::prelude::JsonMode::Inline)
+                }
+            }
             None => return Err(ConditionError::RightInvalid("does not exist".to_string())),
         };
 
