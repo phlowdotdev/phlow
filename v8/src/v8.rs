@@ -191,4 +191,34 @@ mod tests {
 
         assert_eq!(result, Some(json!(3500.0)));
     }
+
+    #[test]
+    fn test_v8_original_3() {
+        let original = get_original();
+        let v8 = V8::try_from(&original).unwrap();
+        let mut context = Context::new(Some(json!({
+            "requested": 10000.00,
+            "pre_approved": 500.00,
+            "score": 0.2
+        })));
+
+        let result = v8.execute_context(&mut context).unwrap();
+
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_v8_original_4() {
+        let original = get_original();
+        let v8 = V8::try_from(&original).unwrap();
+        let mut context = Context::new(Some(json!({
+            "requested": 10000.00,
+            "pre_approved": 9999.00,
+            "score": 0.6
+        })));
+
+        let result = v8.execute_context(&mut context).unwrap();
+
+        assert_eq!(result, Some(json!(10000.0)));
+    }
 }
