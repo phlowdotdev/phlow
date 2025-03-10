@@ -1,0 +1,52 @@
+[
+    [
+        {
+            "return": "params.requested"
+        }
+    ],
+    [
+        {
+            "return": "params.requested"
+        }
+    ],
+    [
+        {
+            "return": "steps.approved.total"
+        }
+    ],
+    [
+        {
+            "condition": {
+                "right": 0.5,
+                "left": "params.score",
+                "operator": "greater_than_or_equal"
+            }
+        },
+        {
+            "id": "approved",
+            "payload": {
+                "total": "(params.requested * 0.3) + params.pre_approved"
+            }
+        },
+        {
+            "else": 2,
+            "condition": {
+                "operator": "greater_than_or_equal",
+                "left": "steps.approved.total",
+                "right": "params.requested"
+            },
+            "then": 1
+        }
+    ],
+    [
+        {
+            "else": 3,
+            "then": 0,
+            "condition": {
+                "operator": "less_than_or_equal",
+                "left": "params.requested",
+                "right": "params.pre_approved"
+            }
+        }
+    ]
+]

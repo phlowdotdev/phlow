@@ -162,21 +162,21 @@ impl TryFrom<&Value> for StepWorker {
             Some(payload) => Some(Script::from(payload.to_string())),
             None => None,
         };
-        let then_case = match value.get("then_case") {
-            Some(then_case) => match then_case.get_u128() {
+        let then_case = match value.get("then") {
+            Some(then_case) => match then_case.to_u64() {
                 Some(then_case) => Some(then_case as usize),
                 None => None,
             },
             None => None,
         };
-        let else_case = match value.get("else_case") {
-            Some(else_case) => match else_case.get_u128() {
+        let else_case = match value.get("else") {
+            Some(else_case) => match else_case.to_u64() {
                 Some(else_case) => Some(else_case as usize),
                 None => None,
             },
             None => None,
         };
-        let return_case = match value.get("return_case") {
+        let return_case = match value.get("return") {
             Some(return_case) => Some(Script::from(return_case.to_string())),
             None => None,
         };

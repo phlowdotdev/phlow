@@ -28,7 +28,6 @@ pub(crate) fn value_to_pipelines(input: &Value) -> Result<PipelineMap, Transform
     let mut map = Vec::new();
 
     process_raw_steps(input, &mut map);
-
     value_to_structs(&map)
 }
 
