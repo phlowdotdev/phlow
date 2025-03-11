@@ -1,6 +1,5 @@
-use std::sync::mpsc::Sender;
-
 use serde::Serialize;
+use std::sync::mpsc::Sender;
 use valu3::value::Value;
 
 use crate::id::ID;
