@@ -41,7 +41,7 @@ pub enum Error {
 pub type PipelineMap<'a> = HashMap<usize, Pipeline<'a>>;
 
 #[derive(Debug, Default)]
-struct V8<'a> {
+pub struct V8<'a> {
     pipelines: PipelineMap<'a>,
     params: Option<Value>,
 }
@@ -100,9 +100,8 @@ impl<'a> V8<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::script::Script;
-
     use super::*;
+    use crate::script::Script;
     use valu3::json;
 
     fn get_original() -> Value {
