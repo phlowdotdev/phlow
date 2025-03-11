@@ -1,7 +1,4 @@
-use std::collections::HashMap;
-
 use crate::{
-    id::ID,
     step_worker::{NextStep, StepOutput, StepWorker, StepWorkerError},
     v8::Context,
 };

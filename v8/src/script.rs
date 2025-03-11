@@ -1,11 +1,10 @@
-use std::collections::HashMap;
-
 use crate::v8::Context;
 use crate::variable::Variable;
 use regex::Regex;
 use rhai::plugin::*;
 use rhai::serde::{from_dynamic, to_dynamic};
 use rhai::{Engine, EvalAltResult, Scope};
+use std::collections::HashMap;
 use valu3::prelude::*;
 
 #[derive(Debug)]

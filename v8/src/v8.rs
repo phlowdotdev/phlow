@@ -1,9 +1,8 @@
 use crate::{
     id::ID,
     pipeline::{Pipeline, PipelineError},
-    script::Script,
     step_worker::NextStep,
-    transform::{json_to_pipelines, value_to_pipelines, TransformError},
+    transform::{value_to_pipelines, TransformError},
 };
 use rhai::Engine;
 use serde::Serialize;
@@ -101,6 +100,8 @@ impl<'a> V8<'a> {
 
 #[cfg(test)]
 mod tests {
+    use crate::script::Script;
+
     use super::*;
     use valu3::json;
 

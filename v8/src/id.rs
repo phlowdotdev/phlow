@@ -1,6 +1,5 @@
-use std::fmt::Display;
-
 use serde::Serialize;
+use std::fmt::Display;
 use valu3::value::Value;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Eq, Hash)]
