@@ -41,6 +41,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyflow"
+version = "0.1.0"
+dependencies = [
+ "regex",
+ "rhai",
+ "serde",
+ "uuid",
+ "valu3",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -548,17 +559,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e0f540e3240398cce6128b64ba83fdbdd86129c16a3aa1a3a252efd66eb3d587"
 dependencies = [
  "getrandom 0.3.1",
-]
-
-[[package]]
-name = "v8"
-version = "0.1.0"
-dependencies = [
- "regex",
- "rhai",
- "serde",
- "uuid",
- "valu3",
 ]
 
 [[package]]

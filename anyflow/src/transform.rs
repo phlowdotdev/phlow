@@ -3,27 +3,15 @@ use std::collections::HashMap;
 use valu3::{prelude::*, traits::ToValueBehavior, value::Value};
 
 use crate::{
-    id::ID,
+    anyflow::PipelineMap,
     pipeline::Pipeline,
     step_worker::{StepWorker, StepWorkerError},
-    v8::PipelineMap,
 };
 
 #[derive(Debug)]
 pub enum TransformError {
     InnerStepError(StepWorkerError),
     Parser(valu3::Error),
-}
-
-pub(crate) fn json_to_pipelines<'a>(
-    engine: &'a Engine,
-    input: &str,
-) -> Result<(PipelineMap<'a>, Option<Value>), TransformError> {
-    let value = Value::json_to_value(input).map_err(TransformError::Parser)?;
-    let params = value.get("params").cloned();
-    let pipelines = value_to_pipelines(engine, &value)?;
-
-    Ok((pipelines, params))
 }
 
 pub(crate) fn value_to_pipelines<'a>(
@@ -111,17 +99,59 @@ fn value_to_structs<'a>(
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::fs;
-    use valu3::{traits::ToValueBehavior, value::Value as Valu3Value};
+    use valu3::{json, traits::ToValueBehavior};
 
     #[test]
     fn test_transform_value() {
         let mut map = Vec::new();
-        let original = fs::read_to_string("assets/original.json").unwrap();
-        let target = fs::read_to_string("assets/target.json").unwrap();
+        let original = json!({
+          "steps": [
+            {
+              "condition": {
+                "left": "params.requested",
+                "right": "params.pre-approved",
+                "operator": "less_than"
+              },
+              "then": {
+                "payload": "params.requested"
+              },
+              "else": {
+                "steps": [
+                  {
+                    "condition": {
+                      "left": "params.score",
+                      "right": 0.5,
+                      "operator": "greater_than"
+                    }
+                  },
+                  {
+                    "id": "approved",
+                    "payload": {
+                      "total": "(params.requested * 0.3) + params.pre-approved"
+                    }
+                  },
+                  {
+                    "condition": {
+                      "left": "steps.approved.total",
+                      "right": "params.requested",
+                      "operator": "greater_than"
+                    },
+                    "then": {
+                      "return": "params.requested"
+                    },
+                    "else": {
+                      "return": "steps.approved.total"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        });
+        let target = json!([[{"payload": "params.requested"}],[{"return": "params.requested"}],[{"return": "steps.approved.total"}],[{"condition": {"left": "params.score","operator": "greater_than","right": 0.5}},{"id": "approved","payload": {"total": "(params.requested * 0.3) + params.pre-approved"}},{"else": 2,"condition": {"operator": "greater_than","right": "params.requested","left": "steps.approved.total"},"then": 1}],[{"condition": {"right": "params.pre-approved","left": "params.requested","operator": "less_than"},"else": 3,"then": 0}]]);
 
-        process_raw_steps(&Valu3Value::json_to_value(&original).unwrap(), &mut map);
+        process_raw_steps(&original, &mut map);
 
-        assert_eq!(map.to_value(), Valu3Value::json_to_value(&target).unwrap());
+        assert_eq!(map.to_value(), target);
     }
 }

@@ -1,5 +1,5 @@
 [package]
-name = "v8"
+name = "anyflow"
 version = "0.1.0"
 edition = "2021"
 
