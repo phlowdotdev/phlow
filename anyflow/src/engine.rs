@@ -92,7 +92,7 @@ mod tests {
     fn test_repository_function() {
         let mut repositories = HashMap::new();
 
-        let mock_function = plugin!(|value| {
+        let mock_function: Arc<dyn Fn(Value) -> Value + Send + Sync> = plugin!(|value| {
             if let Value::String(s) = value {
                 Value::from(format!("{}-processed", s))
             } else {
