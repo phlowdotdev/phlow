@@ -6,7 +6,7 @@ use crate::{
     transform::{value_to_pipelines, TransformError},
 };
 use rhai::Engine;
-use std::{collections::HashMap, sync::mpsc::Sender};
+use std::collections::HashMap;
 use valu3::prelude::*;
 
 #[derive(Debug)]
