@@ -87,7 +87,7 @@ mod tests {
         id::ID,
         script::Script,
     };
-    use std::sync::mpsc::{channel, Receiver, Sender};
+    use std::sync::mpsc::channel;
     use valu3::json;
 
     fn get_original() -> Value {
