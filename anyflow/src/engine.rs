@@ -14,9 +14,10 @@ pub struct Repositories {
 }
 
 #[macro_export]
+// repo!(|value| { ... }) return Arc<RepositoryFunction>
 macro_rules! repo {
-    ($name:ident, |$value:ident| $body:block) => {
-        let $name = Arc::new(|$value: Value| -> Value $body) as RepositoryFunction;
+    ($call:expr) => {
+        Arc::new($call) as RepositoryFunction
     };
 }
 
@@ -92,13 +93,13 @@ mod tests {
     fn test_repository_function() {
         let mut repositories = HashMap::new();
 
-        let mock_function = Arc::new(|value: Value| -> Value {
+        let mock_function = repo!(|value| {
             if let Value::String(s) = value {
                 Value::from(format!("{}-processed", s))
             } else {
                 Value::Null
             }
-        }) as RepositoryFunction;
+        });
 
         repositories.insert("process".to_string(), mock_function);
 
