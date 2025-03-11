@@ -11,14 +11,14 @@ pub enum PipelineError {
     StepWorkerError(StepWorkerError),
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct Pipeline {
+#[derive(Debug, Clone)]
+pub struct Pipeline<'a> {
     pub(crate) id: usize,
-    pub(crate) steps: Vec<StepWorker>,
+    pub(crate) steps: Vec<StepWorker<'a>>,
 }
 
-impl Pipeline {
-    pub fn new(id: usize, steps: Vec<StepWorker>) -> Self {
+impl<'a> Pipeline<'a> {
+    pub fn new(id: usize, steps: Vec<StepWorker<'a>>) -> Self {
         Self { id, steps }
     }
 

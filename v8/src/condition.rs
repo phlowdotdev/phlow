@@ -1,3 +1,4 @@
+use rhai::Engine;
 use serde::Serialize;
 use valu3::{prelude::StringBehavior, traits::ToValueBehavior, value::Value};
 
@@ -54,13 +55,42 @@ impl From<&Value> for Operator {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct Condition {
-    pub(crate) expression: Script,
+#[derive(Debug, Clone)]
+pub struct Condition<'a> {
+    pub(crate) expression: Script<'a>,
 }
 
-impl Condition {
-    pub fn new(left: String, right: String, operator: Operator) -> Self {
+impl<'a> Condition<'a> {
+    pub fn try_from_value(engine: &'a Engine, value: &Value) -> Result<Self, ConditionError> {
+        let left = match value.get("left") {
+            Some(left) => left.to_string(),
+            None => return Err(ConditionError::LeftInvalid("does not exist".to_string())),
+        };
+
+        let right = match value.get("right") {
+            Some(right) => {
+                if let Value::String(right) = right {
+                    right.to_string()
+                } else {
+                    right.to_json(valu3::prelude::JsonMode::Inline)
+                }
+            }
+            None => return Err(ConditionError::RightInvalid("does not exist".to_string())),
+        };
+
+        let operator = match value.get("operator") {
+            Some(operator) => Operator::from(operator),
+            None => {
+                return Err(ConditionError::InvalidOperator(
+                    "does not exist".to_string(),
+                ))
+            }
+        };
+
+        Ok(Self::new(engine, left, right, operator))
+    }
+
+    pub fn new(engine: &'a Engine, left: String, right: String, operator: Operator) -> Self {
         let expression = {
             match operator {
                 Operator::Or => {
@@ -123,7 +153,7 @@ impl Condition {
         };
 
         Self {
-            expression: Script::from(expression.to_value()),
+            expression: Script::new(engine, &expression.to_value()),
         }
     }
 
@@ -140,52 +170,15 @@ impl Condition {
     }
 }
 
-impl From<(String, String, Operator)> for Condition {
-    fn from((left, right, operator): (String, String, Operator)) -> Self {
-        Self::new(left, right, operator)
-    }
-}
-
-impl TryFrom<&Value> for Condition {
-    type Error = ConditionError;
-
-    fn try_from(value: &Value) -> Result<Self, ConditionError> {
-        let left = match value.get("left") {
-            Some(left) => left.to_string(),
-            None => return Err(ConditionError::LeftInvalid("does not exist".to_string())),
-        };
-
-        let right = match value.get("right") {
-            Some(right) => {
-                if let Value::String(right) = right {
-                    right.to_string()
-                } else {
-                    right.to_json(valu3::prelude::JsonMode::Inline)
-                }
-            }
-            None => return Err(ConditionError::RightInvalid("does not exist".to_string())),
-        };
-
-        let operator = match value.get("operator") {
-            Some(operator) => Operator::from(operator),
-            None => {
-                return Err(ConditionError::InvalidOperator(
-                    "does not exist".to_string(),
-                ))
-            }
-        };
-
-        Ok(Self::new(left, right, operator))
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
 
     #[test]
     fn test_condition_execute_equal() {
-        let condition = Condition::new("10".to_string(), "20".to_string(), Operator::Equal);
+        let engine = Script::create_engine();
+        let condition =
+            Condition::new(&engine, "10".to_string(), "20".to_string(), Operator::Equal);
 
         let context = Context::new(None);
 
@@ -195,7 +188,13 @@ mod test {
 
     #[test]
     fn test_condition_execute_not_equal() {
-        let condition = Condition::new("10".to_string(), "20".to_string(), Operator::NotEqual);
+        let engine = Script::create_engine();
+        let condition = Condition::new(
+            &engine,
+            "10".to_string(),
+            "20".to_string(),
+            Operator::NotEqual,
+        );
 
         let context = Context::new(None);
 
@@ -205,7 +204,13 @@ mod test {
 
     #[test]
     fn test_condition_execute_greater_than() {
-        let condition = Condition::new("10".to_string(), "20".to_string(), Operator::GreaterThan);
+        let engine = Script::create_engine();
+        let condition = Condition::new(
+            &engine,
+            "10".to_string(),
+            "20".to_string(),
+            Operator::GreaterThan,
+        );
 
         let context = Context::new(None);
 
@@ -215,7 +220,9 @@ mod test {
 
     #[test]
     fn test_condition_execute_contains() {
+        let engine = Script::create_engine();
         let condition = Condition::new(
+            &engine,
             r#""hello""#.to_string(),
             r#""hello world""#.to_string(),
             Operator::Contains,
@@ -229,7 +236,9 @@ mod test {
 
     #[test]
     fn test_condition_execute_regex() {
+        let engine = Script::create_engine();
         let condition = Condition::new(
+            &engine,
             // regex find "hello" in "hello world"
             r#""hello""#.to_string(),
             r#""hello world""#.to_string(),
@@ -244,7 +253,9 @@ mod test {
 
     #[test]
     fn test_condition_execute_not_regex() {
+        let engine = Script::create_engine();
         let condition = Condition::new(
+            &engine,
             r#""hello""#.to_string(),
             r#""hello world""#.to_string(),
             Operator::NotRegex,
@@ -258,7 +269,9 @@ mod test {
 
     #[test]
     fn test_condition_execute_start_with() {
+        let engine = Script::create_engine();
         let condition = Condition::new(
+            &engine,
             r#""hello world""#.to_string(),
             r#""hello""#.to_string(),
             Operator::StartsWith,
@@ -272,7 +285,9 @@ mod test {
 
     #[test]
     fn test_condition_execute_end_with() {
+        let engine = Script::create_engine();
         let condition = Condition::new(
+            &engine,
             r#""hello world""#.to_string(),
             r#""world""#.to_string(),
             Operator::EndsWith,

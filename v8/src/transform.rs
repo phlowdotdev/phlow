@@ -1,3 +1,4 @@
+use rhai::Engine;
 use std::collections::HashMap;
 use valu3::{prelude::*, traits::ToValueBehavior, value::Value};
 
@@ -14,21 +15,25 @@ pub enum TransformError {
     Parser(valu3::Error),
 }
 
-pub(crate) fn json_to_pipelines(
+pub(crate) fn json_to_pipelines<'a>(
+    engine: &'a Engine,
     input: &str,
-) -> Result<(PipelineMap, Option<Value>), TransformError> {
+) -> Result<(PipelineMap<'a>, Option<Value>), TransformError> {
     let value = Value::json_to_value(input).map_err(TransformError::Parser)?;
     let params = value.get("params").cloned();
-    let pipelines = value_to_pipelines(&value)?;
+    let pipelines = value_to_pipelines(engine, &value)?;
 
     Ok((pipelines, params))
 }
 
-pub(crate) fn value_to_pipelines(input: &Value) -> Result<PipelineMap, TransformError> {
+pub(crate) fn value_to_pipelines<'a>(
+    engine: &'a Engine,
+    input: &Value,
+) -> Result<PipelineMap<'a>, TransformError> {
     let mut map = Vec::new();
 
     process_raw_steps(input, &mut map);
-    value_to_structs(&map)
+    value_to_structs(engine, &map)
 }
 
 pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
@@ -74,7 +79,10 @@ pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
     Value::json_to_value(&json).unwrap()
 }
 
-fn value_to_structs(map: &Vec<Value>) -> Result<PipelineMap, TransformError> {
+fn value_to_structs<'a>(
+    engine: &'a Engine,
+    map: &Vec<Value>,
+) -> Result<PipelineMap<'a>, TransformError> {
     let mut pipelines = HashMap::new();
 
     for (pipeline_id, steps) in map.iter().enumerate() {
@@ -82,8 +90,8 @@ fn value_to_structs(map: &Vec<Value>) -> Result<PipelineMap, TransformError> {
             let mut steps = Vec::new();
 
             for step in arr.into_iter() {
-                let step_worker =
-                    StepWorker::try_from(step).map_err(TransformError::InnerStepError)?;
+                let step_worker = StepWorker::try_from_value(engine, step)
+                    .map_err(TransformError::InnerStepError)?;
                 steps.push(step_worker);
             }
 

@@ -1,9 +1,11 @@
 use crate::{
     id::ID,
     pipeline::{Pipeline, PipelineError},
+    script::Script,
     step_worker::NextStep,
     transform::{json_to_pipelines, value_to_pipelines, TransformError},
 };
+use rhai::Engine;
 use serde::Serialize;
 use std::collections::HashMap;
 use valu3::prelude::*;
@@ -37,15 +39,25 @@ pub enum Error {
     PipelineNotFound,
 }
 
-pub type PipelineMap = HashMap<usize, Pipeline>;
+pub type PipelineMap<'a> = HashMap<usize, Pipeline<'a>>;
 
 #[derive(Debug, Default)]
-struct V8 {
-    pipelines: PipelineMap,
+struct V8<'a> {
+    pipelines: PipelineMap<'a>,
     params: Option<Value>,
 }
 
-impl V8 {
+impl<'a> V8<'a> {
+    pub fn try_from_value(
+        engine: &'a Engine,
+        value: &Value,
+        params: Option<Value>,
+    ) -> Result<Self, Error> {
+        let pipelines = value_to_pipelines(&engine, value).map_err(Error::TransformError)?;
+
+        Ok(Self { pipelines, params })
+    }
+
     pub fn execute_context(&self, context: &mut Context) -> Result<Option<Value>, Error> {
         if self.pipelines.is_empty() {
             return Ok(None);
@@ -84,29 +96,6 @@ impl V8 {
         let mut context = Context::new(self.params.clone());
         self.execute_context(&mut context)?;
         Ok(context)
-    }
-}
-
-impl TryFrom<&String> for V8 {
-    type Error = Error;
-
-    fn try_from(value: &String) -> Result<Self, Self::Error> {
-        let (pipelines, params) = json_to_pipelines(value).map_err(Error::TransformError)?;
-
-        Ok(Self { pipelines, params })
-    }
-}
-
-impl TryFrom<&Value> for V8 {
-    type Error = Error;
-
-    fn try_from(value: &Value) -> Result<Self, Self::Error> {
-        let pipelines = value_to_pipelines(&value).map_err(Error::TransformError)?;
-
-        Ok(Self {
-            pipelines,
-            params: None,
-        })
     }
 }
 
@@ -165,7 +154,8 @@ mod tests {
     #[test]
     fn test_v8_original_1() {
         let original = get_original();
-        let v8 = V8::try_from(&original).unwrap();
+        let engine = Script::create_engine();
+        let v8 = V8::try_from_value(&engine, &original, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 10000.00,
@@ -180,7 +170,8 @@ mod tests {
     #[test]
     fn test_v8_original_2() {
         let original = get_original();
-        let v8 = V8::try_from(&original).unwrap();
+        let engine = Script::create_engine();
+        let v8 = V8::try_from_value(&engine, &original, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 500.00,
@@ -195,7 +186,8 @@ mod tests {
     #[test]
     fn test_v8_original_3() {
         let original = get_original();
-        let v8 = V8::try_from(&original).unwrap();
+        let engine = Script::create_engine();
+        let v8 = V8::try_from_value(&engine, &original, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 500.00,
@@ -210,7 +202,8 @@ mod tests {
     #[test]
     fn test_v8_original_4() {
         let original = get_original();
-        let v8 = V8::try_from(&original).unwrap();
+        let engine = Script::create_engine();
+        let v8 = V8::try_from_value(&engine, &original, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 9999.00,

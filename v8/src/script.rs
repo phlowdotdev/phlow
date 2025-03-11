@@ -6,7 +6,6 @@ use regex::Regex;
 use rhai::plugin::*;
 use rhai::serde::{from_dynamic, to_dynamic};
 use rhai::{Engine, EvalAltResult, Scope};
-use serde::{Deserialize, Serialize};
 use valu3::prelude::*;
 
 #[derive(Debug)]
@@ -15,14 +14,15 @@ pub enum ScriptError {
     InvalidType,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Script {
+#[derive(Debug, Clone)]
+pub struct Script<'a> {
     map_extracted: Value,
     map_index: HashMap<usize, Value>,
+    engine: &'a Engine,
 }
 
-impl Script {
-    fn new(script: &Value) -> Self {
+impl<'a> Script<'a> {
+    pub fn new(engine: &'a Engine, script: &Value) -> Self {
         let mut map_index = HashMap::new();
         let mut counter = 0;
         let map_extracted = extract_primitives(&script, &mut map_index, &mut counter);
@@ -30,10 +30,11 @@ impl Script {
         Self {
             map_extracted,
             map_index,
+            engine,
         }
     }
 
-    pub fn evaluate(&self, context: &Context) -> Result<Value, ScriptError> {
+    pub fn create_engine() -> Engine {
         let mut engine = Engine::new();
 
         engine
@@ -54,6 +55,10 @@ impl Script {
                 Regex::new(&x).unwrap().is_match(&y)
             });
 
+        engine
+    }
+
+    pub fn evaluate(&self, context: &Context) -> Result<Value, ScriptError> {
         let mut scope = Scope::new();
 
         let steps: Dynamic = to_dynamic(context.steps.clone()).unwrap();
@@ -66,7 +71,8 @@ impl Script {
 
         for (key, value) in self.map_index.iter() {
             println!("mapper {}: {}", key, value);
-            let value = engine
+            let value = self
+                .engine
                 .eval_with_scope(&mut scope, &value.to_string())
                 .map_err(ScriptError::EvalError)?;
 
@@ -81,18 +87,6 @@ impl Script {
     pub fn evaluate_variable(&self, context: &Context) -> Result<Variable, ScriptError> {
         let value = self.evaluate(context)?;
         Ok(Variable::new(value))
-    }
-}
-
-impl From<Value> for Script {
-    fn from(value: Value) -> Self {
-        Self::new(&value)
-    }
-}
-
-impl From<&Value> for Script {
-    fn from(value: &Value) -> Self {
-        Self::new(value)
     }
 }
 
@@ -212,7 +206,8 @@ mod test {
         "#;
 
         let context = Context::new(None);
-        let payload = Script::from(script.to_value());
+        let engine = Script::create_engine();
+        let payload = Script::new(&engine, &script.to_value());
 
         let result = payload.evaluate(&context).unwrap();
         assert_eq!(result, Value::from(30i64));
@@ -232,7 +227,8 @@ mod test {
         "#;
 
         let context = Context::new(None);
-        let payload = Script::from(script.to_value());
+        let engine = Script::create_engine();
+        let payload = Script::new(&engine, &script.to_value());
 
         let result = payload.evaluate(&context).unwrap();
         let expected = Value::from({
@@ -251,7 +247,8 @@ mod test {
         let script = r#""hello world""#;
 
         let context = Context::new(None);
-        let payload = Script::from(script.to_value());
+        let engine = Script::create_engine();
+        let payload = Script::new(&engine, &script.to_value());
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from("hello world")));
@@ -272,7 +269,8 @@ mod test {
             map
         })));
 
-        let payload = Script::from(script.to_value());
+        let engine = Script::create_engine();
+        let payload = Script::new(&engine, &script.to_value());
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from(30i64)));
@@ -289,7 +287,8 @@ mod test {
             map
         })));
 
-        let payload = Script::from(script.to_value());
+        let engine = Script::create_engine();
+        let payload = Script::new(&engine, &script.to_value());
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from(10i64)));
@@ -316,7 +315,8 @@ mod test {
             map.to_value()
         });
 
-        let payload = Script::from(script.to_value());
+        let engine = Script::create_engine();
+        let payload = Script::new(&engine, &script.to_value());
         let variable = payload.evaluate_variable(&context).unwrap();
 
         assert_eq!(variable, Variable::new(Value::from(30i64)));
