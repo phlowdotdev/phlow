@@ -202,7 +202,7 @@ mod tests {
     }
 
     #[test]
-    fn test_anyflwo_channel() {
+    fn test_anyflow_channel() {
         let original = get_original();
         let engine = Script::create_engine();
 
