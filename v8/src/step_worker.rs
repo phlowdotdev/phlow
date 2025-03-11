@@ -12,11 +12,6 @@ use valu3::{prelude::StringBehavior, value::Value, Error as ValueError};
 #[derive(Debug)]
 pub enum StepWorkerError {
     ConditionError(ConditionError),
-    PipelineNotFound,
-    JsonParseError(ValueError),
-    InvalidPipeline(ID),
-    InvalidCondition,
-    InvalidStep(ID),
     PayloadError(ScriptError),
 }
 
