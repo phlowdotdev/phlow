@@ -114,7 +114,8 @@ mod tests {
                   {
                     "id": "approved",
                     "payload": {
-                      "total": "(params.requested * 0.3) + params.pre_approved"
+                      "total": "(params.requested * 0.3) + params.pre_approved",
+                      "sended": "sendMessage('approved', { total: steps.approved.total })"
                     }
                   },
                   {
