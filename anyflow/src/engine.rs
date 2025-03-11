@@ -1,7 +1,6 @@
 use regex::Regex;
 use rhai::serde::from_dynamic;
 use rhai::{Dynamic, Engine};
-use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
 use tokio::sync::oneshot;
