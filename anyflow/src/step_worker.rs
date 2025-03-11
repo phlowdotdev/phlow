@@ -100,14 +100,6 @@ impl<'a> StepWorker<'a> {
         })
     }
 
-    pub fn add_then_case(&mut self, then_case: usize) {
-        self.then_case = Some(then_case);
-    }
-
-    pub fn add_else_case(&mut self, else_case: usize) {
-        self.else_case = Some(else_case);
-    }
-
     pub fn get_id(&self) -> &ID {
         &self.id
     }
