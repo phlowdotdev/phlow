@@ -86,7 +86,6 @@ mod tests {
         condition::{ConditionRaw, Operator},
         engine::build_engine,
         id::ID,
-        script::Script,
     };
     use std::sync::mpsc::channel;
     use valu3::json;

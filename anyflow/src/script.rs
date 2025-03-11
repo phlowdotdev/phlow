@@ -1,7 +1,5 @@
 use crate::context::Context;
-use crate::engine::{build_engine, Plugins};
 use crate::variable::Variable;
-use regex::Regex;
 use rhai::serde::{from_dynamic, to_dynamic};
 use rhai::{plugin::*, AST};
 use rhai::{Engine, EvalAltResult, Scope};
@@ -132,7 +130,7 @@ impl<'a> Script<'a> {
 
 #[cfg(test)]
 mod test {
-    use crate::{id::ID, step_worker::StepWorker};
+    use crate::{engine::build_engine, id::ID, step_worker::StepWorker};
 
     use super::*;
     use std::collections::HashMap;

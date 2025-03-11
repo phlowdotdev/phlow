@@ -9,6 +9,7 @@ use valu3::value::Value;
 
 pub type PluginFunction = Arc<dyn Fn(Value) -> Value + Send + Sync>;
 
+#[derive(Clone)]
 pub struct Plugins {
     pub plugins: HashMap<String, PluginFunction>,
 }
