@@ -1,126 +1,135 @@
-//! # Anyflow
+//! # Anyflow - A Dynamic Rule-Based Workflow Engine
 //!
-//! Anyflow is a JSON-based rule engine that enables the creation of conditional flows
-//! and dynamic rule execution. It supports mathematical, logical, and
-//! complex conditional operations, utilizing **Rhai** for script execution.
+//! `anyflow` is a **flexible and extensible** rule-based workflow engine written in Rust.
+//! It allows users to define and execute **dynamic decision trees** and **conditional workflows**
+//! using JSON-based configurations and embedded scripting via [`Rhai`](https://rhai.rs).
 //!
-//! ## 📌 Main Features
-//! - Define rules with **conditions, actions, and mathematical expressions**.
-//! - Use **Rhai** for advanced rule processing.
-//! - Support for **UUIDs**, **regular expressions**, and **advanced validations**.
-//! - Process structured rule flows in JSON.
+//! ## Features
+//! - **Dynamic workflows** with JSON-defined rules
+//! - **Embedded scripting** with Rhai for advanced expressions
+//! - **Conditional branching** with custom operators (`starts_with`, `ends_with`, `search`)
+//! - **Step-based execution** with context-aware evaluation
+//! - **Extensible engine** with pluggable functions
 //!
-//! ## 🚀 Usage Example
+//! ## Example: Decision Tree for Club Membership Approval
+//!
+//! This example demonstrates a **decision tree** to determine if a person can become a club member.
 //!
 //! ```rust
+//! use anyflow::Anyflow;
 //! use anyflow::Engine;
-//! use std::collections::HashMap;
+//! use valu3::json;
+//! use anyflow::context::Context;
 //!
 //! fn main() {
-//!     let mut engine = Engine::new();
-//!     
-//!     let rules = r#"
-//!     {
-//!         "steps": [
-//!             {
+//!     let decision_tree = json!({
+//!       "steps": [
+//!         {
+//!           "condition": {
+//!             "left": "params.age",
+//!             "right": 18,
+//!             "operator": "greater_than_or_equal"
+//!           },
+//!           "then": {
+//!             "steps": [
+//!               {
 //!                 "condition": {
-//!                     "left": "params.requested",
-//!                     "right": "params.pre-approved",
-//!                     "operator": "less_than"
+//!                   "left": "params.income",
+//!                   "right": 5000.0,
+//!                   "operator": "greater_than_or_equal"
 //!                 },
 //!                 "then": {
-//!                     "return": "params.requested"
+//!                   "return": "Approved"
 //!                 },
 //!                 "else": {
-//!                     "return": "params.pre-approved"
+//!                   "return": "Rejected - Insufficient income"
 //!                 }
-//!             }
-//!         ]
-//!     }
-//!     "#;
-//!     
-//!     let mut params = HashMap::new();
-//!     params.insert("requested", 5000);
-//!     params.insert("pre-approved", 3000);
+//!               }
+//!             ]
+//!           },
+//!           "else": {
+//!             "return": "Rejected - Underage"
+//!           }
+//!         }
+//!       ]
+//!     });
 //!
-//!     let result = engine.evaluate(rules, params);
+//!     let engine = build_engine(None);
+//!     let anyflow = Anyflow::try_from_value(&engine, &decision_tree, None, None).unwrap();
+//!
+//!     let mut context = Context::new(Some(json!({ "age": 20, "income": 6000.0 })));
+//!     let result = anyflow.execute_with_context(&mut context).unwrap();
+//!
+//!     println!("Decision: {:?}", result);
+//! }
+//! ```
+//!
+//! ## Modules
+//!
+//! - [`anyflow`] - Main structure containing pipelines and execution logic.
+//! - [`context`] - Manages execution state and variable storage.
+//! - [`pipeline`] - Defines sequential execution of processing steps.
+//! - [`step_worker`] - Handles conditional logic and step execution.
+//! - [`script`] - Integrates Rhai scripting for dynamic evaluation.
+//! - [`engine`] - Configures and extends the scripting engine.
+//! - [`condition`] - Defines logical operators and conditions.
+//! - [`collector`] - Logs execution steps and tracks workflow state.
+//!
+//! ## Architecture Overview
+//!
+//! The `Anyflow` engine processes a **workflow pipeline** composed of steps. Each step can:
+//! - Evaluate **conditions** (e.g., comparisons, regex matching)
+//! - Execute **scripts** for computations
+//! - **Branch** execution based on conditions
+//! - Store and reference **previous step outputs**
+//!
+//! ### Execution Flow
+//! 1. The engine receives an input **JSON workflow definition**.
+//! 2. The `Anyflow` instance **parses** and **validates** the workflow.
+//! 3. The workflow **executes step-by-step**, evaluating conditions and executing actions.
+//! 4. The **final result** is returned to the caller.
+//!
+//! ## Advanced Usage
+//!
+//! ### Adding Custom Plugins
+//!
+//! Users can **extend Anyflow** by adding custom functions to the execution engine:
+//!
+//! ```rust
+//! use anyflow::engine::{build_engine, Plugins, PluginFunction};
+//! use valu3::value::Value;
+//! use std::collections::HashMap;
+//! use std::sync::Arc;
+//!
+//! fn main() {
+//!     let mut plugins = HashMap::new();
+//!
+//!     let custom_function = plugin!(|value| {
+//!         Value::from(format!("Processed: {}", value.to_string()))
+//!     });
+//!     
+//!     plugins.insert("custom_process".to_string(), custom_function);
+//!     let engine = build_engine(Some(Plugins { plugins }));
+//!
+//!     let result: Value = engine.eval("custom_process(\"Hello\")").unwrap();
 //!     println!("Result: {:?}", result);
 //! }
 //! ```
 //!
-//! ## 🔧 Dependencies
-//! ```toml
-//! [dependencies]
-//! serde = { version = "1.0", features = ["derive"] }
-//! rhai = { version = "1.21.0", features = ["serde"] }
-//! regex = "1.11.1"
-//! uuid = { version = "1.15.1", features = ["v4"] }
-//! valu3 = "0.8.2"
-//! ```
+//! ### Handling Execution Errors
 //!
-//! ## 📚 JSON Structure of the Rule Engine
+//! Errors during workflow execution are returned as `Result<T, AnyflowError>`:
 //!
-//! A valid JSON configuration example:
-//!
-//! ```json
-//! {
-//!   "steps": [
-//!     {
-//!       "condition": {
-//!         "left": "params.requested",
-//!         "right": "params.pre-approved",
-//!         "operator": "less_than"
-//!       },
-//!       "then": {
-//!         "payload": "params.requested"
-//!       },
-//!       "else": {
-//!         "steps": [
-//!           {
-//!             "condition": {
-//!               "left": "params.score",
-//!               "right": 0.5,
-//!               "operator": "greater_than"
-//!             }
-//!           },
-//!           {
-//!             "id": "approved",
-//!             "payload": {
-//!               "total": "(params.requested * 0.3) + params.pre-approved"
-//!             }
-//!           },
-//!           {
-//!             "condition": {
-//!               "left": "steps.approved.total",
-//!               "right": "params.requested",
-//!               "operator": "greater_than"
-//!             },
-//!             "then": {
-//!               "return": "params.requested"
-//!             },
-//!             "else": {
-//!               "return": "steps.approved.total"
-//!             }
-//!           }
-//!         ]
-//!       }
-//!     }
-//!   ]
+//! ```rust
+//! match anyflow.execute_with_context(&mut context) {
+//!     Ok(result) => println!("Execution succeeded: {:?}", result),
+//!     Err(err) => eprintln!("Execution failed: {:?}", err),
 //! }
 //! ```
 //!
-//! ## 🛠 How It Works
-//! - Each **step** in the flow can contain a **condition**.
-//! - If the condition is **true**, the `then` block is executed.
-//! - If the condition is **false**, the `else` block is executed.
-//! - Supports **mathematical operations** and **chained rules**.
+//! ## License
 //!
-//! ## 📖 Conclusion
-//! **AnyFlow** is a lightweight and powerful solution for **rule execution and decision making**,
-//! allowing dynamic logic configuration without modifying the source code.
-//!
-//! 💡 Ideal for **credit systems, automation, and conditional decision-making applications**.
-
+//! This project is licensed under the **MIT License**.
 mod anyflow;
 mod collector;
 mod condition;
@@ -128,6 +137,7 @@ mod context;
 mod engine;
 mod id;
 mod pipeline;
+mod plugins;
 mod script;
 mod step_worker;
 mod transform;
@@ -135,15 +145,3 @@ mod variable;
 
 pub use anyflow::Anyflow;
 pub use rhai::Engine;
-
-#[macro_export]
-macro_rules! anyflow {
-    ($value:expr) => {
-        let engine = $crate::Engine::new();
-        anyflow::try_from_value(&engine, $value, None)
-    };
-    ($value:expr, $params:expr) => {
-        let engine = $crate::Engine::new();
-        anyflow::try_from_value(&engine, $value, Some($params))
-    };
-}

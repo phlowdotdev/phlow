@@ -37,7 +37,10 @@ impl<'a> Anyflow<'a> {
         Ok(Self { pipelines, params })
     }
 
-    pub fn execute_context(&self, context: &mut Context) -> Result<Option<Value>, AnyflowError> {
+    pub fn execute_with_context(
+        &self,
+        context: &mut Context,
+    ) -> Result<Option<Value>, AnyflowError> {
         if self.pipelines.is_empty() {
             return Ok(None);
         }
@@ -73,7 +76,7 @@ impl<'a> Anyflow<'a> {
 
     pub fn execute(&self) -> Result<Context, AnyflowError> {
         let mut context = Context::new(self.params.clone());
-        self.execute_context(&mut context)?;
+        self.execute_with_context(&mut context)?;
         Ok(context)
     }
 }
@@ -148,7 +151,7 @@ mod tests {
             "score": 0.6
         })));
 
-        let result = anyflow.execute_context(&mut context).unwrap();
+        let result = anyflow.execute_with_context(&mut context).unwrap();
 
         assert_eq!(result, Some(json!(10000.0)));
     }
@@ -164,7 +167,7 @@ mod tests {
             "score": 0.6
         })));
 
-        let result = anyflow.execute_context(&mut context).unwrap();
+        let result = anyflow.execute_with_context(&mut context).unwrap();
 
         assert_eq!(result, Some(json!(3500.0)));
     }
@@ -180,7 +183,7 @@ mod tests {
             "score": 0.2
         })));
 
-        let result = anyflow.execute_context(&mut context).unwrap();
+        let result = anyflow.execute_with_context(&mut context).unwrap();
 
         assert_eq!(result, None);
     }
@@ -196,7 +199,7 @@ mod tests {
             "score": 0.6
         })));
 
-        let result = anyflow.execute_context(&mut context).unwrap();
+        let result = anyflow.execute_with_context(&mut context).unwrap();
 
         assert_eq!(result, Some(json!(10000.0)));
     }
@@ -250,7 +253,7 @@ mod tests {
             },
         ];
 
-        anyflow.execute_context(&mut context).unwrap();
+        anyflow.execute_with_context(&mut context).unwrap();
 
         let mut result: Vec<Step> = Vec::new();
 
