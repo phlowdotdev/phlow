@@ -1,11 +1,12 @@
 use crate::{
+    collector::ContextSender,
     context::Context,
     pipeline::{Pipeline, PipelineError},
     step_worker::NextStep,
     transform::{value_to_pipelines, TransformError},
 };
 use rhai::Engine;
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::mpsc::Sender};
 use valu3::prelude::*;
 
 #[derive(Debug)]
@@ -28,8 +29,10 @@ impl<'a> AnyFlow<'a> {
         engine: &'a Engine,
         value: &Value,
         params: Option<Value>,
+        sender: Option<ContextSender>,
     ) -> Result<Self, AnyflowError> {
-        let pipelines = value_to_pipelines(&engine, value).map_err(AnyflowError::TransformError)?;
+        let pipelines =
+            value_to_pipelines(&engine, sender, value).map_err(AnyflowError::TransformError)?;
 
         Ok(Self { pipelines, params })
     }
@@ -51,7 +54,7 @@ impl<'a> AnyFlow<'a> {
                 Ok(step_output) => match step_output {
                     Some(step_output) => match step_output.next_step {
                         NextStep::Next | NextStep::Stop => {
-                            return Ok(step_output.payload);
+                            return Ok(step_output.output);
                         }
                         NextStep::Pipeline(id) => {
                             current = id;
@@ -129,10 +132,10 @@ mod tests {
     }
 
     #[test]
-    fn test_v8_original_1() {
+    fn test_anyflow_original_1() {
         let original = get_original();
         let engine = Script::create_engine();
-        let anyflow = AnyFlow::try_from_value(&engine, &original, None).unwrap();
+        let anyflow = AnyFlow::try_from_value(&engine, &original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 10000.00,
@@ -145,10 +148,10 @@ mod tests {
     }
 
     #[test]
-    fn test_v8_original_2() {
+    fn test_anyflow_original_2() {
         let original = get_original();
         let engine = Script::create_engine();
-        let anyflow = AnyFlow::try_from_value(&engine, &original, None).unwrap();
+        let anyflow = AnyFlow::try_from_value(&engine, &original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 500.00,
@@ -161,10 +164,10 @@ mod tests {
     }
 
     #[test]
-    fn test_v8_original_3() {
+    fn test_anyflow_original_3() {
         let original = get_original();
         let engine = Script::create_engine();
-        let anyflow = AnyFlow::try_from_value(&engine, &original, None).unwrap();
+        let anyflow = AnyFlow::try_from_value(&engine, &original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 500.00,
@@ -177,10 +180,10 @@ mod tests {
     }
 
     #[test]
-    fn test_v8_original_4() {
+    fn test_anyflow_original_4() {
         let original = get_original();
         let engine = Script::create_engine();
-        let anyflow = AnyFlow::try_from_value(&engine, &original, None).unwrap();
+        let anyflow = AnyFlow::try_from_value(&engine, &original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 9999.00,

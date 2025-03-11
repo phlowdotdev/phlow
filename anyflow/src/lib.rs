@@ -1,4 +1,5 @@
 mod anyflow;
+mod collector;
 mod condition;
 mod context;
 mod id;

@@ -24,7 +24,7 @@ impl<'a> Pipeline<'a> {
             match step.execute(&context) {
                 Ok(step_output) => {
                     if step.get_id().is_some() {
-                        if let Some(payload) = &step_output.payload {
+                        if let Some(payload) = &step_output.output {
                             context.add_step_output(step.get_id().clone(), payload.clone());
                         }
                     }

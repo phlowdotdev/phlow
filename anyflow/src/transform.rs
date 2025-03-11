@@ -4,6 +4,7 @@ use valu3::{prelude::*, traits::ToValueBehavior, value::Value};
 
 use crate::{
     anyflow::PipelineMap,
+    collector::ContextSender,
     pipeline::Pipeline,
     step_worker::{StepWorker, StepWorkerError},
 };
@@ -16,12 +17,13 @@ pub enum TransformError {
 
 pub(crate) fn value_to_pipelines<'a>(
     engine: &'a Engine,
+    sender: Option<ContextSender>,
     input: &Value,
 ) -> Result<PipelineMap<'a>, TransformError> {
     let mut map = Vec::new();
 
     process_raw_steps(input, &mut map);
-    value_to_structs(engine, &map)
+    value_to_structs(engine, &sender, &map)
 }
 
 pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
@@ -69,6 +71,7 @@ pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
 
 fn value_to_structs<'a>(
     engine: &'a Engine,
+    sender: &Option<ContextSender>,
     map: &Vec<Value>,
 ) -> Result<PipelineMap<'a>, TransformError> {
     let mut pipelines = HashMap::new();
@@ -78,7 +81,7 @@ fn value_to_structs<'a>(
             let mut steps = Vec::new();
 
             for step in arr.into_iter() {
-                let step_worker = StepWorker::try_from_value(engine, step)
+                let step_worker = StepWorker::try_from_value(engine, sender.clone(), step)
                     .map_err(TransformError::InnerStepError)?;
                 steps.push(step_worker);
             }

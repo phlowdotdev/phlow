@@ -1,4 +1,5 @@
 use crate::{
+    collector::{CollectorStep, ContextSender},
     condition::{Condition, ConditionError},
     context::Context,
     id::ID,
@@ -25,7 +26,7 @@ pub enum NextStep {
 #[derive(Debug)]
 pub struct StepOutput {
     pub next_step: NextStep,
-    pub payload: Option<Value>,
+    pub output: Option<Value>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -37,10 +38,15 @@ pub struct StepWorker<'a> {
     pub(crate) then_case: Option<usize>,
     pub(crate) else_case: Option<usize>,
     pub(crate) return_case: Option<Script<'a>>,
+    pub(crate) sender: Option<ContextSender>,
 }
 
 impl<'a> StepWorker<'a> {
-    pub fn try_from_value(engine: &'a Engine, value: &Value) -> Result<Self, StepWorkerError> {
+    pub fn try_from_value(
+        engine: &'a Engine,
+        sender: Option<ContextSender>,
+        value: &Value,
+    ) -> Result<Self, StepWorkerError> {
         let id = match value.get("id") {
             Some(id) => ID::from(id),
             None => ID::new(),
@@ -90,6 +96,7 @@ impl<'a> StepWorker<'a> {
             then_case,
             else_case,
             return_case,
+            sender,
         })
     }
 
@@ -133,14 +140,26 @@ impl<'a> StepWorker<'a> {
 
     pub fn execute(&self, context: &Context) -> Result<StepOutput, StepWorkerError> {
         if let Some(return_case) = self.evaluate_return(context)? {
+            if let Some(sender) = &self.sender {
+                sender
+                    .send(CollectorStep {
+                        id: self.id.clone(),
+                        label: self.label.clone(),
+                        condition: None,
+                        payload: None,
+                        return_case: Some(return_case.clone()),
+                    })
+                    .unwrap();
+            }
+
             return Ok(StepOutput {
                 next_step: NextStep::Stop,
-                payload: Some(return_case),
+                output: Some(return_case),
             });
         }
 
         if let Some(condition) = &self.condition {
-            let (next_step, payload) = if condition
+            let (next_step, output) = if condition
                 .evaluate(context)
                 .map_err(StepWorkerError::ConditionError)?
             {
@@ -161,12 +180,38 @@ impl<'a> StepWorker<'a> {
                 (next_step, None)
             };
 
-            return Ok(StepOutput { next_step, payload });
+            if let Some(sender) = &self.sender {
+                sender
+                    .send(CollectorStep {
+                        id: self.id.clone(),
+                        label: self.label.clone(),
+                        condition: Some(condition.expression.raw.clone()),
+                        payload: output.clone(),
+                        return_case: None,
+                    })
+                    .unwrap();
+            }
+
+            return Ok(StepOutput { next_step, output });
+        }
+
+        let output = self.evaluate_payload(context)?;
+
+        if let Some(sender) = &self.sender {
+            sender
+                .send(CollectorStep {
+                    id: self.id.clone(),
+                    label: self.label.clone(),
+                    condition: None,
+                    payload: output.clone(),
+                    return_case: None,
+                })
+                .unwrap();
         }
 
         return Ok(StepOutput {
             next_step: NextStep::Next,
-            payload: self.evaluate_payload(context)?,
+            output,
         });
     }
 }
@@ -201,7 +246,7 @@ mod test {
         let result = step.execute(&context).unwrap();
 
         assert_eq!(result.next_step, NextStep::Next);
-        assert_eq!(result.payload, Some(Value::from(10i64)));
+        assert_eq!(result.output, Some(Value::from(10i64)));
     }
 
     #[test]
@@ -224,7 +269,7 @@ mod test {
         let result = step.execute(&context).unwrap();
 
         assert_eq!(result.next_step, NextStep::Next);
-        assert_eq!(result.payload, Some(Value::from(10i64)));
+        assert_eq!(result.output, Some(Value::from(10i64)));
     }
 
     #[test]
@@ -248,7 +293,7 @@ mod test {
         let result = step.execute(&context).unwrap();
 
         assert_eq!(result.next_step, NextStep::Pipeline(0));
-        assert_eq!(result.payload, Some(Value::from(10i64)));
+        assert_eq!(result.output, Some(Value::from(10i64)));
     }
 
     #[test]
@@ -272,7 +317,7 @@ mod test {
         let result = step.execute(&context).unwrap();
 
         assert_eq!(result.next_step, NextStep::Pipeline(1));
-        assert_eq!(result.payload, None);
+        assert_eq!(result.output, None);
     }
 
     #[test]
@@ -289,7 +334,7 @@ mod test {
         let result = step.execute(&context).unwrap();
 
         assert_eq!(result.next_step, NextStep::Stop);
-        assert_eq!(result.payload, Some(Value::from(10i64)));
+        assert_eq!(result.output, Some(Value::from(10i64)));
     }
 
     #[test]
@@ -307,7 +352,7 @@ mod test {
         let result = step.execute(&context).unwrap();
 
         assert_eq!(result.next_step, NextStep::Stop);
-        assert_eq!(result.payload, Some(Value::from(20i64)));
+        assert_eq!(result.output, Some(Value::from(20i64)));
     }
 
     #[test]
@@ -330,7 +375,7 @@ mod test {
         let result = step.execute(&context).unwrap();
 
         assert_eq!(result.next_step, NextStep::Stop);
-        assert_eq!(result.payload, Some(Value::from(10i64)));
+        assert_eq!(result.output, Some(Value::from(10i64)));
     }
 
     #[test]
@@ -353,7 +398,7 @@ mod test {
         let output = step.execute(&context).unwrap();
 
         assert_eq!(output.next_step, NextStep::Stop);
-        assert_eq!(output.payload, Some(Value::from("Ok")));
+        assert_eq!(output.output, Some(Value::from("Ok")));
     }
 
     #[test]
@@ -376,6 +421,6 @@ mod test {
         let result = step.execute(&context).unwrap();
 
         assert_eq!(result.next_step, NextStep::Stop);
-        assert_eq!(result.payload, Some(Value::from("Ok")));
+        assert_eq!(result.output, Some(Value::from("Ok")));
     }
 }
