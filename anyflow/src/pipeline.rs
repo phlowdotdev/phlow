@@ -10,15 +10,10 @@ pub enum PipelineError {
 
 #[derive(Debug, Clone)]
 pub struct Pipeline<'a> {
-    pub(crate) id: usize,
     pub(crate) steps: Vec<StepWorker<'a>>,
 }
 
 impl<'a> Pipeline<'a> {
-    pub fn new(id: usize, steps: Vec<StepWorker<'a>>) -> Self {
-        Self { id, steps }
-    }
-
     pub fn execute(&self, context: &mut Context) -> Result<Option<StepOutput>, PipelineError> {
         for step in self.steps.iter() {
             match step.execute(&context) {

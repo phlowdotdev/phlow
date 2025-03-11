@@ -86,13 +86,7 @@ fn value_to_structs<'a>(
                 steps.push(step_worker);
             }
 
-            pipelines.insert(
-                pipeline_id,
-                Pipeline {
-                    id: pipeline_id,
-                    steps,
-                },
-            );
+            pipelines.insert(pipeline_id, Pipeline { steps });
         }
     }
 
