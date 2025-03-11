@@ -118,7 +118,7 @@
 //!
 //! ### Handling Execution Errors
 //!
-//! Errors during workflow execution are returned as `Result<T, AnyflowError>`:
+//! Errors during workflow execution are returned as `Result<T, NflowError>`:
 //!
 //! ```rust
 //! match nflow.execute_with_context(&mut context) {

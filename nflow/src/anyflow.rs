@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use valu3::prelude::*;
 
 #[derive(Debug)]
-pub enum AnyflowError {
+pub enum NflowError {
     TransformError(TransformError),
     PipelineError(PipelineError),
     PipelineNotFound,
@@ -30,17 +30,14 @@ impl<'a> nflow<'a> {
         value: &Value,
         params: Option<Value>,
         sender: Option<ContextSender>,
-    ) -> Result<Self, AnyflowError> {
+    ) -> Result<Self, NflowError> {
         let pipelines =
-            value_to_pipelines(&engine, sender, value).map_err(AnyflowError::TransformError)?;
+            value_to_pipelines(&engine, sender, value).map_err(NflowError::TransformError)?;
 
         Ok(Self { pipelines, params })
     }
 
-    pub fn execute_with_context(
-        &self,
-        context: &mut Context,
-    ) -> Result<Option<Value>, AnyflowError> {
+    pub fn execute_with_context(&self, context: &mut Context) -> Result<Option<Value>, NflowError> {
         if self.pipelines.is_empty() {
             return Ok(None);
         }
@@ -51,7 +48,7 @@ impl<'a> nflow<'a> {
             let pipeline = self
                 .pipelines
                 .get(&current)
-                .ok_or(AnyflowError::PipelineNotFound)?;
+                .ok_or(NflowError::PipelineNotFound)?;
 
             match pipeline.execute(context) {
                 Ok(step_output) => match step_output {
@@ -68,13 +65,13 @@ impl<'a> nflow<'a> {
                     }
                 },
                 Err(err) => {
-                    return Err(AnyflowError::PipelineError(err));
+                    return Err(NflowError::PipelineError(err));
                 }
             }
         }
     }
 
-    pub fn execute(&self) -> Result<Context, AnyflowError> {
+    pub fn execute(&self) -> Result<Context, NflowError> {
         let mut context = Context::new(self.params.clone());
         self.execute_with_context(&mut context)?;
         Ok(context)
@@ -141,7 +138,7 @@ mod tests {
     }
 
     #[test]
-    fn test_anyflow_original_1() {
+    fn test_nflow_original_1() {
         let original = get_original();
         let engine = build_engine(None);
         let nflow = nflow::try_from_value(&engine, &original, None, None).unwrap();
@@ -157,7 +154,7 @@ mod tests {
     }
 
     #[test]
-    fn test_anyflow_original_2() {
+    fn test_nflow_original_2() {
         let original = get_original();
         let engine = build_engine(None);
         let nflow = nflow::try_from_value(&engine, &original, None, None).unwrap();
@@ -173,7 +170,7 @@ mod tests {
     }
 
     #[test]
-    fn test_anyflow_original_3() {
+    fn test_nflow_original_3() {
         let original = get_original();
         let engine = build_engine(None);
         let nflow = nflow::try_from_value(&engine, &original, None, None).unwrap();
@@ -189,7 +186,7 @@ mod tests {
     }
 
     #[test]
-    fn test_anyflow_original_4() {
+    fn test_nflow_original_4() {
         let original = get_original();
         let engine = build_engine(None);
         let nflow = nflow::try_from_value(&engine, &original, None, None).unwrap();
@@ -205,7 +202,7 @@ mod tests {
     }
 
     #[test]
-    fn test_anyflow_channel() {
+    fn test_nflow_channel() {
         let original = get_original();
         let engine = build_engine(None);
 

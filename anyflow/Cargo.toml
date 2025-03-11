@@ -1,5 +1,5 @@
 [package]
-name = "nflow-server"
+name = "anyflow"
 version = "0.1.0"
 edition = "2021"
 
