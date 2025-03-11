@@ -52,7 +52,7 @@
     ],
     [
         {
-            "name": "Credit avaliable",
+            "label": "Credit avaliable",
             "payload": {
                 "result": true
             }
@@ -63,7 +63,7 @@
             "payload": {
                 "score": false
             },
-            "name": "Credit not avaliable"
+            "label": "Credit not avaliable"
         }
     ],
     [
@@ -74,7 +74,7 @@
             }
         },
         {
-            "name": "Start"
+            "label": "Start"
         },
         {
             "condition": {
@@ -96,7 +96,7 @@
             "then": 4
         },
         {
-            "name": "End"
+            "label": "End"
         }
     ]
 ]

@@ -45,8 +45,8 @@ impl<'a> StepWorker<'a> {
             Some(id) => ID::from(id),
             None => ID::new(),
         };
-        let name = match value.get("name") {
-            Some(name) => Some(name.as_string()),
+        let label: Option<String> = match value.get("label") {
+            Some(label) => Some(label.as_string()),
             None => None,
         };
         let condition = {
@@ -84,7 +84,7 @@ impl<'a> StepWorker<'a> {
 
         Ok(Self {
             id,
-            label: name,
+            label,
             condition,
             payload,
             then_case,
@@ -181,7 +181,7 @@ mod test {
     fn test_step_get_reference_id() {
         let step = StepWorker {
             id: ID::from("id"),
-            label: Some("name".to_string()),
+            label: Some("label".to_string()),
             ..Default::default()
         };
 
