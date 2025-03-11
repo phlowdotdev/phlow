@@ -241,7 +241,7 @@ mod test {
                 &engine,
                 "10".to_string(),
                 "20".to_string(),
-                crate::condition::Operator::Equal,
+                crate::condition::Operator::NotEqual,
             )),
             payload: Some(Script::new(&engine, &"10".to_value())),
             ..Default::default()
@@ -264,7 +264,7 @@ mod test {
                 &engine,
                 "10".to_string(),
                 "20".to_string(),
-                crate::condition::Operator::Equal,
+                crate::condition::Operator::NotEqual,
             )),
             payload: Some(Script::new(&engine, &"10".to_value())),
             then_case: Some(0),
