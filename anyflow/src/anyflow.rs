@@ -19,12 +19,12 @@ pub enum AnyflowError {
 pub type PipelineMap<'a> = HashMap<usize, Pipeline<'a>>;
 
 #[derive(Debug, Default)]
-pub struct AnyFlow<'a> {
+pub struct Anyflow<'a> {
     pipelines: PipelineMap<'a>,
     params: Option<Value>,
 }
 
-impl<'a> AnyFlow<'a> {
+impl<'a> Anyflow<'a> {
     pub fn try_from_value(
         engine: &'a Engine,
         value: &Value,
@@ -141,7 +141,7 @@ mod tests {
     fn test_anyflow_original_1() {
         let original = get_original();
         let engine = build_engine(None);
-        let anyflow = AnyFlow::try_from_value(&engine, &original, None, None).unwrap();
+        let anyflow = Anyflow::try_from_value(&engine, &original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 10000.00,
@@ -157,7 +157,7 @@ mod tests {
     fn test_anyflow_original_2() {
         let original = get_original();
         let engine = build_engine(None);
-        let anyflow = AnyFlow::try_from_value(&engine, &original, None, None).unwrap();
+        let anyflow = Anyflow::try_from_value(&engine, &original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 500.00,
@@ -173,7 +173,7 @@ mod tests {
     fn test_anyflow_original_3() {
         let original = get_original();
         let engine = build_engine(None);
-        let anyflow = AnyFlow::try_from_value(&engine, &original, None, None).unwrap();
+        let anyflow = Anyflow::try_from_value(&engine, &original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 500.00,
@@ -189,7 +189,7 @@ mod tests {
     fn test_anyflow_original_4() {
         let original = get_original();
         let engine = build_engine(None);
-        let anyflow = AnyFlow::try_from_value(&engine, &original, None, None).unwrap();
+        let anyflow = Anyflow::try_from_value(&engine, &original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 9999.00,
@@ -209,7 +209,7 @@ mod tests {
         let (sender, receiver) = channel::<Step>();
 
         let anyflow =
-            AnyFlow::try_from_value(&engine, &original, None, Some(sender.clone())).unwrap();
+            Anyflow::try_from_value(&engine, &original, None, Some(sender.clone())).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 9999.00,

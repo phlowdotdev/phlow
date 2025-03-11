@@ -1,6 +1,6 @@
-//! # AnyFlow
+//! # Anyflow
 //!
-//! AnyFlow is a JSON-based rule engine that enables the creation of conditional flows
+//! Anyflow is a JSON-based rule engine that enables the creation of conditional flows
 //! and dynamic rule execution. It supports mathematical, logical, and
 //! complex conditional operations, utilizing **Rhai** for script execution.
 //!
@@ -133,7 +133,7 @@ mod step_worker;
 mod transform;
 mod variable;
 
-pub use anyflow::AnyFlow;
+pub use anyflow::Anyflow;
 pub use rhai::Engine;
 
 #[macro_export]
