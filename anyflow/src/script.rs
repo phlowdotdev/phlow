@@ -15,7 +15,6 @@ pub enum ScriptError {
 
 #[derive(Debug, Clone)]
 pub struct Script<'a> {
-    pub(crate) raw: Value,
     map_extracted: Value,
     map_index_ast: HashMap<usize, AST>,
     engine: &'a Engine,
@@ -32,7 +31,6 @@ impl<'a> Script<'a> {
             map_extracted,
             map_index_ast,
             engine,
-            raw: script.clone(),
         }
     }
 

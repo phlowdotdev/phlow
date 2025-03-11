@@ -2,15 +2,15 @@ use serde::Serialize;
 use std::sync::mpsc::Sender;
 use valu3::value::Value;
 
-use crate::id::ID;
+use crate::{condition::ConditionRaw, id::ID};
 
-pub type ContextSender = Sender<CollectorStep>;
+pub type ContextSender = Sender<Step>;
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct CollectorStep {
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+pub struct Step {
     pub id: ID,
     pub label: Option<String>,
-    pub condition: Option<Value>,
+    pub condition: Option<ConditionRaw>,
     pub payload: Option<Value>,
     pub return_case: Option<Value>,
 }

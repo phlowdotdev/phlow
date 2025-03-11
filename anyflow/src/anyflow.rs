@@ -81,7 +81,13 @@ impl<'a> AnyFlow<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::script::Script;
+    use crate::{
+        collector::Step,
+        condition::{ConditionRaw, Operator},
+        id::ID,
+        script::Script,
+    };
+    use std::sync::mpsc::{channel, Receiver, Sender};
     use valu3::json;
 
     fn get_original() -> Value {
@@ -193,5 +199,69 @@ mod tests {
         let result = anyflow.execute_context(&mut context).unwrap();
 
         assert_eq!(result, Some(json!(10000.0)));
+    }
+
+    #[test]
+    fn test_anyflwo_channel() {
+        let original = get_original();
+        let engine = Script::create_engine();
+
+        let (sender, receiver) = channel::<Step>();
+
+        let anyflow =
+            AnyFlow::try_from_value(&engine, &original, None, Some(sender.clone())).unwrap();
+        let mut context = Context::new(Some(json!({
+            "requested": 10000.00,
+            "pre_approved": 9999.00,
+            "score": 0.6
+        })));
+
+        let target = vec![
+            Step {
+                id: ID::new(),
+                label: None,
+                condition: Some(ConditionRaw {
+                    left: "params.requested".to_string(),
+                    right: "params.pre_approved".to_string(),
+                    operator: Operator::LessThanOrEqual,
+                }),
+                payload: None,
+                return_case: None,
+            },
+            Step {
+                id: ID::new(),
+                label: None,
+                condition: Some(ConditionRaw {
+                    left: "params.score".to_string(),
+                    right: "0.5".to_string(),
+                    operator: Operator::GreaterThanOrEqual,
+                }),
+                payload: None,
+                return_case: None,
+            },
+            Step {
+                id: ID::from("approved"),
+                label: None,
+                condition: None,
+                payload: Some(json!({
+                    "total": 12999.0
+                })),
+                return_case: None,
+            },
+        ];
+
+        anyflow.execute_context(&mut context).unwrap();
+
+        let mut result: Vec<Step> = Vec::new();
+
+        for message in receiver.iter() {
+            result.push(message);
+
+            if result.len() == 3 {
+                break;
+            }
+        }
+
+        assert_eq!(result, target);
     }
 }

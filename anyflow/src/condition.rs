@@ -55,9 +55,17 @@ impl From<&Value> for Operator {
     }
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct ConditionRaw {
+    pub(crate) left: String,
+    pub(crate) right: String,
+    pub(crate) operator: Operator,
+}
+
 #[derive(Debug, Clone)]
 pub struct Condition<'a> {
     pub(crate) expression: Script<'a>,
+    pub(crate) raw: ConditionRaw,
 }
 
 impl<'a> Condition<'a> {
@@ -153,6 +161,11 @@ impl<'a> Condition<'a> {
         };
 
         Self {
+            raw: ConditionRaw {
+                left,
+                right,
+                operator,
+            },
             expression: Script::new(engine, &expression.to_value()),
         }
     }

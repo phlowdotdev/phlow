@@ -1,5 +1,5 @@
 use crate::{
-    collector::{CollectorStep, ContextSender},
+    collector::{ContextSender, Step},
     condition::{Condition, ConditionError},
     context::Context,
     id::ID,
@@ -142,7 +142,7 @@ impl<'a> StepWorker<'a> {
         if let Some(return_case) = self.evaluate_return(context)? {
             if let Some(sender) = &self.sender {
                 sender
-                    .send(CollectorStep {
+                    .send(Step {
                         id: self.id.clone(),
                         label: self.label.clone(),
                         condition: None,
@@ -182,10 +182,10 @@ impl<'a> StepWorker<'a> {
 
             if let Some(sender) = &self.sender {
                 sender
-                    .send(CollectorStep {
+                    .send(Step {
                         id: self.id.clone(),
                         label: self.label.clone(),
-                        condition: Some(condition.expression.raw.clone()),
+                        condition: Some(condition.raw.clone()),
                         payload: output.clone(),
                         return_case: None,
                     })
@@ -199,7 +199,7 @@ impl<'a> StepWorker<'a> {
 
         if let Some(sender) = &self.sender {
             sender
-                .send(CollectorStep {
+                .send(Step {
                     id: self.id.clone(),
                     label: self.label.clone(),
                     condition: None,
