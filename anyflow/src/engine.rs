@@ -13,6 +13,13 @@ pub struct Repositories {
     pub repositories: HashMap<String, RepositoryFunction>,
 }
 
+#[macro_export]
+macro_rules! repo {
+    ($name:ident, |$value:ident| $body:block) => {
+        let $name = Arc::new(|$value: Value| -> Value $body) as RepositoryFunction;
+    };
+}
+
 pub fn create_engine(repositories: Option<Repositories>) -> Engine {
     let mut engine = Engine::new();
     let rt = Arc::new(Runtime::new().unwrap()); // Compartilha o runtime
@@ -35,7 +42,6 @@ pub fn create_engine(repositories: Option<Repositories>) -> Engine {
             Regex::new(&x).unwrap().is_match(&y)
         });
 
-    // Registra funções assíncronas dos repositórios
     if let Some(repositories) = repositories {
         for (key, call) in repositories.repositories {
             let rt_clone = Arc::clone(&rt); // Clona o runtime
