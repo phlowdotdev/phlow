@@ -20,7 +20,7 @@ macro_rules! plugin {
     };
 }
 
-pub fn build_engine(repositories: Option<Plugins>) -> Engine {
+pub fn build_engine(plugins: Option<Plugins>) -> Engine {
     let mut engine = Engine::new();
     let rt = Arc::new(Runtime::new().unwrap()); // Compartilha o runtime
 
@@ -42,7 +42,7 @@ pub fn build_engine(repositories: Option<Plugins>) -> Engine {
             Regex::new(&x).unwrap().is_match(&y)
         });
 
-    if let Some(repositories) = repositories {
+    if let Some(repositories) = plugins {
         for (key, call) in repositories.plugins {
             let rt_clone = Arc::clone(&rt); // Clona o runtime
             let call: PluginFunction = Arc::new(move |value: Value| -> Value {
