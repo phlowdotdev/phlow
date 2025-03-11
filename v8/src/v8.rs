@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use valu3::prelude::*;
 
 #[derive(Debug)]
-pub enum Error {
+pub enum V8Error {
     TransformError(TransformError),
     PipelineError(PipelineError),
     PipelineNotFound,
@@ -28,13 +28,13 @@ impl<'a> V8<'a> {
         engine: &'a Engine,
         value: &Value,
         params: Option<Value>,
-    ) -> Result<Self, Error> {
-        let pipelines = value_to_pipelines(&engine, value).map_err(Error::TransformError)?;
+    ) -> Result<Self, V8Error> {
+        let pipelines = value_to_pipelines(&engine, value).map_err(V8Error::TransformError)?;
 
         Ok(Self { pipelines, params })
     }
 
-    pub fn execute_context(&self, context: &mut Context) -> Result<Option<Value>, Error> {
+    pub fn execute_context(&self, context: &mut Context) -> Result<Option<Value>, V8Error> {
         if self.pipelines.is_empty() {
             return Ok(None);
         }
@@ -45,7 +45,7 @@ impl<'a> V8<'a> {
             let pipeline = self
                 .pipelines
                 .get(&current)
-                .ok_or(Error::PipelineNotFound)?;
+                .ok_or(V8Error::PipelineNotFound)?;
 
             match pipeline.execute(context) {
                 Ok(step_output) => match step_output {
@@ -62,13 +62,13 @@ impl<'a> V8<'a> {
                     }
                 },
                 Err(err) => {
-                    return Err(Error::PipelineError(err));
+                    return Err(V8Error::PipelineError(err));
                 }
             }
         }
     }
 
-    pub fn execute(&self) -> Result<Context, Error> {
+    pub fn execute(&self) -> Result<Context, V8Error> {
         let mut context = Context::new(self.params.clone());
         self.execute_context(&mut context)?;
         Ok(context)
