@@ -1,6 +1,6 @@
-# anyflow - A Dynamic Rule-Based Workflow Engine
+# Anyflow - A Dynamic Rule-Based Workflow Engine
 
-`anyflow` is a **flexible and extensible** rule-based workflow engine written in Rust.
+`Anyflow` is a **flexible and extensible** rule-based workflow engine written in Rust.
 It allows users to define and execute **dynamic decision trees** and **conditional workflows**
 using JSON-based configurations and embedded scripting via [`Rhai`](https://rhai.rs).
 
