@@ -7,7 +7,7 @@ use crate::{
 use rhai::Engine;
 use serde::Serialize;
 use valu3::prelude::NumberBehavior;
-use valu3::{prelude::StringBehavior, value::Value, Error as ValueError};
+use valu3::{prelude::StringBehavior, value::Value};
 
 #[derive(Debug)]
 pub enum StepWorkerError {
@@ -28,24 +28,10 @@ pub struct StepOutput {
     pub payload: Option<Value>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub enum StepType {
-    Default,
-    ThenCase,
-    ElseCase,
-}
-
-impl Default for StepType {
-    fn default() -> Self {
-        StepType::Default
-    }
-}
-
 #[derive(Debug, Clone, Default)]
 pub struct StepWorker<'a> {
     pub(crate) id: ID,
-    pub(crate) name: Option<String>,
-    pub(crate) step_type: StepType,
+    pub(crate) label: Option<String>,
     pub(crate) condition: Option<Condition<'a>>,
     pub(crate) payload: Option<Script<'a>>,
     pub(crate) then_case: Option<usize>,
@@ -96,18 +82,9 @@ impl<'a> StepWorker<'a> {
             None => None,
         };
 
-        let step_type = if then_case.is_some() {
-            StepType::ThenCase
-        } else if else_case.is_some() {
-            StepType::ElseCase
-        } else {
-            StepType::Default
-        };
-
         Ok(Self {
             id,
-            name,
-            step_type,
+            label: name,
             condition,
             payload,
             then_case,
@@ -204,7 +181,7 @@ mod test {
     fn test_step_get_reference_id() {
         let step = StepWorker {
             id: ID::from("id"),
-            name: Some("name".to_string()),
+            label: Some("name".to_string()),
             ..Default::default()
         };
 

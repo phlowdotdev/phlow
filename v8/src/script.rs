@@ -1,8 +1,8 @@
 use crate::v8::Context;
 use crate::variable::Variable;
 use regex::Regex;
-use rhai::plugin::*;
 use rhai::serde::{from_dynamic, to_dynamic};
+use rhai::{plugin::*, AST};
 use rhai::{Engine, EvalAltResult, Scope};
 use std::collections::HashMap;
 use valu3::prelude::*;
@@ -16,21 +16,52 @@ pub enum ScriptError {
 #[derive(Debug, Clone)]
 pub struct Script<'a> {
     map_extracted: Value,
-    map_index: HashMap<usize, Value>,
+    map_index_ast: HashMap<usize, AST>,
     engine: &'a Engine,
 }
 
 impl<'a> Script<'a> {
     pub fn new(engine: &'a Engine, script: &Value) -> Self {
-        let mut map_index = HashMap::new();
+        let mut map_index_ast = HashMap::new();
         let mut counter = 0;
-        let map_extracted = extract_primitives(&script, &mut map_index, &mut counter);
+        let map_extracted =
+            Self::extract_primitives(&engine, &script, &mut map_index_ast, &mut counter);
 
         Self {
             map_extracted,
-            map_index,
+            map_index_ast,
             engine,
         }
+    }
+
+    pub fn evaluate(&self, context: &Context) -> Result<Value, ScriptError> {
+        let mut scope = Scope::new();
+
+        let steps: Dynamic = to_dynamic(context.steps.clone()).unwrap();
+        let params: Dynamic = to_dynamic(context.params.clone()).unwrap();
+
+        scope.push_constant("steps", steps);
+        scope.push_constant("params", params);
+
+        let mut result_map: HashMap<usize, Value> = HashMap::new();
+
+        for (key, value) in self.map_index_ast.iter() {
+            let value = self
+                .engine
+                .eval_ast_with_scope(&mut scope, &value)
+                .map_err(ScriptError::EvalError)?;
+
+            result_map.insert(*key, from_dynamic(&value).unwrap());
+        }
+
+        let result = Self::replace_primitives(&self.map_extracted, &result_map);
+
+        Ok(result)
+    }
+
+    pub fn evaluate_variable(&self, context: &Context) -> Result<Variable, ScriptError> {
+        let value = self.evaluate(context)?;
+        Ok(Variable::new(value))
     }
 
     pub fn create_engine() -> Engine {
@@ -57,88 +88,68 @@ impl<'a> Script<'a> {
         engine
     }
 
-    pub fn evaluate(&self, context: &Context) -> Result<Value, ScriptError> {
-        let mut scope = Scope::new();
+    fn extract_primitives(
+        engine: &Engine,
+        value: &Value,
+        map_index_ast: &mut HashMap<usize, AST>,
+        counter: &mut usize,
+    ) -> Value {
+        match value {
+            Value::Object(map) => {
+                let mut new_map = HashMap::new();
+                for (key, value) in map.iter() {
+                    new_map.insert(
+                        key.to_string(),
+                        Self::extract_primitives(engine, value, map_index_ast, counter),
+                    );
+                }
+                Value::from(new_map)
+            }
+            Value::Array(array) => {
+                let mut new_array = Vec::new();
+                for value in array.into_iter() {
+                    new_array.push(Self::extract_primitives(
+                        engine,
+                        value,
+                        map_index_ast,
+                        counter,
+                    ));
+                }
+                Value::from(new_array)
+            }
+            _ => {
+                let ast = engine.compile(&value.to_string()).unwrap();
+                map_index_ast.insert(*counter, ast);
 
-        let steps: Dynamic = to_dynamic(context.steps.clone()).unwrap();
-        let params: Dynamic = to_dynamic(context.params.clone()).unwrap();
+                let result = Value::from(*counter);
+                *counter += 1;
 
-        scope.push_constant("steps", steps);
-        scope.push_constant("params", params);
-
-        let mut result_map: HashMap<usize, Value> = HashMap::new();
-
-        for (key, value) in self.map_index.iter() {
-            println!("mapper {}: {}", key, value);
-            let value = self
-                .engine
-                .eval_with_scope(&mut scope, &value.to_string())
-                .map_err(ScriptError::EvalError)?;
-
-            result_map.insert(*key, from_dynamic(&value).unwrap());
+                result
+            }
         }
-
-        let result = replace_primitives(&self.map_extracted, &result_map);
-
-        Ok(result)
     }
 
-    pub fn evaluate_variable(&self, context: &Context) -> Result<Variable, ScriptError> {
-        let value = self.evaluate(context)?;
-        Ok(Variable::new(value))
-    }
-}
-
-fn extract_primitives(
-    value: &Value,
-    map_exp: &mut HashMap<usize, Value>,
-    counter: &mut usize,
-) -> Value {
-    match value {
-        Value::Object(map) => {
-            let mut new_map = HashMap::new();
-            for (key, value) in map.iter() {
-                new_map.insert(key.to_string(), extract_primitives(value, map_exp, counter));
+    fn replace_primitives(map_extracted: &Value, result: &HashMap<usize, Value>) -> Value {
+        match map_extracted {
+            Value::Object(map) => {
+                let mut new_map = HashMap::new();
+                for (key, value) in map.iter() {
+                    new_map.insert(key.to_string(), Self::replace_primitives(value, result));
+                }
+                Value::from(new_map)
             }
-            Value::from(new_map)
-        }
-        Value::Array(array) => {
-            let mut new_array = Vec::new();
-            for value in array.into_iter() {
-                new_array.push(extract_primitives(value, map_exp, counter));
+            Value::Array(array) => {
+                let mut new_array = Vec::new();
+                for value in array.into_iter() {
+                    new_array.push(Self::replace_primitives(value, result));
+                }
+                Value::from(new_array)
             }
-            Value::from(new_array)
-        }
-        _ => {
-            map_exp.insert(*counter, value.clone());
-            let result = Value::from(*counter);
-            *counter += 1;
-            result
-        }
-    }
-}
-
-fn replace_primitives(value: &Value, map_exp: &HashMap<usize, Value>) -> Value {
-    match value {
-        Value::Object(map) => {
-            let mut new_map = HashMap::new();
-            for (key, value) in map.iter() {
-                new_map.insert(key.to_string(), replace_primitives(value, map_exp));
+            _ => {
+                let index = map_extracted.to_i64().unwrap() as usize;
+                result.get(&index).unwrap().clone()
             }
-            Value::from(new_map)
         }
-        Value::Array(array) => {
-            let mut new_array = Vec::new();
-            for value in array.into_iter() {
-                new_array.push(replace_primitives(value, map_exp));
-            }
-            Value::from(new_array)
-        }
-        Value::Number(number) => {
-            let index = number.to_i64().unwrap() as usize;
-            map_exp.get(&index).unwrap().clone()
-        }
-        _ => value.clone(),
     }
 }
 
@@ -148,53 +159,7 @@ mod test {
 
     use super::*;
     use std::collections::HashMap;
-    use valu3::{json, traits::ToValueBehavior, value::Value};
-
-    #[test]
-    fn test_payload_extract_primitive_object() {
-        let value = json!({
-            "a": "Hello",
-            "b": 20,
-            "c": {
-                "d": 30,
-                "e": "World"
-            },
-            "f": [1, 2, 3, 4]
-        });
-
-        let mut map_exp = HashMap::new();
-        let mut counter = 0;
-        let result = extract_primitives(&value, &mut map_exp, &mut counter);
-        let result = replace_primitives(&result, &map_exp);
-
-        assert_eq!(result, value);
-    }
-
-    #[test]
-    fn test_payload_extract_primitive_array() {
-        let value = json!(["Hello", 20, {"d": 30, "e": "World"}, [1, 2, 3, 4]]);
-
-        let mut map_exp = HashMap::new();
-        let mut counter = 0;
-        let result = extract_primitives(&value, &mut map_exp, &mut counter);
-
-        let result = replace_primitives(&result, &map_exp);
-
-        assert_eq!(result, value);
-    }
-
-    #[test]
-    fn test_payload_extract_primitive_string() {
-        let value = json!("Hello World");
-
-        let mut map_exp = HashMap::new();
-        let mut counter = 0;
-        let result = extract_primitives(&value, &mut map_exp, &mut counter);
-
-        let result = replace_primitives(&result, &map_exp);
-
-        assert_eq!(result, value);
-    }
+    use valu3::{traits::ToValueBehavior, value::Value};
 
     #[test]
     fn test_payload_execute() {
