@@ -56,7 +56,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "anyflow"
+name = "nflow"
 version = "0.1.0"
 dependencies = [
  "regex",
@@ -65,6 +65,10 @@ dependencies = [
  "tokio",
  "valu3",
 ]
+
+[[package]]
+name = "nflow-server"
+version = "0.1.0"
 
 [[package]]
 name = "autocfg"

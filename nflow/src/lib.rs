@@ -1,6 +1,6 @@
-//! # Anyflow - A Dynamic Rule-Based Workflow Engine
+//! # nflow - A Dynamic Rule-Based Workflow Engine
 //!
-//! `anyflow` is a **flexible and extensible** rule-based workflow engine written in Rust.
+//! `nflow` is a **flexible and extensible** rule-based workflow engine written in Rust.
 //! It allows users to define and execute **dynamic decision trees** and **conditional workflows**
 //! using JSON-based configurations and embedded scripting via [`Rhai`](https://rhai.rs).
 //!
@@ -16,10 +16,10 @@
 //! This example demonstrates a **decision tree** to determine if a person can become a club member.
 //!
 //! ```rust
-//! use anyflow::Anyflow;
-//! use anyflow::Engine;
+//! use nflow::nflow;
+//! use nflow::Engine;
 //! use valu3::json;
-//! use anyflow::context::Context;
+//! use nflow::context::Context;
 //!
 //! fn main() {
 //!     let decision_tree = json!({
@@ -55,10 +55,10 @@
 //!     });
 //!
 //!     let engine = build_engine(None);
-//!     let anyflow = Anyflow::try_from_value(&engine, &decision_tree, None, None).unwrap();
+//!     let nflow = nflow::try_from_value(&engine, &decision_tree, None, None).unwrap();
 //!
 //!     let mut context = Context::new(Some(json!({ "age": 20, "income": 6000.0 })));
-//!     let result = anyflow.execute_with_context(&mut context).unwrap();
+//!     let result = nflow.execute_with_context(&mut context).unwrap();
 //!
 //!     println!("Decision: {:?}", result);
 //! }
@@ -66,7 +66,7 @@
 //!
 //! ## Modules
 //!
-//! - [`anyflow`] - Main structure containing pipelines and execution logic.
+//! - [`nflow`] - Main structure containing pipelines and execution logic.
 //! - [`context`] - Manages execution state and variable storage.
 //! - [`pipeline`] - Defines sequential execution of processing steps.
 //! - [`step_worker`] - Handles conditional logic and step execution.
@@ -77,7 +77,7 @@
 //!
 //! ## Architecture Overview
 //!
-//! The `Anyflow` engine processes a **workflow pipeline** composed of steps. Each step can:
+//! The `nflow` engine processes a **workflow pipeline** composed of steps. Each step can:
 //! - Evaluate **conditions** (e.g., comparisons, regex matching)
 //! - Execute **scripts** for computations
 //! - **Branch** execution based on conditions
@@ -85,7 +85,7 @@
 //!
 //! ### Execution Flow
 //! 1. The engine receives an input **JSON workflow definition**.
-//! 2. The `Anyflow` instance **parses** and **validates** the workflow.
+//! 2. The `nflow` instance **parses** and **validates** the workflow.
 //! 3. The workflow **executes step-by-step**, evaluating conditions and executing actions.
 //! 4. The **final result** is returned to the caller.
 //!
@@ -93,10 +93,10 @@
 //!
 //! ### Adding Custom Plugins
 //!
-//! Users can **extend Anyflow** by adding custom functions to the execution engine:
+//! Users can **extend nflow** by adding custom functions to the execution engine:
 //!
 //! ```rust
-//! use anyflow::engine::{build_engine, Plugins, PluginFunction};
+//! use nflow::engine::{build_engine, Plugins, PluginFunction};
 //! use valu3::value::Value;
 //! use std::collections::HashMap;
 //! use std::sync::Arc;
@@ -121,7 +121,7 @@
 //! Errors during workflow execution are returned as `Result<T, AnyflowError>`:
 //!
 //! ```rust
-//! match anyflow.execute_with_context(&mut context) {
+//! match nflow.execute_with_context(&mut context) {
 //!     Ok(result) => println!("Execution succeeded: {:?}", result),
 //!     Err(err) => eprintln!("Execution failed: {:?}", err),
 //! }
@@ -130,12 +130,12 @@
 //! ## License
 //!
 //! This project is licensed under the **MIT License**.
-mod anyflow;
 mod collector;
 mod condition;
 mod context;
 mod engine;
 mod id;
+mod nflow;
 mod pipeline;
 mod plugins;
 mod script;
@@ -143,5 +143,5 @@ mod step_worker;
 mod transform;
 mod variable;
 
-pub use anyflow::Anyflow;
+pub use nflow::nflow;
 pub use rhai::Engine;

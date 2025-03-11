@@ -19,12 +19,12 @@ pub enum AnyflowError {
 pub type PipelineMap<'a> = HashMap<usize, Pipeline<'a>>;
 
 #[derive(Debug, Default)]
-pub struct Anyflow<'a> {
+pub struct nflow<'a> {
     pipelines: PipelineMap<'a>,
     params: Option<Value>,
 }
 
-impl<'a> Anyflow<'a> {
+impl<'a> nflow<'a> {
     pub fn try_from_value(
         engine: &'a Engine,
         value: &Value,
@@ -144,14 +144,14 @@ mod tests {
     fn test_anyflow_original_1() {
         let original = get_original();
         let engine = build_engine(None);
-        let anyflow = Anyflow::try_from_value(&engine, &original, None, None).unwrap();
+        let nflow = nflow::try_from_value(&engine, &original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 10000.00,
             "score": 0.6
         })));
 
-        let result = anyflow.execute_with_context(&mut context).unwrap();
+        let result = nflow.execute_with_context(&mut context).unwrap();
 
         assert_eq!(result, Some(json!(10000.0)));
     }
@@ -160,14 +160,14 @@ mod tests {
     fn test_anyflow_original_2() {
         let original = get_original();
         let engine = build_engine(None);
-        let anyflow = Anyflow::try_from_value(&engine, &original, None, None).unwrap();
+        let nflow = nflow::try_from_value(&engine, &original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 500.00,
             "score": 0.6
         })));
 
-        let result = anyflow.execute_with_context(&mut context).unwrap();
+        let result = nflow.execute_with_context(&mut context).unwrap();
 
         assert_eq!(result, Some(json!(3500.0)));
     }
@@ -176,14 +176,14 @@ mod tests {
     fn test_anyflow_original_3() {
         let original = get_original();
         let engine = build_engine(None);
-        let anyflow = Anyflow::try_from_value(&engine, &original, None, None).unwrap();
+        let nflow = nflow::try_from_value(&engine, &original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 500.00,
             "score": 0.2
         })));
 
-        let result = anyflow.execute_with_context(&mut context).unwrap();
+        let result = nflow.execute_with_context(&mut context).unwrap();
 
         assert_eq!(result, None);
     }
@@ -192,14 +192,14 @@ mod tests {
     fn test_anyflow_original_4() {
         let original = get_original();
         let engine = build_engine(None);
-        let anyflow = Anyflow::try_from_value(&engine, &original, None, None).unwrap();
+        let nflow = nflow::try_from_value(&engine, &original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 9999.00,
             "score": 0.6
         })));
 
-        let result = anyflow.execute_with_context(&mut context).unwrap();
+        let result = nflow.execute_with_context(&mut context).unwrap();
 
         assert_eq!(result, Some(json!(10000.0)));
     }
@@ -211,8 +211,7 @@ mod tests {
 
         let (sender, receiver) = channel::<Step>();
 
-        let anyflow =
-            Anyflow::try_from_value(&engine, &original, None, Some(sender.clone())).unwrap();
+        let nflow = nflow::try_from_value(&engine, &original, None, Some(sender.clone())).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 9999.00,
@@ -253,7 +252,7 @@ mod tests {
             },
         ];
 
-        anyflow.execute_with_context(&mut context).unwrap();
+        nflow.execute_with_context(&mut context).unwrap();
 
         let mut result: Vec<Step> = Vec::new();
 
