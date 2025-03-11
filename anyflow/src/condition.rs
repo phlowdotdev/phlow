@@ -185,11 +185,13 @@ impl<'a> Condition<'a> {
 
 #[cfg(test)]
 mod test {
+    use crate::engine::build_engine;
+
     use super::*;
 
     #[test]
     fn test_condition_execute_equal() {
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let condition =
             Condition::new(&engine, "10".to_string(), "20".to_string(), Operator::Equal);
 
@@ -201,7 +203,7 @@ mod test {
 
     #[test]
     fn test_condition_execute_not_equal() {
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let condition = Condition::new(
             &engine,
             "10".to_string(),
@@ -217,7 +219,7 @@ mod test {
 
     #[test]
     fn test_condition_execute_greater_than() {
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let condition = Condition::new(
             &engine,
             "10".to_string(),
@@ -233,7 +235,7 @@ mod test {
 
     #[test]
     fn test_condition_execute_contains() {
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let condition = Condition::new(
             &engine,
             r#""hello""#.to_string(),
@@ -249,7 +251,7 @@ mod test {
 
     #[test]
     fn test_condition_execute_regex() {
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let condition = Condition::new(
             &engine,
             // regex find "hello" in "hello world"
@@ -266,7 +268,7 @@ mod test {
 
     #[test]
     fn test_condition_execute_not_regex() {
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let condition = Condition::new(
             &engine,
             r#""hello""#.to_string(),
@@ -282,7 +284,7 @@ mod test {
 
     #[test]
     fn test_condition_execute_start_with() {
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let condition = Condition::new(
             &engine,
             r#""hello world""#.to_string(),
@@ -298,7 +300,7 @@ mod test {
 
     #[test]
     fn test_condition_execute_end_with() {
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let condition = Condition::new(
             &engine,
             r#""hello world""#.to_string(),

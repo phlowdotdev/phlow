@@ -7,21 +7,20 @@ use tokio::runtime::Runtime;
 use tokio::sync::oneshot;
 use valu3::value::Value;
 
-pub type RepositoryFunction = Arc<dyn Fn(Value) -> Value + Send + Sync>;
+pub type PluginFunction = Arc<dyn Fn(Value) -> Value + Send + Sync>;
 
-pub struct Repositories {
-    pub repositories: HashMap<String, RepositoryFunction>,
+pub struct Plugins {
+    pub plugins: HashMap<String, PluginFunction>,
 }
 
 #[macro_export]
-// repo!(|value| { ... }) return Arc<RepositoryFunction>
-macro_rules! repo {
+macro_rules! plugin {
     ($call:expr) => {
-        Arc::new($call) as RepositoryFunction
+        Arc::new($call) as PluginFunction
     };
 }
 
-pub fn create_engine(repositories: Option<Repositories>) -> Engine {
+pub fn build_engine(repositories: Option<Plugins>) -> Engine {
     let mut engine = Engine::new();
     let rt = Arc::new(Runtime::new().unwrap()); // Compartilha o runtime
 
@@ -44,9 +43,9 @@ pub fn create_engine(repositories: Option<Repositories>) -> Engine {
         });
 
     if let Some(repositories) = repositories {
-        for (key, call) in repositories.repositories {
+        for (key, call) in repositories.plugins {
             let rt_clone = Arc::clone(&rt); // Clona o runtime
-            let call: RepositoryFunction = Arc::new(move |value: Value| -> Value {
+            let call: PluginFunction = Arc::new(move |value: Value| -> Value {
                 let call_clone = Arc::clone(&call);
                 let (tx, rx) = oneshot::channel();
 
@@ -56,7 +55,7 @@ pub fn create_engine(repositories: Option<Repositories>) -> Engine {
                 });
 
                 rx.blocking_recv().unwrap_or(Value::Null)
-            }) as RepositoryFunction;
+            }) as PluginFunction;
 
             engine.register_fn(key.clone(), move |dynamic: Dynamic| {
                 let value: Value = from_dynamic(&dynamic).unwrap();
@@ -77,7 +76,7 @@ mod tests {
 
     #[test]
     fn test_custom_operators() {
-        let engine = create_engine(None);
+        let engine = build_engine(None);
 
         let result: bool = engine.eval(r#""hello" starts_with "he""#).unwrap();
         assert!(result);
@@ -93,7 +92,7 @@ mod tests {
     fn test_repository_function() {
         let mut repositories = HashMap::new();
 
-        let mock_function = repo!(|value| {
+        let mock_function = plugin!(|value| {
             if let Value::String(s) = value {
                 Value::from(format!("{}-processed", s))
             } else {
@@ -103,8 +102,10 @@ mod tests {
 
         repositories.insert("process".to_string(), mock_function);
 
-        let repos = Repositories { repositories };
-        let engine = create_engine(Some(repos));
+        let repos = Plugins {
+            plugins: repositories,
+        };
+        let engine = build_engine(Some(repos));
 
         let result: Value = engine.eval(r#"process("data")"#).unwrap();
 

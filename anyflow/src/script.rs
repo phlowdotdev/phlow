@@ -1,4 +1,5 @@
 use crate::context::Context;
+use crate::engine::{build_engine, Plugins};
 use crate::variable::Variable;
 use regex::Regex;
 use rhai::serde::{from_dynamic, to_dynamic};
@@ -62,30 +63,6 @@ impl<'a> Script<'a> {
     pub fn evaluate_variable(&self, context: &Context) -> Result<Variable, ScriptError> {
         let value = self.evaluate(context)?;
         Ok(Variable::new(value))
-    }
-
-    pub fn create_engine() -> Engine {
-        let mut engine = Engine::new();
-
-        engine
-            .register_custom_operator("starts_with", 80)
-            .unwrap()
-            .register_fn("start_withs", |x: String, y: String| x.starts_with(&y));
-
-        engine
-            .register_custom_operator("ends_with", 81)
-            .unwrap()
-            .register_fn("ends_with", |x: String, y: String| x.ends_with(&y));
-
-        engine
-            .register_custom_operator("search", 82)
-            .unwrap()
-            .register_fn("search", |x: String, y: String| {
-                // regex
-                Regex::new(&x).unwrap().is_match(&y)
-            });
-
-        engine
     }
 
     fn extract_primitives(
@@ -170,7 +147,7 @@ mod test {
         "#;
 
         let context = Context::new(None);
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let payload = Script::new(&engine, &script.to_value());
 
         let result = payload.evaluate(&context).unwrap();
@@ -191,7 +168,7 @@ mod test {
         "#;
 
         let context = Context::new(None);
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let payload = Script::new(&engine, &script.to_value());
 
         let result = payload.evaluate(&context).unwrap();
@@ -211,7 +188,7 @@ mod test {
         let script = r#""hello world""#;
 
         let context = Context::new(None);
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let payload = Script::new(&engine, &script.to_value());
 
         let variable = payload.evaluate_variable(&context).unwrap();
@@ -233,7 +210,7 @@ mod test {
             map
         })));
 
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let payload = Script::new(&engine, &script.to_value());
 
         let variable = payload.evaluate_variable(&context).unwrap();
@@ -251,7 +228,7 @@ mod test {
             map
         })));
 
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let payload = Script::new(&engine, &script.to_value());
 
         let variable = payload.evaluate_variable(&context).unwrap();
@@ -279,7 +256,7 @@ mod test {
             map.to_value()
         });
 
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let payload = Script::new(&engine, &script.to_value());
         let variable = payload.evaluate_variable(&context).unwrap();
 

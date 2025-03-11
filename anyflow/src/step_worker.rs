@@ -210,6 +210,8 @@ impl<'a> StepWorker<'a> {
 
 #[cfg(test)]
 mod test {
+    use crate::engine::build_engine;
+
     use super::*;
     use valu3::prelude::ToValueBehavior;
     use valu3::value::Value;
@@ -227,7 +229,7 @@ mod test {
 
     #[test]
     fn test_step_execute() {
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let step = StepWorker {
             payload: Some(Script::new(&engine, &"10".to_value())),
             ..Default::default()
@@ -243,7 +245,7 @@ mod test {
 
     #[test]
     fn test_step_execute_with_condition() {
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let step = StepWorker {
             id: ID::new(),
             condition: Some(Condition::new(
@@ -266,7 +268,7 @@ mod test {
 
     #[test]
     fn test_step_execute_with_condition_then_case() {
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let step = StepWorker {
             id: ID::new(),
             condition: Some(Condition::new(
@@ -290,7 +292,7 @@ mod test {
 
     #[test]
     fn test_step_execute_with_condition_else_case() {
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let step = StepWorker {
             id: ID::new(),
             condition: Some(Condition::new(
@@ -314,7 +316,7 @@ mod test {
 
     #[test]
     fn test_step_execute_with_return_case() {
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let step = StepWorker {
             id: ID::new(),
             return_case: Some(Script::new(&engine, &"10".to_value())),
@@ -331,7 +333,7 @@ mod test {
 
     #[test]
     fn test_step_execute_with_return_case_and_payload() {
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let step = StepWorker {
             id: ID::new(),
             payload: Some(Script::new(&engine, &"10".to_value())),
@@ -349,7 +351,7 @@ mod test {
 
     #[test]
     fn test_step_execute_with_return_case_and_condition() {
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let step = StepWorker {
             id: ID::new(),
             condition: Some(Condition::new(
@@ -372,7 +374,7 @@ mod test {
 
     #[test]
     fn test_step_execute_with_return_case_and_condition_then_case() {
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let step = StepWorker {
             id: ID::new(),
             condition: Some(Condition::new(
@@ -395,7 +397,7 @@ mod test {
 
     #[test]
     fn test_step_execute_with_return_case_and_condition_else_case() {
-        let engine = Script::create_engine();
+        let engine = build_engine(None);
         let step = StepWorker {
             id: ID::new(),
             condition: Some(Condition::new(
