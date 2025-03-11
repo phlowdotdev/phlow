@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use valu3::prelude::*;
 
 #[derive(Debug)]
-pub enum NflowError {
+pub enum AnyflowError {
     TransformError(TransformError),
     PipelineError(PipelineError),
     PipelineNotFound,
@@ -19,25 +19,28 @@ pub enum NflowError {
 pub type PipelineMap<'a> = HashMap<usize, Pipeline<'a>>;
 
 #[derive(Debug, Default)]
-pub struct nflow<'a> {
+pub struct Anyflow<'a> {
     pipelines: PipelineMap<'a>,
     params: Option<Value>,
 }
 
-impl<'a> nflow<'a> {
+impl<'a> Anyflow<'a> {
     pub fn try_from_value(
         engine: &'a Engine,
         value: &Value,
         params: Option<Value>,
         sender: Option<ContextSender>,
-    ) -> Result<Self, NflowError> {
+    ) -> Result<Self, AnyflowError> {
         let pipelines =
-            value_to_pipelines(&engine, sender, value).map_err(NflowError::TransformError)?;
+            value_to_pipelines(&engine, sender, value).map_err(AnyflowError::TransformError)?;
 
         Ok(Self { pipelines, params })
     }
 
-    pub fn execute_with_context(&self, context: &mut Context) -> Result<Option<Value>, NflowError> {
+    pub fn execute_with_context(
+        &self,
+        context: &mut Context,
+    ) -> Result<Option<Value>, AnyflowError> {
         if self.pipelines.is_empty() {
             return Ok(None);
         }
@@ -48,7 +51,7 @@ impl<'a> nflow<'a> {
             let pipeline = self
                 .pipelines
                 .get(&current)
-                .ok_or(NflowError::PipelineNotFound)?;
+                .ok_or(AnyflowError::PipelineNotFound)?;
 
             match pipeline.execute(context) {
                 Ok(step_output) => match step_output {
@@ -65,13 +68,13 @@ impl<'a> nflow<'a> {
                     }
                 },
                 Err(err) => {
-                    return Err(NflowError::PipelineError(err));
+                    return Err(AnyflowError::PipelineError(err));
                 }
             }
         }
     }
 
-    pub fn execute(&self) -> Result<Context, NflowError> {
+    pub fn execute(&self) -> Result<Context, AnyflowError> {
         let mut context = Context::new(self.params.clone());
         self.execute_with_context(&mut context)?;
         Ok(context)
@@ -138,77 +141,78 @@ mod tests {
     }
 
     #[test]
-    fn test_nflow_original_1() {
+    fn test_anyflow_original_1() {
         let original = get_original();
         let engine = build_engine(None);
-        let nflow = nflow::try_from_value(&engine, &original, None, None).unwrap();
+        let anyflow = Anyflow::try_from_value(&engine, &original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 10000.00,
             "score": 0.6
         })));
 
-        let result = nflow.execute_with_context(&mut context).unwrap();
+        let result = anyflow.execute_with_context(&mut context).unwrap();
 
         assert_eq!(result, Some(json!(10000.0)));
     }
 
     #[test]
-    fn test_nflow_original_2() {
+    fn test_anyflow_original_2() {
         let original = get_original();
         let engine = build_engine(None);
-        let nflow = nflow::try_from_value(&engine, &original, None, None).unwrap();
+        let anyflow = Anyflow::try_from_value(&engine, &original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 500.00,
             "score": 0.6
         })));
 
-        let result = nflow.execute_with_context(&mut context).unwrap();
+        let result = anyflow.execute_with_context(&mut context).unwrap();
 
         assert_eq!(result, Some(json!(3500.0)));
     }
 
     #[test]
-    fn test_nflow_original_3() {
+    fn test_anyflow_original_3() {
         let original = get_original();
         let engine = build_engine(None);
-        let nflow = nflow::try_from_value(&engine, &original, None, None).unwrap();
+        let anyflow = Anyflow::try_from_value(&engine, &original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 500.00,
             "score": 0.2
         })));
 
-        let result = nflow.execute_with_context(&mut context).unwrap();
+        let result = anyflow.execute_with_context(&mut context).unwrap();
 
         assert_eq!(result, None);
     }
 
     #[test]
-    fn test_nflow_original_4() {
+    fn test_anyflow_original_4() {
         let original = get_original();
         let engine = build_engine(None);
-        let nflow = nflow::try_from_value(&engine, &original, None, None).unwrap();
+        let anyflow = Anyflow::try_from_value(&engine, &original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 9999.00,
             "score": 0.6
         })));
 
-        let result = nflow.execute_with_context(&mut context).unwrap();
+        let result = anyflow.execute_with_context(&mut context).unwrap();
 
         assert_eq!(result, Some(json!(10000.0)));
     }
 
     #[test]
-    fn test_nflow_channel() {
+    fn test_anyflow_channel() {
         let original = get_original();
         let engine = build_engine(None);
 
         let (sender, receiver) = channel::<Step>();
 
-        let nflow = nflow::try_from_value(&engine, &original, None, Some(sender.clone())).unwrap();
+        let anyflow =
+            Anyflow::try_from_value(&engine, &original, None, Some(sender.clone())).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 9999.00,
@@ -249,7 +253,7 @@ mod tests {
             },
         ];
 
-        nflow.execute_with_context(&mut context).unwrap();
+        anyflow.execute_with_context(&mut context).unwrap();
 
         let mut result: Vec<Step> = Vec::new();
 

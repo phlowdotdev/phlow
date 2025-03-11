@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use valu3::{prelude::*, traits::ToValueBehavior, value::Value};
 
 use crate::{
+    anyflow::PipelineMap,
     collector::ContextSender,
-    nflow::PipelineMap,
     pipeline::Pipeline,
     step_worker::{StepWorker, StepWorkerError},
 };

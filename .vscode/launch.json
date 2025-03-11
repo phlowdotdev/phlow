@@ -7,16 +7,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in library 'nflow'",
+            "name": "Debug unit tests in library 'anyflow'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
                     "--lib",
-                    "--package=nflow"
+                    "--package=anyflow"
                 ],
                 "filter": {
-                    "name": "nflow",
+                    "name": "anyflow",
                     "kind": "lib"
                 }
             },

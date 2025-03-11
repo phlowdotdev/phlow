@@ -56,18 +56,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "nflow"
-version = "0.1.0"
-dependencies = [
- "regex",
- "rhai",
- "serde",
- "tokio",
- "valu3",
-]
-
-[[package]]
-name = "nflow-server"
+name = "anyflow"
 version = "0.1.0"
 
 [[package]]
@@ -332,6 +321,17 @@ dependencies = [
  "libc",
  "wasi",
  "windows-sys",
+]
+
+[[package]]
+name = "anyflow"
+version = "0.1.0"
+dependencies = [
+ "regex",
+ "rhai",
+ "serde",
+ "tokio",
+ "valu3",
 ]
 
 [[package]]
