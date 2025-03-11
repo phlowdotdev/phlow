@@ -3,8 +3,8 @@ use serde::Serialize;
 use valu3::{prelude::StringBehavior, traits::ToValueBehavior, value::Value};
 
 use crate::{
+    context::Context,
     script::{Script, ScriptError},
-    v8::Context,
 };
 
 #[derive(Debug)]

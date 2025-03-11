@@ -1,6 +1,6 @@
 use crate::{
+    context::Context,
     step_worker::{NextStep, StepOutput, StepWorker, StepWorkerError},
-    v8::Context,
 };
 
 #[derive(Debug)]
