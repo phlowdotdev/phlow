@@ -1,3 +1,3 @@
 [workspace]
-members = ['anyflow', "anyflow-server"]
+members = ['anyflow', "plugins/anyflow-http", "anyflow-server", "sdk"]
 resolver = '2'
