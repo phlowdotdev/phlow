@@ -1,11 +1,11 @@
 use axum::{
-    extract::State,
+    extract::{path, State},
     response::Json,
-    routing::{get, post},
+    routing::{connect, delete, get, head, options, patch, post, put, trace, trace_service},
     Router,
 };
 use sdk::prelude::*;
-use std::sync::Arc;
+use std::{option, sync::Arc};
 use tokio::net::TcpListener;
 use tokio::runtime::Runtime;
 
@@ -16,6 +16,11 @@ enum Method {
     PUT,
     DELETE,
     PATCH,
+    OPTIONS,
+    HEAD,
+    TRACE,
+    CONNECT,
+    ANY,
 }
 
 #[derive(Clone, FromValue)]
@@ -26,8 +31,9 @@ struct Route {
 
 #[derive(Clone, FromValue)]
 struct Setup {
-    port: u16,
-    routes: Vec<Route>,
+    route: Route,
+    port: Option<u16>,
+    address: Option<String>,
 }
 
 #[no_mangle]
@@ -47,48 +53,40 @@ pub extern "C" fn process_data(setup: *const Value) {
     }
 }
 
-async fn start_server(plugin_state: Arc<Setup>) {
-    let mut app = Router::new();
-
-    for route in plugin_state.routes.iter() {
-        match route.method {
-            Method::GET => {
-                app = app.route(&route.path, get(hello_handler));
-            }
-            Method::POST => {
-                app = app.route(&route.path, post(data_handler));
-            }
-            _ => {}
-        }
+async fn start_server(setup: Arc<Setup>) {
+    async fn handler(Json(payload): Json<Value>) -> Json<String> {
+        println!("{:?}", payload);
+        Json("Hello, World!".to_string())
     }
 
-    let listener = TcpListener::bind("127.0.0.1:3000").await.unwrap();
-    println!("🚀 Servidor rodando em http://127.0.0.1:3000");
+    let app: Router = Router::new();
+    let app = match setup.route.method {
+        Method::GET => app.route(&setup.route.path, get(handler)),
+        Method::POST => app.route(&setup.route.path, post(handler)),
+        Method::PUT => app.route(&setup.route.path, put(handler)),
+        Method::DELETE => app.route(&setup.route.path, delete(handler)),
+        Method::PATCH => app.route(&setup.route.path, patch(handler)),
+        Method::OPTIONS => app.route(&setup.route.path, options(handler)),
+        Method::HEAD => app.route(&setup.route.path, head(handler)),
+        Method::TRACE => app.route(&setup.route.path, trace(handler)),
+        Method::CONNECT => app.route(&setup.route.path, connect(handler)),
+        Method::ANY => app
+            .route(&setup.route.path, get(handler))
+            .route(&setup.route.path, post(handler))
+            .route(&setup.route.path, put(handler))
+            .route(&setup.route.path, delete(handler))
+            .route(&setup.route.path, patch(handler))
+            .route(&setup.route.path, options(handler))
+            .route(&setup.route.path, head(handler))
+            .route(&setup.route.path, trace(handler))
+            .route(&setup.route.path, connect(handler)),
+    };
+
+    let address = setup.address.as_deref().unwrap_or("0.0.0.0");
+    let port = setup.port.unwrap_or(3000);
+    let addr = format!("{}:{}", address, port);
+
+    let listener = TcpListener::bind(addr).await.unwrap();
 
     axum::serve(listener, app).await.unwrap();
-}
-
-// Rota 1: GET /hello
-async fn hello_handler() -> Json<String> {
-    Json("👋 Olá do plugin HTTP!".to_string())
-}
-
-// Rota 2: GET /ping
-async fn ping_handler() -> Json<String> {
-    Json("🏓 Pong!".to_string())
-}
-
-// Rota 3: POST /data → Chama o callback e retorna a resposta
-async fn data_handler(State(state): State<Arc<PluginState>>) -> Json<String> {
-    let response_value = Value::from("🔄 Plugin chamou o callback!");
-    let boxed_value = Box::new(response_value);
-
-    let result_ptr = (state.callback)(Box::into_raw(boxed_value));
-
-    if !result_ptr.is_null() {
-        let result_ref = unsafe { &*result_ptr };
-        Json(format!("🔧 Callback retornou: {:?}", result_ref))
-    } else {
-        Json("⚠️ Callback não retornou nada!".to_string())
-    }
 }
