@@ -34,6 +34,29 @@ impl Broker {
     }
 }
 
+#[macro_export]
+macro_rules! plugin {
+    ($handler:ident) => {
+        #[no_mangle]
+        pub extern "C" fn plugin(setup: *const Value) {
+            let value = unsafe { &*setup };
+            $handler(value)
+        }
+    };
+}
+#[macro_export]
+macro_rules! plugin_async {
+    ($handler:ident) => {
+        #[no_mangle]
+        pub extern "C" fn plugin(setup: *const Value) {
+            let value = unsafe { &*setup };
+
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            rt.block_on($handler(value));
+        }
+    };
+}
+
 #[derive(Default)]
 pub struct Package {
     send: Option<Sender<Value>>,
@@ -57,4 +80,6 @@ impl Package {
 pub mod prelude {
     pub use crate::*;
     pub use valu3::prelude::*;
+    // export macro
+    pub use crate::plugin;
 }

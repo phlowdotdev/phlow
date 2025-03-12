@@ -1,15 +1,14 @@
 use axum::{
-    extract::{path, State},
     response::Json,
     routing::{connect, delete, get, head, options, patch, post, put, trace, trace_service},
     Router,
 };
 use sdk::prelude::*;
-use std::{option, sync::Arc};
+use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::runtime::Runtime;
 
-#[derive(Clone, FromValue)]
+#[derive(Clone, FromValue, Debug)]
 enum Method {
     GET,
     POST,
@@ -23,34 +22,33 @@ enum Method {
     ANY,
 }
 
-#[derive(Clone, FromValue)]
+#[derive(Clone, FromValue, Debug)]
 struct Route {
     path: String,
     method: Method,
 }
 
-#[derive(Clone, FromValue)]
+#[derive(Clone, FromValue, Debug)]
 struct Setup {
     route: Route,
     port: Option<u16>,
     address: Option<String>,
 }
 
-#[no_mangle]
-pub extern "C" fn process_data(setup: *const Value) {
-    unsafe {
-        if setup.is_null() {
-            return;
-        }
-        let setup = match Setup::from_value((&*setup).clone()) {
-            Some(setup) => Arc::new(setup),
-            None => return,
-        };
+plugin_async!(setup);
 
-        let rt = Runtime::new().unwrap();
-
-        rt.block_on(start_server(setup));
+async fn setup(value: &Value) {
+    println!("{:?}", value);
+    if value.is_null() {
+        return;
     }
+
+    let setup = match Setup::from_value(value.clone()) {
+        Some(setup) => Arc::new(setup),
+        None => return,
+    };
+
+    start_server(setup).await;
 }
 
 async fn start_server(setup: Arc<Setup>) {
@@ -85,6 +83,8 @@ async fn start_server(setup: Arc<Setup>) {
     let address = setup.address.as_deref().unwrap_or("0.0.0.0");
     let port = setup.port.unwrap_or(3000);
     let addr = format!("{}:{}", address, port);
+
+    println!("Listening on: {}", addr);
 
     let listener = TcpListener::bind(addr).await.unwrap();
 
