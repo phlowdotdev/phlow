@@ -1,7 +1,7 @@
-use valu3::prelude::*;
+use sdk::prelude::*;
 
 #[no_mangle]
-pub extern "C" fn process_data(data: *const Value) {
+pub extern "C" fn process_data(data: *const Value, callback: CallbackFn) {
     unsafe {
         if data.is_null() {
             return;
@@ -12,6 +12,18 @@ pub extern "C" fn process_data(data: *const Value) {
         if let Value::Object(map) = data_ref {
             for (k, v) in map.iter() {
                 println!("{}: {}", k, v);
+            }
+
+            // Criando um valor para enviar ao callback
+            let callback_value = Value::from("Plugin!");
+            let boxed_callback_value = Box::new(callback_value);
+
+            // Chamando o callback
+            let result_ptr = callback(Box::into_raw(boxed_callback_value));
+
+            if !result_ptr.is_null() {
+                let result_ref = &*result_ptr;
+                println!("Plugin: {:?}", result_ref);
             }
         }
     }

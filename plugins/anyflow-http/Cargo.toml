@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 valu3 = { version = "0.8.2", features = ["default", "cstring"] }
+sdk = { path = "../../sdk" }
 
 [lib]
 name = "http"

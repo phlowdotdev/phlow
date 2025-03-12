@@ -1,7 +1,23 @@
+use libloading::{Library, Symbol};
+use sdk::prelude::*;
 use std::collections::HashMap;
 
-use libloading::{Library, Symbol};
-use valu3::prelude::*;
+// Função de callback que será passada para o plugin
+extern "C" fn callback(input: *const Value) -> *const Value {
+    unsafe {
+        if input.is_null() {
+            return std::ptr::null();
+        }
+
+        let input_ref = &*input;
+        println!("Callback chamado com: {:?}", input_ref);
+
+        let response = Value::from("Resposta do callback");
+        let boxed_response = Box::new(response);
+
+        Box::into_raw(boxed_response)
+    }
+}
 
 fn main() {
     let mut data = HashMap::new();
@@ -11,11 +27,12 @@ fn main() {
     let value = data.to_value();
 
     unsafe {
-        let lib = Library::new("target/release/libhttp.so") // Windows
-            .expect("Falha ao carregar a biblioteca");
+        let lib =
+            Library::new("target/release/libhttp.so").expect("Falha ao carregar a biblioteca");
 
-        let func: Symbol<unsafe extern "C" fn(*const Value)> = lib.get(b"process_data").unwrap();
+        let func: Symbol<unsafe extern "C" fn(*const Value, CallbackFn)> =
+            lib.get(b"process_data").unwrap();
 
-        func(&value);
+        func(&value, callback);
     }
 }
