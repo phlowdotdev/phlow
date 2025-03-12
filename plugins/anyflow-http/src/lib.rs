@@ -9,36 +9,58 @@ use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::runtime::Runtime;
 
-// Estado compartilhado para armazenar o callback
-#[derive(Clone)]
-struct PluginState {
-    callback: CallbackFn,
+#[derive(Clone, FromValue)]
+enum Method {
+    GET,
+    POST,
+    PUT,
+    DELETE,
+    PATCH,
+}
+
+#[derive(Clone, FromValue)]
+struct Route {
+    path: String,
+    method: Method,
+}
+
+#[derive(Clone, FromValue)]
+struct Setup {
+    port: u16,
+    routes: Vec<Route>,
 }
 
 #[no_mangle]
-pub extern "C" fn process_data(data: *const Value, callback: CallbackFn) {
+pub extern "C" fn process_data(setup: *const Value) {
     unsafe {
-        if data.is_null() {
+        if setup.is_null() {
             return;
         }
+        let setup = match Setup::from_value((&*setup).clone()) {
+            Some(setup) => Arc::new(setup),
+            None => return,
+        };
 
-        let data_ref = &*data;
-        println!("🔌 Plugin iniciado com config: {:?}", data_ref);
-
-        let plugin_state = Arc::new(PluginState { callback });
-
-        // Criar e rodar o servidor HTTP dentro de um runtime async
         let rt = Runtime::new().unwrap();
-        rt.block_on(start_server(plugin_state));
+
+        rt.block_on(start_server(setup));
     }
 }
 
-async fn start_server(plugin_state: Arc<PluginState>) {
-    let app = Router::new()
-        .route("/hello", get(hello_handler))
-        .route("/ping", get(ping_handler))
-        .route("/data", post(data_handler))
-        .with_state(plugin_state.clone());
+async fn start_server(plugin_state: Arc<Setup>) {
+    let mut app = Router::new();
+
+    for route in plugin_state.routes.iter() {
+        match route.method {
+            Method::GET => {
+                app = app.route(&route.path, get(hello_handler));
+            }
+            Method::POST => {
+                app = app.route(&route.path, post(data_handler));
+            }
+            _ => {}
+        }
+    }
 
     let listener = TcpListener::bind("127.0.0.1:3000").await.unwrap();
     println!("🚀 Servidor rodando em http://127.0.0.1:3000");

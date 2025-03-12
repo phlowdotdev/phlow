@@ -1,13 +1,60 @@
+use tokio::sync::oneshot::{channel, Receiver, Sender};
 use valu3::value::Value;
 
-pub type CallbackFn = extern "C" fn(*const Value) -> *const Value;
+pub struct Broker {
+    send: Option<Sender<Value>>,
+    data: Option<Value>,
+    receiver: Option<Receiver<Value>>,
+}
 
-pub struct PluginData {
-    pub setup: *const Value,
-    pub callback: CallbackFn,
+impl Broker {
+    pub fn new(data: Option<Value>) -> Self {
+        let (tx, rx) = channel();
+
+        Self {
+            data,
+            send: Some(tx),
+            receiver: Some(rx),
+        }
+    }
+
+    pub fn build(self) -> Package {
+        Package {
+            send: self.send,
+            data: self.data,
+        }
+    }
+
+    pub fn blocking_receiver(&mut self) -> Option<Value> {
+        if let Some(receiver) = self.receiver.take() {
+            return Some(receiver.blocking_recv().unwrap_or(Value::Null));
+        }
+
+        None
+    }
+}
+
+#[derive(Default)]
+pub struct Package {
+    send: Option<Sender<Value>>,
+    data: Option<Value>,
+}
+
+impl Package {
+    pub fn get_data(&self) -> Option<&Value> {
+        self.data.as_ref()
+    }
+
+    pub fn send(&mut self) {
+        if let Some(send) = self.send.take() {
+            if let Some(data) = self.data.take() {
+                let _ = send.send(data);
+            }
+        }
+    }
 }
 
 pub mod prelude {
-    pub use crate::CallbackFn;
+    pub use crate::*;
     pub use valu3::prelude::*;
 }
