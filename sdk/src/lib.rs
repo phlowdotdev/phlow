@@ -50,7 +50,6 @@ macro_rules! plugin_async {
         #[no_mangle]
         pub extern "C" fn plugin(setup: *const Value) {
             let value = unsafe { &*setup };
-
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on($handler(value));
         }
