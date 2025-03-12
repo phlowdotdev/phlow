@@ -6,6 +6,9 @@ edition = "2021"
 [dependencies]
 valu3 = { version = "0.8.2", features = ["default", "cstring"] }
 sdk = { path = "../../sdk" }
+tokio = { version = "1", features = ["full"] }
+axum = "0.8.1"
+
 
 [lib]
 name = "http"
