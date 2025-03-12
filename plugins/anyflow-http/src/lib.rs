@@ -14,11 +14,9 @@ pub extern "C" fn process_data(data: *const Value, callback: CallbackFn) {
                 println!("{}: {}", k, v);
             }
 
-            // Criando um valor para enviar ao callback
             let callback_value = Value::from("Plugin!");
             let boxed_callback_value = Box::new(callback_value);
 
-            // Chamando o callback
             let result_ptr = callback(Box::into_raw(boxed_callback_value));
 
             if !result_ptr.is_null() {

@@ -79,6 +79,7 @@ name = "anyflow-server"
 version = "0.1.0"
 dependencies = [
  "libloading",
+ "sdk",
  "serde",
  "serde_json",
  "valu3",

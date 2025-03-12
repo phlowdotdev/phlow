@@ -2,7 +2,6 @@ use libloading::{Library, Symbol};
 use sdk::prelude::*;
 use std::collections::HashMap;
 
-// Função de callback que será passada para o plugin
 extern "C" fn callback(input: *const Value) -> *const Value {
     unsafe {
         if input.is_null() {
@@ -12,10 +11,7 @@ extern "C" fn callback(input: *const Value) -> *const Value {
         let input_ref = &*input;
         println!("Callback chamado com: {:?}", input_ref);
 
-        let response = Value::from("Resposta do callback");
-        let boxed_response = Box::new(response);
-
-        Box::into_raw(boxed_response)
+        Box::into_raw(Box::new(Value::Null))
     }
 }
 
