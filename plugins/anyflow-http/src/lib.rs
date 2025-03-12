@@ -33,7 +33,6 @@ pub extern "C" fn process_data(data: *const Value, callback: CallbackFn) {
     }
 }
 
-// Função assíncrona que inicia o servidor Axum
 async fn start_server(plugin_state: Arc<PluginState>) {
     let app = Router::new()
         .route("/hello", get(hello_handler))
