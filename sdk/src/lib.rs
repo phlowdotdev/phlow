@@ -18,7 +18,7 @@ impl Broker {
         }
     }
 
-    pub fn build(self) -> Package {
+    pub fn get_package(self) -> Package {
         Package {
             send: self.send,
             data: self.data,
@@ -58,8 +58,8 @@ macro_rules! plugin_async {
 
 #[derive(Default)]
 pub struct Package {
-    send: Option<Sender<Value>>,
-    data: Option<Value>,
+    pub send: Option<Sender<Value>>,
+    pub data: Option<Value>,
 }
 
 impl Package {
