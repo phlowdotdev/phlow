@@ -21,7 +21,6 @@ fn main() {
         func(&value);
     }
 
-    // Mantém o programa rodando para o servidor funcionar
     let rt = Runtime::new().unwrap();
     rt.block_on(async {
         loop {
