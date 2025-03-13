@@ -1,6 +1,9 @@
 mod setup;
+use http_body_util::BodyExt;
 use http_body_util::Full;
+use hyper::body::Buf;
 use hyper::body::Bytes;
+use hyper::body::Frame;
 use hyper::server::conn::{http1, http2};
 use hyper::service::service_fn;
 use hyper::{Request, Response};
@@ -9,9 +12,11 @@ use sdk::prelude::*;
 use setup::Setup;
 use std::collections::HashMap;
 use std::convert::Infallible;
+use std::io::Read;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::TcpListener;
+use valu3::json;
 
 plugin_async!(setup);
 
@@ -27,18 +32,54 @@ async fn setup(value: &Value) {
     start_server(setup).await.unwrap();
 }
 
-async fn hello(_: Request<impl hyper::body::Body>) -> Result<Response<Full<Bytes>>, Infallible> {
-    let mut map = HashMap::new();
-    map.insert("Content-Type", "text/plain");
-    let response = Response::builder()
-        .status(200)
-        .headers(map)
-        .body(Full::new(Bytes::from_static(b"Hello, World!")))
-        .unwrap();
+async fn resolve(req: Request<hyper::body::Incoming>) -> Result<Response<Full<Bytes>>, Infallible> {
+    let client_ip = req
+        .extensions()
+        .get::<SocketAddr>() // Recuperando o IP do cliente
+        .map(|addr| addr.ip().to_string()) // Extraindo apenas o IP (sem a porta)
+        .unwrap_or_else(|| "Unknown".to_string());
 
-    Ok(Response::new(Full::new(Bytes::from_static(
-        b"Hello, World!",
-    ))))
+    let headers: HashMap<String, String> = req
+        .headers()
+        .iter()
+        .map(|(key, value)| {
+            (
+                key.to_string(),
+                value.to_str().unwrap_or_default().to_string(),
+            )
+        })
+        .collect();
+
+    let path = req.uri().path().to_value();
+    let query = req.uri().query().unwrap_or_default().to_value();
+    let method = req.method().to_string().to_value();
+
+    let body = {
+        let body = req.collect().await.unwrap().aggregate();
+        let body = body.reader().bytes();
+        let body = String::from_utf8(body.collect::<Result<Vec<u8>, _>>().unwrap())
+            .unwrap_or_else(|_| "Error".to_string());
+
+        match Value::json_to_value(&body) {
+            Ok(value) => value,
+            Err(_) => body.to_value(),
+        }
+    };
+
+    let response_json = json!({
+        "client_ip": client_ip,
+        "headers": headers,
+        "method": method,
+        "path": path,
+        "query": query,
+        "body": body
+    })
+    .to_string();
+
+    Ok(Response::builder()
+        .header("Content-Type", "application/json")
+        .body(Full::new(Bytes::from(response_json)))
+        .unwrap())
 }
 
 #[derive(Clone)]
@@ -55,35 +96,24 @@ where
 }
 
 async fn start_server(setup: Arc<Setup>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    // This address is localhost
     let addr: SocketAddr = ([127, 0, 0, 1], 3000).into();
 
-    // Bind to the port and listen for incoming TCP connections
     let listener = TcpListener::bind(addr).await?;
     println!("Listening on http://{}", addr);
+
     loop {
-        // When an incoming TCP connection is received grab a TCP stream for
-        // client<->server communication.
-        //
-        // Note, this is a .await point, this loop will loop forever but is not a busy loop. The
-        // .await point allows the Tokio runtime to pull the task off of the thread until the task
-        // has work to do. In this case, a connection arrives on the port we are listening on and
-        // the task is woken up, at which point the task is then put back on a thread, and is
-        // driven forward by the runtime, eventually yielding a TCP stream.
-        let (tcp, _) = listener.accept().await?;
-        // Use an adapter to access something implementing `tokio::io` traits as if they implement
-        // `hyper::rt` IO traits.
+        let (tcp, peer_addr) = listener.accept().await?; // Obtendo o IP do cliente
         let io = TokioIo::new(tcp);
 
-        // Spin up a new task in Tokio so we can continue to listen for new TCP connection on the
-        // current task without waiting for the processing of the HTTP1 connection we just received
-        // to finish
         tokio::task::spawn(async move {
-            // Handle the connection from the client using HTTP1 and pass any
-            // HTTP requests received on that connection to the `hello` function
+            let service = service_fn(move |mut req: Request<hyper::body::Incoming>| {
+                req.extensions_mut().insert(peer_addr); // Inserindo o IP do cliente nas extensions
+                resolve(req)
+            });
+
             if let Err(err) = http1::Builder::new()
                 .timer(TokioTimer::new())
-                .serve_connection(io, service_fn(hello))
+                .serve_connection(io, service)
                 .await
             {
                 println!("Error serving connection: {:?}", err);
