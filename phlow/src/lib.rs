@@ -135,9 +135,9 @@ mod condition;
 mod context;
 mod engine;
 mod id;
+mod modules;
 mod phlow;
 mod pipeline;
-mod plugins;
 mod script;
 mod step_worker;
 mod transform;
@@ -145,5 +145,5 @@ mod variable;
 
 pub use context::Context;
 pub use engine::build_engine_async;
+pub use modules::{Module, ModuleFunction};
 pub use phlow::Phlow;
-pub use plugins::{PluginFunction, Plugins};
