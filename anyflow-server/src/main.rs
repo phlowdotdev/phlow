@@ -4,13 +4,6 @@ use valu3::json;
 
 #[tokio::main]
 async fn main() {
-    let config = json!({
-        "route": {
-            "path": "/",
-            "method": "GET"
-        }
-    });
-
     let (sender, receiver) = std::sync::mpsc::channel::<Package>();
 
     tokio::task::spawn(async move {
