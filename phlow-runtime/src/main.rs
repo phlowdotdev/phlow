@@ -1,6 +1,6 @@
 mod phlowmain;
 use libloading::{Library, Symbol};
-use phlow::{build_engine_async, Context, Phlow};
+use phlow_rule_engine::{build_engine_async, Context, Phlow};
 use phlowmain::Main;
 use sdk::prelude::*;
 use valu3::json;

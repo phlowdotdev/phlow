@@ -609,7 +609,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "phlow"
+name = "phlow-rule-engine"
 version = "0.1.0"
 dependencies = [
  "regex",
@@ -624,7 +624,7 @@ name = "phlow-runtime"
 version = "0.1.0"
 dependencies = [
  "libloading",
- "phlow",
+ "phlow-rule-engine",
  "sdk",
  "serde",
  "tokio",
