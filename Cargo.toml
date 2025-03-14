@@ -1,3 +1,3 @@
 [workspace]
-members = ['anyflow', "plugins/restapi", "anyflow-server", "sdk"]
+members = ['phlow', "plugins/restapi", "phlow-server", "sdk"]
 resolver = '2'

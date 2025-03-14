@@ -180,9 +180,9 @@ mod test {
         let result = payload.evaluate(&context).unwrap();
         let expected = Value::from({
             let mut map = HashMap::new();
-            map.insert("a".to_string(), Value::from(10i64));
-            map.insert("b".to_string(), Value::from(20i64));
-            map.insert("sum".to_string(), Value::from(30i64));
+            map.insert("a".to_string(), Value::from(10));
+            map.insert("b".to_string(), Value::from(20));
+            map.insert("sum".to_string(), Value::from(30));
             map
         });
 

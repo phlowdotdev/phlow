@@ -56,29 +56,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anyflow"
-version = "0.1.0"
-dependencies = [
- "regex",
- "rhai",
- "serde",
- "tokio",
- "valu3",
-]
-
-[[package]]
-name = "anyflow-server"
-version = "0.1.0"
-dependencies = [
- "anyflow",
- "libloading",
- "sdk",
- "serde",
- "tokio",
- "valu3",
-]
-
-[[package]]
 name = "atomic-waker"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -629,6 +606,29 @@ dependencies = [
  "once_cell",
  "pest",
  "sha2",
+]
+
+[[package]]
+name = "phlow"
+version = "0.1.0"
+dependencies = [
+ "regex",
+ "rhai",
+ "serde",
+ "tokio",
+ "valu3",
+]
+
+[[package]]
+name = "phlow-server"
+version = "0.1.0"
+dependencies = [
+ "libloading",
+ "phlow",
+ "sdk",
+ "serde",
+ "tokio",
+ "valu3",
 ]
 
 [[package]]

@@ -5,7 +5,7 @@ cargo build --release
 
 # Define os diretórios
 RELEASE_DIR="target/release"
-DEST_DIR="anyflow_modules"
+DEST_DIR="phlow_modules"
 
 # Cria o diretório de destino se não existir
 if [ ! -d "$DEST_DIR" ]; then
