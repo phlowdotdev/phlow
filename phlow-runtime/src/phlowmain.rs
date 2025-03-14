@@ -1,6 +1,6 @@
 use sdk::prelude::*;
 use std::fmt::Display;
-use valu3::{json, prelude::*};
+use valu3::json;
 
 pub enum MainError {
     ModuleNotFound,
