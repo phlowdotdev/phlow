@@ -144,7 +144,11 @@ async fn resolve(
         let body = String::from_utf8(body.collect::<Result<Vec<u8>, _>>().unwrap())
             .unwrap_or_else(|_| "Error".to_string());
 
-        body
+        if body.starts_with('{') || body.starts_with('[') {
+            Value::json_to_value(&body).unwrap_or(body.to_value())
+        } else {
+            body.to_value()
+        }
     };
 
     let data = json!({
