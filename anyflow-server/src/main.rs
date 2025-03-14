@@ -13,10 +13,10 @@ async fn main() {
         },
         "steps": [
             {
-                "output": {
+                "return": {
                     "status_code": 200,
                     "body": {
-                        "message": "Hello, World!"
+                        "message": r#""Hello, World!""#
                     }
                 }
             }

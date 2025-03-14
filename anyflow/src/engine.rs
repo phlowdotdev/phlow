@@ -33,18 +33,19 @@ fn build_engine() -> Engine {
     engine
 }
 
+static RUNTIME: OnceLock<Runtime> = OnceLock::new();
+
 pub fn build_engine_sync(plugins: Option<Plugins>) -> Engine {
     let mut engine = build_engine();
-    let rt = Arc::new(Runtime::new().unwrap()); // Compartilha o runtime
+    let rt = RUNTIME.get_or_init(|| Runtime::new().unwrap());
 
     if let Some(repositories) = plugins {
         for (key, call) in repositories.plugins {
-            let rt_clone = Arc::clone(&rt); // Clona o runtime
             let call: PluginFunction = Arc::new(move |value: Value| -> Value {
                 let call_clone = Arc::clone(&call);
                 let (tx, rx) = oneshot::channel();
 
-                rt_clone.spawn(async move {
+                rt.spawn(async move {
                     let result = (call_clone)(value);
                     let _ = tx.send(result);
                 });
@@ -78,8 +79,7 @@ pub fn build_engine_async(plugins: Option<Plugins>) -> Engine {
                 });
 
                 // Usa tokio::runtime::Handle::current() para evitar erro de runtime
-                tokio::runtime::Handle::current()
-                    .block_on(async { rx.await.unwrap_or(Value::Null) })
+                rx.blocking_recv().unwrap_or(Value::Null) // Aguarda sem criar outro runtime
             }) as PluginFunction;
 
             engine.register_fn(key.clone(), move |dynamic: Dynamic| {
