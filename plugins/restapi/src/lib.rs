@@ -113,6 +113,8 @@ async fn resolve(
 
     Ok(Response::builder()
         .header("Content-Type", "application/json")
-        .body(Full::new(Bytes::from(broker_response.to_string())))
+        .body(Full::new(Bytes::from(
+            broker_response.to_json(JsonMode::Indented),
+        )))
         .unwrap())
 }

@@ -122,7 +122,13 @@ impl<'a> Script<'a> {
             }
             _ => {
                 let index = map_extracted.to_i64().unwrap() as usize;
-                result.get(&index).unwrap().clone()
+                let value = result.get(&index).unwrap().clone();
+
+                if value.to_string().starts_with('[') || value.to_string().starts_with('{') {
+                    Value::json_to_value(&value.to_string()).unwrap_or(value)
+                } else {
+                    value
+                }
             }
         }
     }

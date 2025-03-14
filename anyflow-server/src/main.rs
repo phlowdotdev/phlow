@@ -15,7 +15,7 @@ async fn main() {
             {
                 "return": {
                     "status_code": 200,
-                    "body": "params"
+                    "body": "params.body"
                 }
             }
         ]

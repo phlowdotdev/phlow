@@ -74,10 +74,9 @@ impl<'a> Anyflow<'a> {
         }
     }
 
-    pub fn execute(&self) -> Result<Context, AnyflowError> {
+    pub fn execute(&self) -> Result<Option<Value>, AnyflowError> {
         let mut context = Context::new(self.params.clone());
-        self.execute_with_context(&mut context)?;
-        Ok(context)
+        return self.execute_with_context(&mut context);
     }
 }
 
