@@ -15,7 +15,7 @@ async fn main() {
             {
                 "return": {
                     "status_code": 200,
-                    "body": "params.body"
+                    "body": "main.headers"
                 }
             }
         ]
@@ -50,7 +50,7 @@ async fn main() {
 
     for mut package in receiver {
         if let Some(data) = package.get_data() {
-            let mut context = Context::new(Some(data.clone()));
+            let mut context = Context::from_main(data.clone());
             let result = anyflow.execute_with_context(&mut context).unwrap();
 
             package.send(result.unwrap_or(Value::Null));

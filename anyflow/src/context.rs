@@ -7,12 +7,22 @@ use valu3::prelude::*;
 pub struct Context {
     pub(crate) params: Option<Value>,
     pub(crate) steps: HashMap<ID, Value>,
+    pub(crate) main: Option<Value>,
 }
 
 impl Context {
     pub fn new(params: Option<Value>) -> Self {
         Self {
             params,
+            main: None,
+            steps: HashMap::new(),
+        }
+    }
+
+    pub fn from_main(main: Value) -> Self {
+        Self {
+            params: None,
+            main: Some(main),
             steps: HashMap::new(),
         }
     }
