@@ -14,8 +14,11 @@ async fn main() {
         "steps": [
             {
                 "return": {
-                    "status_code": 200,
-                    "body": "main.headers"
+                    "status_code": 201,
+                    "body": "main",
+                    "headers": {
+                        "Content-Type": r#""application/json""#
+                    }
                 }
             }
         ]

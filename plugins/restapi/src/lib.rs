@@ -57,6 +57,62 @@ pub async fn start_server(
     }
 }
 
+#[derive(ToValue)]
+struct ResponseHandler {
+    pub status_code: u16,
+    pub headers: HashMap<String, String>,
+    pub body: String,
+}
+
+impl ResponseHandler {
+    pub fn build(&self) -> Response<Full<Bytes>> {
+        let response = Response::builder().status(self.status_code);
+
+        let response = self
+            .headers
+            .iter()
+            .fold(response, |response, (key, value)| {
+                response.header(key, value)
+            });
+
+        response
+            .body(Full::new(Bytes::from(self.body.clone())))
+            .unwrap()
+    }
+}
+
+impl From<Value> for ResponseHandler {
+    fn from(value: Value) -> Self {
+        let status_code = match value.get("status_code") {
+            Some(Value::Number(n)) => n.to_i64().unwrap_or(200) as u16,
+            _ => 200,
+        };
+
+        let headers = match value.get("headers") {
+            Some(Value::Object(obj)) => obj
+                .iter()
+                .map(|(key, value)| (key.to_string(), value.to_string()))
+                .collect(),
+            _ => {
+                let mut map = HashMap::new();
+                map.insert("Content-Type".to_string(), "application/json".to_string());
+                map
+            }
+        };
+
+        let body = match value.get("body") {
+            Some(value) => value.to_json(JsonMode::Inline),
+            _ => "".to_string(),
+        };
+
+        Self {
+            status_code,
+            headers,
+            body,
+        }
+    }
+}
+
 async fn resolve(
     sender: Broker,
     req: Request<hyper::body::Incoming>,
@@ -109,12 +165,9 @@ async fn resolve(
 
     sender.send(broker_request).unwrap();
 
-    let broker_response = rx.await.unwrap_or(Value::Null);
+    let broker_response_value = rx.await.unwrap_or(Value::Null);
 
-    Ok(Response::builder()
-        .header("Content-Type", "application/json")
-        .body(Full::new(Bytes::from(
-            broker_response.to_json(JsonMode::Indented),
-        )))
-        .unwrap())
+    let broker_response = ResponseHandler::from(broker_response_value);
+
+    Ok(broker_response.build())
 }
