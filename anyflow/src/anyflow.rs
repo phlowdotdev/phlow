@@ -87,7 +87,7 @@ mod tests {
     use crate::{
         collector::Step,
         condition::{ConditionRaw, Operator},
-        engine::build_engine,
+        engine::build_engine_async,
         id::ID,
     };
     use std::sync::mpsc::channel;
@@ -143,7 +143,7 @@ mod tests {
     #[test]
     fn test_anyflow_original_1() {
         let original = get_original();
-        let engine = build_engine(None);
+        let engine = build_engine_async(None);
         let anyflow = Anyflow::try_from_value(&engine, &original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
@@ -159,7 +159,7 @@ mod tests {
     #[test]
     fn test_anyflow_original_2() {
         let original = get_original();
-        let engine = build_engine(None);
+        let engine = build_engine_async(None);
         let anyflow = Anyflow::try_from_value(&engine, &original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
@@ -175,7 +175,7 @@ mod tests {
     #[test]
     fn test_anyflow_original_3() {
         let original = get_original();
-        let engine = build_engine(None);
+        let engine = build_engine_async(None);
         let anyflow = Anyflow::try_from_value(&engine, &original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
@@ -191,7 +191,7 @@ mod tests {
     #[test]
     fn test_anyflow_original_4() {
         let original = get_original();
-        let engine = build_engine(None);
+        let engine = build_engine_async(None);
         let anyflow = Anyflow::try_from_value(&engine, &original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
@@ -207,7 +207,7 @@ mod tests {
     #[test]
     fn test_anyflow_channel() {
         let original = get_original();
-        let engine = build_engine(None);
+        let engine = build_engine_async(None);
 
         let (sender, receiver) = channel::<Step>();
 

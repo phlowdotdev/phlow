@@ -2,15 +2,15 @@ use regex::Regex;
 use rhai::serde::from_dynamic;
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;
-use tokio::runtime::Runtime;
 use tokio::sync::oneshot;
 use valu3::value::Value;
 
 use crate::plugins::{PluginFunction, Plugins};
 
-pub fn build_engine(plugins: Option<Plugins>) -> Engine {
+use std::sync::OnceLock;
+use tokio::runtime::Runtime;
+fn build_engine() -> Engine {
     let mut engine = Engine::new();
-    let rt = Arc::new(Runtime::new().unwrap()); // Compartilha o runtime
 
     // Define operadores personalizados
     engine
@@ -29,6 +29,13 @@ pub fn build_engine(plugins: Option<Plugins>) -> Engine {
         .register_fn("search", |x: String, y: String| {
             Regex::new(&x).unwrap().is_match(&y)
         });
+
+    engine
+}
+
+pub fn build_engine_sync(plugins: Option<Plugins>) -> Engine {
+    let mut engine = build_engine();
+    let rt = Arc::new(Runtime::new().unwrap()); // Compartilha o runtime
 
     if let Some(repositories) = plugins {
         for (key, call) in repositories.plugins {
@@ -55,6 +62,36 @@ pub fn build_engine(plugins: Option<Plugins>) -> Engine {
     engine
 }
 
+pub fn build_engine_async(plugins: Option<Plugins>) -> Engine {
+    let mut engine = build_engine();
+
+    if let Some(repositories) = plugins {
+        for (key, call) in repositories.plugins {
+            let call: PluginFunction = Arc::new(move |value: Value| -> Value {
+                let call_clone = Arc::clone(&call);
+                let (tx, rx) = oneshot::channel();
+
+                // Executa a chamada assíncrona corretamente sem criar um novo runtime
+                tokio::task::spawn(async move {
+                    let result = (call_clone)(value);
+                    let _ = tx.send(result);
+                });
+
+                // Usa tokio::runtime::Handle::current() para evitar erro de runtime
+                tokio::runtime::Handle::current()
+                    .block_on(async { rx.await.unwrap_or(Value::Null) })
+            }) as PluginFunction;
+
+            engine.register_fn(key.clone(), move |dynamic: Dynamic| {
+                let value: Value = from_dynamic(&dynamic).unwrap();
+                call(value)
+            });
+        }
+    }
+
+    engine
+}
+
 #[cfg(test)]
 mod tests {
     use crate::plugin;
@@ -66,7 +103,7 @@ mod tests {
 
     #[test]
     fn test_custom_operators() {
-        let engine = build_engine(None);
+        let engine = build_engine_async(None);
 
         let result: bool = engine.eval(r#""hello" starts_with "he""#).unwrap();
         assert!(result);
@@ -95,7 +132,7 @@ mod tests {
         let repos = Plugins {
             plugins: repositories,
         };
-        let engine = build_engine(Some(repos));
+        let engine = build_engine_sync(Some(repos));
 
         let result: Value = engine.eval(r#"process("data")"#).unwrap();
 

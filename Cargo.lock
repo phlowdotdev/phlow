@@ -70,6 +70,7 @@ dependencies = [
 name = "anyflow-server"
 version = "0.1.0"
 dependencies = [
+ "anyflow",
  "libloading",
  "sdk",
  "serde",

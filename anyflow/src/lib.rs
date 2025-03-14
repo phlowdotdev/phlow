@@ -144,4 +144,6 @@ mod transform;
 mod variable;
 
 pub use anyflow::Anyflow;
-pub use rhai::Engine;
+pub use context::Context;
+pub use engine::build_engine_async;
+pub use plugins::{PluginFunction, Plugins};

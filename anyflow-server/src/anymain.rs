@@ -1,10 +1,11 @@
-use std::fmt::Display;
-
 use sdk::prelude::*;
+use std::fmt::Display;
+use valu3::{json, prelude::*};
 
 pub enum MainError {
     ModuleNotFound,
     MainNotDefined,
+    StepsNotDefined,
 }
 
 impl std::fmt::Debug for MainError {
@@ -12,6 +13,7 @@ impl std::fmt::Debug for MainError {
         match self {
             MainError::ModuleNotFound => write!(f, "Module not found"),
             MainError::MainNotDefined => write!(f, "Main not defined"),
+            MainError::StepsNotDefined => write!(f, "Steps not defined"),
         }
     }
 }
@@ -21,6 +23,7 @@ impl Display for MainError {
         match self {
             MainError::ModuleNotFound => write!(f, "Module not found"),
             MainError::MainNotDefined => write!(f, "Main not defined"),
+            MainError::StepsNotDefined => write!(f, "Steps not defined"),
         }
     }
 }
@@ -29,6 +32,16 @@ impl Display for MainError {
 pub struct Main {
     pub module: String,
     pub with: Value,
+    pub steps: Value,
+}
+
+impl Main {
+    pub fn get_steps(&self) -> Value {
+        let steps = self.steps.clone();
+        json!({
+            "steps": steps
+        })
+    }
 }
 
 impl TryFrom<Value> for Main {
@@ -50,6 +63,15 @@ impl TryFrom<Value> for Main {
             None => Value::Null,
         };
 
-        Ok(Main { module, with })
+        let steps: Value = match value.get("steps") {
+            Some(steps) => steps.clone(),
+            None => return Err(MainError::StepsNotDefined),
+        };
+
+        Ok(Main {
+            module,
+            with,
+            steps,
+        })
     }
 }
