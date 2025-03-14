@@ -19,9 +19,7 @@ async fn main() {
                 .expect("Falha ao carregar a biblioteca");
             let func: Symbol<unsafe extern "C" fn(Broker, Value)> = lib.get(b"plugin").unwrap();
 
-            let value = config.to_value();
-
-            func(sender, value);
+            func(sender, Value::Null);
         }
     });
 
