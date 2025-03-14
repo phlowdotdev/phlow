@@ -15,9 +15,7 @@ async fn main() {
             {
                 "return": {
                     "status_code": 200,
-                    "body": {
-                        "message": r#""Hello, World!""#
-                    }
+                    "body": "params"
                 }
             }
         ]
