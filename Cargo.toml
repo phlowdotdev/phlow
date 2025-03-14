@@ -1,3 +1,3 @@
 [workspace]
-members = ['anyflow', "inputs/http", "anyflow-server", "sdk"]
+members = ['anyflow', "plugins/restapi", "anyflow-server", "sdk"]
 resolver = '2'

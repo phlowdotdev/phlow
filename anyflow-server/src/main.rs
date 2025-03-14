@@ -15,8 +15,8 @@ async fn main() {
 
     tokio::task::spawn(async move {
         unsafe {
-            let lib =
-                Library::new("target/release/libhttp.so").expect("Falha ao carregar a biblioteca");
+            let lib = Library::new("target/release/librestapi.so")
+                .expect("Falha ao carregar a biblioteca");
             let func: Symbol<unsafe extern "C" fn(Broker, Value)> = lib.get(b"plugin").unwrap();
 
             let value = config.to_value();

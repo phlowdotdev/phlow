@@ -1,5 +1,5 @@
 [package]
-name = "input_http"
+name = "restapi"
 version = "0.1.0"
 edition = "2021"
 
@@ -13,5 +13,5 @@ sdk = { path = "../../sdk" }
 
 
 [lib]
-name = "http"
+name = "restapi"
 crate-type = ["cdylib"]
