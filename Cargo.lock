@@ -67,18 +67,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anyflow-http"
-version = "0.1.0"
-dependencies = [
- "http-body-util",
- "hyper",
- "hyper-util",
- "sdk",
- "tokio",
- "valu3",
-]
-
-[[package]]
 name = "anyflow-server"
 version = "0.1.0"
 dependencies = [
@@ -463,6 +451,18 @@ checksum = "3954d50fe15b02142bf25d3b8bdadb634ec3948f103d04ffe3031bc8fe9d7058"
 dependencies = [
  "equivalent",
  "hashbrown",
+]
+
+[[package]]
+name = "input_http"
+version = "0.1.0"
+dependencies = [
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "sdk",
+ "tokio",
+ "valu3",
 ]
 
 [[package]]

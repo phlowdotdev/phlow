@@ -1,9 +1,9 @@
 use libloading::{Library, Symbol};
 use sdk::prelude::*;
-use tokio::runtime::Runtime;
 use valu3::json;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let config = json!({
         "route": {
             "path": "/",
@@ -11,20 +11,28 @@ fn main() {
         }
     });
 
-    let value = config.to_value();
+    let (sender, receiver) = std::sync::mpsc::channel::<Package>();
 
-    unsafe {
-        let lib = Library::new("target/release/libhttp.so").expect("Falha ao carregar o plugin");
+    tokio::task::spawn(async move {
+        unsafe {
+            let lib =
+                Library::new("target/release/libhttp.so").expect("Falha ao carregar a biblioteca");
+            let func: Symbol<unsafe extern "C" fn(Broker, Value)> = lib.get(b"plugin").unwrap();
 
-        let func: Symbol<unsafe extern "C" fn(*const Value)> = lib.get(b"plugin").unwrap();
+            let value = config.to_value();
 
-        func(&value);
-    }
-
-    let rt = Runtime::new().unwrap();
-    rt.block_on(async {
-        loop {
-            tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+            func(sender, value);
         }
     });
+
+    println!("Server started");
+
+    for mut package in receiver {
+        if let Some(data) = &package.get_data() {
+            package.send(json!({
+                "status": "ok",
+                "data": data
+            }));
+        }
+    }
 }

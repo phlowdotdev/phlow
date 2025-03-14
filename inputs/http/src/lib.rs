@@ -1,4 +1,4 @@
-mod setup;
+pub mod setup;
 use http_body_util::BodyExt;
 use http_body_util::Full;
 use hyper::body::Buf;
@@ -13,26 +13,18 @@ use std::collections::HashMap;
 use std::convert::Infallible;
 use std::io::Read;
 use std::net::SocketAddr;
-use std::sync::Arc;
 use tokio::net::TcpListener;
-use tokio::sync::oneshot::{channel, Receiver, Sender};
+use tokio::sync::oneshot::channel;
 use valu3::json;
 
-plugin_async!(setup);
+plugin_async!(start_server);
 
-async fn setup(value: &Value) {
-    println!("setup {:?}", value);
-    if value.is_null() {
-        println!("Value is null");
-        return;
-    }
+pub async fn start_server(
+    sender: Broker,
+    setup: Value,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let setup: Setup = Setup::from(setup);
 
-    let setup = Arc::new(Setup::from(value.clone()));
-
-    start_server(setup).await.unwrap();
-}
-
-async fn start_server(setup: Arc<Setup>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let addr: SocketAddr = format!(
         "{}:{}",
         setup.host.clone().unwrap_or("0.0.0.0".to_string()),
@@ -46,11 +38,12 @@ async fn start_server(setup: Arc<Setup>) -> Result<(), Box<dyn std::error::Error
     loop {
         let (tcp, peer_addr) = listener.accept().await?;
         let io = TokioIo::new(tcp);
+        let sender = sender.clone();
 
         tokio::task::spawn(async move {
             let service = service_fn(move |mut req: Request<hyper::body::Incoming>| {
                 req.extensions_mut().insert(peer_addr);
-                resolve(req)
+                resolve(sender.clone(), req)
             });
 
             if let Err(err) = http1::Builder::new()
@@ -64,7 +57,10 @@ async fn start_server(setup: Arc<Setup>) -> Result<(), Box<dyn std::error::Error
     }
 }
 
-async fn resolve(req: Request<hyper::body::Incoming>) -> Result<Response<Full<Bytes>>, Infallible> {
+async fn resolve(
+    sender: Broker,
+    req: Request<hyper::body::Incoming>,
+) -> Result<Response<Full<Bytes>>, Infallible> {
     let client_ip: String = req
         .extensions()
         .get::<SocketAddr>() // Recuperando o IP do cliente
@@ -108,19 +104,15 @@ async fn resolve(req: Request<hyper::body::Incoming>) -> Result<Response<Full<By
 
     let broker_request = Package {
         send: Some(tx),
-        data: Some(data),
+        request_data: Some(data),
     };
 
-    let broker_response = rx.blocking_recv().unwrap_or(Value::Null);
+    sender.send(broker_request).unwrap();
 
-    return Ok(Response::builder()
-        .header("Content-Type", "application/json")
-        .body(Full::new(Bytes::from(broker_response.to_string())))
-        .unwrap());
+    let broker_response = rx.await.unwrap_or(Value::Null);
 
     Ok(Response::builder()
         .header("Content-Type", "application/json")
-        .status(500)
-        .body(Full::new(Bytes::from("Error".to_string())))
+        .body(Full::new(Bytes::from(broker_response.to_string())))
         .unwrap())
 }

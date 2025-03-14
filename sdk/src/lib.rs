@@ -1,46 +1,15 @@
-use tokio::sync::oneshot::{channel, Receiver, Sender};
+use std::sync::mpsc::Sender;
+use tokio::sync::oneshot;
 use valu3::value::Value;
 
-pub struct Broker {
-    send: Option<Sender<Value>>,
-    data: Option<Value>,
-    receiver: Option<Receiver<Value>>,
-}
-
-impl Broker {
-    pub fn new(data: Option<Value>) -> Self {
-        let (tx, rx) = channel();
-
-        Self {
-            data,
-            send: Some(tx),
-            receiver: Some(rx),
-        }
-    }
-
-    pub fn get_package(self) -> Package {
-        Package {
-            send: self.send,
-            data: self.data,
-        }
-    }
-
-    pub fn blocking_receiver(&mut self) -> Option<Value> {
-        if let Some(receiver) = self.receiver.take() {
-            return Some(receiver.blocking_recv().unwrap_or(Value::Null));
-        }
-
-        None
-    }
-}
+pub type Broker = Sender<Package>;
 
 #[macro_export]
 macro_rules! plugin {
     ($handler:ident) => {
         #[no_mangle]
-        pub extern "C" fn plugin(setup: *const Value) {
-            let value = unsafe { &*setup };
-            $handler(value)
+        pub extern "C" fn plugin(sender: Broker, value: Value) {
+            $handler(sender, value)
         }
     };
 }
@@ -48,30 +17,27 @@ macro_rules! plugin {
 macro_rules! plugin_async {
     ($handler:ident) => {
         #[no_mangle]
-        pub extern "C" fn plugin(setup: *const Value) {
-            let value = unsafe { &*setup };
+        pub extern "C" fn plugin(sender: Broker, value: Value) {
             let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on($handler(value));
+            rt.block_on($handler(sender, value));
         }
     };
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Package {
-    pub send: Option<Sender<Value>>,
-    pub data: Option<Value>,
+    pub send: Option<oneshot::Sender<Value>>,
+    pub request_data: Option<Value>,
 }
 
 impl Package {
     pub fn get_data(&self) -> Option<&Value> {
-        self.data.as_ref()
+        self.request_data.as_ref()
     }
 
-    pub fn send(&mut self) {
+    pub fn send(&mut self, response_data: Value) {
         if let Some(send) = self.send.take() {
-            if let Some(data) = self.data.take() {
-                let _ = send.send(data);
-            }
+            let _ = send.send(response_data).unwrap();
         }
     }
 }
