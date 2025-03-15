@@ -58,6 +58,17 @@ async fn main() {
 
     let (sender, receiver) = std::sync::mpsc::channel::<Package>();
 
+    {
+        for module in loader.modules.iter() {
+            let path = format!("phlow_modules/{}.so", module.name);
+
+            if !std::path::Path::new(&path).exists() {
+                println!("Error: Module {} does not exist", module.name);
+                return;
+            }
+        }
+    }
+
     for (id, module) in loader.modules.into_iter().enumerate() {
         let sender = sender.clone();
 
