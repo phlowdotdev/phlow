@@ -7,13 +7,11 @@ use sdk::prelude::*;
 
 #[tokio::main]
 async fn main() {
-    let matches = Command::new("My Rust Program")
-        .version("1.0")
-        .author("Your Name")
-        .about("Loads and processes a JSON configuration")
+    let matches = Command::new("Phlow Runtime")
+        .version("0.1.0")
         .arg(
             Arg::new("main_file")
-                .help("Sets the input JSON configuration file")
+                .help("Main file to load")
                 .required(true)
                 .index(1),
         )
