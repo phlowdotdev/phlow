@@ -1,8 +1,11 @@
 pub mod setup;
+use futures_util::StreamExt;
 use http_body_util::BodyExt;
 use http_body_util::Full;
+use hyper::body::Body;
 use hyper::body::Buf;
 use hyper::body::Bytes;
+use hyper::body::Frame;
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{Request, Response};
@@ -27,8 +30,8 @@ pub async fn start_server(
 
     let addr: SocketAddr = format!(
         "{}:{}",
-        setup.host.clone().unwrap_or("0.0.0.0".to_string()),
-        setup.port.clone().unwrap_or(3000),
+        setup.host.as_deref().unwrap_or("0.0.0.0"),
+        setup.port.unwrap_or(3000),
     )
     .parse()?;
 
@@ -115,7 +118,7 @@ impl From<Value> for ResponseHandler {
 
 async fn resolve(
     sender: Broker,
-    req: Request<hyper::body::Incoming>,
+    mut req: Request<hyper::body::Incoming>,
 ) -> Result<Response<Full<Bytes>>, Infallible> {
     let client_ip: String = req
         .extensions()
@@ -139,10 +142,15 @@ async fn resolve(
     let query = req.uri().query().unwrap_or_default().to_string();
 
     let body = {
-        let body = req.collect().await.unwrap().aggregate();
-        let body = body.reader().bytes();
-        let body = String::from_utf8(body.collect::<Result<Vec<u8>, _>>().unwrap())
-            .unwrap_or_else(|_| "Error".to_string());
+        let mut body = String::new();
+        let _ = req.body_mut().into_data_stream().map(|result| {
+            let chunk = result.unwrap();
+
+            let mut buffer = Vec::new();
+            buffer.extend_from_slice(&chunk);
+
+            body.push_str(&String::from_utf8_lossy(&buffer));
+        });
 
         if body.starts_with('{') || body.starts_with('[') {
             Value::json_to_value(&body).unwrap_or(body.to_value())
