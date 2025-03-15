@@ -17,7 +17,7 @@
                 "status_code": 201,
                 "body": "main.body",
                 "headers": {
-                    "Content-Type": "\"application/json\""
+                    "Content-Type": "`application/json`"
                 }
             }
         }

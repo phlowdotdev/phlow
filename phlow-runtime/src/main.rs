@@ -47,7 +47,13 @@ async fn main() {
     let steps: Value = loader.get_steps();
     let engine = build_engine_async(None);
 
-    let phlow = Phlow::try_from_value(&engine, &steps, None, None).unwrap();
+    let phlow = match Phlow::try_from_value(&engine, &steps, None, None) {
+        Ok(phlow) => phlow,
+        Err(err) => {
+            println!("Error: {:?}", err);
+            return;
+        }
+    };
 
     let (sender, receiver) = std::sync::mpsc::channel::<Package>();
 

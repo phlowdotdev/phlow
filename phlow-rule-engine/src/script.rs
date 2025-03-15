@@ -163,6 +163,7 @@ mod test {
         let script = r#"
             let a = 10;
             let b = 20;
+            let c = 'hello';
             
             #{
                 a: a,
