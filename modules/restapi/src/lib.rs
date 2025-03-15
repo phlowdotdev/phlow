@@ -142,15 +142,13 @@ async fn resolve(
     let query = req.uri().query().unwrap_or_default().to_string();
 
     let body = {
-        let mut body = String::new();
-        let _ = req.body_mut().into_data_stream().map(|result| {
-            let chunk = result.unwrap();
-
-            let mut buffer = Vec::new();
-            buffer.extend_from_slice(&chunk);
-
-            body.push_str(&String::from_utf8_lossy(&buffer));
-        });
+        let body = req.body_mut().collect().await.unwrap().to_bytes();
+        let body = body
+            .iter()
+            .map(|byte| *byte as char)
+            .collect::<String>()
+            .trim()
+            .to_string();
 
         if body.starts_with('{') || body.starts_with('[') {
             Value::json_to_value(&body).unwrap_or(body.to_value())

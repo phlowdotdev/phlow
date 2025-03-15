@@ -15,7 +15,7 @@ async fn main() {
             {
                 "return": {
                     "status_code": 201,
-                    "body": "main",
+                    "body": "main.body",
                     "headers": {
                         "Content-Type": r#""application/json""#
                     }
