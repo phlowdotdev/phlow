@@ -47,8 +47,8 @@ async fn main() {
     let steps: Value = loader.get_steps();
     let engine = build_engine_async(None);
 
-    let rules = match Phlow::try_from_value(&engine, &steps, None, None) {
-        Ok(rules) => rules,
+    let flow = match Phlow::try_from_value(&engine, &steps, None, None) {
+        Ok(flow) => flow,
         Err(err) => {
             println!("Error: {:?}", err);
             return;
@@ -99,7 +99,7 @@ async fn main() {
     for mut package in receiver {
         if let Some(data) = package.get_data() {
             let mut context = Context::from_main(data.clone());
-            let result = match rules.execute_with_context(&mut context) {
+            let result = match flow.execute_with_context(&mut context) {
                 Ok(result) => result,
                 Err(err) => {
                     println!("Error: {:?}", err);
