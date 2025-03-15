@@ -25,6 +25,22 @@ macro_rules! plugin_async {
     };
 }
 
+#[macro_export]
+macro_rules! sender {
+    ($id:expr, $sender:expr, $data:expr) => {{
+        let (tx, rx) = tokio::sync::oneshot::channel::<valu3::value::Value>();
+
+        let package = Package {
+            send: Some(tx),
+            request_data: $data,
+            origin: $id,
+        };
+
+        $sender.send(package).unwrap();
+        rx
+    }};
+}
+
 #[derive(Default, Debug)]
 pub struct Package {
     pub send: Option<oneshot::Sender<Value>>,

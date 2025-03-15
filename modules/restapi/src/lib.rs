@@ -1,11 +1,7 @@
 pub mod setup;
-use futures_util::StreamExt;
 use http_body_util::BodyExt;
 use http_body_util::Full;
-use hyper::body::Body;
-use hyper::body::Buf;
 use hyper::body::Bytes;
-use hyper::body::Frame;
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{Request, Response};
@@ -16,7 +12,6 @@ use std::collections::HashMap;
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
-use tokio::sync::oneshot::channel;
 use valu3::json;
 
 plugin_async!(start_server);
@@ -167,19 +162,9 @@ async fn resolve(
         "body": body
     });
 
-    let (tx, rx) = channel();
+    let response_value = sender!(id, sender, Some(data)).await.unwrap_or(Value::Null);
 
-    let broker_request = Package {
-        send: Some(tx),
-        request_data: Some(data),
-        origin: id,
-    };
+    let response = ResponseHandler::from(response_value).build();
 
-    sender.send(broker_request).unwrap();
-
-    let broker_response_value = rx.await.unwrap_or(Value::Null);
-
-    let broker_response = ResponseHandler::from(broker_response_value);
-
-    Ok(broker_response.build())
+    Ok(response)
 }
