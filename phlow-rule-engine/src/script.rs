@@ -1,8 +1,10 @@
 use crate::context::Context;
 use crate::variable::Variable;
-use rhai::serde::{from_dynamic, to_dynamic};
-use rhai::{plugin::*, ParseError, AST};
-use rhai::{Engine, EvalAltResult, Scope};
+use rhai::{
+    plugin::*,
+    serde::{from_dynamic, to_dynamic},
+    Engine, EvalAltResult, ParseError, Scope, AST,
+};
 use std::collections::HashMap;
 use valu3::prelude::*;
 
