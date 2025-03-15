@@ -118,8 +118,8 @@ async fn resolve(
 ) -> Result<Response<Full<Bytes>>, Infallible> {
     let client_ip: String = req
         .extensions()
-        .get::<SocketAddr>() // Recuperando o IP do cliente
-        .map(|addr| addr.ip().to_string()) // Extraindo apenas o IP (sem a porta)
+        .get::<SocketAddr>()
+        .map(|addr| addr.ip().to_string())
         .unwrap_or_else(|| "Unknown".to_string());
 
     let headers = req
