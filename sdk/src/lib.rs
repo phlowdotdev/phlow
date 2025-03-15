@@ -28,6 +28,7 @@ macro_rules! plugin_async {
 pub struct Package {
     pub send: Option<oneshot::Sender<Value>>,
     pub request_data: Option<Value>,
+    pub origin: i32,
 }
 
 impl Package {

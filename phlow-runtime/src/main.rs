@@ -1,17 +1,36 @@
-mod phlowmain;
+mod loader;
 use libloading::{Library, Symbol};
+use loader::Loader;
 use phlow_rule_engine::{build_engine_async, Context, Phlow};
-use phlowmain::Main;
 use sdk::prelude::*;
 use valu3::json;
 
 #[tokio::main]
 async fn main() {
     let config = json!({
-        "main" : {
-            "module": "restapi"
-        },
+        "main" : "restapi",
+        "modules":[
+            {
+                "name": "restapi"
+            },
+            {
+                "name": "rabbitmq",
+                "with": {
+                    "type": "producer",
+                    "host": "localhost",
+                    "port": 5672,
+                    "username": "guest",
+                    "password": "guest",
+                    "exchange": "phlow",
+                    "routing_key": "phlow"
+                }
+            }
+        ],
         "steps": [
+            {
+                "module": "rabbitmq",
+                "params": { "message": "main.body"}
+            },
             {
                 "return": {
                     "status_code": 201,
@@ -24,7 +43,7 @@ async fn main() {
         ]
     });
 
-    let main = match Main::try_from(config) {
+    let main = match Loader::try_from(config) {
         Ok(main) => main,
         Err(err) => {
             println!("Error: {:?}", err);
@@ -41,8 +60,8 @@ async fn main() {
 
     tokio::task::spawn(async move {
         unsafe {
-            println!("Loading module: {}", main.module);
-            let lib = Library::new(format!("phlow_modules/{}.so", main.module).as_str()).unwrap();
+            println!("Loading module: {}", main.main);
+            let lib = Library::new(format!("phlow_modules/{}.so", main.main).as_str()).unwrap();
             let func: Symbol<unsafe extern "C" fn(Broker, Value)> = lib.get(b"plugin").unwrap();
 
             func(sender, main.with);
