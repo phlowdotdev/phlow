@@ -66,7 +66,10 @@ impl<'a> StepWorker<'a> {
             }
         };
         let payload = match value.get("payload") {
-            Some(payload) => Some(Script::new(&engine, payload)),
+            Some(payload) => match Script::try_build(&engine, payload) {
+                Ok(payload) => Some(payload),
+                Err(err) => return Err(StepWorkerError::PayloadError(err)),
+            },
             None => None,
         };
         let then_case = match value.get("then") {
@@ -84,7 +87,10 @@ impl<'a> StepWorker<'a> {
             None => None,
         };
         let return_case = match value.get("return") {
-            Some(return_case) => Some(Script::new(&engine, return_case)),
+            Some(return_case) => match Script::try_build(&engine, return_case) {
+                Ok(return_case) => Some(return_case),
+                Err(err) => return Err(StepWorkerError::PayloadError(err)),
+            },
             None => None,
         };
 
@@ -231,7 +237,7 @@ mod test {
     fn test_step_execute() {
         let engine = build_engine_async(None);
         let step = StepWorker {
-            payload: Some(Script::new(&engine, &"10".to_value())),
+            payload: Some(Script::try_build(&engine, &"10".to_value()).unwrap()),
             ..Default::default()
         };
 
@@ -248,13 +254,16 @@ mod test {
         let engine = build_engine_async(None);
         let step = StepWorker {
             id: ID::new(),
-            condition: Some(Condition::new(
-                &engine,
-                "10".to_string(),
-                "20".to_string(),
-                crate::condition::Operator::NotEqual,
-            )),
-            payload: Some(Script::new(&engine, &"10".to_value())),
+            condition: Some(
+                Condition::try_build(
+                    &engine,
+                    "10".to_string(),
+                    "20".to_string(),
+                    crate::condition::Operator::NotEqual,
+                )
+                .unwrap(),
+            ),
+            payload: Some(Script::try_build(&engine, &"10".to_value()).unwrap()),
             ..Default::default()
         };
 
@@ -271,13 +280,16 @@ mod test {
         let engine = build_engine_async(None);
         let step = StepWorker {
             id: ID::new(),
-            condition: Some(Condition::new(
-                &engine,
-                "10".to_string(),
-                "20".to_string(),
-                crate::condition::Operator::NotEqual,
-            )),
-            payload: Some(Script::new(&engine, &"10".to_value())),
+            condition: Some(
+                Condition::try_build(
+                    &engine,
+                    "10".to_string(),
+                    "20".to_string(),
+                    crate::condition::Operator::NotEqual,
+                )
+                .unwrap(),
+            ),
+            payload: Some(Script::try_build(&engine, &"10".to_value()).unwrap()),
             then_case: Some(0),
             ..Default::default()
         };
@@ -295,13 +307,16 @@ mod test {
         let engine = build_engine_async(None);
         let step = StepWorker {
             id: ID::new(),
-            condition: Some(Condition::new(
-                &engine,
-                "10".to_string(),
-                "20".to_string(),
-                crate::condition::Operator::Equal,
-            )),
-            payload: Some(Script::new(&engine, &"10".to_value())),
+            condition: Some(
+                Condition::try_build(
+                    &engine,
+                    "10".to_string(),
+                    "20".to_string(),
+                    crate::condition::Operator::Equal,
+                )
+                .unwrap(),
+            ),
+            payload: Some(Script::try_build(&engine, &"10".to_value()).unwrap()),
             else_case: Some(1),
             ..Default::default()
         };
@@ -319,7 +334,7 @@ mod test {
         let engine = build_engine_async(None);
         let step = StepWorker {
             id: ID::new(),
-            return_case: Some(Script::new(&engine, &"10".to_value())),
+            return_case: Some(Script::try_build(&engine, &"10".to_value()).unwrap()),
             ..Default::default()
         };
 
@@ -336,8 +351,8 @@ mod test {
         let engine = build_engine_async(None);
         let step = StepWorker {
             id: ID::new(),
-            payload: Some(Script::new(&engine, &"10".to_value())),
-            return_case: Some(Script::new(&engine, &"20".to_value())),
+            payload: Some(Script::try_build(&engine, &"10".to_value()).unwrap()),
+            return_case: Some(Script::try_build(&engine, &"20".to_value()).unwrap()),
             ..Default::default()
         };
 
@@ -354,13 +369,16 @@ mod test {
         let engine = build_engine_async(None);
         let step = StepWorker {
             id: ID::new(),
-            condition: Some(Condition::new(
-                &engine,
-                "10".to_string(),
-                "20".to_string(),
-                crate::condition::Operator::Equal,
-            )),
-            return_case: Some(Script::new(&engine, &"10".to_value())),
+            condition: Some(
+                Condition::try_build(
+                    &engine,
+                    "10".to_string(),
+                    "20".to_string(),
+                    crate::condition::Operator::Equal,
+                )
+                .unwrap(),
+            ),
+            return_case: Some(Script::try_build(&engine, &"10".to_value()).unwrap()),
             ..Default::default()
         };
 
@@ -377,14 +395,17 @@ mod test {
         let engine = build_engine_async(None);
         let step = StepWorker {
             id: ID::new(),
-            condition: Some(Condition::new(
-                &engine,
-                "10".to_string(),
-                "20".to_string(),
-                crate::condition::Operator::Equal,
-            )),
+            condition: Some(
+                Condition::try_build(
+                    &engine,
+                    "10".to_string(),
+                    "20".to_string(),
+                    crate::condition::Operator::Equal,
+                )
+                .unwrap(),
+            ),
             then_case: Some(0),
-            return_case: Some(Script::new(&engine, &r#""Ok""#.to_value())),
+            return_case: Some(Script::try_build(&engine, &r#""Ok""#.to_value()).unwrap()),
             ..Default::default()
         };
 
@@ -400,14 +421,17 @@ mod test {
         let engine = build_engine_async(None);
         let step = StepWorker {
             id: ID::new(),
-            condition: Some(Condition::new(
-                &engine,
-                "10".to_string(),
-                "20".to_string(),
-                crate::condition::Operator::Equal,
-            )),
+            condition: Some(
+                Condition::try_build(
+                    &engine,
+                    "10".to_string(),
+                    "20".to_string(),
+                    crate::condition::Operator::Equal,
+                )
+                .unwrap(),
+            ),
             else_case: Some(0),
-            return_case: Some(Script::new(&engine, &r#""Ok""#.to_value())),
+            return_case: Some(Script::try_build(&engine, &r#""Ok""#.to_value()).unwrap()),
             ..Default::default()
         };
 

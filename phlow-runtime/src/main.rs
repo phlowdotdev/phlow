@@ -1,47 +1,40 @@
 mod loader;
+use clap::{Arg, Command};
 use libloading::{Library, Symbol};
 use loader::Loader;
 use phlow_rule_engine::{build_engine_async, Context, Phlow};
 use sdk::prelude::*;
-use valu3::json;
 
 #[tokio::main]
 async fn main() {
-    let config = json!({
-        "main" : "restapi",
-        "modules":[
-            {
-                "name": "restapi"
-            },
-            {
-                "name": "rabbitmq",
-                "with": {
-                    "type": "producer",
-                    "host": "localhost",
-                    "port": 5672,
-                    "username": "guest",
-                    "password": "guest",
-                    "exchange": "phlow",
-                    "routing_key": "phlow"
+    let matches = Command::new("My Rust Program")
+        .version("1.0")
+        .author("Your Name")
+        .about("Loads and processes a JSON configuration")
+        .arg(
+            Arg::new("main_file")
+                .help("Sets the input JSON configuration file")
+                .required(true)
+                .index(1),
+        )
+        .get_matches();
+
+    let config = match matches.get_one::<String>("main_file") {
+        Some(file) => {
+            let file = std::fs::read_to_string(file).unwrap();
+            match Value::json_to_value(&file) {
+                Ok(value) => value,
+                Err(err) => {
+                    println!("Error: {:?}", err);
+                    return;
                 }
             }
-        ],
-        "steps": [
-            {
-                "module": "rabbitmq",
-                "params": { "message": "main.body"}
-            },
-            {
-                "return": {
-                    "status_code": 201,
-                    "body": "main.body",
-                    "headers": {
-                        "Content-Type": r#""application/json""#
-                    }
-                }
-            }
-        ]
-    });
+        }
+        None => {
+            println!("Error: No main file provided");
+            return;
+        }
+    };
 
     let loader = match Loader::try_from(config) {
         Ok(main) => main,

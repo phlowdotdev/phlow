@@ -1,0 +1,25 @@
+{
+    "main": "restapi",
+    "modules": [
+        {
+            "name": "restapi"
+        }
+    ],
+    "steps": [
+        {
+            "module": "rabbitmq",
+            "params": {
+                "message": "main.body"
+            }
+        },
+        {
+            "return": {
+                "status_code": 201,
+                "body": "main.body",
+                "headers": {
+                    "Content-Type": "\"application/json\""
+                }
+            }
+        }
+    ]
+}

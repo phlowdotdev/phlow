@@ -1,7 +1,7 @@
 use crate::context::Context;
 use crate::variable::Variable;
 use rhai::serde::{from_dynamic, to_dynamic};
-use rhai::{plugin::*, AST};
+use rhai::{plugin::*, ParseError, AST};
 use rhai::{Engine, EvalAltResult, Scope};
 use std::collections::HashMap;
 use valu3::prelude::*;
@@ -10,6 +10,7 @@ use valu3::prelude::*;
 pub enum ScriptError {
     EvalError(Box<EvalAltResult>),
     InvalidType,
+    CompileError(ParseError),
 }
 
 #[derive(Debug, Clone)]
@@ -20,17 +21,17 @@ pub struct Script<'a> {
 }
 
 impl<'a> Script<'a> {
-    pub fn new(engine: &'a Engine, script: &Value) -> Self {
+    pub fn try_build(engine: &'a Engine, script: &Value) -> Result<Self, ScriptError> {
         let mut map_index_ast = HashMap::new();
         let mut counter = 0;
         let map_extracted =
-            Self::extract_primitives(&engine, &script, &mut map_index_ast, &mut counter);
+            Self::extract_primitives(&engine, &script, &mut map_index_ast, &mut counter)?;
 
-        Self {
+        Ok(Self {
             map_extracted,
             map_index_ast,
             engine,
-        }
+        })
     }
 
     pub fn evaluate(&self, context: &Context) -> Result<Value, ScriptError> {
@@ -70,38 +71,39 @@ impl<'a> Script<'a> {
         value: &Value,
         map_index_ast: &mut HashMap<usize, AST>,
         counter: &mut usize,
-    ) -> Value {
+    ) -> Result<Value, ScriptError> {
         match value {
             Value::Object(map) => {
                 let mut new_map = HashMap::new();
+
                 for (key, value) in map.iter() {
-                    new_map.insert(
-                        key.to_string(),
-                        Self::extract_primitives(engine, value, map_index_ast, counter),
-                    );
+                    let item = Self::extract_primitives(engine, value, map_index_ast, counter)?;
+                    new_map.insert(key.to_string(), item);
                 }
-                Value::from(new_map)
+
+                Ok(Value::from(new_map))
             }
             Value::Array(array) => {
                 let mut new_array = Vec::new();
                 for value in array.into_iter() {
-                    new_array.push(Self::extract_primitives(
-                        engine,
-                        value,
-                        map_index_ast,
-                        counter,
-                    ));
+                    let item = Self::extract_primitives(engine, value, map_index_ast, counter)?;
+
+                    new_array.push(item);
                 }
-                Value::from(new_array)
+
+                Ok(Value::from(new_array))
             }
             _ => {
-                let ast = engine.compile(&value.to_string()).unwrap();
+                let ast = match engine.compile(&value.to_string()) {
+                    Ok(ast) => ast,
+                    Err(err) => return Err(ScriptError::CompileError(err)),
+                };
                 map_index_ast.insert(*counter, ast);
 
                 let result = Value::from(*counter);
                 *counter += 1;
 
-                result
+                Ok(result)
             }
         }
     }
@@ -150,7 +152,7 @@ mod test {
 
         let context = Context::new(None);
         let engine = build_engine_async(None);
-        let payload = Script::new(&engine, &script.to_value());
+        let payload = Script::try_build(&engine, &script.to_value()).unwrap();
 
         let result = payload.evaluate(&context).unwrap();
         assert_eq!(result, Value::from(30i64));
@@ -171,14 +173,14 @@ mod test {
 
         let context = Context::new(None);
         let engine = build_engine_async(None);
-        let payload = Script::new(&engine, &script.to_value());
+        let payload = Script::try_build(&engine, &script.to_value()).unwrap();
 
         let result = payload.evaluate(&context).unwrap();
         let expected = Value::from({
             let mut map = HashMap::new();
-            map.insert("a".to_string(), Value::from(10));
-            map.insert("b".to_string(), Value::from(20));
-            map.insert("sum".to_string(), Value::from(30));
+            map.insert("a".to_string(), Value::from(10i64));
+            map.insert("b".to_string(), Value::from(20i64));
+            map.insert("sum".to_string(), Value::from(30i64));
             map
         });
 
@@ -191,7 +193,7 @@ mod test {
 
         let context = Context::new(None);
         let engine = build_engine_async(None);
-        let payload = Script::new(&engine, &script.to_value());
+        let payload = Script::try_build(&engine, &script.to_value()).unwrap();
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from("hello world")));
@@ -213,7 +215,7 @@ mod test {
         })));
 
         let engine = build_engine_async(None);
-        let payload = Script::new(&engine, &script.to_value());
+        let payload = Script::try_build(&engine, &script.to_value()).unwrap();
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from(30i64)));
@@ -231,7 +233,7 @@ mod test {
         })));
 
         let engine = build_engine_async(None);
-        let payload = Script::new(&engine, &script.to_value());
+        let payload = Script::try_build(&engine, &script.to_value()).unwrap();
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from(10i64)));
@@ -259,7 +261,8 @@ mod test {
         });
 
         let engine = build_engine_async(None);
-        let payload = Script::new(&engine, &script.to_value());
+        let payload = Script::try_build(&engine, &script.to_value()).unwrap();
+
         let variable = payload.evaluate_variable(&context).unwrap();
 
         assert_eq!(variable, Variable::new(Value::from(30i64)));

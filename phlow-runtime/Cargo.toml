@@ -10,3 +10,4 @@ sdk = { path = "../sdk" }
 tokio = { version = "1", features = ["full"] }
 libloading = "0.8"
 phlow-rule-engine = { path = "../phlow-rule-engine" }
+clap = "4"

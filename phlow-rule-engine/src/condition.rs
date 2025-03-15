@@ -95,10 +95,17 @@ impl<'a> Condition<'a> {
             }
         };
 
-        Ok(Self::new(engine, left, right, operator))
+        let condition = Self::try_build(engine, left, right, operator)?;
+
+        Ok(condition)
     }
 
-    pub fn new(engine: &'a Engine, left: String, right: String, operator: Operator) -> Self {
+    pub fn try_build(
+        engine: &'a Engine,
+        left: String,
+        right: String,
+        operator: Operator,
+    ) -> Result<Self, ConditionError> {
         let expression = {
             match operator {
                 Operator::Or => {
@@ -160,14 +167,17 @@ impl<'a> Condition<'a> {
             }
         };
 
-        Self {
+        let expression = Script::try_build(engine, &expression.to_value())
+            .map_err(ConditionError::ScriptError)?;
+
+        Ok(Self {
             raw: ConditionRaw {
                 left,
                 right,
                 operator,
             },
-            expression: Script::new(engine, &expression.to_value()),
-        }
+            expression,
+        })
     }
 
     pub fn evaluate(&self, context: &Context) -> Result<bool, ConditionError> {
@@ -193,7 +203,8 @@ mod test {
     fn test_condition_execute_equal() {
         let engine = build_engine_async(None);
         let condition =
-            Condition::new(&engine, "10".to_string(), "20".to_string(), Operator::Equal);
+            Condition::try_build(&engine, "10".to_string(), "20".to_string(), Operator::Equal)
+                .unwrap();
 
         let context = Context::new(None);
 
@@ -204,12 +215,13 @@ mod test {
     #[test]
     fn test_condition_execute_not_equal() {
         let engine = build_engine_async(None);
-        let condition = Condition::new(
+        let condition = Condition::try_build(
             &engine,
             "10".to_string(),
             "20".to_string(),
             Operator::NotEqual,
-        );
+        )
+        .unwrap();
 
         let context = Context::new(None);
 
@@ -220,12 +232,13 @@ mod test {
     #[test]
     fn test_condition_execute_greater_than() {
         let engine = build_engine_async(None);
-        let condition = Condition::new(
+        let condition = Condition::try_build(
             &engine,
             "10".to_string(),
             "20".to_string(),
             Operator::GreaterThan,
-        );
+        )
+        .unwrap();
 
         let context = Context::new(None);
 
@@ -236,12 +249,13 @@ mod test {
     #[test]
     fn test_condition_execute_contains() {
         let engine = build_engine_async(None);
-        let condition = Condition::new(
+        let condition = Condition::try_build(
             &engine,
             r#""hello""#.to_string(),
             r#""hello world""#.to_string(),
             Operator::Contains,
-        );
+        )
+        .unwrap();
 
         let context = Context::new(None);
 
@@ -252,13 +266,14 @@ mod test {
     #[test]
     fn test_condition_execute_regex() {
         let engine = build_engine_async(None);
-        let condition = Condition::new(
+        let condition = Condition::try_build(
             &engine,
             // regex find "hello" in "hello world"
             r#""hello""#.to_string(),
             r#""hello world""#.to_string(),
             Operator::Regex,
-        );
+        )
+        .unwrap();
 
         let context = Context::new(None);
 
@@ -269,12 +284,13 @@ mod test {
     #[test]
     fn test_condition_execute_not_regex() {
         let engine = build_engine_async(None);
-        let condition = Condition::new(
+        let condition = Condition::try_build(
             &engine,
             r#""hello""#.to_string(),
             r#""hello world""#.to_string(),
             Operator::NotRegex,
-        );
+        )
+        .unwrap();
 
         let context = Context::new(None);
 
@@ -285,12 +301,13 @@ mod test {
     #[test]
     fn test_condition_execute_start_with() {
         let engine = build_engine_async(None);
-        let condition = Condition::new(
+        let condition = Condition::try_build(
             &engine,
             r#""hello world""#.to_string(),
             r#""hello""#.to_string(),
             Operator::StartsWith,
-        );
+        )
+        .unwrap();
 
         let context = Context::new(None);
 
@@ -301,12 +318,13 @@ mod test {
     #[test]
     fn test_condition_execute_end_with() {
         let engine = build_engine_async(None);
-        let condition = Condition::new(
+        let condition = Condition::try_build(
             &engine,
             r#""hello world""#.to_string(),
             r#""world""#.to_string(),
             Operator::EndsWith,
-        );
+        )
+        .unwrap();
 
         let context = Context::new(None);
 
