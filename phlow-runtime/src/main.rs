@@ -43,7 +43,7 @@ async fn main() {
         ]
     });
 
-    let main = match Loader::try_from(config) {
+    let loader = match Loader::try_from(config) {
         Ok(main) => main,
         Err(err) => {
             println!("Error: {:?}", err);
@@ -51,29 +51,51 @@ async fn main() {
         }
     };
 
-    let steps: Value = main.get_steps();
+    let steps: Value = loader.get_steps();
     let engine = build_engine_async(None);
 
     let phlow = Phlow::try_from_value(&engine, &steps, None, None).unwrap();
 
     let (sender, receiver) = std::sync::mpsc::channel::<Package>();
 
-    tokio::task::spawn(async move {
-        unsafe {
-            println!("Loading module: {}", main.main);
-            let lib = Library::new(format!("phlow_modules/{}.so", main.main).as_str()).unwrap();
-            let func: Symbol<unsafe extern "C" fn(Broker, Value)> = lib.get(b"plugin").unwrap();
+    for (id, module) in loader.modules.into_iter().enumerate() {
+        let sender = sender.clone();
 
-            func(sender, main.with);
-        }
-    });
+        tokio::task::spawn(async move {
+            unsafe {
+                println!("Loading module: {}", module.name);
+                let lib = match Library::new(format!("phlow_modules/{}.so", module.name).as_str()) {
+                    Ok(lib) => lib,
+                    Err(err) => {
+                        println!("Error: {:?}", err);
+                        return;
+                    }
+                };
+                let func: Symbol<unsafe extern "C" fn(ModuleId, RuntimeSender, Value)> =
+                    match lib.get(b"plugin") {
+                        Ok(func) => func,
+                        Err(err) => {
+                            println!("Error: {:?}", err);
+                            return;
+                        }
+                    };
 
-    println!("Server started");
+                func(id, sender, module.with.clone());
+                print!("Module {} loaded", module.name);
+            }
+        });
+    }
 
     for mut package in receiver {
         if let Some(data) = package.get_data() {
             let mut context = Context::from_main(data.clone());
-            let result = phlow.execute_with_context(&mut context).unwrap();
+            let result = match phlow.execute_with_context(&mut context) {
+                Ok(result) => result,
+                Err(err) => {
+                    println!("Error: {:?}", err);
+                    continue;
+                }
+            };
 
             package.send(result.unwrap_or(Value::Null));
         }

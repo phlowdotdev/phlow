@@ -2,14 +2,15 @@ use std::sync::mpsc::Sender;
 use tokio::sync::oneshot;
 use valu3::value::Value;
 
-pub type Broker = Sender<Package>;
+pub type ModuleId = usize;
+pub type RuntimeSender = Sender<Package>;
 
 #[macro_export]
 macro_rules! plugin {
     ($handler:ident) => {
         #[no_mangle]
-        pub extern "C" fn plugin(sender: Broker, value: Value) {
-            $handler(sender, value)
+        pub extern "C" fn plugin(id: ModuleId, sender: RuntimeSender, value: Value) {
+            $handler(id, sender, value)
         }
     };
 }
@@ -17,9 +18,9 @@ macro_rules! plugin {
 macro_rules! plugin_async {
     ($handler:ident) => {
         #[no_mangle]
-        pub extern "C" fn plugin(sender: Broker, value: Value) {
+        pub extern "C" fn plugin(id: ModuleId, sender: RuntimeSender, value: Value) {
             let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on($handler(sender, value));
+            rt.block_on($handler(id, sender, value)).unwrap();
         }
     };
 }
@@ -28,7 +29,7 @@ macro_rules! plugin_async {
 pub struct Package {
     pub send: Option<oneshot::Sender<Value>>,
     pub request_data: Option<Value>,
-    pub origin: i32,
+    pub origin: ModuleId,
 }
 
 impl Package {

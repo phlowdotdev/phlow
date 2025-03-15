@@ -14,7 +14,6 @@ use sdk::prelude::*;
 use setup::Setup;
 use std::collections::HashMap;
 use std::convert::Infallible;
-use std::io::Read;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tokio::sync::oneshot::channel;
@@ -23,7 +22,8 @@ use valu3::json;
 plugin_async!(start_server);
 
 pub async fn start_server(
-    sender: Broker,
+    id: ModuleId,
+    sender: RuntimeSender,
     setup: Value,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let setup: Setup = Setup::from(setup);
@@ -46,7 +46,7 @@ pub async fn start_server(
         tokio::task::spawn(async move {
             let service = service_fn(move |mut req: Request<hyper::body::Incoming>| {
                 req.extensions_mut().insert(peer_addr);
-                resolve(sender.clone(), req)
+                resolve(id, sender.clone(), req)
             });
 
             if let Err(err) = http1::Builder::new()
@@ -117,7 +117,8 @@ impl From<Value> for ResponseHandler {
 }
 
 async fn resolve(
-    sender: Broker,
+    id: ModuleId,
+    sender: RuntimeSender,
     mut req: Request<hyper::body::Incoming>,
 ) -> Result<Response<Full<Bytes>>, Infallible> {
     let client_ip: String = req
@@ -171,6 +172,7 @@ async fn resolve(
     let broker_request = Package {
         send: Some(tx),
         request_data: Some(data),
+        origin: id,
     };
 
     sender.send(broker_request).unwrap();
