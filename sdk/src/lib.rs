@@ -54,7 +54,7 @@ impl Debug for Package {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let map: HashMap<_, _> = vec![
             ("request_data", self.request_data.to_value()),
-            ("step", self.origin.to_value()),
+            ("step_position", self.origin.to_value()),
         ]
         .into_iter()
         .collect();

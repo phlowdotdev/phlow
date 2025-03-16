@@ -3,14 +3,11 @@ use std::sync::mpsc::Sender;
 use std::{collections::HashMap, fmt::Debug};
 use valu3::prelude::*;
 
-use crate::{
-    condition::{self, ConditionRaw},
-    id::ID,
-};
+use crate::{condition::ConditionRaw, id::ID};
 
 pub type ContextSender = Sender<Step>;
 
-#[derive(Clone, Default, PartialEq, Serialize, Debug)]
+#[derive(Clone, Default, PartialEq, Serialize)]
 pub struct Step {
     pub id: ID,
     pub label: Option<String>,
@@ -37,5 +34,16 @@ impl ToValueBehavior for Step {
         value.insert("return_case", self.return_case.to_value());
 
         value.to_value()
+    }
+}
+
+impl Debug for Step {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut value = self.to_value();
+        let id = value.get("id").unwrap().clone();
+        value.remove(&"id");
+        value.insert("step_id", id);
+
+        write!(f, "{}", value.to_json(valu3::prelude::JsonMode::Inline))
     }
 }
