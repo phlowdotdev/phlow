@@ -4,9 +4,21 @@ mod processes;
 
 use loader::{load_module, Loader};
 use opentelemetry::init_tracing_subscriber;
-use phlow_engine::{build_engine_async, collector::Step, modules::Modules, Phlow};
+use phlow_engine::{
+    build_engine_async,
+    collector::Step,
+    modules::{ModulePackage, Modules},
+    Phlow,
+};
 use sdk::prelude::*;
-use std::sync::mpsc::channel;
+use std::{
+    hash::Hash,
+    sync::{
+        mpsc::{channel, Sender},
+        Arc, Mutex,
+    },
+};
+use tokio::sync::oneshot;
 use tracing::{debug, error};
 
 #[tokio::main]
@@ -25,33 +37,41 @@ async fn main() {
     let engine = build_engine_async(None);
     let steps: Value = loader.get_steps();
 
-    let (sender_main_package, receiver_main_package) = channel::<Package>();
-    let (sender_package, receiver_package) = channel::<Package>();
-    let mut modules = Modules::default();
+    let (setup_sender_main_package, setup_receiver_main_package) = channel::<Package>();
 
-    for (id, module) in loader.modules.into_iter().enumerate() {
-        modules.register(&module.name);
+    let modules = {
+        let modules = Arc::new(Mutex::new(Modules::default()));
 
-        if loader.main == id as i32 {
-            let sender = sender_main_package.clone();
+        for (id, module) in loader.modules.into_iter().enumerate() {
+            let (setup_sender, setup_receive) = oneshot::channel::<Sender<ModulePackage>>();
 
-            tokio::task::spawn(async move {
-                match load_module(id, sender, &module) {
-                    Ok(_) => debug!("Main module {} loaded", module.name),
-                    Err(err) => error!("Runtime Error: {:?}", err),
-                }
-            });
-        } else {
-            let sender = sender_package.clone();
+            let main_sender = if loader.main == id as i32 {
+                Some(setup_sender_main_package.clone())
+            } else {
+                None
+            };
 
             tokio::task::spawn(async move {
-                match load_module(id, sender, &module) {
-                    Ok(_) => debug!("Module {} loaded", module.name),
+                let setup = ModuleSetup {
+                    id,
+                    setup_sender,
+                    main_sender,
+                };
+
+                match load_module(setup, &module) {
+                    Ok(sender) => debug!("Main module {} loaded", module.name),
                     Err(err) => error!("Runtime Error: {:?}", err),
                 }
+
+                let setup_data = setup_receive.await.unwrap();
+
+                modules.lock().unwrap().register(&module.name, setup_data);
             });
         }
-    }
+
+        let modules = modules.lock().unwrap().extract();
+        Arc::new(modules)
+    };
 
     let flow = {
         match Phlow::try_from_value(&engine, &steps, None, Some(modules), Some(sender_step)) {
@@ -70,12 +90,12 @@ async fn main() {
     });
 
     tokio::task::spawn(async move {
-        for package in receiver_package {
+        for package in setup_receiver_package {
             println!("{:?}", package);
         }
     });
 
-    for mut package in receiver_main_package {
-        processes::execute_steps(&flow, &mut package);
+    for mut package in setup_receiver_main_package {
+        processes::execute_steps(&flow, &mut package).await;
     }
 }

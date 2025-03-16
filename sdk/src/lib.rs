@@ -1,3 +1,6 @@
+pub mod context;
+pub mod id;
+use context::Context;
 use std::fmt::{Debug, Formatter};
 use std::{collections::HashMap, sync::mpsc::Sender};
 pub use tokio;
@@ -7,6 +10,19 @@ use valu3::{traits::ToValueBehavior, value::Value};
 
 pub type ModuleId = usize;
 pub type MainRuntimeSender = Sender<Package>;
+pub type ModuleSetupSender = oneshot::Sender<Sender<ModulePackage>>;
+
+#[derive(Debug)]
+pub struct ModulePackage {
+    pub context: Context,
+    pub sender: oneshot::Sender<Value>,
+}
+
+pub struct ModuleSetup {
+    pub id: ModuleId,
+    pub setup_sender: ModuleSetupSender,
+    pub main_sender: Option<MainRuntimeSender>,
+}
 
 #[macro_export]
 macro_rules! plugin {

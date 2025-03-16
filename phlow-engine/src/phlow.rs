@@ -30,13 +30,13 @@ impl<'a> Phlow<'a> {
         engine: &'a Engine,
         value: &Value,
         params: Option<Value>,
-        modules: Option<Modules>,
+        modules: Option<Arc<Modules>>,
         trace_sender: Option<ContextSender>,
     ) -> Result<Self, PhlowError> {
         let modules = if let Some(modules) = modules {
-            Arc::new(modules)
+            modules
         } else {
-            Modules::new_arc()
+            Arc::new(Modules::default())
         };
         let pipelines = value_to_pipelines(&engine, modules, trace_sender, value)
             .map_err(PhlowError::TransformError)?;

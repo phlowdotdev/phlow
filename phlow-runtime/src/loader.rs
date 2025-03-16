@@ -43,27 +43,22 @@ impl Display for LoaderError {
     }
 }
 
-pub fn load_module(
-    id: ModuleId,
-    sender: MainRuntimeSender,
-    module: &Module,
-) -> Result<(), LoaderError> {
+pub fn load_module(setup: ModuleSetup, module: &Module) -> Result<(), LoaderError> {
     unsafe {
         debug!("Loading module: {}", module.name);
         let lib = match Library::new(format!("phlow_modules/{}.so", module.name).as_str()) {
             Ok(lib) => lib,
             Err(err) => return Err(LoaderError::LibLoadingError(err)),
         };
-        let func: Symbol<unsafe extern "C" fn(ModuleId, MainRuntimeSender, Value)> =
-            match lib.get(b"plugin") {
-                Ok(func) => func,
-                Err(err) => {
-                    return Err(LoaderError::LibLoadingError(err));
-                }
-            };
+        let func: Symbol<unsafe extern "C" fn(ModuleSetup, Value)> = match lib.get(b"plugin") {
+            Ok(func) => func,
+            Err(err) => {
+                return Err(LoaderError::LibLoadingError(err));
+            }
+        };
 
-        func(id, sender, module.with.clone());
-        debug!("Module {} loaded", module.name);
+        func(setup, module.with.clone());
+
         Ok(())
     }
 }

@@ -9,3 +9,4 @@ rhai = { version = "1.21.0", features = ["serde"] }
 regex = "1.11.1"
 valu3 = "0.8.2"
 tokio = { version = "1.44.0", features = ["full"] }
+sdk = { path = "../sdk" }
