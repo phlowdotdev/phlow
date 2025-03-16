@@ -16,7 +16,7 @@ async fn main() {
     let loader = match Loader::load() {
         Ok(main) => main,
         Err(err) => {
-            error!("Error: {:?}", err);
+            error!("Runtime Error: {:?}", err);
             return;
         }
     };
@@ -30,7 +30,7 @@ async fn main() {
         match Phlow::try_from_value(&engine, &steps, None, Some(flow_sender)) {
             Ok(flow) => flow,
             Err(err) => {
-                error!("Error: {:?}", err);
+                error!("Runtime Error: {:?}", err);
                 return;
             }
         }
@@ -44,7 +44,7 @@ async fn main() {
         tokio::task::spawn(async move {
             match load_module(id, sender, &module) {
                 Ok(_) => debug!("Module {} loaded", module.name),
-                Err(err) => error!("Error: {:?}", err),
+                Err(err) => error!("Runtime Error: {:?}", err),
             }
         });
     }
@@ -74,7 +74,7 @@ fn process_package(flow: &Phlow, package: &mut Package) {
         let result = match flow.execute_with_context(&mut context) {
             Ok(result) => result,
             Err(err) => {
-                error!("Error: {:?}", err);
+                error!("Runtime Error: {:?}", err);
                 return;
             }
         };
