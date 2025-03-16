@@ -135,9 +135,9 @@ pub mod condition;
 pub mod context;
 pub mod engine;
 pub mod id;
-pub mod modules;
 pub mod phlow;
 pub mod pipeline;
+pub mod repositories;
 pub mod script;
 pub mod step_worker;
 pub mod transform;
@@ -145,5 +145,5 @@ pub mod variable;
 
 pub use context::Context;
 pub use engine::build_engine_async;
-pub use modules::{Repositories, RepositoryFunction};
 pub use phlow::Phlow;
+pub use repositories::{Repositories, RepositoryFunction};
