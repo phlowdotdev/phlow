@@ -1,6 +1,7 @@
-use std::sync::mpsc::Sender;
+use std::fmt::{Debug, Formatter};
+use std::{collections::HashMap, sync::mpsc::Sender};
 use tokio::sync::oneshot;
-use valu3::value::Value;
+use valu3::{traits::ToValueBehavior, value::Value};
 
 pub type ModuleId = usize;
 pub type RuntimeSender = Sender<Package>;
@@ -41,11 +42,29 @@ macro_rules! sender {
     }};
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct Package {
     pub send: Option<oneshot::Sender<Value>>,
     pub request_data: Option<Value>,
     pub origin: ModuleId,
+}
+
+// Only production mode
+impl Debug for Package {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let map: HashMap<_, _> = vec![
+            ("request_data", self.request_data.to_value()),
+            ("step", self.origin.to_value()),
+        ]
+        .into_iter()
+        .collect();
+
+        write!(
+            f,
+            "{}",
+            map.to_value().to_json(valu3::prelude::JsonMode::Inline)
+        )
+    }
 }
 
 impl Package {

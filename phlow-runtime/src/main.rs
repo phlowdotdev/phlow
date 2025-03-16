@@ -1,9 +1,10 @@
 mod loader;
 mod opentelemetry;
+mod processes;
 
 use loader::{load_module, Loader};
 use opentelemetry::init_tracing_subscriber;
-use phlow_rule_engine::{build_engine_async, collector::Step, Context, Phlow};
+use phlow_rule_engine::{build_engine_async, collector::Step, Phlow};
 use sdk::prelude::*;
 use std::sync::mpsc::channel;
 use tracing::{debug, error};
@@ -20,13 +21,13 @@ async fn main() {
         }
     };
 
-    let (flow_sender, flow_receiver) = channel::<Step>();
+    let (sender_step, receiver_step) = channel::<Step>();
     let engine = build_engine_async(None);
 
     let flow = {
         let steps: Value = loader.get_steps();
 
-        match Phlow::try_from_value(&engine, &steps, None, Some(flow_sender)) {
+        match Phlow::try_from_value(&engine, &steps, None, Some(sender_step)) {
             Ok(flow) => flow,
             Err(err) => {
                 error!("Runtime Error: {:?}", err);
@@ -49,35 +50,12 @@ async fn main() {
     }
 
     tokio::task::spawn(async move {
-        for step in flow_receiver {
-            process_step(step);
+        for step in receiver_step {
+            processes::step(step);
         }
     });
 
     for mut package in receiver_package {
-        process_package(&flow, &mut package);
-    }
-}
-
-#[tracing::instrument]
-fn process_step(step: Step) {
-    debug!("Processing step: {:?}", step);
-}
-
-#[tracing::instrument]
-fn process_package(flow: &Phlow, package: &mut Package) {
-    debug!("Processing package: {:?}", package);
-
-    if let Some(data) = package.get_data() {
-        let mut context = Context::from_main(data.clone());
-        let result = match flow.execute_with_context(&mut context) {
-            Ok(result) => result,
-            Err(err) => {
-                error!("Runtime Error: {:?}", err);
-                return;
-            }
-        };
-
-        package.send(result.unwrap_or(Value::Null));
+        processes::module(&flow, &mut package);
     }
 }
