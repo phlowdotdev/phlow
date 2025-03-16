@@ -33,11 +33,8 @@ async fn main() {
     let (sender_step, receiver_step) = channel::<Step>();
     let engine = build_engine_async(None);
     let steps: Value = loader.get_steps();
-    let modules_len = loader.modules.len();
 
     let (setup_sender_main_package, setup_receiver_main_package) = channel::<Package>();
-
-    let (complete_module_sender, complete_module_receiver) = channel::<usize>();
 
     let modules = Arc::new(Mutex::new(Modules::default()));
 
@@ -67,19 +64,6 @@ async fn main() {
 
         let setup_data = setup_receive.await.unwrap();
         modules.lock().unwrap().register(&module.name, setup_data);
-        complete_module_sender.send(id).unwrap();
-    }
-
-    {
-        let mut total_modules_loaded = 0;
-        for module_id in complete_module_receiver {
-            debug!("Module {} loaded", module_id);
-            total_modules_loaded += 1;
-
-            if total_modules_loaded == modules_len {
-                break;
-            }
-        }
     }
 
     let modules = {
