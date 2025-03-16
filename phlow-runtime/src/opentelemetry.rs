@@ -8,12 +8,10 @@ use tracing_core::Level;
 use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-// Create a Resource that captures information about the entity for which telemetry is recorded.
 pub fn resource() -> Resource {
     Resource::builder().build()
 }
 
-// Construct MeterProvider for MetricsLayer
 pub fn init_meter_provider() -> SdkMeterProvider {
     let exporter = opentelemetry_otlp::MetricExporter::builder()
         .with_http()
