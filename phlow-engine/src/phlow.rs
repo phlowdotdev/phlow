@@ -1,11 +1,12 @@
 use crate::{
     collector::ContextSender,
     context::Context,
+    modules::Modules,
     pipeline::{Pipeline, PipelineError},
     step_worker::NextStep,
     transform::{value_to_pipelines, TransformError},
 };
-use rhai::Engine;
+use rhai::{Engine, Module};
 use std::collections::HashMap;
 use valu3::prelude::*;
 
@@ -29,10 +30,11 @@ impl<'a> Phlow<'a> {
         engine: &'a Engine,
         value: &Value,
         params: Option<Value>,
+        modules: Modules,
         trace_sender: Option<ContextSender>,
     ) -> Result<Self, PhlowError> {
-        let pipelines =
-            value_to_pipelines(&engine, trace_sender, value).map_err(PhlowError::TransformError)?;
+        let pipelines = value_to_pipelines(&engine, modules, trace_sender, value)
+            .map_err(PhlowError::TransformError)?;
 
         Ok(Self { pipelines, params })
     }
@@ -140,7 +142,8 @@ mod tests {
     fn test_phlow_original_1() {
         let original = get_original();
         let engine = build_engine_async(None);
-        let phlow = Phlow::try_from_value(&engine, &original, None, None).unwrap();
+        let modules = Modules::new();
+        let phlow = Phlow::try_from_value(&engine, &original, None, modules, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 10000.00,
@@ -156,7 +159,8 @@ mod tests {
     fn test_phlow_original_2() {
         let original = get_original();
         let engine = build_engine_async(None);
-        let phlow = Phlow::try_from_value(&engine, &original, None, None).unwrap();
+        let modules = Modules::new();
+        let phlow = Phlow::try_from_value(&engine, &original, None, modules, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 500.00,
@@ -172,7 +176,8 @@ mod tests {
     fn test_phlow_original_3() {
         let original = get_original();
         let engine = build_engine_async(None);
-        let phlow = Phlow::try_from_value(&engine, &original, None, None).unwrap();
+        let modules = Modules::new();
+        let phlow = Phlow::try_from_value(&engine, &original, None, modules, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 500.00,
@@ -188,7 +193,8 @@ mod tests {
     fn test_phlow_original_4() {
         let original = get_original();
         let engine = build_engine_async(None);
-        let phlow = Phlow::try_from_value(&engine, &original, None, None).unwrap();
+        let modules = Modules::new();
+        let phlow = Phlow::try_from_value(&engine, &original, None, modules, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 9999.00,
@@ -204,10 +210,11 @@ mod tests {
     fn test_phlow_channel() {
         let original = get_original();
         let engine = build_engine_async(None);
-
+        let modules = Modules::new();
         let (sender, receiver) = channel::<Step>();
 
-        let phlow = Phlow::try_from_value(&engine, &original, None, Some(sender.clone())).unwrap();
+        let phlow =
+            Phlow::try_from_value(&engine, &original, None, modules, Some(sender.clone())).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 9999.00,
@@ -218,6 +225,7 @@ mod tests {
             Step {
                 id: ID::new(),
                 label: None,
+                module: None,
                 condition: Some(ConditionRaw {
                     left: "params.requested".to_string(),
                     right: "params.pre_approved".to_string(),
@@ -229,6 +237,7 @@ mod tests {
             Step {
                 id: ID::new(),
                 label: None,
+                module: None,
                 condition: Some(ConditionRaw {
                     left: "params.score".to_string(),
                     right: "0.5".to_string(),
@@ -240,6 +249,7 @@ mod tests {
             Step {
                 id: ID::from("approved"),
                 label: None,
+                module: None,
                 condition: None,
                 payload: Some(json!({
                     "total": 12999.0

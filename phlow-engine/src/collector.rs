@@ -11,6 +11,7 @@ pub type ContextSender = Sender<Step>;
 pub struct Step {
     pub id: ID,
     pub label: Option<String>,
+    pub module: Option<String>,
     pub condition: Option<ConditionRaw>,
     pub payload: Option<Value>,
     pub return_case: Option<Value>,

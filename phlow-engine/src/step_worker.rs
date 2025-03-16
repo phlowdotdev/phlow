@@ -3,6 +3,7 @@ use crate::{
     condition::{Condition, ConditionError},
     context::Context,
     id::ID,
+    modules::{Modules, ModulesError},
     script::{Script, ScriptError},
 };
 use rhai::Engine;
@@ -14,6 +15,7 @@ use valu3::{prelude::StringBehavior, value::Value};
 pub enum StepWorkerError {
     ConditionError(ConditionError),
     PayloadError(ScriptError),
+    ModulesError(ModulesError),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -33,18 +35,21 @@ pub struct StepOutput {
 pub struct StepWorker<'a> {
     pub(crate) id: ID,
     pub(crate) label: Option<String>,
+    pub(crate) module: Option<String>,
     pub(crate) condition: Option<Condition<'a>>,
     pub(crate) payload: Option<Script<'a>>,
     pub(crate) then_case: Option<usize>,
     pub(crate) else_case: Option<usize>,
+    pub(crate) modules: Modules,
     pub(crate) return_case: Option<Script<'a>>,
-    pub(crate) sender: Option<ContextSender>,
+    pub(crate) trace_sender: Option<ContextSender>,
 }
 
 impl<'a> StepWorker<'a> {
     pub fn try_from_value(
         engine: &'a Engine,
-        sender: Option<ContextSender>,
+        modules: Modules,
+        trace_sender: Option<ContextSender>,
         value: &Value,
     ) -> Result<Self, StepWorkerError> {
         let id = match value.get("id") {
@@ -93,16 +98,22 @@ impl<'a> StepWorker<'a> {
             },
             None => None,
         };
+        let module = match value.get("module") {
+            Some(module) => Some(module.to_string()),
+            None => None,
+        };
 
         Ok(Self {
             id,
             label,
+            module,
             condition,
             payload,
             then_case,
             else_case,
+            modules,
             return_case,
-            sender,
+            trace_sender,
         })
     }
 
@@ -136,13 +147,25 @@ impl<'a> StepWorker<'a> {
         }
     }
 
+    fn evaluate_module(&self, context: &Context) -> Result<Option<Value>, StepWorkerError> {
+        if let Some(ref module) = self.module {
+            match self.modules.execute(module, context) {
+                Ok(value) => Ok(Some(value)),
+                Err(err) => Err(StepWorkerError::ModulesError(err)),
+            }
+        } else {
+            Ok(None)
+        }
+    }
+
     pub fn execute(&self, context: &Context) -> Result<StepOutput, StepWorkerError> {
         if let Some(return_case) = self.evaluate_return(context)? {
-            if let Some(sender) = &self.sender {
+            if let Some(sender) = &self.trace_sender {
                 sender
                     .send(Step {
                         id: self.id.clone(),
                         label: self.label.clone(),
+                        module: None,
                         condition: None,
                         payload: None,
                         return_case: Some(return_case.clone()),
@@ -153,6 +176,26 @@ impl<'a> StepWorker<'a> {
             return Ok(StepOutput {
                 next_step: NextStep::Stop,
                 output: Some(return_case),
+            });
+        }
+
+        if let Some(module) = self.evaluate_module(context)? {
+            if let Some(sender) = &self.trace_sender {
+                sender
+                    .send(Step {
+                        id: self.id.clone(),
+                        label: self.label.clone(),
+                        module: Some(module.to_string()),
+                        condition: None,
+                        payload: None,
+                        return_case: None,
+                    })
+                    .unwrap();
+            }
+
+            return Ok(StepOutput {
+                next_step: NextStep::Stop,
+                output: Some(module),
             });
         }
 
@@ -178,11 +221,12 @@ impl<'a> StepWorker<'a> {
                 (next_step, None)
             };
 
-            if let Some(sender) = &self.sender {
+            if let Some(sender) = &self.trace_sender {
                 sender
                     .send(Step {
                         id: self.id.clone(),
                         label: self.label.clone(),
+                        module: None,
                         condition: Some(condition.raw.clone()),
                         payload: output.clone(),
                         return_case: None,
@@ -195,11 +239,12 @@ impl<'a> StepWorker<'a> {
 
         let output = self.evaluate_payload(context)?;
 
-        if let Some(sender) = &self.sender {
+        if let Some(sender) = &self.trace_sender {
             sender
                 .send(Step {
                     id: self.id.clone(),
                     label: self.label.clone(),
+                    module: None,
                     condition: None,
                     payload: output.clone(),
                     return_case: None,
