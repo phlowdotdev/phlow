@@ -5,12 +5,12 @@
             "name": "restapi"
         },
         {
-            "name": "ampq"
+            "name": "amqp"
         }
     ],
     "steps": [
         {
-            "module": "rabbitmq",
+            "module": "echo",
             "params": {
                 "message": "main.body"
             }

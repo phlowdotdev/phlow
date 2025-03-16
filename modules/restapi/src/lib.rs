@@ -7,17 +7,17 @@ use hyper::service::service_fn;
 use hyper::{Request, Response};
 use hyper_util::rt::{TokioIo, TokioTimer};
 use sdk::prelude::*;
+use sdk::tokio::net::TcpListener;
 use setup::Setup;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::net::SocketAddr;
-use tokio::net::TcpListener;
 
 plugin_async!(start_server);
 
 pub async fn start_server(
     id: ModuleId,
-    sender: RuntimeSender,
+    sender: MainRuntimeSender,
     setup: Value,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let setup: Setup = Setup::from(setup);
@@ -112,7 +112,7 @@ impl From<Value> for ResponseHandler {
 
 async fn resolve(
     id: ModuleId,
-    sender: RuntimeSender,
+    sender: MainRuntimeSender,
     mut req: Request<hyper::body::Incoming>,
 ) -> Result<Response<Full<Bytes>>, Infallible> {
     let client_ip: String = req

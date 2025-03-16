@@ -3,7 +3,7 @@ use serde::Serialize;
 use std::collections::HashMap;
 use valu3::prelude::*;
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Default)]
 pub struct Context {
     pub(crate) params: Option<Value>,
     pub(crate) steps: HashMap<ID, Value>,

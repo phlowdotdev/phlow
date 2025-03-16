@@ -4,6 +4,6 @@ members = [
     "phlow-runtime",
     "sdk",
     "modules/restapi",
-    "modules/amqp",
+    "modules/echo",
 ]
 resolver = '2'

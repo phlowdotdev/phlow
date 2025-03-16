@@ -1,17 +1,18 @@
 use std::fmt::{Debug, Formatter};
 use std::{collections::HashMap, sync::mpsc::Sender};
+pub use tokio;
 use tokio::sync::oneshot;
 pub use valu3;
 use valu3::{traits::ToValueBehavior, value::Value};
 
 pub type ModuleId = usize;
-pub type RuntimeSender = Sender<Package>;
+pub type MainRuntimeSender = Sender<Package>;
 
 #[macro_export]
 macro_rules! plugin {
     ($handler:ident) => {
         #[no_mangle]
-        pub extern "C" fn plugin(id: ModuleId, sender: RuntimeSender, value: Value) {
+        pub extern "C" fn plugin(id: ModuleId, sender: MainRuntimeSender, value: Value) {
             $handler(id, sender, value)
         }
     };
@@ -20,7 +21,7 @@ macro_rules! plugin {
 macro_rules! plugin_async {
     ($handler:ident) => {
         #[no_mangle]
-        pub extern "C" fn plugin(id: ModuleId, sender: RuntimeSender, value: Value) {
+        pub extern "C" fn plugin(id: ModuleId, sender: MainRuntimeSender, value: Value) {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on($handler(id, sender, value)).unwrap();
         }

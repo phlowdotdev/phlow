@@ -45,7 +45,7 @@ impl Display for LoaderError {
 
 pub fn load_module(
     id: ModuleId,
-    sender: RuntimeSender,
+    sender: MainRuntimeSender,
     module: &Module,
 ) -> Result<(), LoaderError> {
     unsafe {
@@ -54,7 +54,7 @@ pub fn load_module(
             Ok(lib) => lib,
             Err(err) => return Err(LoaderError::LibLoadingError(err)),
         };
-        let func: Symbol<unsafe extern "C" fn(ModuleId, RuntimeSender, Value)> =
+        let func: Symbol<unsafe extern "C" fn(ModuleId, MainRuntimeSender, Value)> =
             match lib.get(b"plugin") {
                 Ok(func) => func,
                 Err(err) => {

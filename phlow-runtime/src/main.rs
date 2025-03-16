@@ -4,7 +4,7 @@ mod processes;
 
 use loader::{load_module, Loader};
 use opentelemetry::init_tracing_subscriber;
-use phlow_engine::{build_engine_async, collector::Step, Phlow};
+use phlow_engine::{build_engine_async, collector::Step, modules::Modules, Phlow};
 use sdk::prelude::*;
 use std::sync::mpsc::channel;
 use tracing::{debug, error};
@@ -23,23 +23,15 @@ async fn main() {
 
     let (sender_step, receiver_step) = channel::<Step>();
     let engine = build_engine_async(None);
-
-    let flow = {
-        let steps: Value = loader.get_steps();
-
-        match Phlow::try_from_value(&engine, &steps, None, None, Some(sender_step)) {
-            Ok(flow) => flow,
-            Err(err) => {
-                error!("Runtime Error: {:?}", err);
-                return;
-            }
-        }
-    };
+    let steps: Value = loader.get_steps();
 
     let (sender_main_package, receiver_main_package) = channel::<Package>();
     let (sender_package, receiver_package) = channel::<Package>();
+    let mut modules = Modules::default();
 
     for (id, module) in loader.modules.into_iter().enumerate() {
+        modules.register(&module.name);
+
         if loader.main == id as i32 {
             let sender = sender_main_package.clone();
 
@@ -62,6 +54,16 @@ async fn main() {
             });
         }
     }
+
+    let flow = {
+        match Phlow::try_from_value(&engine, &steps, None, Some(modules), Some(sender_step)) {
+            Ok(flow) => flow,
+            Err(err) => {
+                error!("Runtime Error: {:?}", err);
+                return;
+            }
+        }
+    };
 
     tokio::task::spawn(async move {
         for step in receiver_step {
