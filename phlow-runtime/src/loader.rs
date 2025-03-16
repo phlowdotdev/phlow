@@ -1,11 +1,18 @@
+use clap::{Arg, Command};
+use libloading::{Library, Symbol};
 use sdk::prelude::*;
 use std::fmt::Display;
+use tracing::debug;
 use valu3::json;
 
 pub enum LoaderError {
     ModuleLoaderError,
+    ModuleNotFound(String),
     MainNotDefined,
     StepsNotDefined,
+    NoMainFile,
+    ValueParseError(valu3::Error),
+    LibLoadingError(libloading::Error),
 }
 
 impl std::fmt::Debug for LoaderError {
@@ -14,6 +21,10 @@ impl std::fmt::Debug for LoaderError {
             LoaderError::ModuleLoaderError => write!(f, "Module loader error"),
             LoaderError::MainNotDefined => write!(f, "Main not defined"),
             LoaderError::StepsNotDefined => write!(f, "Steps not defined"),
+            LoaderError::ValueParseError(err) => write!(f, "Value parse error: {:?}", err),
+            LoaderError::NoMainFile => write!(f, "No main file"),
+            LoaderError::ModuleNotFound(name) => write!(f, "Module not found: {}", name),
+            LoaderError::LibLoadingError(err) => write!(f, "Lib loading error: {:?}", err),
         }
     }
 }
@@ -24,6 +35,62 @@ impl Display for LoaderError {
             LoaderError::ModuleLoaderError => write!(f, "Module loader error"),
             LoaderError::MainNotDefined => write!(f, "Main not defined"),
             LoaderError::StepsNotDefined => write!(f, "Steps not defined"),
+            LoaderError::ValueParseError(err) => write!(f, "Value parse error: {:?}", err),
+            LoaderError::NoMainFile => write!(f, "No main file"),
+            LoaderError::ModuleNotFound(name) => write!(f, "Module not found: {}", name),
+            LoaderError::LibLoadingError(err) => write!(f, "Lib loading error: {:?}", err),
+        }
+    }
+}
+
+pub fn load_module(
+    id: ModuleId,
+    sender: RuntimeSender,
+    module: &Module,
+) -> Result<(), LoaderError> {
+    unsafe {
+        debug!("Loading module: {}", module.name);
+        let lib = match Library::new(format!("phlow_modules/{}.so", module.name).as_str()) {
+            Ok(lib) => lib,
+            Err(err) => return Err(LoaderError::LibLoadingError(err)),
+        };
+        let func: Symbol<unsafe extern "C" fn(ModuleId, RuntimeSender, Value)> =
+            match lib.get(b"plugin") {
+                Ok(func) => func,
+                Err(err) => {
+                    return Err(LoaderError::LibLoadingError(err));
+                }
+            };
+
+        func(id, sender, module.with.clone());
+        debug!("Module {} loaded", module.name);
+        Ok(())
+    }
+}
+
+fn load_config() -> Result<Value, LoaderError> {
+    let matches = Command::new("Phlow Runtime")
+        .version("0.1.0")
+        .arg(
+            Arg::new("main_file")
+                .help("Main file to load")
+                .required(true)
+                .index(1),
+        )
+        .get_matches();
+
+    match matches.get_one::<String>("main_file") {
+        Some(file) => {
+            let file = std::fs::read_to_string(file).unwrap();
+            match Value::json_to_value(&file) {
+                Ok(value) => Ok(value),
+                Err(err) => {
+                    return Err(LoaderError::ValueParseError(err));
+                }
+            }
+        }
+        None => {
+            return Err(LoaderError::NoMainFile);
         }
     }
 }
@@ -60,6 +127,11 @@ pub struct Loader {
 }
 
 impl Loader {
+    pub fn load() -> Result<Self, LoaderError> {
+        let config = load_config()?;
+        Loader::try_from(config)
+    }
+
     pub fn get_steps(&self) -> Value {
         let steps = self.steps.clone();
         json!({
@@ -94,6 +166,12 @@ impl TryFrom<Value> for Loader {
 
                     if module.name == main_name {
                         main = modules_vec.len() as i32;
+                    }
+
+                    let module_path = format!("phlow_modules/{}.so", module.name);
+
+                    if !std::path::Path::new(&module_path).exists() {
+                        return Err(LoaderError::ModuleNotFound(module.name));
                     }
 
                     modules_vec.push(module);

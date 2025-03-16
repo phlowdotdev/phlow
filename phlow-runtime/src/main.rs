@@ -1,45 +1,19 @@
 mod loader;
 mod opentelemetry;
-use clap::{Arg, Command};
-use libloading::{Library, Symbol};
-use loader::Loader;
+
+use std::sync::mpsc::channel;
+
+use loader::{load_module, Loader};
 use opentelemetry::init_tracing_subscriber;
-use phlow_rule_engine::{build_engine_async, Context, Phlow};
+use phlow_rule_engine::{build_engine_async, collector::Step, Context, Phlow};
 use sdk::prelude::*;
-use tracing::{error, info, span};
+use tracing::{debug, error};
 
 #[tokio::main]
 async fn main() {
     let _guard = init_tracing_subscriber();
 
-    let matches = Command::new("Phlow Runtime")
-        .version("0.1.0")
-        .arg(
-            Arg::new("main_file")
-                .help("Main file to load")
-                .required(true)
-                .index(1),
-        )
-        .get_matches();
-
-    let config = match matches.get_one::<String>("main_file") {
-        Some(file) => {
-            let file = std::fs::read_to_string(file).unwrap();
-            match Value::json_to_value(&file) {
-                Ok(value) => value,
-                Err(err) => {
-                    error!("Error: {:?}", err);
-                    return;
-                }
-            }
-        }
-        None => {
-            error!("Error: No main file provided");
-            return;
-        }
-    };
-
-    let loader = match Loader::try_from(config) {
+    let loader = match Loader::load() {
         Ok(main) => main,
         Err(err) => {
             error!("Error: {:?}", err);
@@ -47,65 +21,54 @@ async fn main() {
         }
     };
 
-    let steps: Value = loader.get_steps();
+    let (flow_sender, flow_receiver) = channel::<Step>();
     let engine = build_engine_async(None);
 
-    let flow = match Phlow::try_from_value(&engine, &steps, None, None) {
-        Ok(flow) => flow,
-        Err(err) => {
-            error!("Error: {:?}", err);
-            return;
-        }
-    };
+    let flow = {
+        let steps: Value = loader.get_steps();
 
-    let (sender, receiver) = std::sync::mpsc::channel::<Package>();
-
-    {
-        for module in loader.modules.iter() {
-            let path = format!("phlow_modules/{}.so", module.name);
-
-            if !std::path::Path::new(&path).exists() {
-                error!("Error: Module {} does not exist", module.name);
+        match Phlow::try_from_value(&engine, &steps, None, Some(flow_sender)) {
+            Ok(flow) => flow,
+            Err(err) => {
+                error!("Error: {:?}", err);
                 return;
             }
         }
-    }
+    };
+
+    let (sender_package, receiver_package) = channel::<Package>();
 
     for (id, module) in loader.modules.into_iter().enumerate() {
-        let sender = sender.clone();
+        let sender = sender_package.clone();
 
         tokio::task::spawn(async move {
-            unsafe {
-                info!("Loading module: {}", module.name);
-                let lib = match Library::new(format!("phlow_modules/{}.so", module.name).as_str()) {
-                    Ok(lib) => lib,
-                    Err(err) => {
-                        error!("Error: {:?}", err);
-                        return;
-                    }
-                };
-                let func: Symbol<unsafe extern "C" fn(ModuleId, RuntimeSender, Value)> =
-                    match lib.get(b"plugin") {
-                        Ok(func) => func,
-                        Err(err) => {
-                            error!("Error: {:?}", err);
-                            return;
-                        }
-                    };
-
-                func(id, sender, module.with.clone());
-                info!("Module {} loaded", module.name);
+            match load_module(id, sender, &module) {
+                Ok(_) => debug!("Module {} loaded", module.name),
+                Err(err) => error!("Error: {:?}", err),
             }
         });
     }
 
-    for mut package in receiver {
+    tokio::task::spawn(async move {
+        for step in flow_receiver {
+            process_step(step);
+        }
+    });
+
+    for mut package in receiver_package {
         process_package(&flow, &mut package);
     }
 }
 
 #[tracing::instrument]
+fn process_step(step: Step) {
+    debug!("Processing step: {:?}", step);
+}
+
+#[tracing::instrument]
 fn process_package(flow: &Phlow, package: &mut Package) {
+    debug!("Processing package: {:?}", package);
+
     if let Some(data) = package.get_data() {
         let mut context = Context::from_main(data.clone());
         let result = match flow.execute_with_context(&mut context) {

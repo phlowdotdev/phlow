@@ -130,18 +130,18 @@
 //! ## License
 //!
 //! This project is licensed under the **MIT License**.
-mod collector;
-mod condition;
-mod context;
-mod engine;
-mod id;
-mod modules;
-mod phlow;
-mod pipeline;
-mod script;
-mod step_worker;
-mod transform;
-mod variable;
+pub mod collector;
+pub mod condition;
+pub mod context;
+pub mod engine;
+pub mod id;
+pub mod modules;
+pub mod phlow;
+pub mod pipeline;
+pub mod script;
+pub mod step_worker;
+pub mod transform;
+pub mod variable;
 
 pub use context::Context;
 pub use engine::build_engine_async;
