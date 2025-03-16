@@ -11,3 +11,18 @@ tokio = { version = "1", features = ["full"] }
 libloading = "0.8"
 phlow-rule-engine = { path = "../phlow-rule-engine" }
 clap = "4"
+
+# OpenTelemetry
+opentelemetry = "0.28.0"
+opentelemetry_sdk = "0.28.0"
+opentelemetry-jaeger = "0.22.0" # Exportador de traces para Jaeger
+opentelemetry-prometheus = "0.28.0" # Exportador de métricas para Prometheus
+tracing = "0.1"
+tracing-opentelemetry = "0.29"
+tracing-subscriber = "0.3.19"
+opentelemetry-stdout = "0.28.0"
+opentelemetry-semantic-conventions = { version = "0.28.0", features = [
+    "semconv_experimental",
+] }
+tracing-core = "0.1"
+opentelemetry-otlp = { version = "0.28.0", features = ["grpc-tonic"] }

@@ -1,12 +1,16 @@
 mod loader;
+mod opentelemetry;
 use clap::{Arg, Command};
 use libloading::{Library, Symbol};
 use loader::Loader;
+use opentelemetry::init_tracing_subscriber;
 use phlow_rule_engine::{build_engine_async, Context, Phlow};
 use sdk::prelude::*;
 
 #[tokio::main]
 async fn main() {
+    let _guard = init_tracing_subscriber();
+
     let matches = Command::new("Phlow Runtime")
         .version("0.1.0")
         .arg(
@@ -95,17 +99,22 @@ async fn main() {
     }
 
     for mut package in receiver {
-        if let Some(data) = package.get_data() {
-            let mut context = Context::from_main(data.clone());
-            let result = match flow.execute_with_context(&mut context) {
-                Ok(result) => result,
-                Err(err) => {
-                    println!("Error: {:?}", err);
-                    continue;
-                }
-            };
+        process_package(&flow, &mut package);
+    }
+}
 
-            package.send(result.unwrap_or(Value::Null));
-        }
+#[tracing::instrument]
+fn process_package(flow: &Phlow, package: &mut Package) {
+    if let Some(data) = package.get_data() {
+        let mut context = Context::from_main(data.clone());
+        let result = match flow.execute_with_context(&mut context) {
+            Ok(result) => result,
+            Err(err) => {
+                println!("Error: {:?}", err);
+                return;
+            }
+        };
+
+        package.send(result.unwrap_or(Value::Null));
     }
 }
