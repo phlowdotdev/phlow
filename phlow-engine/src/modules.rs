@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::mpsc::Sender};
+use std::{
+    collections::HashMap,
+    sync::{mpsc::Sender, Arc},
+};
 
 use valu3::value::Value;
 
@@ -15,10 +18,8 @@ pub struct Modules {
 }
 
 impl Modules {
-    pub fn new() -> Self {
-        Self {
-            modules: HashMap::new(),
-        }
+    pub fn new_arc() -> Arc<Self> {
+        Arc::new(Self::default())
     }
 
     pub fn register(&mut self, name: &str, sender: Sender<Context>) {

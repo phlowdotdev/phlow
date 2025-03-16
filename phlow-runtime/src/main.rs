@@ -27,7 +27,7 @@ async fn main() {
     let flow = {
         let steps: Value = loader.get_steps();
 
-        match Phlow::try_from_value(&engine, &steps, None, Some(sender_step)) {
+        match Phlow::try_from_value(&engine, &steps, None, None, Some(sender_step)) {
             Ok(flow) => flow,
             Err(err) => {
                 error!("Runtime Error: {:?}", err);

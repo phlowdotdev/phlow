@@ -1,5 +1,5 @@
 use rhai::Engine;
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 use valu3::{prelude::*, traits::ToValueBehavior, value::Value};
 
 use crate::{
@@ -18,7 +18,7 @@ pub enum TransformError {
 
 pub(crate) fn value_to_pipelines<'a>(
     engine: &'a Engine,
-    modules: Modules,
+    modules: Arc<Modules>,
     trace_sender: Option<ContextSender>,
     input: &Value,
 ) -> Result<PipelineMap<'a>, TransformError> {
@@ -73,7 +73,7 @@ pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
 
 fn value_to_structs<'a>(
     engine: &'a Engine,
-    modules: Modules,
+    modules: Arc<Modules>,
     trace_sender: &Option<ContextSender>,
     map: &Vec<Value>,
 ) -> Result<PipelineMap<'a>, TransformError> {

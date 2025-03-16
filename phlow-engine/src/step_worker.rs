@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     collector::{ContextSender, Step},
     condition::{Condition, ConditionError},
@@ -40,7 +42,7 @@ pub struct StepWorker<'a> {
     pub(crate) payload: Option<Script<'a>>,
     pub(crate) then_case: Option<usize>,
     pub(crate) else_case: Option<usize>,
-    pub(crate) modules: Modules,
+    pub(crate) modules: Arc<Modules>,
     pub(crate) return_case: Option<Script<'a>>,
     pub(crate) trace_sender: Option<ContextSender>,
 }
@@ -48,7 +50,7 @@ pub struct StepWorker<'a> {
 impl<'a> StepWorker<'a> {
     pub fn try_from_value(
         engine: &'a Engine,
-        modules: Modules,
+        modules: Arc<Modules>,
         trace_sender: Option<ContextSender>,
         value: &Value,
     ) -> Result<Self, StepWorkerError> {

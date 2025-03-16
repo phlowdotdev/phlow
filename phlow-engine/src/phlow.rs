@@ -6,8 +6,8 @@ use crate::{
     step_worker::NextStep,
     transform::{value_to_pipelines, TransformError},
 };
-use rhai::{Engine, Module};
-use std::collections::HashMap;
+use rhai::Engine;
+use std::{collections::HashMap, sync::Arc};
 use valu3::prelude::*;
 
 #[derive(Debug)]
@@ -30,9 +30,14 @@ impl<'a> Phlow<'a> {
         engine: &'a Engine,
         value: &Value,
         params: Option<Value>,
-        modules: Modules,
+        modules: Option<Modules>,
         trace_sender: Option<ContextSender>,
     ) -> Result<Self, PhlowError> {
+        let modules = if let Some(modules) = modules {
+            Arc::new(modules)
+        } else {
+            Modules::new_arc()
+        };
         let pipelines = value_to_pipelines(&engine, modules, trace_sender, value)
             .map_err(PhlowError::TransformError)?;
 
@@ -142,8 +147,7 @@ mod tests {
     fn test_phlow_original_1() {
         let original = get_original();
         let engine = build_engine_async(None);
-        let modules = Modules::new();
-        let phlow = Phlow::try_from_value(&engine, &original, None, modules, None).unwrap();
+        let phlow = Phlow::try_from_value(&engine, &original, None, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 10000.00,
@@ -159,8 +163,7 @@ mod tests {
     fn test_phlow_original_2() {
         let original = get_original();
         let engine = build_engine_async(None);
-        let modules = Modules::new();
-        let phlow = Phlow::try_from_value(&engine, &original, None, modules, None).unwrap();
+        let phlow = Phlow::try_from_value(&engine, &original, None, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 500.00,
@@ -176,8 +179,7 @@ mod tests {
     fn test_phlow_original_3() {
         let original = get_original();
         let engine = build_engine_async(None);
-        let modules = Modules::new();
-        let phlow = Phlow::try_from_value(&engine, &original, None, modules, None).unwrap();
+        let phlow = Phlow::try_from_value(&engine, &original, None, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 500.00,
@@ -193,8 +195,7 @@ mod tests {
     fn test_phlow_original_4() {
         let original = get_original();
         let engine = build_engine_async(None);
-        let modules = Modules::new();
-        let phlow = Phlow::try_from_value(&engine, &original, None, modules, None).unwrap();
+        let phlow = Phlow::try_from_value(&engine, &original, None, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 9999.00,
@@ -210,11 +211,10 @@ mod tests {
     fn test_phlow_channel() {
         let original = get_original();
         let engine = build_engine_async(None);
-        let modules = Modules::new();
         let (sender, receiver) = channel::<Step>();
 
         let phlow =
-            Phlow::try_from_value(&engine, &original, None, modules, Some(sender.clone())).unwrap();
+            Phlow::try_from_value(&engine, &original, None, None, Some(sender.clone())).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 9999.00,
