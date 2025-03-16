@@ -6,6 +6,7 @@ use loader::Loader;
 use opentelemetry::init_tracing_subscriber;
 use phlow_rule_engine::{build_engine_async, Context, Phlow};
 use sdk::prelude::*;
+use tracing::{error, info, span};
 
 #[tokio::main]
 async fn main() {
@@ -27,13 +28,13 @@ async fn main() {
             match Value::json_to_value(&file) {
                 Ok(value) => value,
                 Err(err) => {
-                    println!("Error: {:?}", err);
+                    error!("Error: {:?}", err);
                     return;
                 }
             }
         }
         None => {
-            println!("Error: No main file provided");
+            error!("Error: No main file provided");
             return;
         }
     };
@@ -41,7 +42,7 @@ async fn main() {
     let loader = match Loader::try_from(config) {
         Ok(main) => main,
         Err(err) => {
-            println!("Error: {:?}", err);
+            error!("Error: {:?}", err);
             return;
         }
     };
@@ -52,7 +53,7 @@ async fn main() {
     let flow = match Phlow::try_from_value(&engine, &steps, None, None) {
         Ok(flow) => flow,
         Err(err) => {
-            println!("Error: {:?}", err);
+            error!("Error: {:?}", err);
             return;
         }
     };
@@ -64,7 +65,7 @@ async fn main() {
             let path = format!("phlow_modules/{}.so", module.name);
 
             if !std::path::Path::new(&path).exists() {
-                println!("Error: Module {} does not exist", module.name);
+                error!("Error: Module {} does not exist", module.name);
                 return;
             }
         }
@@ -75,11 +76,11 @@ async fn main() {
 
         tokio::task::spawn(async move {
             unsafe {
-                println!("Loading module: {}", module.name);
+                info!("Loading module: {}", module.name);
                 let lib = match Library::new(format!("phlow_modules/{}.so", module.name).as_str()) {
                     Ok(lib) => lib,
                     Err(err) => {
-                        println!("Error: {:?}", err);
+                        error!("Error: {:?}", err);
                         return;
                     }
                 };
@@ -87,13 +88,13 @@ async fn main() {
                     match lib.get(b"plugin") {
                         Ok(func) => func,
                         Err(err) => {
-                            println!("Error: {:?}", err);
+                            error!("Error: {:?}", err);
                             return;
                         }
                     };
 
                 func(id, sender, module.with.clone());
-                print!("Module {} loaded", module.name);
+                info!("Module {} loaded", module.name);
             }
         });
     }
@@ -110,7 +111,7 @@ fn process_package(flow: &Phlow, package: &mut Package) {
         let result = match flow.execute_with_context(&mut context) {
             Ok(result) => result,
             Err(err) => {
-                println!("Error: {:?}", err);
+                error!("Error: {:?}", err);
                 return;
             }
         };
