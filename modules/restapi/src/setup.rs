@@ -1,15 +1,15 @@
 use sdk::prelude::*;
 
 #[derive(Clone, Debug)]
-pub struct Setup {
+pub struct Config {
     pub port: Option<u16>,
     pub host: Option<String>,
 }
 
-impl From<Value> for Setup {
+impl From<Value> for Config {
     fn from(value: Value) -> Self {
         if value.is_null() {
-            return Setup {
+            return Config {
                 port: Some(3000),
                 host: Some("0.0.0.0".to_string()),
             };
@@ -25,6 +25,6 @@ impl From<Value> for Setup {
             None => Some("0.0.0.0".to_string()),
         };
 
-        Setup { port, host }
+        Config { port, host }
     }
 }

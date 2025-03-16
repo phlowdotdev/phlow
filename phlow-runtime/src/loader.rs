@@ -10,7 +10,6 @@ pub enum LoaderError {
     ModuleNotFound(String),
     MainNotDefined,
     StepsNotDefined,
-    NoMainFile,
     ValueParseError(valu3::Error),
     LibLoadingError(libloading::Error),
 }
@@ -22,7 +21,6 @@ impl std::fmt::Debug for LoaderError {
             LoaderError::MainNotDefined => write!(f, "Main not defined"),
             LoaderError::StepsNotDefined => write!(f, "Steps not defined"),
             LoaderError::ValueParseError(err) => write!(f, "Value parse error: {:?}", err),
-            LoaderError::NoMainFile => write!(f, "No main file"),
             LoaderError::ModuleNotFound(name) => write!(f, "Module not found: {}", name),
             LoaderError::LibLoadingError(err) => write!(f, "Lib loading error: {:?}", err),
         }
@@ -36,28 +34,27 @@ impl Display for LoaderError {
             LoaderError::MainNotDefined => write!(f, "Main not defined"),
             LoaderError::StepsNotDefined => write!(f, "Steps not defined"),
             LoaderError::ValueParseError(err) => write!(f, "Value parse error: {:?}", err),
-            LoaderError::NoMainFile => write!(f, "No main file"),
             LoaderError::ModuleNotFound(name) => write!(f, "Module not found: {}", name),
             LoaderError::LibLoadingError(err) => write!(f, "Lib loading error: {:?}", err),
         }
     }
 }
 
-pub fn load_module(setup: ModuleSetup, module: &Module) -> Result<(), LoaderError> {
+pub fn load_module(setup: ModuleSetup, module_name: &str) -> Result<(), LoaderError> {
     unsafe {
-        debug!("Loading module: {}", module.name);
-        let lib = match Library::new(format!("phlow_modules/{}.so", module.name).as_str()) {
+        debug!("Loading module: {}", module_name);
+        let lib = match Library::new(format!("phlow_modules/{}.so", module_name).as_str()) {
             Ok(lib) => lib,
             Err(err) => return Err(LoaderError::LibLoadingError(err)),
         };
-        let func: Symbol<unsafe extern "C" fn(ModuleSetup, Value)> = match lib.get(b"plugin") {
+        let func: Symbol<unsafe extern "C" fn(ModuleSetup)> = match lib.get(b"plugin") {
             Ok(func) => func,
             Err(err) => {
                 return Err(LoaderError::LibLoadingError(err));
             }
         };
 
-        func(setup, module.with.clone());
+        func(setup);
 
         Ok(())
     }
@@ -69,23 +66,22 @@ fn load_config() -> Result<Value, LoaderError> {
         .arg(
             Arg::new("main_file")
                 .help("Main file to load")
-                .required(true)
+                .required(false)
                 .index(1),
         )
         .get_matches();
 
-    match matches.get_one::<String>("main_file") {
-        Some(file) => {
-            let file = std::fs::read_to_string(file).unwrap();
-            match Value::json_to_value(&file) {
-                Ok(value) => Ok(value),
-                Err(err) => {
-                    return Err(LoaderError::ValueParseError(err));
-                }
-            }
-        }
-        None => {
-            return Err(LoaderError::NoMainFile);
+    let main_file = match matches.get_one::<String>("main_file") {
+        Some(file) => file.clone(),
+        None => "main.json".to_string(),
+    };
+
+    let file = std::fs::read_to_string(main_file).unwrap();
+
+    match Value::json_to_value(&file) {
+        Ok(value) => Ok(value),
+        Err(err) => {
+            return Err(LoaderError::ValueParseError(err));
         }
     }
 }

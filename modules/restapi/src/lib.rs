@@ -8,7 +8,7 @@ use hyper::{Request, Response};
 use hyper_util::rt::{TokioIo, TokioTimer};
 use sdk::prelude::*;
 use sdk::tokio::net::TcpListener;
-use setup::Setup;
+use setup::Config;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::net::SocketAddr;
@@ -16,16 +16,14 @@ use std::net::SocketAddr;
 plugin_async!(start_server);
 
 pub async fn start_server(
-    id: ModuleId,
-    sender: MainRuntimeSender,
-    setup: Value,
+    setup: ModuleSetup,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let setup: Setup = Setup::from(setup);
+    let config: Config = Config::from(setup.with);
 
     let addr: SocketAddr = format!(
         "{}:{}",
-        setup.host.as_deref().unwrap_or("0.0.0.0"),
-        setup.port.unwrap_or(3000),
+        config.host.as_deref().unwrap_or("0.0.0.0"),
+        config.port.unwrap_or(3000),
     )
     .parse()?;
 
@@ -35,7 +33,8 @@ pub async fn start_server(
     loop {
         let (tcp, peer_addr) = listener.accept().await?;
         let io = TokioIo::new(tcp);
-        let sender = sender.clone();
+        let sender = setup.main_sender.clone().unwrap();
+        let id = setup.id;
 
         tokio::task::spawn(async move {
             let service = service_fn(move |mut req: Request<hyper::body::Incoming>| {

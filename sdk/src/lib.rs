@@ -1,6 +1,8 @@
 pub mod context;
 pub mod id;
+pub mod modules;
 use context::Context;
+use modules::ModulePackage;
 use std::fmt::{Debug, Formatter};
 use std::{collections::HashMap, sync::mpsc::Sender};
 pub use tokio;
@@ -12,24 +14,19 @@ pub type ModuleId = usize;
 pub type MainRuntimeSender = Sender<Package>;
 pub type ModuleSetupSender = oneshot::Sender<Sender<ModulePackage>>;
 
-#[derive(Debug)]
-pub struct ModulePackage {
-    pub context: Context,
-    pub sender: oneshot::Sender<Value>,
-}
-
 pub struct ModuleSetup {
     pub id: ModuleId,
     pub setup_sender: ModuleSetupSender,
     pub main_sender: Option<MainRuntimeSender>,
+    pub with: Value,
 }
 
 #[macro_export]
 macro_rules! plugin {
     ($handler:ident) => {
         #[no_mangle]
-        pub extern "C" fn plugin(id: ModuleId, sender: MainRuntimeSender, value: Value) {
-            $handler(id, sender, value);
+        pub extern "C" fn plugin(setup: ModuleSetup) {
+            $handler(setup);
         }
     };
 }
@@ -37,9 +34,9 @@ macro_rules! plugin {
 macro_rules! plugin_async {
     ($handler:ident) => {
         #[no_mangle]
-        pub extern "C" fn plugin(id: ModuleId, sender: MainRuntimeSender, value: Value) {
+        pub extern "C" fn plugin(setup: ModuleSetup) {
             let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on($handler(id, sender, value)).unwrap();
+            rt.block_on($handler(setup)).unwrap();
         }
     };
 }

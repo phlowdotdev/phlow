@@ -11,12 +11,9 @@ use phlow_engine::{
     Phlow,
 };
 use sdk::prelude::*;
-use std::{
-    hash::Hash,
-    sync::{
-        mpsc::{channel, Sender},
-        Arc, Mutex,
-    },
+use std::sync::{
+    mpsc::{channel, Sender},
+    Arc, Mutex,
 };
 use tokio::sync::oneshot;
 use tracing::{debug, error};
@@ -36,40 +33,64 @@ async fn main() {
     let (sender_step, receiver_step) = channel::<Step>();
     let engine = build_engine_async(None);
     let steps: Value = loader.get_steps();
+    let modules_len = loader.modules.len();
 
     let (setup_sender_main_package, setup_receiver_main_package) = channel::<Package>();
 
-    let modules = {
-        let modules = Arc::new(Mutex::new(Modules::default()));
+    let (complete_module_sender, complete_module_receiver) = channel::<usize>();
 
-        for (id, module) in loader.modules.into_iter().enumerate() {
-            let (setup_sender, setup_receive) = oneshot::channel::<Sender<ModulePackage>>();
+    let modules = Arc::new(Mutex::new(Modules::default()));
 
-            let main_sender = if loader.main == id as i32 {
-                Some(setup_sender_main_package.clone())
-            } else {
-                None
-            };
+    for (id, module) in loader.modules.into_iter().enumerate() {
+        let (setup_sender, setup_receive) = oneshot::channel::<Sender<ModulePackage>>();
 
-            tokio::task::spawn(async move {
-                let setup = ModuleSetup {
-                    id,
-                    setup_sender,
-                    main_sender,
-                };
+        let main_sender = if loader.main == id as i32 {
+            Some(setup_sender_main_package.clone())
+        } else {
+            None
+        };
 
-                match load_module(setup, &module) {
-                    Ok(sender) => debug!("Main module {} loaded", module.name),
-                    Err(err) => error!("Runtime Error: {:?}", err),
-                }
+        let setup = ModuleSetup {
+            id,
+            setup_sender,
+            main_sender,
+            with: module.with.clone(),
+        };
 
-                let setup_data = setup_receive.await.unwrap();
+        let module_name = module.name.clone();
 
-                modules.lock().unwrap().register(&module.name, setup_data);
-            });
+        tokio::task::spawn(async move {
+            if let Err(err) = load_module(setup, &module_name) {
+                error!("Runtime Error: {:?}", err)
+            }
+        });
+
+        let setup_data = setup_receive.await.unwrap();
+        modules.lock().unwrap().register(&module.name, setup_data);
+        complete_module_sender.send(id).unwrap();
+    }
+
+    {
+        let mut total_modules_loaded = 0;
+        for module_id in complete_module_receiver {
+            debug!("Module {} loaded", module_id);
+            total_modules_loaded += 1;
+
+            if total_modules_loaded == modules_len {
+                break;
+            }
         }
+    }
 
-        let modules = modules.lock().unwrap().extract();
+    let modules = {
+        let modules = match modules.lock() {
+            Ok(modules) => modules.extract(),
+            Err(err) => {
+                error!("Runtime Error: {:?}", err);
+                return;
+            }
+        };
+
         Arc::new(modules)
     };
 
@@ -86,12 +107,6 @@ async fn main() {
     tokio::task::spawn(async move {
         for step in receiver_step {
             processes::step(step);
-        }
-    });
-
-    tokio::task::spawn(async move {
-        for package in setup_receiver_package {
-            println!("{:?}", package);
         }
     });
 
