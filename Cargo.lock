@@ -1300,7 +1300,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "phlow-rule-engine"
+name = "phlow-engine"
 version = "0.1.0"
 dependencies = [
  "regex",
@@ -1323,7 +1323,7 @@ dependencies = [
  "opentelemetry-semantic-conventions 0.28.0",
  "opentelemetry-stdout",
  "opentelemetry_sdk 0.28.0",
- "phlow-rule-engine",
+ "phlow-engine",
  "sdk",
  "serde",
  "tokio",

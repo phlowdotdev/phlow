@@ -4,7 +4,7 @@ mod processes;
 
 use loader::{load_module, Loader};
 use opentelemetry::init_tracing_subscriber;
-use phlow_rule_engine::{build_engine_async, collector::Step, Phlow};
+use phlow_engine::{build_engine_async, collector::Step, Phlow};
 use sdk::prelude::*;
 use std::sync::mpsc::channel;
 use tracing::{debug, error};
