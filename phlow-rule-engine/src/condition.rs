@@ -33,6 +33,27 @@ pub enum Operator {
     NotRegex,
 }
 
+impl ToValueBehavior for Operator {
+    fn to_value(&self) -> Value {
+        match self {
+            Operator::Or => "or".to_value(),
+            Operator::And => "and".to_value(),
+            Operator::Equal => "equal".to_value(),
+            Operator::NotEqual => "not_equal".to_value(),
+            Operator::GreaterThan => "greater_than".to_value(),
+            Operator::LessThan => "less_than".to_value(),
+            Operator::GreaterThanOrEqual => "greater_than_or_equal".to_value(),
+            Operator::LessThanOrEqual => "less_than_or_equal".to_value(),
+            Operator::Contains => "contains".to_value(),
+            Operator::NotContains => "not_contains".to_value(),
+            Operator::StartsWith => "starts_with".to_value(),
+            Operator::EndsWith => "ends_with".to_value(),
+            Operator::Regex => "regex".to_value(),
+            Operator::NotRegex => "not_regex".to_value(),
+        }
+    }
+}
+
 impl From<&Value> for Operator {
     fn from(value: &Value) -> Self {
         match value.as_str() {

@@ -4,10 +4,10 @@ use tracing::{debug, error};
 
 #[tracing::instrument]
 pub fn step(step: Step) {
-    debug!("Processing step: {:?}", step);
+    debug!("Processing step: {:?}", step.to_value());
 }
 
-#[tracing::instrument]
+#[tracing::instrument(skip(flow))]
 pub fn module(flow: &Phlow, package: &mut Package) {
     debug!("Processing package: {:?}", package);
 

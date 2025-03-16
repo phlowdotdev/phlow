@@ -1,9 +1,12 @@
 use serde::Serialize;
-use std::fmt::Debug;
 use std::sync::mpsc::Sender;
-use valu3::value::Value;
+use std::{collections::HashMap, fmt::Debug};
+use valu3::prelude::*;
 
-use crate::{condition::ConditionRaw, id::ID};
+use crate::{
+    condition::{self, ConditionRaw},
+    id::ID,
+};
 
 pub type ContextSender = Sender<Step>;
 
@@ -14,4 +17,25 @@ pub struct Step {
     pub condition: Option<ConditionRaw>,
     pub payload: Option<Value>,
     pub return_case: Option<Value>,
+}
+
+impl ToValueBehavior for Step {
+    fn to_value(&self) -> Value {
+        let mut value = HashMap::new();
+        let mut condition = HashMap::new();
+
+        if let Some(condition_raw) = &self.condition {
+            condition.insert("left".to_string(), condition_raw.left.to_value());
+            condition.insert("right".to_string(), condition_raw.right.to_value());
+            condition.insert("operator".to_string(), condition_raw.operator.to_value());
+        }
+
+        value.insert("id", self.id.to_value());
+        value.insert("label", self.label.to_value());
+        value.insert("condition", condition.to_value());
+        value.insert("payload", self.payload.to_value());
+        value.insert("return_case", self.return_case.to_value());
+
+        value.to_value()
+    }
 }

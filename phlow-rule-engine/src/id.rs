@@ -1,6 +1,6 @@
 use serde::Serialize;
 use std::fmt::Display;
-use valu3::value::Value;
+use valu3::{traits::ToValueBehavior, value::Value};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Eq, Hash)]
 pub struct ID(Option<String>);
@@ -12,6 +12,12 @@ impl ID {
 
     pub fn is_some(&self) -> bool {
         self.0.is_some()
+    }
+}
+
+impl ToValueBehavior for ID {
+    fn to_value(&self) -> Value {
+        self.0.to_value()
     }
 }
 
