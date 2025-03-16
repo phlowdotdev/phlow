@@ -13,7 +13,7 @@ macro_rules! plugin {
     ($handler:ident) => {
         #[no_mangle]
         pub extern "C" fn plugin(id: ModuleId, sender: MainRuntimeSender, value: Value) {
-            $handler(id, sender, value)
+            $handler(id, sender, value);
         }
     };
 }

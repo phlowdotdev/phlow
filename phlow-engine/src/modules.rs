@@ -39,17 +39,7 @@ impl Modules {
         self.modules.insert(name.to_string(), sender);
     }
 
-    pub fn execute(&self, name: &str, context: &Context) -> Result<Value, ModulesError> {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        let res = rt.block_on(self.execute_async(name, context)).unwrap();
-        Ok(res)
-    }
-
-    pub async fn execute_async(
-        &self,
-        name: &str,
-        context: &Context,
-    ) -> Result<Value, ModulesError> {
+    pub async fn execute(&self, name: &str, context: &Context) -> Result<Value, ModulesError> {
         if let Some(module_sender) = self.modules.get(name) {
             let (package_sender, package_receiver) = oneshot::channel();
             let package = ModulePackage {

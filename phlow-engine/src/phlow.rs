@@ -44,7 +44,10 @@ impl<'a> Phlow<'a> {
         Ok(Self { pipelines, params })
     }
 
-    pub fn execute_with_context(&self, context: &mut Context) -> Result<Option<Value>, PhlowError> {
+    pub async fn execute_with_context(
+        &self,
+        context: &mut Context,
+    ) -> Result<Option<Value>, PhlowError> {
         if self.pipelines.is_empty() {
             return Ok(None);
         }
@@ -57,7 +60,7 @@ impl<'a> Phlow<'a> {
                 .get(&current)
                 .ok_or(PhlowError::PipelineNotFound)?;
 
-            match pipeline.execute(context) {
+            match pipeline.execute(context).await {
                 Ok(step_output) => match step_output {
                     Some(step_output) => match step_output.next_step {
                         NextStep::Next | NextStep::Stop => {
@@ -78,9 +81,9 @@ impl<'a> Phlow<'a> {
         }
     }
 
-    pub fn execute(&self) -> Result<Option<Value>, PhlowError> {
+    pub async fn execute(&self) -> Result<Option<Value>, PhlowError> {
         let mut context = Context::new(self.params.clone());
-        return self.execute_with_context(&mut context);
+        return self.execute_with_context(&mut context).await;
     }
 }
 
@@ -143,8 +146,8 @@ mod tests {
         })
     }
 
-    #[test]
-    fn test_phlow_original_1() {
+    #[tokio::test]
+    async fn test_phlow_original_1() {
         let original = get_original();
         let engine = build_engine_async(None);
         let phlow = Phlow::try_from_value(&engine, &original, None, None, None).unwrap();
@@ -154,13 +157,13 @@ mod tests {
             "score": 0.6
         })));
 
-        let result = phlow.execute_with_context(&mut context).unwrap();
+        let result = phlow.execute_with_context(&mut context).await.unwrap();
 
         assert_eq!(result, Some(json!(10000.0)));
     }
 
-    #[test]
-    fn test_phlow_original_2() {
+    #[tokio::test]
+    async fn test_phlow_original_2() {
         let original = get_original();
         let engine = build_engine_async(None);
         let phlow = Phlow::try_from_value(&engine, &original, None, None, None).unwrap();
@@ -170,13 +173,13 @@ mod tests {
             "score": 0.6
         })));
 
-        let result = phlow.execute_with_context(&mut context).unwrap();
+        let result = phlow.execute_with_context(&mut context).await.unwrap();
 
         assert_eq!(result, Some(json!(3500.0)));
     }
 
-    #[test]
-    fn test_phlow_original_3() {
+    #[tokio::test]
+    async fn test_phlow_original_3() {
         let original = get_original();
         let engine = build_engine_async(None);
         let phlow = Phlow::try_from_value(&engine, &original, None, None, None).unwrap();
@@ -186,13 +189,13 @@ mod tests {
             "score": 0.2
         })));
 
-        let result = phlow.execute_with_context(&mut context).unwrap();
+        let result = phlow.execute_with_context(&mut context).await.unwrap();
 
         assert_eq!(result, None);
     }
 
-    #[test]
-    fn test_phlow_original_4() {
+    #[tokio::test]
+    async fn test_phlow_original_4() {
         let original = get_original();
         let engine = build_engine_async(None);
         let phlow = Phlow::try_from_value(&engine, &original, None, None, None).unwrap();
@@ -202,13 +205,13 @@ mod tests {
             "score": 0.6
         })));
 
-        let result = phlow.execute_with_context(&mut context).unwrap();
+        let result = phlow.execute_with_context(&mut context).await.unwrap();
 
         assert_eq!(result, Some(json!(10000.0)));
     }
 
-    #[test]
-    fn test_phlow_channel() {
+    #[tokio::test]
+    async fn test_phlow_channel() {
         let original = get_original();
         let engine = build_engine_async(None);
         let (sender, receiver) = channel::<Step>();
@@ -258,7 +261,7 @@ mod tests {
             },
         ];
 
-        phlow.execute_with_context(&mut context).unwrap();
+        phlow.execute_with_context(&mut context).await.unwrap();
 
         let mut result: Vec<Step> = Vec::new();
 

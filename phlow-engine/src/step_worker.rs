@@ -149,9 +149,9 @@ impl<'a> StepWorker<'a> {
         }
     }
 
-    fn evaluate_module(&self, context: &Context) -> Result<Option<Value>, StepWorkerError> {
+    async fn evaluate_module(&self, context: &Context) -> Result<Option<Value>, StepWorkerError> {
         if let Some(ref module) = self.module {
-            match self.modules.execute(module, context) {
+            match self.modules.execute(module, context).await {
                 Ok(value) => Ok(Some(value)),
                 Err(err) => Err(StepWorkerError::ModulesError(err)),
             }
@@ -160,7 +160,7 @@ impl<'a> StepWorker<'a> {
         }
     }
 
-    pub fn execute(&self, context: &Context) -> Result<StepOutput, StepWorkerError> {
+    pub async fn execute(&self, context: &Context) -> Result<StepOutput, StepWorkerError> {
         if let Some(return_case) = self.evaluate_return(context)? {
             if let Some(sender) = &self.trace_sender {
                 sender
@@ -181,7 +181,7 @@ impl<'a> StepWorker<'a> {
             });
         }
 
-        if let Some(module) = self.evaluate_module(context)? {
+        if let Some(module) = self.evaluate_module(context).await? {
             if let Some(sender) = &self.trace_sender {
                 sender
                     .send(Step {
@@ -269,8 +269,8 @@ mod test {
     use valu3::prelude::ToValueBehavior;
     use valu3::value::Value;
 
-    #[test]
-    fn test_step_get_reference_id() {
+    #[tokio::test]
+    async fn test_step_get_reference_id() {
         let step = StepWorker {
             id: ID::from("id"),
             label: Some("label".to_string()),
@@ -280,8 +280,8 @@ mod test {
         assert_eq!(step.get_id(), &ID::from("id"));
     }
 
-    #[test]
-    fn test_step_execute() {
+    #[tokio::test]
+    async fn test_step_execute() {
         let engine = build_engine_async(None);
         let step = StepWorker {
             payload: Some(Script::try_build(&engine, &"10".to_value()).unwrap()),
@@ -290,14 +290,14 @@ mod test {
 
         let context = Context::new(None);
 
-        let result = step.execute(&context).unwrap();
+        let result = step.execute(&context).await.unwrap();
 
         assert_eq!(result.next_step, NextStep::Next);
         assert_eq!(result.output, Some(Value::from(10i64)));
     }
 
-    #[test]
-    fn test_step_execute_with_condition() {
+    #[tokio::test]
+    async fn test_step_execute_with_condition() {
         let engine = build_engine_async(None);
         let step = StepWorker {
             id: ID::new(),
@@ -316,14 +316,14 @@ mod test {
 
         let context = Context::new(None);
 
-        let result = step.execute(&context).unwrap();
+        let result = step.execute(&context).await.unwrap();
 
         assert_eq!(result.next_step, NextStep::Next);
         assert_eq!(result.output, Some(Value::from(10i64)));
     }
 
-    #[test]
-    fn test_step_execute_with_condition_then_case() {
+    #[tokio::test]
+    async fn test_step_execute_with_condition_then_case() {
         let engine = build_engine_async(None);
         let step = StepWorker {
             id: ID::new(),
@@ -343,14 +343,14 @@ mod test {
 
         let context = Context::new(None);
 
-        let result = step.execute(&context).unwrap();
+        let result = step.execute(&context).await.unwrap();
 
         assert_eq!(result.next_step, NextStep::Pipeline(0));
         assert_eq!(result.output, Some(Value::from(10i64)));
     }
 
-    #[test]
-    fn test_step_execute_with_condition_else_case() {
+    #[tokio::test]
+    async fn test_step_execute_with_condition_else_case() {
         let engine = build_engine_async(None);
         let step = StepWorker {
             id: ID::new(),
@@ -370,14 +370,14 @@ mod test {
 
         let context = Context::new(None);
 
-        let result = step.execute(&context).unwrap();
+        let result = step.execute(&context).await.unwrap();
 
         assert_eq!(result.next_step, NextStep::Pipeline(1));
         assert_eq!(result.output, None);
     }
 
-    #[test]
-    fn test_step_execute_with_return_case() {
+    #[tokio::test]
+    async fn test_step_execute_with_return_case() {
         let engine = build_engine_async(None);
         let step = StepWorker {
             id: ID::new(),
@@ -387,14 +387,14 @@ mod test {
 
         let context = Context::new(None);
 
-        let result = step.execute(&context).unwrap();
+        let result = step.execute(&context).await.unwrap();
 
         assert_eq!(result.next_step, NextStep::Stop);
         assert_eq!(result.output, Some(Value::from(10i64)));
     }
 
-    #[test]
-    fn test_step_execute_with_return_case_and_payload() {
+    #[tokio::test]
+    async fn test_step_execute_with_return_case_and_payload() {
         let engine = build_engine_async(None);
         let step = StepWorker {
             id: ID::new(),
@@ -405,14 +405,14 @@ mod test {
 
         let context = Context::new(None);
 
-        let result = step.execute(&context).unwrap();
+        let result = step.execute(&context).await.unwrap();
 
         assert_eq!(result.next_step, NextStep::Stop);
         assert_eq!(result.output, Some(Value::from(20i64)));
     }
 
-    #[test]
-    fn test_step_execute_with_return_case_and_condition() {
+    #[tokio::test]
+    async fn test_step_execute_with_return_case_and_condition() {
         let engine = build_engine_async(None);
         let step = StepWorker {
             id: ID::new(),
@@ -431,14 +431,14 @@ mod test {
 
         let context = Context::new(None);
 
-        let result = step.execute(&context).unwrap();
+        let result = step.execute(&context).await.unwrap();
 
         assert_eq!(result.next_step, NextStep::Stop);
         assert_eq!(result.output, Some(Value::from(10i64)));
     }
 
-    #[test]
-    fn test_step_execute_with_return_case_and_condition_then_case() {
+    #[tokio::test]
+    async fn test_step_execute_with_return_case_and_condition_then_case() {
         let engine = build_engine_async(None);
         let step = StepWorker {
             id: ID::new(),
@@ -457,14 +457,14 @@ mod test {
         };
 
         let context = Context::new(None);
-        let output = step.execute(&context).unwrap();
+        let output = step.execute(&context).await.unwrap();
 
         assert_eq!(output.next_step, NextStep::Stop);
         assert_eq!(output.output, Some(Value::from("Ok")));
     }
 
-    #[test]
-    fn test_step_execute_with_return_case_and_condition_else_case() {
+    #[tokio::test]
+    async fn test_step_execute_with_return_case_and_condition_else_case() {
         let engine = build_engine_async(None);
         let step = StepWorker {
             id: ID::new(),
@@ -483,7 +483,7 @@ mod test {
         };
 
         let context = Context::new(None);
-        let result = step.execute(&context).unwrap();
+        let result = step.execute(&context).await.unwrap();
 
         assert_eq!(result.next_step, NextStep::Stop);
         assert_eq!(result.output, Some(Value::from("Ok")));

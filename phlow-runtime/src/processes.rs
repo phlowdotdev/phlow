@@ -8,12 +8,12 @@ pub fn step(step: Step) {
 }
 
 #[tracing::instrument(skip(flow))]
-pub fn execute_steps(flow: &Phlow, package: &mut Package) {
+pub async fn execute_steps<'a>(flow: &Phlow<'a>, package: &mut Package) {
     debug!("Processing package: {:?}", package);
 
     if let Some(data) = package.get_data() {
         let mut context = Context::from_main(data.clone());
-        let result = match flow.execute_with_context(&mut context) {
+        let result = match flow.execute_with_context(&mut context).await {
             Ok(result) => result,
             Err(err) => {
                 error!("Runtime Error: {:?}", err);

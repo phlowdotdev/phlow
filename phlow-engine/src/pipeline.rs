@@ -14,9 +14,12 @@ pub struct Pipeline<'a> {
 }
 
 impl<'a> Pipeline<'a> {
-    pub fn execute(&self, context: &mut Context) -> Result<Option<StepOutput>, PipelineError> {
+    pub async fn execute(
+        &self,
+        context: &mut Context,
+    ) -> Result<Option<StepOutput>, PipelineError> {
         for step in self.steps.iter() {
-            match step.execute(&context) {
+            match step.execute(&context).await {
                 Ok(step_output) => {
                     if step.get_id().is_some() {
                         if let Some(payload) = &step_output.output {

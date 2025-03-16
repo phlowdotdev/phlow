@@ -41,8 +41,6 @@ async fn main() {
                     Err(err) => error!("Runtime Error: {:?}", err),
                 }
             });
-
-            continue;
         } else {
             let sender = sender_package.clone();
 

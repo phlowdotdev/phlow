@@ -5,7 +5,7 @@
             "name": "restapi"
         },
         {
-            "name": "amqp"
+            "name": "echo"
         }
     ],
     "steps": [
