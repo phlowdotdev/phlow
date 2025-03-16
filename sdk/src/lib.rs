@@ -12,7 +12,7 @@ use valu3::{traits::ToValueBehavior, value::Value};
 
 pub type ModuleId = usize;
 pub type MainRuntimeSender = Sender<Package>;
-pub type ModuleSetupSender = oneshot::Sender<Sender<ModulePackage>>;
+pub type ModuleSetupSender = oneshot::Sender<Option<Sender<ModulePackage>>>;
 
 pub struct ModuleSetup {
     pub id: ModuleId,

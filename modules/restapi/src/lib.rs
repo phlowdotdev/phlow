@@ -28,6 +28,9 @@ pub async fn start_server(
     .parse()?;
 
     let listener = TcpListener::bind(addr).await?;
+
+    setup.setup_sender.send(None).unwrap();
+
     println!("Listening on http://{}", addr);
 
     loop {

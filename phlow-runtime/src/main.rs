@@ -30,19 +30,19 @@ async fn main() {
         }
     };
 
-    let (sender_step, receiver_step) = channel::<Step>();
     let engine = build_engine_async(None);
     let steps: Value = loader.get_steps();
 
-    let (setup_sender_main_package, setup_receiver_main_package) = channel::<Package>();
+    let (trace_step_sender, trace_step_receiver) = channel::<Step>();
+    let (main_sender_package, main_receiver_package) = channel::<Package>();
 
-    let modules = Arc::new(Mutex::new(Modules::default()));
+    let mut modules = Modules::default();
 
     for (id, module) in loader.modules.into_iter().enumerate() {
-        let (setup_sender, setup_receive) = oneshot::channel::<Sender<ModulePackage>>();
+        let (setup_sender, setup_receive) = oneshot::channel::<Option<Sender<ModulePackage>>>();
 
         let main_sender = if loader.main == id as i32 {
-            Some(setup_sender_main_package.clone())
+            Some(main_sender_package.clone())
         } else {
             None
         };
@@ -62,24 +62,23 @@ async fn main() {
             }
         });
 
-        let setup_data = setup_receive.await.unwrap();
-        modules.lock().unwrap().register(&module.name, setup_data);
+        println!("Module {} loaded", module.name);
+
+        if let Some(setup_data) = setup_receive.await.unwrap_or(None) {
+            modules.register(&module.name, setup_data);
+        }
     }
 
-    let modules = {
-        let modules = match modules.lock() {
-            Ok(modules) => modules.extract(),
-            Err(err) => {
-                error!("Runtime Error: {:?}", err);
-                return;
-            }
-        };
-
-        Arc::new(modules)
-    };
+    println!("Main package sent");
 
     let flow = {
-        match Phlow::try_from_value(&engine, &steps, None, Some(modules), Some(sender_step)) {
+        match Phlow::try_from_value(
+            &engine,
+            &steps,
+            None,
+            Some(Arc::new(modules)),
+            Some(trace_step_sender),
+        ) {
             Ok(flow) => flow,
             Err(err) => {
                 error!("Runtime Error: {:?}", err);
@@ -89,12 +88,13 @@ async fn main() {
     };
 
     tokio::task::spawn(async move {
-        for step in receiver_step {
+        for step in trace_step_receiver {
             processes::step(step);
         }
     });
 
-    for mut package in setup_receiver_main_package {
+    for mut package in main_receiver_package {
+        println!("Main package received");
         processes::execute_steps(&flow, &mut package).await;
     }
 }
