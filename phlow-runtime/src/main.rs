@@ -36,17 +36,31 @@ async fn main() {
         }
     };
 
+    let (sender_main_package, receiver_main_package) = channel::<Package>();
     let (sender_package, receiver_package) = channel::<Package>();
 
     for (id, module) in loader.modules.into_iter().enumerate() {
-        let sender = sender_package.clone();
+        if loader.main == id as i32 {
+            let sender = sender_main_package.clone();
 
-        tokio::task::spawn(async move {
-            match load_module(id, sender, &module) {
-                Ok(_) => debug!("Module {} loaded", module.name),
-                Err(err) => error!("Runtime Error: {:?}", err),
-            }
-        });
+            tokio::task::spawn(async move {
+                match load_module(id, sender, &module) {
+                    Ok(_) => debug!("Main module {} loaded", module.name),
+                    Err(err) => error!("Runtime Error: {:?}", err),
+                }
+            });
+
+            continue;
+        } else {
+            let sender = sender_package.clone();
+
+            tokio::task::spawn(async move {
+                match load_module(id, sender, &module) {
+                    Ok(_) => debug!("Module {} loaded", module.name),
+                    Err(err) => error!("Runtime Error: {:?}", err),
+                }
+            });
+        }
     }
 
     tokio::task::spawn(async move {
@@ -55,7 +69,13 @@ async fn main() {
         }
     });
 
-    for mut package in receiver_package {
-        processes::module(&flow, &mut package);
+    tokio::task::spawn(async move {
+        for package in receiver_package {
+            println!("{:?}", package);
+        }
+    });
+
+    for mut package in receiver_main_package {
+        processes::execute_steps(&flow, &mut package);
     }
 }

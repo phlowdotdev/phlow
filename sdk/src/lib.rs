@@ -1,6 +1,7 @@
 use std::fmt::{Debug, Formatter};
 use std::{collections::HashMap, sync::mpsc::Sender};
 use tokio::sync::oneshot;
+pub use valu3;
 use valu3::{traits::ToValueBehavior, value::Value};
 
 pub type ModuleId = usize;
@@ -84,4 +85,5 @@ pub mod prelude {
     pub use valu3::prelude::*;
     // export macro
     pub use crate::plugin;
+    pub use valu3::json;
 }

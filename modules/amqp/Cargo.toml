@@ -1,0 +1,13 @@
+[package]
+name = "amqp"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sdk = { path = "../../sdk" }
+lapin = "2.5"
+
+
+[lib]
+name = "amqp"
+crate-type = ["cdylib"]

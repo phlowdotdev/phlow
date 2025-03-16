@@ -1,3 +1,9 @@
 [workspace]
-members = ['phlow-engine', "modules/restapi", "phlow-runtime", "sdk"]
+members = [
+    'phlow-engine',
+    "phlow-runtime",
+    "sdk",
+    "modules/restapi",
+    "modules/amqp",
+]
 resolver = '2'

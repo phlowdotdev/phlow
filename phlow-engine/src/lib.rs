@@ -145,5 +145,5 @@ pub mod variable;
 
 pub use context::Context;
 pub use engine::build_engine_async;
-pub use modules::{Module, ModuleFunction};
+pub use modules::{Repositories, RepositoryFunction};
 pub use phlow::Phlow;

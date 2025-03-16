@@ -8,7 +8,7 @@ pub fn step(step: Step) {
 }
 
 #[tracing::instrument(skip(flow))]
-pub fn module(flow: &Phlow, package: &mut Package) {
+pub fn execute_steps(flow: &Phlow, package: &mut Package) {
     debug!("Processing package: {:?}", package);
 
     if let Some(data) = package.get_data() {

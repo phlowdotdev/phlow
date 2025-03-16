@@ -3,9 +3,18 @@
     "modules": [
         {
             "name": "restapi"
+        },
+        {
+            "name": "ampq"
         }
     ],
     "steps": [
+        {
+            "module": "rabbitmq",
+            "params": {
+                "message": "main.body"
+            }
+        },
         {
             "return": {
                 "status_code": 201,

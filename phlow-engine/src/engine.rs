@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tokio::sync::oneshot;
 use valu3::value::Value;
 
-use crate::modules::{Module, ModuleFunction};
+use crate::modules::{Repositories, RepositoryFunction};
 
 use std::sync::OnceLock;
 use tokio::runtime::Runtime;
@@ -35,13 +35,13 @@ fn build_engine() -> Engine {
 
 static RUNTIME: OnceLock<Runtime> = OnceLock::new();
 
-pub fn build_engine_sync(plugins: Option<Module>) -> Engine {
+pub fn build_engine_sync(repositories: Option<Repositories>) -> Engine {
     let mut engine = build_engine();
     let rt = RUNTIME.get_or_init(|| Runtime::new().unwrap());
 
-    if let Some(repositories) = plugins {
-        for (key, call) in repositories.plugins {
-            let call: ModuleFunction = Arc::new(move |value: Value| -> Value {
+    if let Some(repositories) = repositories {
+        for (key, call) in repositories.repositories {
+            let call: RepositoryFunction = Arc::new(move |value: Value| -> Value {
                 let call_clone = Arc::clone(&call);
                 let (tx, rx) = oneshot::channel();
 
@@ -51,7 +51,7 @@ pub fn build_engine_sync(plugins: Option<Module>) -> Engine {
                 });
 
                 rx.blocking_recv().unwrap_or(Value::Null)
-            }) as ModuleFunction;
+            }) as RepositoryFunction;
 
             engine.register_fn(key.clone(), move |dynamic: Dynamic| {
                 let value: Value = from_dynamic(&dynamic).unwrap();
@@ -63,12 +63,12 @@ pub fn build_engine_sync(plugins: Option<Module>) -> Engine {
     engine
 }
 
-pub fn build_engine_async(plugins: Option<Module>) -> Engine {
+pub fn build_engine_async(repositories: Option<Repositories>) -> Engine {
     let mut engine = build_engine();
 
-    if let Some(repositories) = plugins {
-        for (key, call) in repositories.plugins {
-            let call: ModuleFunction = Arc::new(move |value: Value| -> Value {
+    if let Some(repositories) = repositories {
+        for (key, call) in repositories.repositories {
+            let call: RepositoryFunction = Arc::new(move |value: Value| -> Value {
                 let call_clone = Arc::clone(&call);
                 let (tx, rx) = oneshot::channel();
 
@@ -80,7 +80,7 @@ pub fn build_engine_async(plugins: Option<Module>) -> Engine {
 
                 // Usa tokio::runtime::Handle::current() para evitar erro de runtime
                 rx.blocking_recv().unwrap_or(Value::Null) // Aguarda sem criar outro runtime
-            }) as ModuleFunction;
+            }) as RepositoryFunction;
 
             engine.register_fn(key.clone(), move |dynamic: Dynamic| {
                 let value: Value = from_dynamic(&dynamic).unwrap();
@@ -129,9 +129,7 @@ mod tests {
 
         repositories.insert("process".to_string(), mock_function);
 
-        let repos = Module {
-            plugins: repositories,
-        };
+        let repos = Repositories { repositories };
         let engine = build_engine_sync(Some(repos));
 
         let result: Value = engine.eval(r#"process("data")"#).unwrap();

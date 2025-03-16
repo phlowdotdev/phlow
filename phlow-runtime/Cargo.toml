@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
-valu3 = { version = "0.8.2", features = ["default", "cstring"] }
 sdk = { path = "../sdk" }
 tokio = { version = "1", features = ["full"] }
 libloading = "0.8"

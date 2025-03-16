@@ -29,10 +29,10 @@ impl<'a> Phlow<'a> {
         engine: &'a Engine,
         value: &Value,
         params: Option<Value>,
-        sender: Option<ContextSender>,
+        trace_sender: Option<ContextSender>,
     ) -> Result<Self, PhlowError> {
         let pipelines =
-            value_to_pipelines(&engine, sender, value).map_err(PhlowError::TransformError)?;
+            value_to_pipelines(&engine, trace_sender, value).map_err(PhlowError::TransformError)?;
 
         Ok(Self { pipelines, params })
     }
