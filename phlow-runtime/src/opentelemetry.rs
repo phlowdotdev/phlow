@@ -1,4 +1,4 @@
-use opentelemetry::{global, trace::TracerProvider as _, KeyValue};
+use opentelemetry::{global, trace::TracerProvider as _};
 use opentelemetry_sdk::{
     metrics::{MeterProviderBuilder, PeriodicReader, SdkMeterProvider},
     trace::{RandomIdGenerator, Sampler, SdkTracerProvider},
