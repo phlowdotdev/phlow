@@ -1,5 +1,4 @@
 use std::{collections::HashMap, sync::mpsc::Sender};
-
 use tokio::sync::oneshot;
 use valu3::value::Value;
 
@@ -8,6 +7,7 @@ use crate::Context;
 #[derive(Debug, Clone)]
 pub enum ModulesError {
     ModuleNotFound(String),
+    ModuleNotLoaded(String),
 }
 
 #[derive(Debug)]
@@ -51,7 +51,7 @@ impl Modules {
             Ok(value)
         } else {
             println!("Module not found: {}", name);
-            Err(ModulesError::ModuleNotFound(name.to_string()))
+            Err(ModulesError::ModuleNotLoaded(name.to_string()))
         }
     }
 }

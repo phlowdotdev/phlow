@@ -3,9 +3,18 @@
     "modules": [
         {
             "name": "restapi"
+        },
+        {
+            "name": "echo"
         }
     ],
     "steps": [
+        {
+            "module": "echo",
+            "params": {
+                "message": "Hello, world!"
+            }
+        },
         {
             "return": {
                 "status_code": 201,
