@@ -10,6 +10,9 @@ tokio = { version = "1", features = ["full"] }
 libloading = "0.8"
 phlow-engine = { path = "../phlow-engine" }
 clap = "4"
+serde_yaml = "0.9"
+serde_json = "1.0"
+toml = "0.8"
 
 # OpenTelemetry
 opentelemetry = "0.28.0"

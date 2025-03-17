@@ -10,8 +10,10 @@ pub enum LoaderError {
     ModuleNotFound(String),
     MainNotDefined,
     StepsNotDefined,
-    ValueParseError(valu3::Error),
     LibLoadingError(libloading::Error),
+    LoaderErrorJson(serde_json::Error),
+    LoaderErrorYaml(serde_yaml::Error),
+    LoaderErrorToml(toml::de::Error),
 }
 
 impl std::fmt::Debug for LoaderError {
@@ -20,9 +22,11 @@ impl std::fmt::Debug for LoaderError {
             LoaderError::ModuleLoaderError => write!(f, "Module loader error"),
             LoaderError::MainNotDefined => write!(f, "Main not defined"),
             LoaderError::StepsNotDefined => write!(f, "Steps not defined"),
-            LoaderError::ValueParseError(err) => write!(f, "Value parse error: {:?}", err),
             LoaderError::ModuleNotFound(name) => write!(f, "Module not found: {}", name),
             LoaderError::LibLoadingError(err) => write!(f, "Lib loading error: {:?}", err),
+            LoaderError::LoaderErrorJson(err) => write!(f, "Json error: {:?}", err),
+            LoaderError::LoaderErrorYaml(err) => write!(f, "Yaml error: {:?}", err),
+            LoaderError::LoaderErrorToml(err) => write!(f, "Toml error: {:?}", err),
         }
     }
 }
@@ -33,9 +37,11 @@ impl Display for LoaderError {
             LoaderError::ModuleLoaderError => write!(f, "Module loader error"),
             LoaderError::MainNotDefined => write!(f, "Main not defined"),
             LoaderError::StepsNotDefined => write!(f, "Steps not defined"),
-            LoaderError::ValueParseError(err) => write!(f, "Value parse error: {:?}", err),
             LoaderError::ModuleNotFound(name) => write!(f, "Module not found: {}", name),
             LoaderError::LibLoadingError(err) => write!(f, "Lib loading error: {:?}", err),
+            LoaderError::LoaderErrorJson(err) => write!(f, "Json error: {:?}", err),
+            LoaderError::LoaderErrorYaml(err) => write!(f, "Yaml error: {:?}", err),
+            LoaderError::LoaderErrorToml(err) => write!(f, "Toml error: {:?}", err),
         }
     }
 }
@@ -60,6 +66,43 @@ pub fn load_module(setup: ModuleSetup, module_name: &str) -> Result<(), LoaderEr
     }
 }
 
+pub enum ModuleExtension {
+    Json,
+    Yaml,
+    Toml,
+}
+
+impl From<&str> for ModuleExtension {
+    fn from(extension: &str) -> Self {
+        match extension {
+            "json" => ModuleExtension::Json,
+            "yaml" => ModuleExtension::Yaml,
+            "yml" => ModuleExtension::Yaml,
+            "toml" => ModuleExtension::Toml,
+            _ => ModuleExtension::Json,
+        }
+    }
+}
+
+// find main.json, main.yaml, main.yml, main.toml
+fn find_default_file() -> Option<(String, ModuleExtension)> {
+    let files = vec!["main.json", "main.yaml", "main.yml", "main.toml"];
+
+    for file in files {
+        if std::path::Path::new(file).exists() {
+            let extension = file.split('.').last().unwrap();
+            return Some((file.to_string(), ModuleExtension::from(extension)));
+        }
+    }
+
+    None
+}
+
+fn get_file_extension(file: &str) -> ModuleExtension {
+    let extension = file.split('.').last().unwrap();
+    ModuleExtension::from(extension)
+}
+
 fn load_config() -> Result<Value, LoaderError> {
     let matches = Command::new("Phlow Runtime")
         .version("0.1.0")
@@ -72,18 +115,29 @@ fn load_config() -> Result<Value, LoaderError> {
         .get_matches();
 
     let main_file = match matches.get_one::<String>("main_file") {
-        Some(file) => file.clone(),
-        None => "main.json".to_string(),
+        Some(file) => {
+            let extension = get_file_extension(file);
+            (file.clone(), extension)
+        }
+        None => match find_default_file() {
+            Some(file) => file,
+            None => return Err(LoaderError::ModuleNotFound("main".to_string())),
+        },
     };
 
-    let file = std::fs::read_to_string(main_file).unwrap();
+    let file = std::fs::read_to_string(main_file.0).unwrap();
 
-    match Value::json_to_value(&file) {
-        Ok(value) => Ok(value),
-        Err(err) => {
-            return Err(LoaderError::ValueParseError(err));
+    let value: Value = match main_file.1 {
+        ModuleExtension::Json => {
+            serde_json::from_str(&file).map_err(LoaderError::LoaderErrorJson)?
         }
-    }
+        ModuleExtension::Yaml => {
+            serde_yaml::from_str(&file).map_err(LoaderError::LoaderErrorYaml)?
+        }
+        ModuleExtension::Toml => toml::from_str(&file).map_err(LoaderError::LoaderErrorToml)?,
+    };
+
+    Ok(value)
 }
 
 #[derive(ToValue, FromValue, Clone)]
