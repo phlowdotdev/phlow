@@ -163,6 +163,8 @@ async fn resolve(
         "body": body
     });
 
+    println!("Request: {:?}", data);
+
     let response_value = sender!(id, sender, Some(data)).await.unwrap_or(Value::Null);
 
     let response = ResponseHandler::from(response_value).build();

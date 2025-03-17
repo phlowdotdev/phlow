@@ -123,7 +123,11 @@ impl<'a> StepWorker<'a> {
         &self.id
     }
 
-    fn evaluate_payload(&self, context: &Context) -> Result<Option<Value>, StepWorkerError> {
+    fn evaluate_payload(
+        &self,
+        context: &Context,
+        default: Option<Value>,
+    ) -> Result<Option<Value>, StepWorkerError> {
         if let Some(ref payload) = self.payload {
             let value = Some(
                 payload
@@ -132,7 +136,7 @@ impl<'a> StepWorker<'a> {
             );
             Ok(value)
         } else {
-            Ok(None)
+            Ok(default)
         }
     }
 
@@ -181,13 +185,13 @@ impl<'a> StepWorker<'a> {
             });
         }
 
-        if let Some(module) = self.evaluate_module(context).await? {
+        if let Some(output) = self.evaluate_module(context).await? {
             if let Some(sender) = &self.trace_sender {
                 sender
                     .send(Step {
                         id: self.id.clone(),
                         label: self.label.clone(),
-                        module: Some(module.to_string()),
+                        module: Some(output.to_string()),
                         condition: None,
                         payload: None,
                         return_case: None,
@@ -195,9 +199,11 @@ impl<'a> StepWorker<'a> {
                     .unwrap();
             }
 
+            let context = context.add_module_output(output.clone());
+
             return Ok(StepOutput {
-                next_step: NextStep::Stop,
-                output: Some(module),
+                next_step: NextStep::Next,
+                output: self.evaluate_payload(&context, Some(output))?,
             });
         }
 
@@ -212,7 +218,7 @@ impl<'a> StepWorker<'a> {
                     NextStep::Next
                 };
 
-                (next_step, self.evaluate_payload(context)?)
+                (next_step, self.evaluate_payload(context, None)?)
             } else {
                 let next_step = if let Some(ref else_case) = self.else_case {
                     NextStep::Pipeline(*else_case)
@@ -239,7 +245,7 @@ impl<'a> StepWorker<'a> {
             return Ok(StepOutput { next_step, output });
         }
 
-        let output = self.evaluate_payload(context)?;
+        let output = self.evaluate_payload(context, None)?;
 
         if let Some(sender) = &self.trace_sender {
             sender

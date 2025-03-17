@@ -10,15 +10,16 @@
     ],
     "steps": [
         {
-            "module": "echo",
+            "id": "echo",
             "params": {
-                "message": "Hello, world!"
-            }
+                "message": "`Hello, world!`"
+            },
+            "module": "echo"
         },
         {
             "return": {
                 "status_code": 201,
-                "body": "main.body",
+                "body": "steps.echo",
                 "headers": {
                     "Content-Type": "`application/json`"
                 }

@@ -13,7 +13,7 @@ use phlow_engine::{
 use sdk::prelude::*;
 use std::sync::{
     mpsc::{channel, Sender},
-    Arc, Mutex,
+    Arc,
 };
 use tokio::sync::oneshot;
 use tracing::{debug, error};
@@ -62,14 +62,26 @@ async fn main() {
             }
         });
 
-        println!("Module {} loaded", module.name);
+        debug!("Module {} loaded", module.name);
 
-        if let Some(setup_data) = setup_receive.await.unwrap_or(None) {
-            modules.register(&module.name, setup_data);
+        match setup_receive.await {
+            Ok(Some(sender)) => {
+                debug!("Module {} registered", module.name);
+                modules.register(&module.name, sender);
+            }
+            Ok(None) => {
+                debug!("Module {} did not register", module.name);
+            }
+            Err(err) => {
+                error!("Runtime Error: {:?}", err);
+                return;
+            }
         }
+
+        debug!("Module {} registered", module.name);
     }
 
-    println!("Main package sent");
+    debug!("Starting Phlow");
 
     let flow = {
         match Phlow::try_from_value(
@@ -94,7 +106,6 @@ async fn main() {
     });
 
     for mut package in main_receiver_package {
-        println!("Main package received");
         processes::execute_steps(&flow, &mut package).await;
     }
 }

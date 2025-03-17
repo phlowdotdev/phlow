@@ -33,9 +33,7 @@ impl Modules {
     }
 
     pub async fn execute(&self, name: &str, context: &Context) -> Result<Value, ModulesError> {
-        println!("Executing module: {}", name);
         if let Some(module_sender) = self.modules.get(name) {
-            println!("Module found: {}", name);
             let (package_sender, package_receiver) = oneshot::channel();
             let package = ModulePackage {
                 context: context.clone(),
@@ -44,13 +42,10 @@ impl Modules {
 
             let _ = module_sender.send(package);
 
-            println!("Awaiting package receiver: {}", name);
-
             let value = package_receiver.await.unwrap_or(Value::Null);
 
             Ok(value)
         } else {
-            println!("Module not found: {}", name);
             Err(ModulesError::ModuleNotLoaded(name.to_string()))
         }
     }

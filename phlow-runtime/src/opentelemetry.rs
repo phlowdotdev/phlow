@@ -57,6 +57,19 @@ pub fn init_tracer_provider() -> SdkTracerProvider {
         .build()
 }
 
+fn log_level() -> Level {
+    let env = std::env::var("PHLOW_LOG").unwrap_or_else(|_| "info".to_string());
+
+    match env.to_lowercase().as_str() {
+        "trace" => Level::TRACE,
+        "debug" => Level::DEBUG,
+        "info" => Level::INFO,
+        "warn" => Level::WARN,
+        "error" => Level::ERROR,
+        _ => Level::INFO,
+    }
+}
+
 // Initialize tracing-subscriber and return OtelGuard for opentelemetry-related termination processing
 pub fn init_tracing_subscriber() -> OtelGuard {
     let tracer_provider: SdkTracerProvider = init_tracer_provider();
@@ -73,7 +86,7 @@ pub fn init_tracing_subscriber() -> OtelGuard {
         // per-layer filtering to target the telemetry layer specifically,
         // e.g. by target matching.
         .with(tracing_subscriber::filter::LevelFilter::from_level(
-            Level::INFO,
+            log_level(),
         ))
         .with(tracing_subscriber::fmt::layer())
         .with(MetricsLayer::new(meter_provider.clone()))
