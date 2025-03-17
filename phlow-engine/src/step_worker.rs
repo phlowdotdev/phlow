@@ -178,7 +178,7 @@ impl<'a> StepWorker<'a> {
     async fn evaluate_module(
         &self,
         context: &Context,
-    ) -> Result<(Option<String>, Option<Value>, Option<Value>), StepWorkerError> {
+    ) -> Result<(Option<String>, Option<Value>, Context), StepWorkerError> {
         if let Some(ref module) = self.module {
             let input = self.evaluate_input(context)?;
 
@@ -189,11 +189,11 @@ impl<'a> StepWorker<'a> {
             };
 
             match self.modules.execute(module, &context).await {
-                Ok(value) => Ok((Some(module.clone()), Some(value), input)),
+                Ok(value) => Ok((Some(module.clone()), Some(value), context)),
                 Err(err) => Err(StepWorkerError::ModulesError(err)),
             }
         } else {
-            Ok((None, None, None))
+            Ok((None, None, context.clone()))
         }
     }
 
@@ -219,13 +219,13 @@ impl<'a> StepWorker<'a> {
             });
         }
 
-        if let Ok((module, output, input)) = self.evaluate_module(context).await {
+        if let Ok((module, output, context)) = self.evaluate_module(context).await {
             if let Some(sender) = &self.trace_sender {
                 sender
                     .send(Step {
                         id: self.id.clone(),
                         label: self.label.clone(),
-                        input: input.clone(),
+                        input: context.input.clone(),
                         module,
                         condition: None,
                         payload: None,
@@ -234,7 +234,7 @@ impl<'a> StepWorker<'a> {
                     .unwrap();
             }
 
-            let context = if let Some(output) = output {
+            let context = if let Some(output) = output.clone() {
                 context.add_module_output(output)
             } else {
                 context.clone()
@@ -242,7 +242,7 @@ impl<'a> StepWorker<'a> {
 
             return Ok(StepOutput {
                 next_step: NextStep::Next,
-                output: self.evaluate_payload(&context, input)?,
+                output: self.evaluate_payload(&context, output)?,
             });
         }
 

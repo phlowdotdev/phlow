@@ -14,9 +14,6 @@
             "module": "echo",
             "input": {
                 "message": "`Hello, World!`"
-            },
-            "payload": {
-                "message": "input"
             }
         },
         {
