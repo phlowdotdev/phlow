@@ -12,6 +12,7 @@ pub struct Step {
     pub id: ID,
     pub label: Option<String>,
     pub module: Option<String>,
+    pub input: Option<Value>,
     pub condition: Option<ConditionRaw>,
     pub payload: Option<Value>,
     pub return_case: Option<Value>,

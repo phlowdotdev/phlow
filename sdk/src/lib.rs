@@ -7,6 +7,7 @@ use std::fmt::{Debug, Formatter};
 use std::{collections::HashMap, sync::mpsc::Sender};
 pub use tokio;
 use tokio::sync::oneshot;
+pub use tracing;
 pub use valu3;
 use valu3::{traits::ToValueBehavior, value::Value};
 
@@ -95,9 +96,8 @@ impl Package {
 }
 
 pub mod prelude {
-    pub use crate::*;
-    pub use valu3::prelude::*;
-    // export macro
     pub use crate::plugin;
+    pub use crate::*;
     pub use valu3::json;
+    pub use valu3::prelude::*;
 }

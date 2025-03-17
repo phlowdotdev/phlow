@@ -43,11 +43,13 @@ impl<'a> Script<'a> {
         let params: Dynamic = to_dynamic(context.params.clone()).unwrap();
         let main: Dynamic = to_dynamic(context.main.clone()).unwrap();
         let payload: Dynamic = to_dynamic(context.payload.clone()).unwrap();
+        let input: Dynamic = to_dynamic(context.input.clone()).unwrap();
 
         scope.push_constant("steps", steps);
         scope.push_constant("params", params);
         scope.push_constant("main", main);
         scope.push_constant("payload", payload);
+        scope.push_constant("input", input);
 
         let mut result_map: HashMap<usize, Value> = HashMap::new();
 

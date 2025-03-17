@@ -4,6 +4,7 @@ use opentelemetry_sdk::{
     trace::{RandomIdGenerator, Sampler, SdkTracerProvider},
     Resource,
 };
+use sdk::tracing::error;
 use tracing_core::Level;
 use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -107,10 +108,10 @@ pub struct OtelGuard {
 impl Drop for OtelGuard {
     fn drop(&mut self) {
         if let Err(err) = self.tracer_provider.shutdown() {
-            eprintln!("{err:?}");
+            error!("{err:?}");
         }
         if let Err(err) = self.meter_provider.shutdown() {
-            eprintln!("{err:?}");
+            error!("{err:?}");
         }
     }
 }

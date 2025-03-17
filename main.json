@@ -11,10 +11,13 @@
     "steps": [
         {
             "id": "echo",
-            "params": {
-                "message": "`Hello, world!`"
+            "module": "echo",
+            "input": {
+                "message": "`Hello, World!`"
             },
-            "module": "echo"
+            "payload": {
+                "message": "input"
+            }
         },
         {
             "return": {

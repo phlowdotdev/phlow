@@ -9,6 +9,7 @@ pub struct Context {
     pub steps: HashMap<ID, Value>,
     pub main: Option<Value>,
     pub payload: Option<Value>,
+    pub input: Option<Value>,
 }
 
 impl Context {
@@ -18,6 +19,7 @@ impl Context {
             main: None,
             steps: HashMap::new(),
             payload: None,
+            input: None,
         }
     }
 
@@ -27,6 +29,17 @@ impl Context {
             main: Some(main),
             steps: HashMap::new(),
             payload: None,
+            input: None,
+        }
+    }
+
+    pub fn add_module_input(&self, output: Value) -> Self {
+        Self {
+            params: self.params.clone(),
+            main: self.main.clone(),
+            steps: self.steps.clone(),
+            payload: self.payload.clone(),
+            input: Some(output),
         }
     }
 
@@ -36,6 +49,7 @@ impl Context {
             main: self.main.clone(),
             steps: self.steps.clone(),
             payload: Some(output),
+            input: self.input.clone(),
         }
     }
 

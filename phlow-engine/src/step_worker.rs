@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{
     collector::{ContextSender, Step},
     condition::{Condition, ConditionError},
@@ -10,6 +8,7 @@ use crate::{
 };
 use rhai::Engine;
 use serde::Serialize;
+use std::sync::Arc;
 use valu3::prelude::NumberBehavior;
 use valu3::{prelude::StringBehavior, value::Value};
 
@@ -18,6 +17,7 @@ pub enum StepWorkerError {
     ConditionError(ConditionError),
     PayloadError(ScriptError),
     ModulesError(ModulesError),
+    InputError(ScriptError),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -39,6 +39,7 @@ pub struct StepWorker<'a> {
     pub(crate) label: Option<String>,
     pub(crate) module: Option<String>,
     pub(crate) condition: Option<Condition<'a>>,
+    pub(crate) input: Option<Script<'a>>,
     pub(crate) payload: Option<Script<'a>>,
     pub(crate) then_case: Option<usize>,
     pub(crate) else_case: Option<usize>,
@@ -79,6 +80,13 @@ impl<'a> StepWorker<'a> {
             },
             None => None,
         };
+        let input = match value.get("input") {
+            Some(input) => match Script::try_build(&engine, input) {
+                Ok(input) => Some(input),
+                Err(err) => return Err(StepWorkerError::InputError(err)),
+            },
+            None => None,
+        };
         let then_case = match value.get("then") {
             Some(then_case) => match then_case.to_u64() {
                 Some(then_case) => Some(then_case as usize),
@@ -109,6 +117,7 @@ impl<'a> StepWorker<'a> {
             id,
             label,
             module,
+            input,
             condition,
             payload,
             then_case,
@@ -140,6 +149,19 @@ impl<'a> StepWorker<'a> {
         }
     }
 
+    fn evaluate_input(&self, context: &Context) -> Result<Option<Value>, StepWorkerError> {
+        if let Some(ref input) = self.input {
+            let value = Some(
+                input
+                    .evaluate(context)
+                    .map_err(StepWorkerError::InputError)?,
+            );
+            Ok(value)
+        } else {
+            Ok(None)
+        }
+    }
+
     fn evaluate_return(&self, context: &Context) -> Result<Option<Value>, StepWorkerError> {
         if let Some(ref return_case) = self.return_case {
             let value = Some(
@@ -153,45 +175,58 @@ impl<'a> StepWorker<'a> {
         }
     }
 
-    async fn evaluate_module(&self, context: &Context) -> Result<Option<Value>, StepWorkerError> {
+    async fn evaluate_module(
+        &self,
+        context: &Context,
+    ) -> Result<(Option<String>, Option<Value>, Option<Value>), StepWorkerError> {
         if let Some(ref module) = self.module {
-            match self.modules.execute(module, context).await {
-                Ok(value) => Ok(Some(value)),
+            let input = self.evaluate_input(context)?;
+
+            let context = if let Some(input) = &input {
+                context.add_module_input(input.clone())
+            } else {
+                context.clone()
+            };
+
+            match self.modules.execute(module, &context).await {
+                Ok(value) => Ok((Some(module.clone()), Some(value), input)),
                 Err(err) => Err(StepWorkerError::ModulesError(err)),
             }
         } else {
-            Ok(None)
+            Ok((None, None, None))
         }
     }
 
     pub async fn execute(&self, context: &Context) -> Result<StepOutput, StepWorkerError> {
-        if let Some(return_case) = self.evaluate_return(context)? {
+        if let Some(output) = self.evaluate_return(context)? {
             if let Some(sender) = &self.trace_sender {
                 sender
                     .send(Step {
                         id: self.id.clone(),
                         label: self.label.clone(),
+                        input: None,
                         module: None,
                         condition: None,
                         payload: None,
-                        return_case: Some(return_case.clone()),
+                        return_case: Some(output.clone()),
                     })
                     .unwrap();
             }
 
             return Ok(StepOutput {
                 next_step: NextStep::Stop,
-                output: Some(return_case),
+                output: Some(output),
             });
         }
 
-        if let Some(output) = self.evaluate_module(context).await? {
+        if let Ok((module, output, input)) = self.evaluate_module(context).await {
             if let Some(sender) = &self.trace_sender {
                 sender
                     .send(Step {
                         id: self.id.clone(),
                         label: self.label.clone(),
-                        module: Some(output.to_string()),
+                        input: input.clone(),
+                        module,
                         condition: None,
                         payload: None,
                         return_case: None,
@@ -199,11 +234,15 @@ impl<'a> StepWorker<'a> {
                     .unwrap();
             }
 
-            let context = context.add_module_output(output.clone());
+            let context = if let Some(output) = output {
+                context.add_module_output(output)
+            } else {
+                context.clone()
+            };
 
             return Ok(StepOutput {
                 next_step: NextStep::Next,
-                output: self.evaluate_payload(&context, Some(output))?,
+                output: self.evaluate_payload(&context, input)?,
             });
         }
 
@@ -235,6 +274,7 @@ impl<'a> StepWorker<'a> {
                         id: self.id.clone(),
                         label: self.label.clone(),
                         module: None,
+                        input: None,
                         condition: Some(condition.raw.clone()),
                         payload: output.clone(),
                         return_case: None,
@@ -253,6 +293,7 @@ impl<'a> StepWorker<'a> {
                     id: self.id.clone(),
                     label: self.label.clone(),
                     module: None,
+                    input: None,
                     condition: None,
                     payload: output.clone(),
                     return_case: None,

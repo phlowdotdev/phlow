@@ -229,6 +229,7 @@ mod tests {
                 id: ID::new(),
                 label: None,
                 module: None,
+                input: None,
                 condition: Some(ConditionRaw {
                     left: "params.requested".to_string(),
                     right: "params.pre_approved".to_string(),
@@ -241,6 +242,7 @@ mod tests {
                 id: ID::new(),
                 label: None,
                 module: None,
+                input: None,
                 condition: Some(ConditionRaw {
                     left: "params.score".to_string(),
                     right: "0.5".to_string(),
@@ -253,6 +255,7 @@ mod tests {
                 id: ID::from("approved"),
                 label: None,
                 module: None,
+                input: None,
                 condition: None,
                 payload: Some(json!({
                     "total": 12999.0

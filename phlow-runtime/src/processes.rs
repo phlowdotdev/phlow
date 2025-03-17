@@ -20,7 +20,7 @@ pub async fn execute_steps<'a>(flow: &Phlow<'a>, package: &mut Package) {
                 return;
             }
         };
-        println!("Result: {:?}", result);
+
         package.send(result.unwrap_or(Value::Null));
     }
 }

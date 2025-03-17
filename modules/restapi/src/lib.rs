@@ -8,6 +8,10 @@ use hyper::{Request, Response};
 use hyper_util::rt::{TokioIo, TokioTimer};
 use sdk::prelude::*;
 use sdk::tokio::net::TcpListener;
+use sdk::tracing::debug;
+use sdk::tracing::error;
+use sdk::tracing::info;
+use sdk::tracing::trace;
 use setup::Config;
 use std::collections::HashMap;
 use std::convert::Infallible;
@@ -31,7 +35,7 @@ pub async fn start_server(
 
     setup.setup_sender.send(None).unwrap();
 
-    println!("Listening on http://{}", addr);
+    info!("Listening on http://{}", addr);
 
     loop {
         let (tcp, peer_addr) = listener.accept().await?;
@@ -50,7 +54,7 @@ pub async fn start_server(
                 .serve_connection(io, service)
                 .await
             {
-                println!("Error serving connection: {:?}", err);
+                error!("Error serving connection: {:?}", err);
             }
         });
     }
@@ -163,7 +167,7 @@ async fn resolve(
         "body": body
     });
 
-    println!("Request: {:?}", data);
+    debug!("Request: {:?}", data);
 
     let response_value = sender!(id, sender, Some(data)).await.unwrap_or(Value::Null);
 

@@ -1335,7 +1335,6 @@ dependencies = [
  "sdk",
  "serde",
  "tokio",
- "tracing",
  "tracing-core",
  "tracing-opentelemetry",
  "tracing-subscriber",
@@ -1626,6 +1625,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "tokio",
+ "tracing",
  "valu3",
 ]
 
