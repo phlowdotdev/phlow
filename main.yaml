@@ -1,7 +1,7 @@
-main: restapi
 modules:
 - name: restapi
 - name: echo
+main: restapi
 steps:
 - id: echo
   module: echo
