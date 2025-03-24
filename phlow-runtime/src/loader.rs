@@ -49,7 +49,7 @@ impl Display for LoaderError {
 pub fn load_module(setup: ModuleSetup, module_name: &str) -> Result<(), LoaderError> {
     unsafe {
         debug!("Loading module: {}", module_name);
-        let lib = match Library::new(format!("phlow_modules/{}.so", module_name).as_str()) {
+        let lib = match Library::new(format!("phlow_modules/{}/module.so", module_name).as_str()) {
             Ok(lib) => lib,
             Err(err) => return Err(LoaderError::LibLoadingError(err)),
         };
@@ -213,7 +213,7 @@ impl TryFrom<Value> for Loader {
                         main = modules_vec.len() as i32;
                     }
 
-                    let module_path = format!("phlow_modules/{}.so", module.name);
+                    let module_path = format!("phlow_modules/{}/module.so", module.name);
 
                     if !std::path::Path::new(&module_path).exists() {
                         return Err(LoaderError::ModuleNotFound(module.name));

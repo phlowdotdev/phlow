@@ -1,0 +1,30 @@
+name: restapi
+description: A simple REST API server.
+inputs:
+  port:
+    type: number
+    description: The port number to listen on.
+    default: 4000
+    required: false
+  host:
+    type: string
+    description: The host to listen on.
+    default: "0.0.0.0"
+    required: false
+params:
+  headers:
+    type: object
+    description: The headers to return.
+    required: false
+    default: {}
+  body:
+    type: string
+    description: The body to return.
+    required: false
+    default: ""
+  status_code:
+    type: number
+    description: The status code to return.
+    required: false
+    default: 200
+  

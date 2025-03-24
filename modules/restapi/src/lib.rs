@@ -11,7 +11,6 @@ use sdk::tokio::net::TcpListener;
 use sdk::tracing::debug;
 use sdk::tracing::error;
 use sdk::tracing::info;
-use sdk::tracing::trace;
 use setup::Config;
 use std::collections::HashMap;
 use std::convert::Infallible;
@@ -27,7 +26,7 @@ pub async fn start_server(
     let addr: SocketAddr = format!(
         "{}:{}",
         config.host.as_deref().unwrap_or("0.0.0.0"),
-        config.port.unwrap_or(3000),
+        config.port.unwrap_or(4000),
     )
     .parse()?;
 

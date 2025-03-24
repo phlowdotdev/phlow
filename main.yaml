@@ -1,5 +1,7 @@
 modules:
 - name: restapi
+  with:
+    port: 4000	
 - name: echo
 main: restapi
 steps:
@@ -9,6 +11,8 @@ steps:
     message: '`Hello, World!`'
 - return:
     status_code: 201
-    body: steps.echo
+    body:
+      echo: steps.echo
+      mirror: main
     headers:
       Content-Type: '`application/json`'
