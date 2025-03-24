@@ -1,0 +1,14 @@
+[package]
+name = "rabbitmq"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sdk = { path = "../../sdk" }
+lapin = "2.5.1"
+futures-lite = "2.6.0"
+
+
+[lib]
+crate-type = ["cdylib"]
+name = "rabbitmq"

@@ -2,17 +2,21 @@ modules:
 - name: restapi
   with:
     port: 4000	
-- name: echo
+- name: rabbitmq
+  with:
+    uri: amqp://guest:guest@localhost:5672
+    routing_key: test_key
+    mode: producer
 main: restapi
 steps:
-- id: echo
-  module: echo
+- id: producer
+  module: rabbitmq
   input:
-    message: '`Hello, World!`'
+    message: main
 - return:
     status_code: 201
     body:
-      echo: steps.echo
+      result: steps.producer
       mirror: main
     headers:
       Content-Type: '`application/json`'

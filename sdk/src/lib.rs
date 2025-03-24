@@ -43,6 +43,19 @@ macro_rules! plugin_async {
 }
 
 #[macro_export]
+macro_rules! sender_without_response {
+    ($id:expr, $sender:expr, $data:expr) => {{
+        let package = Package {
+            send: None,
+            request_data: $data,
+            origin: $id,
+        };
+
+        $sender.send(package).unwrap();
+    }};
+}
+
+#[macro_export]
 macro_rules! sender {
     ($id:expr, $sender:expr, $data:expr) => {{
         let (tx, rx) = tokio::sync::oneshot::channel::<valu3::value::Value>();

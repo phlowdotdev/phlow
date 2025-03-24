@@ -1,0 +1,33 @@
+name: rabbitmq
+description: "RabbitMQ module"
+
+inputs:
+  uri:
+    type: string
+    required: true
+    description: "RabbitMQ URI"
+
+  routing_key:
+    type: string
+    required: false
+    description: "RabbitMQ routing key"
+
+  exchange:
+    type: string
+    required: false
+    description: "RabbitMQ exchange"
+
+  mode:
+    type: string
+    default: "producer"
+    required: false
+
+  consumer_tag:
+    type: string
+    required: false
+    description: "RabbitMQ consumer tag"
+
+params:
+  message:
+    type: any
+    required: false

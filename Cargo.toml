@@ -5,5 +5,6 @@ members = [
     "sdk",
     "modules/restapi",
     "modules/echo",
+    "modules/rabbitmq",
 ]
 resolver = '2'
