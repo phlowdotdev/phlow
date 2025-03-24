@@ -1,7 +1,6 @@
 mod setup;
-use std::sync::mpsc::channel;
-
 use lapin::message::DeliveryResult;
+use lapin::ExchangeKind;
 use lapin::{
     options::*, publisher_confirm::Confirmation, types::FieldTable, BasicProperties, Connection,
     ConnectionProperties,
@@ -10,6 +9,7 @@ use sdk::modules::ModulePackage;
 use sdk::prelude::*;
 use sdk::tracing::{debug, info};
 use setup::Config;
+use std::sync::mpsc;
 
 plugin_async!(start_server);
 
@@ -18,10 +18,43 @@ pub async fn start_server(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let config: Config = Config::try_from(&setup.with).map_err(|e| format!("{:?}", e))?;
 
+    let conn = Connection::connect(&config.uri, ConnectionProperties::default()).await?;
+
+    debug!("Connected to RabbitMQ");
+
+    let channel = conn.create_channel().await?;
+
+    debug!("Created channel");
+
+    if config.declare {
+        if !config.exchange.is_empty() {
+            channel
+                .exchange_declare(
+                    &config.exchange,
+                    ExchangeKind::Direct,
+                    ExchangeDeclareOptions::default(),
+                    FieldTable::default(),
+                )
+                .await?;
+
+            debug!("Declared exchange");
+        }
+
+        channel
+            .queue_declare(
+                &config.queue,
+                QueueDeclareOptions::default(),
+                FieldTable::default(),
+            )
+            .await?;
+
+        debug!("Declared queue");
+    }
+
     if config.is_producer() {
-        producer(setup, config).await?;
+        producer(setup, config, channel).await?;
     } else {
-        consumer(setup, config).await?;
+        consumer(setup, config, channel).await?;
     }
 
     Ok(())
@@ -30,13 +63,10 @@ pub async fn start_server(
 async fn producer(
     setup: ModuleSetup,
     config: Config,
+    channel: lapin::Channel,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let (tx, rx) = channel::<ModulePackage>();
+    let (tx, rx) = mpsc::channel::<ModulePackage>();
     setup.setup_sender.send(Some(tx)).unwrap();
-
-    let conn = Connection::connect(&config.uri, ConnectionProperties::default()).await?;
-
-    let channel = conn.create_channel().await?;
 
     for package in rx {
         let payload = package
@@ -74,8 +104,7 @@ async fn producer(
         }
         .to_value();
 
-        let sender = setup.main_sender.clone().unwrap();
-        sender_without_response!(setup.id, sender, Some(data));
+        package.sender.send(data).unwrap();
     }
 
     Ok(())
@@ -84,10 +113,8 @@ async fn producer(
 async fn consumer(
     setup: ModuleSetup,
     config: Config,
+    channel: lapin::Channel,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let conn = Connection::connect(&config.uri, ConnectionProperties::default()).await?;
-    let channel = conn.create_channel().await?;
-
     channel
         .queue_declare(
             &config.queue,

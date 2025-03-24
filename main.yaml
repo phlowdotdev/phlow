@@ -7,12 +7,14 @@ modules:
     uri: amqp://guest:guest@localhost:5672
     routing_key: test_key
     mode: producer
+    declare: true
+
 main: restapi
+
 steps:
 - id: producer
   module: rabbitmq
-  input:
-    message: main
+  input: main
 - return:
     status_code: 201
     body:

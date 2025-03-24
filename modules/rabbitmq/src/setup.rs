@@ -31,6 +31,7 @@ pub struct Config {
     pub mode: Mode,
     pub exchange: String,
     pub consumer_tag: String,
+    pub declare: bool,
 }
 
 impl Config {
@@ -71,12 +72,17 @@ impl TryFrom<&Value> for Config {
             .get("consumer_tag")
             .map_or("".to_string(), |v| v.to_string());
 
+        let declare = value
+            .get("declare")
+            .map_or(false, |v| v.as_bool().unwrap_or(&false).clone());
+
         Ok(Self {
             uri,
             queue: routing_key,
             exchange,
             mode,
             consumer_tag,
+            declare,
         })
     }
 }

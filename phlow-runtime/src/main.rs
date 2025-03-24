@@ -77,8 +77,6 @@ async fn main() {
                 return;
             }
         }
-
-        debug!("Module {} registered", module.name);
     }
 
     debug!("Starting Phlow");
