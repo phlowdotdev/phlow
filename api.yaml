@@ -2,18 +2,15 @@ modules:
 - name: restapi
   with:
     port: 4000	
-- name: amqp
-  with:
-    uri: amqp://guest:guest@localhost:5672
-    routing_key: test_key
-    declare: true
+- name: log
 
 main: restapi
 
 steps:
-- id: producer
-  module: amqp
-  input: main
+- module: log
+  input:
+    level: warn
+    message: "`XXXXXXXXXXXXXXXXXXXXXXXXX`"
 - return:
     status_code: 201
     body:

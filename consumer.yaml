@@ -4,5 +4,5 @@ modules:
 steps:
 - module: log
   input: 
-    level: info
+    level: warn
     message: "XXXXXXXXXXXXXXXXXXXXXXXX"

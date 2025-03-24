@@ -44,10 +44,7 @@ impl<'a> Phlow<'a> {
         Ok(Self { pipelines, params })
     }
 
-    pub async fn execute_with_context(
-        &self,
-        context: &mut Context,
-    ) -> Result<Option<Value>, PhlowError> {
+    pub async fn execute(&self, context: &mut Context) -> Result<Option<Value>, PhlowError> {
         if self.pipelines.is_empty() {
             return Ok(None);
         }
@@ -79,11 +76,6 @@ impl<'a> Phlow<'a> {
                 }
             }
         }
-    }
-
-    pub async fn execute(&self) -> Result<Option<Value>, PhlowError> {
-        let mut context = Context::new(self.params.clone());
-        return self.execute_with_context(&mut context).await;
     }
 }
 
@@ -157,7 +149,7 @@ mod tests {
             "score": 0.6
         })));
 
-        let result = phlow.execute_with_context(&mut context).await.unwrap();
+        let result = phlow.execute(&mut context).await.unwrap();
 
         assert_eq!(result, Some(json!(10000.0)));
     }
@@ -173,7 +165,7 @@ mod tests {
             "score": 0.6
         })));
 
-        let result = phlow.execute_with_context(&mut context).await.unwrap();
+        let result = phlow.execute(&mut context).await.unwrap();
 
         assert_eq!(result, Some(json!(3500.0)));
     }
@@ -189,7 +181,7 @@ mod tests {
             "score": 0.2
         })));
 
-        let result = phlow.execute_with_context(&mut context).await.unwrap();
+        let result = phlow.execute(&mut context).await.unwrap();
 
         assert_eq!(result, None);
     }
@@ -205,7 +197,7 @@ mod tests {
             "score": 0.6
         })));
 
-        let result = phlow.execute_with_context(&mut context).await.unwrap();
+        let result = phlow.execute(&mut context).await.unwrap();
 
         assert_eq!(result, Some(json!(10000.0)));
     }
@@ -264,7 +256,7 @@ mod tests {
             },
         ];
 
-        phlow.execute_with_context(&mut context).await.unwrap();
+        phlow.execute(&mut context).await.unwrap();
 
         let mut result: Vec<Step> = Vec::new();
 

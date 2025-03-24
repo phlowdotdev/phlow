@@ -8,7 +8,6 @@ use valu3::json;
 pub enum LoaderError {
     ModuleLoaderError,
     ModuleNotFound(String),
-    MainNotDefined,
     StepsNotDefined,
     LibLoadingError(libloading::Error),
     LoaderErrorJson(serde_json::Error),
@@ -20,7 +19,6 @@ impl std::fmt::Debug for LoaderError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             LoaderError::ModuleLoaderError => write!(f, "Module loader error"),
-            LoaderError::MainNotDefined => write!(f, "Main not defined"),
             LoaderError::StepsNotDefined => write!(f, "Steps not defined"),
             LoaderError::ModuleNotFound(name) => write!(f, "Module not found: {}", name),
             LoaderError::LibLoadingError(err) => write!(f, "Lib loading error: {:?}", err),
@@ -35,7 +33,6 @@ impl Display for LoaderError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             LoaderError::ModuleLoaderError => write!(f, "Module loader error"),
-            LoaderError::MainNotDefined => write!(f, "Main not defined"),
             LoaderError::StepsNotDefined => write!(f, "Steps not defined"),
             LoaderError::ModuleNotFound(name) => write!(f, "Module not found: {}", name),
             LoaderError::LibLoadingError(err) => write!(f, "Lib loading error: {:?}", err),
@@ -200,7 +197,7 @@ impl TryFrom<Value> for Loader {
                     None => None,
                 };
 
-                let mut main = 0;
+                let mut main = -1;
 
                 let mut modules_vec = Vec::new();
                 for module in modules.as_array().unwrap() {

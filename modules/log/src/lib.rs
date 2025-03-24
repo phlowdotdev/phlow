@@ -6,7 +6,7 @@ use sdk::{
     tracing::{debug, error, info, warn},
 };
 
-plugin_async!(log);
+plugin!(log);
 
 enum LogLevel {
     Info,
@@ -41,12 +41,16 @@ impl TryFrom<&Value> for Log {
     }
 }
 
-pub async fn log(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub fn log(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    println!("Log module started");
     let (tx, rx) = channel::<ModulePackage>();
 
     setup.setup_sender.send(Some(tx)).unwrap();
 
+    println!("Log module setup sender sent");
+
     for package in rx {
+        println!("Log package received");
         let log = match package.context.input {
             Some(value) => match Log::try_from(&value) {
                 Ok(log) => log,
@@ -68,6 +72,8 @@ pub async fn log(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + S
             LogLevel::Error => error!("{}", log.message),
         }
     }
+
+    println!("Log module finished");
 
     Ok(())
 }

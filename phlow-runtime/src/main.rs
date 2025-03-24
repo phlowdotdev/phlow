@@ -39,7 +39,7 @@ async fn main() {
     for (id, module) in loader.modules.into_iter().enumerate() {
         let (setup_sender, setup_receive) = oneshot::channel::<Option<Sender<ModulePackage>>>();
 
-        let main_sender = if loader.main == id as i32 { 
+        let main_sender = if loader.main == id as i32 {
             Some(main_sender_package.clone())
         } else {
             None
@@ -101,7 +101,12 @@ async fn main() {
         }
     });
 
-    for mut package in main_receiver_package {
-        processes::execute_steps(&flow, &mut package).await;
+    if loader.main >= 0 {
+        debug!("Main module exist");
+        for mut package in main_receiver_package {
+            processes::execute_steps(&flow, &mut package).await;
+        }
     }
+
+    debug!("Phlow finished");
 }

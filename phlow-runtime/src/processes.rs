@@ -1,5 +1,5 @@
 use phlow_engine::{collector::Step, Context, Phlow};
-use sdk::prelude::*;
+use sdk::{prelude::*, tracing::info};
 use tracing::{debug, error};
 
 #[tracing::instrument]
@@ -13,7 +13,7 @@ pub async fn execute_steps<'a>(flow: &Phlow<'a>, package: &mut Package) {
 
     if let Some(data) = package.get_data() {
         let mut context = Context::from_main(data.clone());
-        let result = match flow.execute_with_context(&mut context).await {
+        let result = match flow.execute(&mut context).await {
             Ok(result) => result,
             Err(err) => {
                 error!("Runtime Error Execute Steps: {:?}", err);
