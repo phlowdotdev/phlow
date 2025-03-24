@@ -2,18 +2,17 @@ modules:
 - name: restapi
   with:
     port: 4000	
-- name: rabbitmq
+- name: amqp
   with:
     uri: amqp://guest:guest@localhost:5672
     routing_key: test_key
-    mode: producer
     declare: true
 
 main: restapi
 
 steps:
 - id: producer
-  module: rabbitmq
+  module: amqp
   input: main
 - return:
     status_code: 201

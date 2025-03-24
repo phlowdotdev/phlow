@@ -1,4 +1,4 @@
-name: rabbitmq
+name: amqp
 description: "RabbitMQ module"
 
 inputs:

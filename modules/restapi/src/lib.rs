@@ -11,6 +11,7 @@ use sdk::tokio::net::TcpListener;
 use sdk::tracing::debug;
 use sdk::tracing::error;
 use sdk::tracing::info;
+use sdk::tracing::warn;
 use setup::Config;
 use std::collections::HashMap;
 use std::convert::Infallible;
@@ -21,6 +22,12 @@ plugin_async!(start_server);
 pub async fn start_server(
     setup: ModuleSetup,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    if !setup.is_main() {
+        warn!("This module is not the main module, exiting");
+        setup.setup_sender.send(None).unwrap();
+        return Ok(());
+    }
+
     let config: Config = Config::from(setup.with);
 
     let addr: SocketAddr = format!(

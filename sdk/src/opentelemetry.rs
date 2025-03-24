@@ -4,7 +4,7 @@ use opentelemetry_sdk::{
     trace::{RandomIdGenerator, Sampler, SdkTracerProvider},
     Resource,
 };
-use sdk::tracing::error;
+use tracing::error;
 use tracing_core::Level;
 use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -73,6 +73,22 @@ fn log_level() -> Level {
 
 // Initialize tracing-subscriber and return OtelGuard for opentelemetry-related termination processing
 pub fn init_tracing_subscriber() -> OtelGuard {
+    let env = std::env::var("PHLOW_OTEL").unwrap_or_else(|_| "false".to_string());
+
+    // if false log only stdout with log level
+    if env.to_lowercase() != "true" {
+        tracing_subscriber::registry()
+            .with(tracing_subscriber::filter::LevelFilter::from_level(
+                log_level(),
+            ))
+            .with(tracing_subscriber::fmt::layer())
+            .init();
+        return OtelGuard {
+            tracer_provider: SdkTracerProvider::default(),
+            meter_provider: SdkMeterProvider::default(),
+        };
+    }
+
     let tracer_provider: SdkTracerProvider = init_tracer_provider();
     let meter_provider = init_meter_provider();
 

@@ -100,6 +100,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "amqp"
+version = "0.1.0"
+dependencies = [
+ "futures-lite 2.6.0",
+ "lapin",
+ "sdk",
+]
+
+[[package]]
 name = "android-tzdata"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -270,7 +279,7 @@ dependencies = [
  "cfg-if",
  "concurrent-queue",
  "futures-lite 1.13.0",
- "log",
+ "log 0.4.26",
  "parking",
  "polling 2.8.0",
  "rustix 0.37.28",
@@ -1540,6 +1549,13 @@ dependencies = [
 
 [[package]]
 name = "log"
+version = "0.1.0"
+dependencies = [
+ "sdk",
+]
+
+[[package]]
+name = "log"
 version = "0.4.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "30bde2b3dc3671ae49d8e2e9f044c7c005836e7a023ee57cffa25ab82764bb9e"
@@ -2132,7 +2148,7 @@ dependencies = [
  "cfg-if",
  "concurrent-queue",
  "libc",
- "log",
+ "log 0.4.26",
  "pin-project-lite",
  "windows-sys 0.48.0",
 ]
@@ -2240,15 +2256,6 @@ name = "r-efi"
 version = "5.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74765f6d916ee2faa39bc8e68e4f3ed8949b48cccdac59983d287a7cb71ce9c5"
-
-[[package]]
-name = "rabbitmq"
-version = "0.1.0"
-dependencies = [
- "futures-lite 2.6.0",
- "lapin",
- "sdk",
-]
 
 [[package]]
 name = "rand"
@@ -2386,7 +2393,7 @@ dependencies = [
  "hyper-util",
  "ipnet",
  "js-sys",
- "log",
+ "log 0.4.26",
  "mime",
  "once_cell",
  "percent-encoding",
@@ -2522,7 +2529,7 @@ version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2a980454b497c439c274f2feae2523ed8138bbd3d323684e1435fec62f800481"
 dependencies = [
- "log",
+ "log 0.4.26",
  "rustls",
  "rustls-native-certs",
  "rustls-pki-types",
@@ -2630,9 +2637,19 @@ dependencies = [
 name = "sdk"
 version = "0.1.0"
 dependencies = [
+ "opentelemetry 0.28.0",
+ "opentelemetry-jaeger",
+ "opentelemetry-otlp",
+ "opentelemetry-prometheus",
+ "opentelemetry-semantic-conventions 0.28.0",
+ "opentelemetry-stdout",
+ "opentelemetry_sdk 0.28.0",
  "serde",
  "tokio",
  "tracing",
+ "tracing-core",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
  "valu3",
 ]
 
@@ -2983,7 +3000,7 @@ checksum = "7e54bc85fc7faa8bc175c4bab5b92ba8d9a3ce893d0e9f42cc455c8ab16a9e09"
 dependencies = [
  "byteorder",
  "integer-encoding",
- "log",
+ "log 0.4.26",
  "ordered-float 2.10.1",
  "threadpool",
 ]
@@ -3240,7 +3257,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee855f1f400bd0e5c02d150ae5de3840039a3f54b025156404e34c23c03f47c3"
 dependencies = [
- "log",
+ "log 0.4.26",
  "once_cell",
  "tracing-core",
 ]
@@ -3429,7 +3446,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2f0a0651a5c2bc21487bde11ee802ccaf4c51935d0d3d42a6101f98161700bc6"
 dependencies = [
  "bumpalo",
- "log",
+ "log 0.4.26",
  "proc-macro2",
  "quote",
  "syn",

@@ -5,7 +5,6 @@ use std::fmt::Display;
 pub enum Error {
     UriRequired,
     QueueRequired,
-    ModeRequired,
 }
 
 impl Display for Error {
@@ -13,35 +12,17 @@ impl Display for Error {
         match self {
             Self::UriRequired => write!(f, "uri is required"),
             Self::QueueRequired => write!(f, "queue is required"),
-            Self::ModeRequired => write!(f, "mode is required"),
         }
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum Mode {
-    Producer,
-    Consumer,
 }
 
 #[derive(Clone, Debug)]
 pub struct Config {
     pub uri: String,
     pub queue: String,
-    pub mode: Mode,
     pub exchange: String,
     pub consumer_tag: String,
     pub declare: bool,
-}
-
-impl Config {
-    pub fn is_producer(&self) -> bool {
-        matches!(self.mode, Mode::Producer)
-    }
-
-    pub fn is_consumer(&self) -> bool {
-        matches!(self.mode, Mode::Consumer)
-    }
 }
 
 impl TryFrom<&Value> for Config {
@@ -54,15 +35,6 @@ impl TryFrom<&Value> for Config {
             .get("routing_key")
             .ok_or(Error::QueueRequired)?
             .to_string();
-
-        let mode = value
-            .get("mode")
-            .and_then(|mode| match mode.to_string().as_str() {
-                "producer" => Some(Mode::Producer),
-                "consumer" => Some(Mode::Consumer),
-                _ => None,
-            })
-            .ok_or(Error::ModeRequired)?;
 
         let exchange = value
             .get("exchange")
@@ -80,7 +52,6 @@ impl TryFrom<&Value> for Config {
             uri,
             queue: routing_key,
             exchange,
-            mode,
             consumer_tag,
             declare,
         })

@@ -196,8 +196,8 @@ impl TryFrom<Value> for Loader {
                 }
 
                 let main_name = match value.get("main") {
-                    Some(main) => main.to_string(),
-                    None => return Err(LoaderError::MainNotDefined),
+                    Some(main) => Some(main.to_string()),
+                    None => None,
                 };
 
                 let mut main = 0;
@@ -209,7 +209,7 @@ impl TryFrom<Value> for Loader {
                         Err(_) => return Err(LoaderError::ModuleLoaderError),
                     };
 
-                    if module.name == main_name {
+                    if Some(module.name.clone()) == main_name {
                         main = modules_vec.len() as i32;
                     }
 

@@ -1,6 +1,7 @@
 pub mod context;
 pub mod id;
 pub mod modules;
+pub mod opentelemetry;
 use context::Context;
 use modules::ModulePackage;
 use std::fmt::{Debug, Formatter};
@@ -15,6 +16,7 @@ pub type ModuleId = usize;
 pub type MainRuntimeSender = Sender<Package>;
 pub type ModuleSetupSender = oneshot::Sender<Option<Sender<ModulePackage>>>;
 
+#[derive(Debug)]
 pub struct ModuleSetup {
     pub id: ModuleId,
     pub setup_sender: ModuleSetupSender,
@@ -22,11 +24,19 @@ pub struct ModuleSetup {
     pub with: Value,
 }
 
+impl ModuleSetup {
+    pub fn is_main(&self) -> bool {
+        self.main_sender.is_some()
+    }
+}
+
 #[macro_export]
 macro_rules! plugin {
     ($handler:ident) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: ModuleSetup) {
+            let _guard: opentelemetry::OtelGuard = sdk::opentelemetry::init_tracing_subscriber();
+
             $handler(setup);
         }
     };
@@ -36,6 +46,8 @@ macro_rules! plugin_async {
     ($handler:ident) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: ModuleSetup) {
+            let _guard: opentelemetry::OtelGuard = sdk::opentelemetry::init_tracing_subscriber();
+
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on($handler(setup)).unwrap();
         }

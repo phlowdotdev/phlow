@@ -1,16 +1,14 @@
 mod loader;
-mod opentelemetry;
 mod processes;
 
 use loader::{load_module, Loader};
-use opentelemetry::init_tracing_subscriber;
 use phlow_engine::{
     build_engine_async,
     collector::Step,
     modules::{ModulePackage, Modules},
     Phlow,
 };
-use sdk::prelude::*;
+use sdk::{opentelemetry::init_tracing_subscriber, prelude::*};
 use std::sync::{
     mpsc::{channel, Sender},
     Arc,
@@ -25,7 +23,7 @@ async fn main() {
     let loader = match Loader::load() {
         Ok(main) => main,
         Err(err) => {
-            error!("Runtime Error: {:?}", err);
+            error!("Runtime Error Main File: {:?}", err);
             return;
         }
     };
@@ -41,7 +39,7 @@ async fn main() {
     for (id, module) in loader.modules.into_iter().enumerate() {
         let (setup_sender, setup_receive) = oneshot::channel::<Option<Sender<ModulePackage>>>();
 
-        let main_sender = if loader.main == id as i32 {
+        let main_sender = if loader.main == id as i32 { 
             Some(main_sender_package.clone())
         } else {
             None
@@ -58,7 +56,7 @@ async fn main() {
 
         tokio::task::spawn(async move {
             if let Err(err) = load_module(setup, &module_name) {
-                error!("Runtime Error: {:?}", err)
+                error!("Runtime Error Load Module: {:?}", err)
             }
         });
 
@@ -73,7 +71,7 @@ async fn main() {
                 debug!("Module {} did not register", module.name);
             }
             Err(err) => {
-                error!("Runtime Error: {:?}", err);
+                error!("Runtime Error Setup Receive: {:?}", err);
                 return;
             }
         }
@@ -91,7 +89,7 @@ async fn main() {
         ) {
             Ok(flow) => flow,
             Err(err) => {
-                error!("Runtime Error: {:?}", err);
+                error!("Runtime Error To Value: {:?}", err);
                 return;
             }
         }
