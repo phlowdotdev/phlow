@@ -1,23 +1,35 @@
 name: amqp
-description: "RabbitMQ module"
+description: "AMQP module"
 
 with:
-  uri:
-    type: string
-    required: true
-    description: "RabbitMQ URI"
-  routing_key:
+  host:
     type: string
     required: false
-    description: "RabbitMQ routing key"
+    description: "AMQP host"
+  port:
+    type: integer
+    required: false
+    description: "AMQP port"
+  username:
+    type: string
+    required: false
+    description: "AMQP username"
+  password:
+    type: string
+    required: false
+    description: "AMQP password"
+  routing_key:
+    type: string
+    required: true
+    description: "AMQP routing key"
   exchange:
     type: string
     required: false
-    description: "RabbitMQ exchange"
+    description: "AMQP exchange"
   consumer_tag:
     type: string
     required: false
-    description: "RabbitMQ consumer tag"
+    description: "AMQP consumer tag"
   declare:
     type: boolean
     required: false

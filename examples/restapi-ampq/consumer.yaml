@@ -1,12 +1,9 @@
-main: restapi
-modules: !include modules.api.yaml
+main: amqp
+modules: 
+  - !include amqp.config.yaml
+  - name: log
 steps:
-  - id: echo
-    module: echo
+  - module: log
     input:
-      message: Hello, World!
-  - return:
-      status_code: 201
-      body: !eval main
-      headers:
-        Content-Type: application/json
+      level: info
+      message: !eval main

@@ -1,5 +1,0 @@
-- name: restapi
-- name: amqp
-  with:
-    uri: "amqp://localhost"
-    routing_key: "my.routing.key"

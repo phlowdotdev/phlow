@@ -52,7 +52,7 @@ pub async fn producer(
         let confirm = channel
             .basic_publish(
                 &config.exchange,
-                &config.queue,
+                &config.routing_key,
                 BasicPublishOptions::default(),
                 payload.as_bytes(),
                 BasicProperties::default(),
@@ -60,7 +60,7 @@ pub async fn producer(
             .await?
             .await?;
 
-        debug!("Published message to {}", config.queue);
+        debug!("Published message to {}", config.routing_key);
 
         let (success, error_message) = match confirm {
             Confirmation::NotRequested => {

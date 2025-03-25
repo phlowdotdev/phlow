@@ -1,12 +1,14 @@
 main: restapi
-modules: !include modules.api.yaml
+modules: 
+  - name: restapi
+  - !include amqp.config.yaml
 steps:
-  - id: echo
-    module: echo
+  - id: amqp
+    module: amqp
     input:
-      message: Hello, World!
+      message: !eval main
   - return:
       status_code: 201
-      body: !eval main
+      body: !eval steps.amqp
       headers:
         Content-Type: application/json

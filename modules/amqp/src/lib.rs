@@ -15,7 +15,11 @@ pub async fn start_server(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let config: Config = Config::try_from(&setup.with).map_err(|e| format!("{:?}", e))?;
 
-    let conn = Connection::connect(&config.uri, ConnectionProperties::default()).await?;
+    let conn = Connection::connect(
+        &config.to_connection_string(),
+        ConnectionProperties::default(),
+    )
+    .await?;
 
     debug!("Connected to RabbitMQ");
 
@@ -39,7 +43,7 @@ pub async fn start_server(
 
         channel
             .queue_declare(
-                &config.queue,
+                &config.routing_key,
                 QueueDeclareOptions::default(),
                 FieldTable::default(),
             )

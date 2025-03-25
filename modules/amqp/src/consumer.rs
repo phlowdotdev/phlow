@@ -14,7 +14,7 @@ pub async fn consumer(
 
     channel
         .queue_declare(
-            &config.queue,
+            &config.routing_key,
             QueueDeclareOptions::default(),
             FieldTable::default(),
         )
@@ -22,7 +22,7 @@ pub async fn consumer(
 
     let consumer = channel
         .basic_consume(
-            &config.queue,
+            &config.routing_key,
             &config.consumer_tag,
             BasicConsumeOptions::default(),
             FieldTable::default(),

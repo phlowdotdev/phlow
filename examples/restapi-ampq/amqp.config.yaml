@@ -1,0 +1,4 @@
+name: amqp
+with:
+  routing_key: "my.routing.key"
+  declare: true
