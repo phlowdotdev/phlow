@@ -8,6 +8,21 @@ use std::sync::mpsc;
 
 use crate::setup::Config;
 
+#[derive(Debug, ToValue)]
+pub struct ProducerResponse {
+    pub success: bool,
+    pub error_message: Option<String>,
+}
+
+impl ProducerResponse {
+    pub fn from_error(error_message: &str) -> Self {
+        Self {
+            success: false,
+            error_message: Some(error_message.to_string()),
+        }
+    }
+}
+
 pub async fn producer(
     setup_sender: ModuleSetupSender,
     config: Config,
@@ -20,11 +35,19 @@ pub async fn producer(
 
     for package in rx {
         debug!("Received package");
-        let payload = package
-            .context
-            .input
-            .unwrap_or(Value::Null)
-            .to_json(sdk::prelude::JsonMode::Inline);
+
+        let payload = {
+            let input = match package.context.input {
+                Some(input) => input,
+                None => {
+                    let response = ProducerResponse::from_error("No input provided");
+                    package.sender.send(response.to_value()).unwrap();
+                    continue;
+                }
+            };
+
+            input.get("message").unwrap_or(&Value::Null).to_string()
+        };
 
         let confirm = channel
             .basic_publish(
@@ -39,23 +62,35 @@ pub async fn producer(
 
         debug!("Published message to {}", config.queue);
 
-        let data = match confirm {
+        let (success, error_message) = match confirm {
             Confirmation::NotRequested => {
                 debug!("Published message without ack");
-                true
+                (true, None)
             }
             Confirmation::Ack(basic_return_message) => {
                 debug!("Published message with ack: {:?}", basic_return_message);
-                true
+                (true, None)
             }
             Confirmation::Nack(basic_return_message) => {
-                debug!("Published message with nack: {:?}", basic_return_message);
-                false
-            }
-        }
-        .to_value();
+                let error_message =
+                    format!("Published message with nack: {:?}", basic_return_message);
 
-        package.sender.send(data).unwrap();
+                debug!(error_message);
+
+                (false, Some(error_message))
+            }
+        };
+
+        package
+            .sender
+            .send(
+                ProducerResponse {
+                    success,
+                    error_message,
+                }
+                .to_value(),
+            )
+            .unwrap();
     }
 
     Ok(())

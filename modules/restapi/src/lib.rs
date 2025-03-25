@@ -10,6 +10,7 @@ use sdk::prelude::*;
 use sdk::tokio::net::TcpListener;
 use sdk::tracing::debug;
 use sdk::tracing::error;
+use sdk::tracing::field::debug;
 use sdk::tracing::info;
 use sdk::tracing::warn;
 use setup::Config;
@@ -60,6 +61,11 @@ pub async fn start_server(
                 .serve_connection(io, service)
                 .await
             {
+                if err.is_timeout() {
+                    debug!("Connection timed out");
+                    return;
+                }
+
                 error!("Error serving connection: {:?}", err);
             }
         });
