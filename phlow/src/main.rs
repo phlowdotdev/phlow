@@ -87,7 +87,6 @@ async fn main() {
         match Phlow::try_from_value(
             &engine,
             &steps,
-            None,
             Some(Arc::new(modules)),
             Some(trace_step_sender),
         ) {

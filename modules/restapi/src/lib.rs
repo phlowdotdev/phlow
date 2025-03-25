@@ -92,14 +92,14 @@ impl ResponseHandler {
         match response_builder.body(Full::new(Bytes::from(self.body.clone()))) {
             Ok(response) => response,
             Err(e) => {
-                error!("Erro ao construir a resposta: {:?}", e);
+                error!("Error creating response: {:?}", e);
                 Response::builder()
                     .status(500)
                     .header("Content-Type", "application/json")
                     .body(Full::new(Bytes::from(
                         r#"{"error": "Internal Server Error"}"#,
                     )))
-                    .expect("Falha ao criar resposta de erro")
+                    .expect("Failed to build response")
             }
         }
     }

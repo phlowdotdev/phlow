@@ -1,4 +1,3 @@
-use lapin::protocol::exchange;
 use sdk::prelude::*;
 use std::fmt::Display;
 

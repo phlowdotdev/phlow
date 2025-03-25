@@ -37,7 +37,12 @@ macro_rules! plugin {
         pub extern "C" fn plugin(setup: ModuleSetup) {
             let _guard: opentelemetry::OtelGuard = sdk::opentelemetry::init_tracing_subscriber();
 
-            $handler(setup);
+            match $handler(setup) {
+                Ok(_) => {}
+                Err(e) => {
+                    sdk::tracing::error!("Error in plugin: {:?}", e);
+                }
+            }
         }
     };
 }
