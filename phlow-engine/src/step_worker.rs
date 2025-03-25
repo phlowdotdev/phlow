@@ -392,7 +392,7 @@ mod test {
 
         let result = step.execute(&context).await.unwrap();
 
-        assert_eq!(result.next_step, NextStep::Pipeline(0));
+        assert_eq!(result.next_step, NextStep::Next);
         assert_eq!(result.output, Some(Value::from(10i64)));
     }
 
@@ -499,7 +499,7 @@ mod test {
                 .unwrap(),
             ),
             then_case: Some(0),
-            return_case: Some(Script::try_build(&engine, &r#""Ok""#.to_value()).unwrap()),
+            return_case: Some(Script::try_build(&engine, &"Ok".to_value()).unwrap()),
             ..Default::default()
         };
 
@@ -525,7 +525,7 @@ mod test {
                 .unwrap(),
             ),
             else_case: Some(0),
-            return_case: Some(Script::try_build(&engine, &r#""Ok""#.to_value()).unwrap()),
+            return_case: Some(Script::try_build(&engine, &"Ok".to_value()).unwrap()),
             ..Default::default()
         };
 
