@@ -1,0 +1,9 @@
+main: restapi
+modules: !include modules.yaml
+steps:
+  - return:
+      status_code: 201
+      body: 
+        message: "ping"
+      headers:
+        Content-Type: application/json

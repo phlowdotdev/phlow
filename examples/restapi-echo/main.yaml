@@ -2,7 +2,7 @@ main: restapi
 modules: !include modules.yaml
 steps:
   - id: echo
-    module: echo
+    use: echo
     input:
       message: Hello, World!
   - return:
