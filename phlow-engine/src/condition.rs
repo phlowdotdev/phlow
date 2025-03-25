@@ -123,8 +123,8 @@ impl<'a> Condition<'a> {
         engine: &'a Engine,
         assert: String,
     ) -> Result<Self, ConditionError> {
-        let expression = Script::try_build(engine, &Script::to_code_string(&assert).to_value())
-            .map_err(ConditionError::ScriptError)?;
+        let expression =
+            Script::try_build(engine, &assert.to_value()).map_err(ConditionError::ScriptError)?;
 
         Ok(Self {
             expression,
@@ -219,7 +219,9 @@ impl<'a> Condition<'a> {
 
         match result {
             Value::Boolean(result) => Ok(result),
-            _ => Err(ConditionError::ScriptError(ScriptError::InvalidType)),
+            _ => Err(ConditionError::ScriptError(ScriptError::InvalidType(
+                result,
+            ))),
         }
     }
 }

@@ -11,7 +11,7 @@ use valu3::prelude::*;
 #[derive(Debug)]
 pub enum ScriptError {
     EvalError(Box<EvalAltResult>),
-    InvalidType,
+    InvalidType(Value),
     CompileError(String, ParseError),
 }
 
