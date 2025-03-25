@@ -12,6 +12,7 @@ pub enum ConditionError {
     InvalidOperator(String),
     RightInvalid(String),
     LeftInvalid(String),
+    AssertInvalid(String),
     ScriptError(ScriptError),
 }
 
@@ -76,21 +77,18 @@ impl From<&Value> for Operator {
     }
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
-pub struct ConditionRaw {
-    pub(crate) left: String,
-    pub(crate) right: String,
-    pub(crate) operator: Operator,
-}
-
 #[derive(Debug, Clone)]
 pub struct Condition<'a> {
     pub(crate) expression: Script<'a>,
-    pub(crate) raw: ConditionRaw,
+    pub(crate) raw: Value,
 }
 
 impl<'a> Condition<'a> {
     pub fn try_from_value(engine: &'a Engine, value: &Value) -> Result<Self, ConditionError> {
+        if let Some(assert) = value.get("assert") {
+            return Ok(Self::try_build_with_assert(engine, assert.to_string())?);
+        }
+
         let left = match value.get("left") {
             Some(left) => left.to_string(),
             None => return Err(ConditionError::LeftInvalid("does not exist".to_string())),
@@ -116,12 +114,25 @@ impl<'a> Condition<'a> {
             }
         };
 
-        let condition = Self::try_build(engine, left, right, operator)?;
+        let condition = Self::try_build_with_operator(engine, left, right, operator)?;
 
         Ok(condition)
     }
 
-    pub fn try_build(
+    pub fn try_build_with_assert(
+        engine: &'a Engine,
+        assert: String,
+    ) -> Result<Self, ConditionError> {
+        let expression = Script::try_build(engine, &Script::to_code_string(&assert).to_value())
+            .map_err(ConditionError::ScriptError)?;
+
+        Ok(Self {
+            expression,
+            raw: assert.to_value(),
+        })
+    }
+
+    pub fn try_build_with_operator(
         engine: &'a Engine,
         left: String,
         right: String,
@@ -130,7 +141,7 @@ impl<'a> Condition<'a> {
         let left = Script::to_code_string(&left);
         let right = Script::to_code_string(&right);
 
-        let expression = {
+        let assert = {
             match operator {
                 Operator::Or => {
                     let query = format!("{{{{{} || {}}}}}", left, right);
@@ -191,16 +202,12 @@ impl<'a> Condition<'a> {
             }
         };
 
-        let expression = Script::try_build(engine, &expression.to_value())
-            .map_err(ConditionError::ScriptError)?;
+        let expression =
+            Script::try_build(engine, &assert.to_value()).map_err(ConditionError::ScriptError)?;
 
         Ok(Self {
-            raw: ConditionRaw {
-                left,
-                right,
-                operator,
-            },
             expression,
+            raw: assert.to_value(),
         })
     }
 
@@ -226,9 +233,13 @@ mod test {
     #[test]
     fn test_condition_execute_equal() {
         let engine = build_engine_async(None);
-        let condition =
-            Condition::try_build(&engine, "10".to_string(), "20".to_string(), Operator::Equal)
-                .unwrap();
+        let condition = Condition::try_build_with_operator(
+            &engine,
+            "10".to_string(),
+            "20".to_string(),
+            Operator::Equal,
+        )
+        .unwrap();
 
         let context = Context::new(None);
 
@@ -239,7 +250,7 @@ mod test {
     #[test]
     fn test_condition_execute_not_equal() {
         let engine = build_engine_async(None);
-        let condition = Condition::try_build(
+        let condition = Condition::try_build_with_operator(
             &engine,
             "10".to_string(),
             "20".to_string(),
@@ -256,7 +267,7 @@ mod test {
     #[test]
     fn test_condition_execute_greater_than() {
         let engine = build_engine_async(None);
-        let condition = Condition::try_build(
+        let condition = Condition::try_build_with_operator(
             &engine,
             "10".to_string(),
             "20".to_string(),
@@ -273,7 +284,7 @@ mod test {
     #[test]
     fn test_condition_execute_contains() {
         let engine = build_engine_async(None);
-        let condition = Condition::try_build(
+        let condition = Condition::try_build_with_operator(
             &engine,
             "hello world".to_string(),
             "hello".to_string(),
@@ -290,7 +301,7 @@ mod test {
     #[test]
     fn test_condition_execute_regex() {
         let engine = build_engine_async(None);
-        let condition = Condition::try_build(
+        let condition = Condition::try_build_with_operator(
             &engine,
             "hello".to_string(),
             "hello world".to_string(),
@@ -307,7 +318,7 @@ mod test {
     #[test]
     fn test_condition_execute_not_regex() {
         let engine = build_engine_async(None);
-        let condition = Condition::try_build(
+        let condition = Condition::try_build_with_operator(
             &engine,
             "hello".to_string(),
             "hello world".to_string(),
@@ -324,7 +335,7 @@ mod test {
     #[test]
     fn test_condition_execute_start_with() {
         let engine = build_engine_async(None);
-        let condition = Condition::try_build(
+        let condition = Condition::try_build_with_operator(
             &engine,
             "hello world".to_string(),
             "hello".to_string(),
@@ -341,7 +352,7 @@ mod test {
     #[test]
     fn test_condition_execute_end_with() {
         let engine = build_engine_async(None);
-        let condition = Condition::try_build(
+        let condition = Condition::try_build_with_operator(
             &engine,
             "hello world".to_string(),
             "world".to_string(),

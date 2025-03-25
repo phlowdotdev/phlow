@@ -17,9 +17,12 @@ steps:
       # right: true
 
       ## 3. Using the `!import` directive to import a script
-      left: !import scripts/validator.rhai
-      right: true
-      operator: equal
+      # left: !import scripts/validator.rhai
+      # right: true
+      # operator: equal
+      
+      ## 4. Using 'assert' directive to evaluate an expression
+      assert: !import scripts/validator.rhai
     then: 
       steps:
         - id: queue

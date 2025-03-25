@@ -82,12 +82,7 @@ impl<'a> Phlow<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        collector::Step,
-        condition::{ConditionRaw, Operator},
-        engine::build_engine_async,
-        id::ID,
-    };
+    use crate::{collector::Step, condition::Operator, engine::build_engine_async, id::ID};
     use std::sync::mpsc::channel;
     use valu3::json;
 
@@ -222,11 +217,7 @@ mod tests {
                 label: None,
                 module: None,
                 input: None,
-                condition: Some(ConditionRaw {
-                    left: "params.requested".to_string(),
-                    right: "params.pre_approved".to_string(),
-                    operator: Operator::LessThanOrEqual,
-                }),
+                condition: Some("{{params.requested <= params.pre_approved}}".to_value()),
                 payload: None,
                 return_case: None,
             },
@@ -235,11 +226,7 @@ mod tests {
                 label: None,
                 module: None,
                 input: None,
-                condition: Some(ConditionRaw {
-                    left: "params.score".to_string(),
-                    right: "0.5".to_string(),
-                    operator: Operator::GreaterThanOrEqual,
-                }),
+                condition: Some("{{params.score >= 0.5}}".to_value()),
                 payload: None,
                 return_case: None,
             },

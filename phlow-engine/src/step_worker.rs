@@ -206,6 +206,7 @@ impl<'a> StepWorker<'a> {
                         label: self.label.clone(),
                         input: None,
                         module: None,
+
                         condition: None,
                         payload: None,
                         return_case: Some(output.clone()),
@@ -227,6 +228,7 @@ impl<'a> StepWorker<'a> {
                         label: self.label.clone(),
                         input: context.input.clone(),
                         module,
+
                         condition: None,
                         payload: None,
                         return_case: None,
@@ -349,7 +351,7 @@ mod test {
         let step = StepWorker {
             id: ID::new(),
             condition: Some(
-                Condition::try_build(
+                Condition::try_build_with_operator(
                     &engine,
                     "10".to_string(),
                     "20".to_string(),
@@ -375,7 +377,7 @@ mod test {
         let step = StepWorker {
             id: ID::new(),
             condition: Some(
-                Condition::try_build(
+                Condition::try_build_with_operator(
                     &engine,
                     "10".to_string(),
                     "20".to_string(),
@@ -402,7 +404,7 @@ mod test {
         let step = StepWorker {
             id: ID::new(),
             condition: Some(
-                Condition::try_build(
+                Condition::try_build_with_operator(
                     &engine,
                     "10".to_string(),
                     "20".to_string(),
@@ -464,7 +466,7 @@ mod test {
         let step = StepWorker {
             id: ID::new(),
             condition: Some(
-                Condition::try_build(
+                Condition::try_build_with_operator(
                     &engine,
                     "10".to_string(),
                     "20".to_string(),
@@ -490,7 +492,7 @@ mod test {
         let step = StepWorker {
             id: ID::new(),
             condition: Some(
-                Condition::try_build(
+                Condition::try_build_with_operator(
                     &engine,
                     "10".to_string(),
                     "20".to_string(),
@@ -516,7 +518,7 @@ mod test {
         let step = StepWorker {
             id: ID::new(),
             condition: Some(
-                Condition::try_build(
+                Condition::try_build_with_operator(
                     &engine,
                     "10".to_string(),
                     "20".to_string(),
