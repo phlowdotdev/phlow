@@ -149,6 +149,7 @@ fn load_config() -> Result<Value, LoaderError> {
 #[derive(ToValue, FromValue, Clone)]
 pub struct Module {
     pub name: String,
+    pub module: String,
     pub with: Value,
 }
 
@@ -156,9 +157,14 @@ impl TryFrom<Value> for Module {
     type Error = LoaderError;
 
     fn try_from(value: Value) -> Result<Self, LoaderError> {
+        let module = match value.get("module") {
+            Some(module) => module.to_string(),
+            None => return Err(LoaderError::ModuleLoaderError),
+        };
+
         let name = match value.get("name") {
             Some(name) => name.to_string(),
-            None => return Err(LoaderError::ModuleLoaderError),
+            None => module.clone(),
         };
 
         let with = match value.get("with") {
@@ -166,7 +172,7 @@ impl TryFrom<Value> for Module {
             None => Value::Null,
         };
 
-        Ok(Module { name, with })
+        Ok(Module { module, name, with })
     }
 }
 
@@ -219,10 +225,10 @@ impl TryFrom<Value> for Loader {
                         main = modules_vec.len() as i32;
                     }
 
-                    let module_path = format!("phlow_modules/{}/module.so", module.name);
+                    let module_path = format!("phlow_modules/{}/module.so", module.module);
 
                     if !std::path::Path::new(&module_path).exists() {
-                        return Err(LoaderError::ModuleNotFound(module.name));
+                        return Err(LoaderError::ModuleNotFound(module.module));
                     }
 
                     modules_vec.push(module);

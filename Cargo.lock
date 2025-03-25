@@ -2016,19 +2016,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "phlow-engine"
-version = "0.1.0"
-dependencies = [
- "regex",
- "rhai",
- "sdk",
- "serde",
- "tokio",
- "valu3",
-]
-
-[[package]]
-name = "phlow-runtime"
+name = "phlow"
 version = "0.1.0"
 dependencies = [
  "clap",
@@ -2051,6 +2039,18 @@ dependencies = [
  "tracing-core",
  "tracing-opentelemetry",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "phlow-engine"
+version = "0.1.0"
+dependencies = [
+ "regex",
+ "rhai",
+ "sdk",
+ "serde",
+ "tokio",
+ "valu3",
 ]
 
 [[package]]

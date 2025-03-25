@@ -108,7 +108,7 @@ impl<'a> StepWorker<'a> {
             },
             None => None,
         };
-        let module = match value.get("module") {
+        let module = match value.get("use") {
             Some(module) => Some(module.to_string()),
             None => None,
         };

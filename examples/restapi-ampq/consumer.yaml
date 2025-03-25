@@ -1,9 +1,9 @@
-main: amqp
+main: rabbitmq
 modules: 
   - !include amqp.config.yaml
-  - name: log
-steps:
   - module: log
+steps:
+  - use: log
     input:
       level: info
       message: !eval main

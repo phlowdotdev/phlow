@@ -1,14 +1,14 @@
 main: restapi
 modules: 
-  - name: restapi
+  - module: restapi
   - !include amqp.config.yaml
 steps:
-  - id: amqp
-    module: amqp
+  - id: queue
+    use: rabbitmq
     input:
       message: !eval main
   - return:
       status_code: 201
-      body: !eval steps.amqp
+      body: !eval steps.queue
       headers:
         Content-Type: application/json

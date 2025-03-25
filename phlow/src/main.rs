@@ -53,15 +53,18 @@ async fn main() {
             with: module.with.clone(),
         };
 
-        let module_name = module.name.clone();
+        let module_target = module.module.clone();
 
         tokio::task::spawn(async move {
-            if let Err(err) = load_module(setup, &module_name) {
+            if let Err(err) = load_module(setup, &module_target) {
                 error!("Runtime Error Load Module: {:?}", err)
             }
         });
 
-        debug!("Module {} loaded", module.name);
+        debug!(
+            "Module {} loaded with name \"{}\"",
+            module.module, module.name
+        );
 
         match setup_receive.await {
             Ok(Some(sender)) => {
