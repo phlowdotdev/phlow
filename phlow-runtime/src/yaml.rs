@@ -2,9 +2,7 @@ use regex::Regex;
 use std::fs;
 
 pub fn yaml_helpers_transform(yaml: &str) -> String {
-    let yaml = yaml_helpers_include(yaml);
-    let yaml = yaml_helpers_eval(&yaml);
-    yaml
+    yaml_helpers_eval(&yaml_helpers_include(yaml))
 }
 
 fn yaml_helpers_include(yaml: &str) -> String {
@@ -29,27 +27,49 @@ fn yaml_helpers_eval(yaml: &str) -> String {
 
     while let Some(line) = lines.next() {
         if let Some(pos) = line.find("!eval") {
+            let before_eval = &line[..pos];
             let after_eval = line[pos + 5..].trim();
             let indent = " ".repeat(pos);
 
-            if !after_eval.is_empty() {
-                // Linha única
-                result.push_str(&format!("{}{{{{ {} }}}}\n", indent, after_eval));
+            if after_eval.starts_with("```") {
+                // Bloco markdown-style
+                let mut block_lines = vec![];
+
+                if after_eval == "```" {
+                    while let Some(next_line) = lines.next() {
+                        if next_line.trim() == "```" {
+                            break;
+                        }
+                        block_lines.push(next_line.trim().to_string());
+                    }
+                } else if let Some(end_pos) = after_eval[3..].find("```") {
+                    let inner_code = &after_eval[3..3 + end_pos];
+                    block_lines.push(inner_code.trim().to_string());
+                }
+
+                let single_line = block_lines.join(" ");
+                if before_eval.trim().is_empty() {
+                    result.push_str(&format!("{}{{{{ {} }}}}\n", indent, single_line));
+                } else {
+                    result.push_str(&format!("{}{{{{ {} }}}}\n", before_eval, single_line));
+                }
+            } else if !after_eval.is_empty() {
+                result.push_str(&format!("{}{{{{ {} }}}}\n", before_eval, after_eval));
             } else {
                 // Bloco indentado
                 let mut block_lines = vec![];
                 while let Some(&next_line) = lines.peek() {
                     let line_indent = next_line.chars().take_while(|c| c.is_whitespace()).count();
                     if next_line.trim().is_empty() || line_indent > pos {
-                        block_lines.push(next_line[pos + 1..].to_string());
+                        block_lines.push(next_line[pos + 1..].trim().to_string());
                         lines.next();
                     } else {
                         break;
                     }
                 }
 
-                let block = block_lines.join("\n");
-                result.push_str(&format!("{}{{{{\n{}\n{}}}}}\n", indent, block, indent));
+                let single_line = block_lines.join(" ");
+                result.push_str(&format!("{}{{{{ {} }}}}\n", indent, single_line));
             }
         } else {
             result.push_str(line);
@@ -58,7 +78,7 @@ fn yaml_helpers_eval(yaml: &str) -> String {
     }
 
     result.pop();
-    result
+    result.to_string()
 }
 
 #[cfg(test)]
@@ -70,12 +90,12 @@ mod tests {
         let _ = fs::remove_file("test1.yaml"); // evita erro se já não existir
 
         let yaml = r#"
-                !include test1.yaml
+                item: !include test1.yaml
                 !include test2.yaml
                 !include test3.yaml
             "#;
         let expected = r#"
-                <!-- Error including file: test1.yaml -->
+                item: <!-- Error including file: test1.yaml -->
                 <!-- Error including file: test2.yaml -->
                 <!-- Error including file: test3.yaml -->
             "#;
@@ -85,14 +105,14 @@ mod tests {
     #[test]
     fn test_yaml_helpers_eval() {
         let yaml = r#"
-            !eval 1 + 1
+            item: !eval 1 + 1
             !eval  2 + 2
-            !eval 3 + 3
+            item2: !eval 3 + 3
         "#;
         let expected = r#"
-            {{ 1 + 1 }}
+            item: {{ 1 + 1 }}
             {{ 2 + 2 }}
-            {{ 3 + 3 }}
+            item2: {{ 3 + 3 }}
         "#;
         assert_eq!(yaml_helpers_eval(yaml), expected);
     }
@@ -104,8 +124,7 @@ mod tests {
 
         let yaml = r#"
             !include test_ok.yaml
-            !eval
-            1 + 1
+            !eval 1 + 1
         "#;
         let expected = r#"
             ok
@@ -114,8 +133,29 @@ mod tests {
 
         let result = yaml_helpers_transform(yaml);
 
-        fs::remove_file("test1.yaml").unwrap();
+        fs::remove_file("test_ok.yaml").unwrap();
 
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_yaml_helpers_eval_block_with_backticks() {
+        let yaml = r#"
+            item: !eval 1 + 1
+            item2: !eval ```
+                let a = 2;
+                let b = 2;
+                a + b
+            ```
+            !eval 3 + 3
+        "#;
+
+        let expected = r#"
+            item: {{ 1 + 1 }}
+            item2: {{ let a = 2; let b = 2; a + b }}
+            {{ 3 + 3 }}
+        "#;
+
+        assert_eq!(yaml_helpers_eval(yaml), expected);
     }
 }
