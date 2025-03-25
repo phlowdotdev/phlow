@@ -178,7 +178,7 @@ impl<'a> StepWorker<'a> {
     async fn evaluate_module(
         &self,
         context: &Context,
-    ) -> Result<(Option<String>, Option<Value>, Context), StepWorkerError> {
+    ) -> Result<Option<(Option<String>, Option<Value>, Context)>, StepWorkerError> {
         if let Some(ref module) = self.module {
             let input = self.evaluate_input(context)?;
 
@@ -189,11 +189,11 @@ impl<'a> StepWorker<'a> {
             };
 
             match self.modules.execute(module, &context).await {
-                Ok(value) => Ok((Some(module.clone()), Some(value), context)),
+                Ok(value) => Ok(Some((Some(module.clone()), Some(value), context))),
                 Err(err) => Err(StepWorkerError::ModulesError(err)),
             }
         } else {
-            Ok((None, None, context.clone()))
+            Ok(None)
         }
     }
 
@@ -219,7 +219,7 @@ impl<'a> StepWorker<'a> {
             });
         }
 
-        if let Ok((module, output, context)) = self.evaluate_module(context).await {
+        if let Ok(Some((module, output, context))) = self.evaluate_module(context).await {
             if let Some(sender) = &self.trace_sender {
                 sender
                     .send(Step {
