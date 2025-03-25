@@ -6,16 +6,23 @@ pub fn yaml_helpers_transform(yaml: &str) -> String {
 }
 
 fn yaml_helpers_include(yaml: &str) -> String {
-    let include_regex = Regex::new(r"!include\s+(\S+)").unwrap();
+    let include_regex = Regex::new(r"(?m)^(\s*)!include\s+(\S+)").unwrap();
+
     include_regex
         .replace_all(yaml, |caps: &regex::Captures| {
-            let path = &caps[1];
+            let indent = &caps[1];
+            let path = &caps[2];
             match fs::read_to_string(path) {
                 Ok(contents) => {
                     // Aplica recursivamente para permitir includes dentro de includes
-                    yaml_helpers_include(&contents)
+                    let included = yaml_helpers_include(&contents);
+                    included
+                        .lines()
+                        .map(|line| format!("{}{}", indent, line))
+                        .collect::<Vec<_>>()
+                        .join("\n")
                 }
-                Err(_) => format!("<!-- Error including file: {} -->", path),
+                Err(_) => format!("{}<!-- Error including file: {} -->", indent, path),
             }
         })
         .to_string()
@@ -90,12 +97,14 @@ mod tests {
         let _ = fs::remove_file("test1.yaml"); // evita erro se já não existir
 
         let yaml = r#"
-                item: !include test1.yaml
+                item: 
+                  !include test1.yaml
                 !include test2.yaml
                 !include test3.yaml
             "#;
         let expected = r#"
-                item: <!-- Error including file: test1.yaml -->
+                item: 
+                  <!-- Error including file: test1.yaml -->
                 <!-- Error including file: test2.yaml -->
                 <!-- Error including file: test3.yaml -->
             "#;

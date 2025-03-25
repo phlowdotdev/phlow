@@ -135,6 +135,7 @@ fn load_config() -> Result<Value, LoaderError> {
         }
         ModuleExtension::Yaml => {
             let yaml = yaml_helpers_transform(&file);
+            println!("{}", yaml);
             serde_yaml::from_str(&yaml).map_err(LoaderError::LoaderErrorYaml)?
         }
         ModuleExtension::Toml => toml::from_str(&file).map_err(LoaderError::LoaderErrorToml)?,
