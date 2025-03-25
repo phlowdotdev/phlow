@@ -51,8 +51,9 @@ fn yaml_helpers_include(yaml: &str) -> String {
                         .lines()
                         .map(str::trim)
                         .collect::<Vec<_>>()
-                        .join(" ");
-                    format!("{{{{ {} }}}}", one_line)
+                        .join(" ")
+                        .replace('"', "\\\"");
+                    format!(r#""{{{{ {} }}}}""#, one_line)
                 }
                 Err(_) => format!("<!-- Error importing file: {} -->", path),
             }
@@ -87,13 +88,16 @@ fn yaml_helpers_eval(yaml: &str) -> String {
                 }
 
                 let single_line = block_lines.join(" ");
+                let escaped = single_line.replace('"', "\\\"");
+
                 if before_eval.trim().is_empty() {
-                    result.push_str(&format!("{}{{{{ {} }}}}\n", indent, single_line));
+                    result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", indent, escaped));
                 } else {
-                    result.push_str(&format!("{}{{{{ {} }}}}\n", before_eval, single_line));
+                    result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", before_eval, escaped));
                 }
             } else if !after_eval.is_empty() {
-                result.push_str(&format!("{}{{{{ {} }}}}\n", before_eval, after_eval));
+                let escaped = after_eval.replace('"', "\\\"");
+                result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", before_eval, escaped));
             } else {
                 // Bloco indentado
                 let mut block_lines = vec![];
@@ -108,7 +112,9 @@ fn yaml_helpers_eval(yaml: &str) -> String {
                 }
 
                 let single_line = block_lines.join(" ");
-                result.push_str(&format!("{}{{{{ {} }}}}\n", indent, single_line));
+                let escaped = single_line.replace('"', "\\\"");
+
+                result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", indent, escaped));
             }
         } else {
             result.push_str(line);
@@ -151,9 +157,9 @@ mod tests {
             item2: !eval 3 + 3
         "#;
         let expected = r#"
-            item: {{ 1 + 1 }}
-            {{ 2 + 2 }}
-            item2: {{ 3 + 3 }}
+            item: "{{ 1 + 1 }}"
+            "{{ 2 + 2 }}"
+            item2: "{{ 3 + 3 }}"
         "#;
         assert_eq!(yaml_helpers_eval(yaml), expected);
     }
@@ -169,7 +175,7 @@ mod tests {
         "#;
         let expected = r#"
             ok
-            {{ 1 + 1 }}
+            "{{ 1 + 1 }}"
         "#;
 
         let result = yaml_helpers_transform(yaml);
@@ -192,9 +198,9 @@ mod tests {
         "#;
 
         let expected = r#"
-            item: {{ 1 + 1 }}
-            item2: {{ let a = 2; let b = 2; a + b }}
-            {{ 3 + 3 }}
+            item: "{{ 1 + 1 }}"
+            item2: "{{ let a = 2; let b = 2; a + b }}"
+            "{{ 3 + 3 }}"
         "#;
 
         assert_eq!(yaml_helpers_eval(yaml), expected);

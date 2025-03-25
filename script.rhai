@@ -5,4 +5,4 @@ let items = #{
     "main": main
 };
 
-main
+items
