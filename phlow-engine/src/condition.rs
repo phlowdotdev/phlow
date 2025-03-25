@@ -135,115 +135,59 @@ impl<'a> Condition<'a> {
         let expression = {
             match operator {
                 Operator::Or => {
-                    let query = format!(
-                        "{{{{{} || {}}}}}",
-                        Script::to_code_string(&left),
-                        Script::to_code_string(&right)
-                    );
+                    let query = format!("{{{{{} || {}}}}}", left, right);
                     query
                 }
                 Operator::And => {
-                    let query = format!(
-                        "{{{{{} && {}}}}}",
-                        Script::to_code_string(&left),
-                        Script::to_code_string(&right)
-                    );
+                    let query = format!("{{{{{} && {}}}}}", left, right);
                     query
                 }
                 Operator::Equal => {
-                    let query = format!(
-                        "{{{{{} == {}}}}}",
-                        Script::to_code_string(&left),
-                        Script::to_code_string(&right)
-                    );
+                    let query = format!("{{{{{} == {}}}}}", left, right);
                     query
                 }
                 Operator::NotEqual => {
-                    let query = format!(
-                        "{{{{{} != {}}}}}",
-                        Script::to_code_string(&left),
-                        Script::to_code_string(&right)
-                    );
+                    let query = format!("{{{{{} != {}}}}}", left, right);
                     query
                 }
                 Operator::GreaterThan => {
-                    let query = format!(
-                        "{{{{{} > {}}}}}",
-                        Script::to_code_string(&left),
-                        Script::to_code_string(&right)
-                    );
+                    let query = format!("{{{{{} > {}}}}}", left, right);
                     query
                 }
                 Operator::LessThan => {
-                    let query = format!(
-                        "{{{{{} < {}}}}}",
-                        Script::to_code_string(&left),
-                        Script::to_code_string(&right)
-                    );
+                    let query = format!("{{{{{} < {}}}}}", left, right);
                     query
                 }
                 Operator::GreaterThanOrEqual => {
-                    let query = format!(
-                        "{{{{{} >= {}}}}}",
-                        Script::to_code_string(&left),
-                        Script::to_code_string(&right)
-                    );
+                    let query = format!("{{{{{} >= {}}}}}", left, right);
                     query
                 }
                 Operator::LessThanOrEqual => {
-                    let query = format!(
-                        "{{{{{} <= {}}}}}",
-                        Script::to_code_string(&left),
-                        Script::to_code_string(&right)
-                    );
+                    let query = format!("{{{{{} <= {}}}}}", left, right);
                     query
                 }
                 Operator::Contains => {
-                    let query = format!(
-                        "{{{{({} in {})}}}}",
-                        Script::to_code_string(&left),
-                        Script::to_code_string(&right)
-                    );
+                    let query = format!("{{{{({} in {})}}}}", left, right);
                     query
                 }
                 Operator::NotContains => {
-                    let query = format!(
-                        "{{{{{} !in {}}}}}",
-                        Script::to_code_string(&left),
-                        Script::to_code_string(&right)
-                    );
+                    let query = format!("{{{{{} !in {}}}}}", left, right);
                     query
                 }
                 Operator::StartsWith => {
-                    let query = format!(
-                        "{{{{{} starts_with {}}}}}",
-                        Script::to_code_string(&left),
-                        Script::to_code_string(&right)
-                    );
+                    let query = format!("{{{{{} starts_with {}}}}}", left, right);
                     query
                 }
                 Operator::EndsWith => {
-                    let query = format!(
-                        "{{{{{} ends_with {}}}}}",
-                        Script::to_code_string(&left),
-                        Script::to_code_string(&right)
-                    );
+                    let query = format!("{{{{{} ends_with {}}}}}", left, right);
                     query
                 }
                 Operator::Regex => {
-                    let query = format!(
-                        "{{{{{} search {}}}}}",
-                        Script::to_code_string(&left),
-                        Script::to_code_string(&right)
-                    );
+                    let query = format!("{{{{{} search {}}}}}", left, right);
                     query
                 }
                 Operator::NotRegex => {
-                    let query = format!(
-                        "{{{{!({} search {})}}}}",
-                        Script::to_code_string(&left),
-                        Script::to_code_string(&right)
-                    );
+                    let query = format!("{{{{!({} search {})}}}}", left, right);
                     query
                 }
             }
