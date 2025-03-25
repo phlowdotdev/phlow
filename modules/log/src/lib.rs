@@ -20,10 +20,9 @@ struct Log {
     message: String,
 }
 
-impl TryFrom<&Value> for Log {
-    type Error = Error;
-
-    fn try_from(value: &Value) -> Result<Self, Error> {
+impl From<&Value> for Log {
+    fn from(value: &Value) -> Self {
+        println!("Log from value: {:?}", value);
         let level = match value.get("level") {
             Some(level) => match level.to_string().as_str() {
                 "info" => LogLevel::Info,
@@ -35,9 +34,9 @@ impl TryFrom<&Value> for Log {
             _ => LogLevel::Info,
         };
 
-        let message = value.get("message").unwrap().to_string();
+        let message = value.get("message").unwrap_or(&Value::Null).to_string();
 
-        Ok(Self { level, message })
+        Self { level, message }
     }
 }
 
@@ -50,15 +49,8 @@ pub fn log(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + 
     println!("Log module setup sender sent");
 
     for package in rx {
-        println!("Log package received");
         let log = match package.context.input {
-            Some(value) => match Log::try_from(&value) {
-                Ok(log) => log,
-                Err(_) => Log {
-                    level: LogLevel::Info,
-                    message: value.to_string(),
-                },
-            },
+            Some(value) => Log::from(&value),
             _ => Log {
                 level: LogLevel::Info,
                 message: "".to_string(),

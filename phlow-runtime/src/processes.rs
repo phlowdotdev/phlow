@@ -1,5 +1,5 @@
 use phlow_engine::{collector::Step, Context, Phlow};
-use sdk::{prelude::*, tracing::info};
+use sdk::prelude::*;
 use tracing::{debug, error};
 
 #[tracing::instrument]

@@ -1,0 +1,27 @@
+main: restapi
+modules:
+- name: restapi
+- name: echo
+- name: log
+steps:
+- id: echo
+  module: echo
+  input:
+    message: '#`Hello, World!`#'
+- module: log
+  input: 
+    level: "`warn`"
+    message: "`XXXXXXXX`"
+
+- module: log
+  input: 
+    level: "`error`"
+    message: "`exit`"
+
+- return:
+    status_code: 201
+    body: 
+      echo: steps.echo
+      main: main
+    headers:
+      Content-Type: '`application/json`'
