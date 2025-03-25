@@ -23,6 +23,9 @@ steps:
       
       ## 4. Using 'assert' directive to evaluate an expression
       assert: !import scripts/validator.rhai
+
+      ## 5. Using 'assert' directive to compare the result of an expression
+      # assert: !eval main.method == "POST"
     then: 
       steps:
         - id: queue
