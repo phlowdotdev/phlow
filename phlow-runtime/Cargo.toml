@@ -15,6 +15,7 @@ serde_json = "1.0"
 toml = "0.8"
 regex = "1.11.1"
 
+
 # OpenTelemetry
 opentelemetry = "0.28.0"
 opentelemetry_sdk = "0.28.0"

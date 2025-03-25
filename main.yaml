@@ -15,8 +15,6 @@ steps:
     message: exit
 - return:
     status_code: 201
-    body: 
-      echo: !eval steps.echo
-      main: !import script.rhai
+    body: !include body.yaml    
     headers:
       Content-Type: application/json

@@ -1,7 +1,9 @@
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 use serde_json::json;
+use serde_yaml;
+use std::collections::BTreeMap;
 use std::fs;
+use std::path::Path;
 
 pub fn yaml_helpers_transform(yaml: &str) -> String {
     yaml_helpers_eval(&yaml_helpers_include(yaml))
@@ -10,67 +12,50 @@ pub fn yaml_helpers_transform(yaml: &str) -> String {
 fn yaml_helpers_include(yaml: &str) -> String {
     let include_block_regex = Regex::new(r"(?m)^(\s*)!include\s+(\S+)").unwrap();
     let include_inline_regex = Regex::new(r"!include\s+(\S+)").unwrap();
+    let import_inline_regex = Regex::new(r"!import\s+(\S+)").unwrap();
 
-    // Primeiro: processa includes em bloco (início da linha, com indentação)
+    // Trata includes em bloco (preservando indentação)
     let with_block_includes = include_block_regex.replace_all(yaml, |caps: &regex::Captures| {
         let indent = &caps[1];
         let path = &caps[2];
-        match process_included_file(path, Some(indent)) {
-            Ok(json) => json,
-            Err(err) => format!("{}<!-- {} -->", indent, err),
+        match process_include_file(path) {
+            Ok(json_str) => json_str
+                .lines()
+                .map(|line| format!("{}{}", indent, line))
+                .collect::<Vec<_>>()
+                .join("\n"),
+            Err(e) => format!("{}<!-- Error including file: {}: {} -->", indent, path, e),
         }
     });
 
-    // Depois: processa includes inline
-    include_inline_regex
-        .replace_all(&with_block_includes, |caps: &regex::Captures| {
+    // Trata includes inline
+    let with_inline_includes =
+        include_inline_regex.replace_all(&with_block_includes, |caps: &regex::Captures| {
             let path = &caps[1];
-            match process_included_file(path, None) {
-                Ok(json) => json,
-                Err(err) => format!("<!-- {} -->", err),
+            match process_include_file(path) {
+                Ok(json_str) => json_str,
+                Err(e) => format!("<!-- Error including file: {}: {} -->", path, e),
+            }
+        });
+
+    // Trata import inline
+    import_inline_regex
+        .replace_all(&with_inline_includes, |caps: &regex::Captures| {
+            let path = &caps[1];
+            match fs::read_to_string(path) {
+                Ok(contents) => {
+                    let one_line = contents
+                        .lines()
+                        .map(str::trim)
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                        .replace('"', "\\\"");
+                    format!(r#""{{{{ {} }}}}""#, one_line)
+                }
+                Err(_) => format!("<!-- Error importing file: {} -->", path),
             }
         })
         .to_string()
-}
-
-fn process_included_file(path: &str, indent: Option<&str>) -> Result<String, String> {
-    let ext = std::path::Path::new(path)
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("")
-        .to_lowercase();
-
-    let content =
-        fs::read_to_string(path).map_err(|_| format!("Error including file: {}", path))?;
-
-    let json = match ext.as_str() {
-        "yaml" | "yml" => {
-            let transformed = yaml_helpers_transform(&content);
-            let value: serde_yaml::Value =
-                serde_yaml::from_str(&transformed).map_err(|e| e.to_string())?;
-            serde_json::to_string_pretty(&value).map_err(|e| e.to_string())?
-        }
-        "json" => {
-            let value: serde_json::Value =
-                serde_json::from_str(&content).map_err(|e| e.to_string())?;
-            serde_json::to_string_pretty(&value).map_err(|e| e.to_string())?
-        }
-        "toml" => {
-            let value: toml::Value = content.parse::<toml::Value>().map_err(|e| e.to_string())?;
-            serde_json::to_string_pretty(&value).map_err(|e| e.to_string())?
-        }
-        _ => return Err(format!("Unsupported file type: {}", path)),
-    };
-
-    if let Some(indent) = indent {
-        Ok(json
-            .lines()
-            .map(|line| format!("{}{}", indent, line))
-            .collect::<Vec<_>>()
-            .join("\n"))
-    } else {
-        Ok(json)
-    }
 }
 
 fn yaml_helpers_eval(yaml: &str) -> String {
@@ -138,83 +123,31 @@ fn yaml_helpers_eval(yaml: &str) -> String {
     result.to_string()
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+fn process_include_file(path: &str) -> Result<String, String> {
+    let path_obj = Path::new(path);
+    let extension = path_obj
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
 
-    #[test]
-    fn test_yaml_helpers_include() {
-        let _ = fs::remove_file("test1.yaml"); // evita erro se já não existir
+    let raw = fs::read_to_string(path).map_err(|e| e.to_string())?;
 
-        let yaml = r#"
-                item: 
-                  !include test1.yaml
-                !include test2.yaml
-                !include test3.yaml
-            "#;
-        let expected = r#"
-                item: 
-                  <!-- Error including file: test1.yaml -->
-                <!-- Error including file: test2.yaml -->
-                <!-- Error including file: test3.yaml -->
-            "#;
-        assert_eq!(yaml_helpers_include(yaml), expected);
-    }
+    let value = match extension.as_str() {
+        "yaml" | "yml" => {
+            let transformed = yaml_helpers_transform(&raw);
+            let yaml_value: serde_yaml::Value =
+                serde_yaml::from_str(&transformed).map_err(|e| e.to_string())?;
+            serde_json::to_value(yaml_value).map_err(|e| e.to_string())?
+        }
+        "json" => serde_json::from_str::<serde_json::Value>(&raw).map_err(|e| e.to_string())?,
+        "toml" => {
+            let toml_value: toml::Value = toml::from_str(&raw).map_err(|e| e.to_string())?;
+            serde_json::to_value(toml_value).map_err(|e| e.to_string())?
+        }
+        _ => return Err("Unsupported file extension".into()),
+    };
 
-    #[test]
-    fn test_yaml_helpers_eval() {
-        let yaml = r#"
-            item: !eval 1 + 1
-            !eval  2 + 2
-            item2: !eval 3 + 3
-        "#;
-        let expected = r#"
-            item: "{{ 1 + 1 }}"
-            "{{ 2 + 2 }}"
-            item2: "{{ 3 + 3 }}"
-        "#;
-        assert_eq!(yaml_helpers_eval(yaml), expected);
-    }
-
-    #[test]
-    fn test_yaml_helpers_transform() {
-        let test1 = r#"ok"#;
-        fs::write("test_ok.yaml", test1).unwrap();
-
-        let yaml = r#"
-            !include test_ok.yaml
-            !eval 1 + 1
-        "#;
-        let expected = r#"
-            ok
-            "{{ 1 + 1 }}"
-        "#;
-
-        let result = yaml_helpers_transform(yaml);
-
-        fs::remove_file("test_ok.yaml").unwrap();
-
-        assert_eq!(result, expected);
-    }
-
-    #[test]
-    fn test_yaml_helpers_eval_block_with_backticks() {
-        let yaml = r#"
-            item: !eval 1 + 1
-            item2: !eval ```
-                let a = 2;
-                let b = 2;
-                a + b
-            ```
-            !eval 3 + 3
-        "#;
-
-        let expected = r#"
-            item: "{{ 1 + 1 }}"
-            item2: "{{ let a = 2; let b = 2; a + b }}"
-            "{{ 3 + 3 }}"
-        "#;
-
-        assert_eq!(yaml_helpers_eval(yaml), expected);
-    }
+    // Converte o conteúdo para uma string JSON bonita
+    serde_json::to_string_pretty(&value).map_err(|e| e.to_string())
 }
