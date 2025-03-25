@@ -1,6 +1,5 @@
 main: restapi
-modules:
-  !include modules.yaml
+modules: !include modules.yaml
 steps:
 - id: echo
   module: echo
