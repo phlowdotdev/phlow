@@ -111,7 +111,7 @@ fn load_config() -> Result<Value, LoaderError> {
         )
         .get_matches();
 
-    let main_file = match matches.get_one::<String>("main_file") {
+    let (main_file, main_ext) = match matches.get_one::<String>("main_file") {
         Some(file) => {
             let extension = get_file_extension(file);
             (file.clone(), extension)
@@ -122,9 +122,12 @@ fn load_config() -> Result<Value, LoaderError> {
         },
     };
 
-    let file = std::fs::read_to_string(main_file.0).unwrap();
+    let file = match std::fs::read_to_string(&main_file) {
+        Ok(file) => file,
+        Err(_) => return Err(LoaderError::ModuleNotFound(main_file)),
+    };
 
-    let value: Value = match main_file.1 {
+    let value: Value = match main_ext {
         ModuleExtension::Json => {
             serde_json::from_str(&file).map_err(LoaderError::LoaderErrorJson)?
         }
