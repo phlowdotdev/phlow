@@ -18,6 +18,6 @@ steps:
     status_code: 201
     body: 
       echo: !eval steps.echo
-      main: !eval main
+      main: !import script.rhai
     headers:
       Content-Type: application/json

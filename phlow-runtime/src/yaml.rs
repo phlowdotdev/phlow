@@ -6,23 +6,55 @@ pub fn yaml_helpers_transform(yaml: &str) -> String {
 }
 
 fn yaml_helpers_include(yaml: &str) -> String {
-    let include_regex = Regex::new(r"(?m)^(\s*)!include\s+(\S+)").unwrap();
+    // Matches !include SOMEPATH at the beginning of a line (preserve indentation)
+    let include_block_regex = Regex::new(r"(?m)^(\s*)!include\s+(\S+)").unwrap();
+    // Matches !include SOMEPATH anywhere (inline usage)
+    let include_inline_regex = Regex::new(r"!include\s+(\S+)").unwrap();
 
-    include_regex
-        .replace_all(yaml, |caps: &regex::Captures| {
-            let indent = &caps[1];
-            let path = &caps[2];
+    // Matches !import SOMEPATH anywhere (always inline)
+    let import_inline_regex = Regex::new(r"!import\s+(\S+)").unwrap();
+
+    // First: replace !include blocks with indentation
+    let with_block_includes = include_block_regex.replace_all(yaml, |caps: &regex::Captures| {
+        let indent = &caps[1];
+        let path = &caps[2];
+        match fs::read_to_string(path) {
+            Ok(contents) => {
+                let included = yaml_helpers_include(&contents); // Recurse
+                included
+                    .lines()
+                    .map(|line| format!("{}{}", indent, line))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            }
+            Err(_) => format!("{}<!-- Error including file: {} -->", indent, path),
+        }
+    });
+
+    // Then: replace inline !include with content
+    let with_inline_includes =
+        include_inline_regex.replace_all(&with_block_includes, |caps: &regex::Captures| {
+            let path = &caps[1];
+            match fs::read_to_string(path) {
+                Ok(contents) => yaml_helpers_include(&contents).trim().to_string(),
+                Err(_) => format!("<!-- Error including file: {} -->", path),
+            }
+        });
+
+    // Finally: replace !import with inline {{ content }}
+    import_inline_regex
+        .replace_all(&with_inline_includes, |caps: &regex::Captures| {
+            let path = &caps[1];
             match fs::read_to_string(path) {
                 Ok(contents) => {
-                    // Aplica recursivamente para permitir includes dentro de includes
-                    let included = yaml_helpers_include(&contents);
-                    included
+                    let one_line = contents
                         .lines()
-                        .map(|line| format!("{}{}", indent, line))
+                        .map(str::trim)
                         .collect::<Vec<_>>()
-                        .join("\n")
+                        .join(" ");
+                    format!("{{{{ {} }}}}", one_line)
                 }
-                Err(_) => format!("{}<!-- Error including file: {} -->", indent, path),
+                Err(_) => format!("<!-- Error importing file: {} -->", path),
             }
         })
         .to_string()
