@@ -1,3 +1,10 @@
+/*
+Manipula yaml.
+
+!include [file]: Inclui um arquivo yaml.
+!eval [expression]: Adiciona {{expression}} ao yaml.
+
+```yaml
 main: restapi
 modules: !include modules.yaml
 steps:
@@ -6,16 +13,16 @@ steps:
   input:
     message: Hello, World!
 - module: log
-  input: 
+  input:
     level: warn
     message: XXXXXXXX
 - module: log
-  input: 
+  input:
     level: error
     message: exit
 - return:
     status_code: 201
-    body: 
+    body:
       echo: !eval steps.echo
       main: !eval
         if 10 > 5 {
@@ -25,3 +32,5 @@ steps:
         }
     headers:
       Content-Type: application/json
+```
+*/

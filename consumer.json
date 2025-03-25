@@ -1,0 +1,29 @@
+{
+  "modules": [
+    {
+      "name": "restapi"
+    },
+    {
+      "name": "echo"
+    }
+  ],
+  "main": "restapi",
+  "steps": [
+    {
+      "id": "echo",
+      "module": "echo",
+      "input": {
+        "message": "Hello, World!"
+      }
+    },
+    {
+      "return": {
+        "status_code": 201,
+        "body": "{{ steps.echo }}",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      }
+    }
+  ]
+}

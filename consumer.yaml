@@ -1,8 +1,0 @@
-modules:
-- name: log
-
-steps:
-- module: log
-  input: 
-    level: warn
-    message: "XXXXXXXXXXXXXXXXXXXXXXXX"

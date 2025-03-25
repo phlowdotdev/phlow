@@ -100,7 +100,17 @@ impl<'a> Script<'a> {
                 Ok(Value::from(new_array))
             }
             _ => {
-                let ast = match engine.compile(&value.to_string()) {
+                let code = {
+                    let code = value.to_string();
+
+                    if code.starts_with("{{") && code.ends_with("}}") {
+                        code[2..code.len() - 2].to_string()
+                    } else {
+                        format!("`{}`", code)
+                    }
+                };
+
+                let ast = match engine.compile(&code) {
                     Ok(ast) => ast,
                     Err(err) => return Err(ScriptError::CompileError(err)),
                 };
@@ -150,11 +160,11 @@ mod test {
 
     #[test]
     fn test_payload_execute() {
-        let script = r#"
+        let script = r#"{{
             let a = 10;
             let b = 20;
             a + b
-        "#;
+        }}"#;
 
         let context = Context::new(None);
         let engine = build_engine_async(None);
@@ -166,7 +176,7 @@ mod test {
 
     #[test]
     fn test_payload_json() {
-        let script = r#"
+        let script = r#"{{
             let a = 10;
             let b = 20;
             let c = "hello";
@@ -176,7 +186,7 @@ mod test {
                 b: b,
                 sum: a + b
             }
-        "#;
+        }}"#;
 
         let context = Context::new(None);
         let engine = build_engine_async(None);
@@ -196,7 +206,7 @@ mod test {
 
     #[test]
     fn test_payload_execute_variable() {
-        let script = r#""hello world""#;
+        let script = "hello world";
 
         let context = Context::new(None);
         let engine = build_engine_async(None);
@@ -208,11 +218,11 @@ mod test {
 
     #[test]
     fn test_payload_execute_variable_context() {
-        let script = r#"
+        let script = r#"{{
             let a = params.a;
             let b = params.b;
             a + b
-        "#;
+        }}"#;
 
         let context = Context::new(Some(Value::from({
             let mut map = HashMap::new();
@@ -230,7 +240,7 @@ mod test {
 
     #[test]
     fn test_payload_execute_variable_context_params() {
-        let script = r#"params.a"#;
+        let script = r#"{{params.a}}"#;
 
         let context = Context::new(Some(Value::from({
             let mut map = HashMap::new();
@@ -248,12 +258,12 @@ mod test {
 
     #[test]
     fn test_payload_execute_variable_step() {
-        let script = r#"
+        let script = r#"{{
             let a = steps.me.a;
             let b = steps.me.b;
    
             a + b
-        "#;
+        }}"#;
         let step = StepWorker {
             id: ID::from("me"),
             ..Default::default()
