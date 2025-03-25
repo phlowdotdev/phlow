@@ -5,6 +5,8 @@ use std::fmt::Display;
 use tracing::debug;
 use valu3::json;
 
+use crate::yaml::yaml_helpers_transform;
+
 pub enum LoaderError {
     ModuleLoaderError,
     ModuleNotFound(String),
@@ -132,7 +134,8 @@ fn load_config() -> Result<Value, LoaderError> {
             serde_json::from_str(&file).map_err(LoaderError::LoaderErrorJson)?
         }
         ModuleExtension::Yaml => {
-            serde_yaml::from_str(&file).map_err(LoaderError::LoaderErrorYaml)?
+            let yaml = yaml_helpers_transform(&file);
+            serde_yaml::from_str(&yaml).map_err(LoaderError::LoaderErrorYaml)?
         }
         ModuleExtension::Toml => toml::from_str(&file).map_err(LoaderError::LoaderErrorToml)?,
     };

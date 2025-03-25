@@ -2041,6 +2041,7 @@ dependencies = [
  "opentelemetry-stdout",
  "opentelemetry_sdk 0.28.0",
  "phlow-engine",
+ "regex",
  "sdk",
  "serde",
  "serde_json",

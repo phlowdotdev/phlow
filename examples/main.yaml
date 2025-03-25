@@ -1,14 +1,12 @@
 main: restapi
-modules:
-- name: restapi
-- name: echo
+modules: !include examples/modules.yaml
 steps:
 - id: echo
   module: echo
   input:
-    message: '`Hello, World!`'
+    message: Hello, World!
 - return:
     status_code: 201
-    body: steps.echo
+    body: !eval steps.echo
     headers:
-      Content-Type: '`application/json`'
+      Content-Type: application/json
