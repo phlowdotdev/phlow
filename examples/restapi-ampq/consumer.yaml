@@ -1,6 +1,6 @@
 main: rabbitmq
 modules: 
-  - !include amqp.config.yaml
+  - !include config/amqp.yaml
   - module: log
 steps:
   - use: log

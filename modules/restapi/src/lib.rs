@@ -10,7 +10,6 @@ use sdk::prelude::*;
 use sdk::tokio::net::TcpListener;
 use sdk::tracing::debug;
 use sdk::tracing::error;
-use sdk::tracing::field::debug;
 use sdk::tracing::info;
 use sdk::tracing::warn;
 use setup::Config;

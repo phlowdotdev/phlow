@@ -1,7 +1,7 @@
 main: restapi
 modules: 
   - module: restapi
-  - !include amqp.config.yaml
+  - !include config/amqp.yaml
 steps:
   - condition:
       ## You can create conditions in many ways      
