@@ -165,11 +165,11 @@ impl<'a> Condition<'a> {
                     query
                 }
                 Operator::Contains => {
-                    let query = format!("{{{{({} in {})}}}}", left, right);
+                    let query = format!("{{{{{} in {}}}}}", right, left);
                     query
                 }
                 Operator::NotContains => {
-                    let query = format!("{{{{{} !in {}}}}}", left, right);
+                    let query = format!("{{{{!({} in {})}}}}", right, left);
                     query
                 }
                 Operator::StartsWith => {

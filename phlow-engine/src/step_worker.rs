@@ -392,7 +392,7 @@ mod test {
 
         let result = step.execute(&context).await.unwrap();
 
-        assert_eq!(result.next_step, NextStep::Next);
+        assert_eq!(result.next_step, NextStep::Pipeline(0));
         assert_eq!(result.output, Some(Value::from(10i64)));
     }
 
