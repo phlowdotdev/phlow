@@ -96,18 +96,18 @@ mod tests {
           "steps": [
             {
               "condition": {
-                "left": "params.requested",
-                "right": "params.pre_approved",
+                "left": "{{params.requested}}",
+                "right": "{{params.pre_approved}}",
                 "operator": "less_than_or_equal"
               },
               "then": {
-                "return": "params.requested"
+                "return": "{{params.requested}}"
               },
               "else": {
                 "steps": [
                   {
                     "condition": {
-                      "left": "params.score",
+                      "left": "{{params.score}}",
                       "right": 0.5,
                       "operator": "greater_than_or_equal"
                     }
@@ -115,20 +115,20 @@ mod tests {
                   {
                     "id": "approved",
                     "payload": {
-                      "total": "(params.requested * 0.3) + params.pre_approved"
+                      "total": "{{(params.requested * 0.3) + params.pre_approved}}"
                     }
                   },
                   {
                     "condition": {
-                      "left": "steps.approved.total",
-                      "right": "params.requested",
+                      "left": "{{steps.approved.total}}",
+                      "right": "{{params.requested}}",
                       "operator": "greater_than_or_equal"
                     },
                     "then": {
-                      "return": "params.requested"
+                      "return": "{{params.requested}}"
                     },
                     "else": {
-                      "return": "steps.approved.total"
+                      "return": "{{steps.approved.total}}"
                     }
                   }
                 ]
@@ -223,8 +223,8 @@ mod tests {
                 module: None,
                 input: None,
                 condition: Some(ConditionRaw {
-                    left: "params.requested".to_string(),
-                    right: "params.pre_approved".to_string(),
+                    left: "{{params.requested}}".to_string(),
+                    right: "{{params.pre_approved}}".to_string(),
                     operator: Operator::LessThanOrEqual,
                 }),
                 payload: None,
@@ -236,7 +236,7 @@ mod tests {
                 module: None,
                 input: None,
                 condition: Some(ConditionRaw {
-                    left: "params.score".to_string(),
+                    left: "{{params.score}}".to_string(),
                     right: "0.5".to_string(),
                     operator: Operator::GreaterThanOrEqual,
                 }),

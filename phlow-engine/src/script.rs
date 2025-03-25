@@ -12,7 +12,7 @@ use valu3::prelude::*;
 pub enum ScriptError {
     EvalError(Box<EvalAltResult>),
     InvalidType,
-    CompileError(ParseError),
+    CompileError(String, ParseError),
 }
 
 #[derive(Debug, Clone)]
@@ -34,6 +34,23 @@ impl<'a> Script<'a> {
             map_index_ast,
             engine,
         })
+    }
+
+    pub fn to_code_string(code: &str) -> String {
+        let code = code.trim();
+        if code.starts_with("{{") && code.ends_with("}}") {
+            code[2..code.len() - 2].to_string()
+        } else if code.parse::<i128>().is_ok()
+            || code.parse::<f64>().is_ok()
+            || code == "true".to_string()
+            || code == "false".to_string()
+            || code == "null".to_string()
+            || code == "undefined".to_string()
+        {
+            code.to_string()
+        } else {
+            format!("`{}`", code)
+        }
     }
 
     pub fn evaluate(&self, context: &Context) -> Result<Value, ScriptError> {
@@ -100,19 +117,11 @@ impl<'a> Script<'a> {
                 Ok(Value::from(new_array))
             }
             _ => {
-                let code = {
-                    let code = value.to_string();
-
-                    if code.starts_with("{{") && code.ends_with("}}") {
-                        code[2..code.len() - 2].to_string()
-                    } else {
-                        format!("`{}`", code)
-                    }
-                };
+                let code = Self::to_code_string(&value.to_string());
 
                 let ast = match engine.compile(&code) {
                     Ok(ast) => ast,
-                    Err(err) => return Err(ScriptError::CompileError(err)),
+                    Err(err) => return Err(ScriptError::CompileError(code.clone(), err)),
                 };
                 map_index_ast.insert(*counter, ast);
 
@@ -160,7 +169,7 @@ mod test {
 
     #[test]
     fn test_payload_execute() {
-        let script = r#"{{
+        let script: &str = r#"{{
             let a = 10;
             let b = 20;
             a + b

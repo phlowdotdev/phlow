@@ -116,7 +116,12 @@ impl<'a> Condition<'a> {
             }
         };
 
-        let condition = Self::try_build(engine, left, right, operator)?;
+        let condition = Self::try_build(
+            engine,
+            Script::to_code_string(&left),
+            Script::to_code_string(&right),
+            operator,
+        )?;
 
         Ok(condition)
     }
@@ -130,59 +135,115 @@ impl<'a> Condition<'a> {
         let expression = {
             match operator {
                 Operator::Or => {
-                    let query = format!("{} || {}", left, right);
+                    let query = format!(
+                        "{{{{{} || {}}}}}",
+                        Script::to_code_string(&left),
+                        Script::to_code_string(&right)
+                    );
                     query
                 }
                 Operator::And => {
-                    let query = format!("{} && {}", left, right);
+                    let query = format!(
+                        "{{{{{} && {}}}}}",
+                        Script::to_code_string(&left),
+                        Script::to_code_string(&right)
+                    );
                     query
                 }
                 Operator::Equal => {
-                    let query = format!("{} == {}", left, right);
+                    let query = format!(
+                        "{{{{{} == {}}}}}",
+                        Script::to_code_string(&left),
+                        Script::to_code_string(&right)
+                    );
                     query
                 }
                 Operator::NotEqual => {
-                    let query = format!("{} != {}", left, right);
+                    let query = format!(
+                        "{{{{{} != {}}}}}",
+                        Script::to_code_string(&left),
+                        Script::to_code_string(&right)
+                    );
                     query
                 }
                 Operator::GreaterThan => {
-                    let query = format!("{} > {}", left, right);
+                    let query = format!(
+                        "{{{{{} > {}}}}}",
+                        Script::to_code_string(&left),
+                        Script::to_code_string(&right)
+                    );
                     query
                 }
                 Operator::LessThan => {
-                    let query = format!("{} < {}", left, right);
+                    let query = format!(
+                        "{{{{{} < {}}}}}",
+                        Script::to_code_string(&left),
+                        Script::to_code_string(&right)
+                    );
                     query
                 }
                 Operator::GreaterThanOrEqual => {
-                    let query = format!("{} >= {}", left, right);
+                    let query = format!(
+                        "{{{{{} >= {}}}}}",
+                        Script::to_code_string(&left),
+                        Script::to_code_string(&right)
+                    );
                     query
                 }
                 Operator::LessThanOrEqual => {
-                    let query = format!("{} <= {}", left, right);
+                    let query = format!(
+                        "{{{{{} <= {}}}}}",
+                        Script::to_code_string(&left),
+                        Script::to_code_string(&right)
+                    );
                     query
                 }
                 Operator::Contains => {
-                    let query = format!("({} in {})", left, right);
+                    let query = format!(
+                        "{{{{({} in {})}}}}",
+                        Script::to_code_string(&left),
+                        Script::to_code_string(&right)
+                    );
                     query
                 }
                 Operator::NotContains => {
-                    let query = format!("{} !in {}", left, right);
+                    let query = format!(
+                        "{{{{{} !in {}}}}}",
+                        Script::to_code_string(&left),
+                        Script::to_code_string(&right)
+                    );
                     query
                 }
                 Operator::StartsWith => {
-                    let query = format!("{} starts_with {}", left, right);
+                    let query = format!(
+                        "{{{{{} starts_with {}}}}}",
+                        Script::to_code_string(&left),
+                        Script::to_code_string(&right)
+                    );
                     query
                 }
                 Operator::EndsWith => {
-                    let query = format!("{} ends_with {}", left, right);
+                    let query = format!(
+                        "{{{{{} ends_with {}}}}}",
+                        Script::to_code_string(&left),
+                        Script::to_code_string(&right)
+                    );
                     query
                 }
                 Operator::Regex => {
-                    let query = format!("{} search {}", left, right);
+                    let query = format!(
+                        "{{{{{} search {}}}}}",
+                        Script::to_code_string(&left),
+                        Script::to_code_string(&right)
+                    );
                     query
                 }
                 Operator::NotRegex => {
-                    let query = format!("!({} search {})", left, right);
+                    let query = format!(
+                        "{{{{!({} search {})}}}}",
+                        Script::to_code_string(&left),
+                        Script::to_code_string(&right)
+                    );
                     query
                 }
             }
@@ -272,8 +333,8 @@ mod test {
         let engine = build_engine_async(None);
         let condition = Condition::try_build(
             &engine,
-            r#""hello""#.to_string(),
-            r#""hello world""#.to_string(),
+            "hello".to_string(),
+            "hello world".to_string(),
             Operator::Contains,
         )
         .unwrap();
@@ -289,9 +350,8 @@ mod test {
         let engine = build_engine_async(None);
         let condition = Condition::try_build(
             &engine,
-            // regex find "hello" in "hello world"
-            r#""hello""#.to_string(),
-            r#""hello world""#.to_string(),
+            "hello".to_string(),
+            "hello world".to_string(),
             Operator::Regex,
         )
         .unwrap();
@@ -307,8 +367,8 @@ mod test {
         let engine = build_engine_async(None);
         let condition = Condition::try_build(
             &engine,
-            r#""hello""#.to_string(),
-            r#""hello world""#.to_string(),
+            "hello".to_string(),
+            "hello world".to_string(),
             Operator::NotRegex,
         )
         .unwrap();
@@ -324,8 +384,8 @@ mod test {
         let engine = build_engine_async(None);
         let condition = Condition::try_build(
             &engine,
-            r#""hello world""#.to_string(),
-            r#""hello""#.to_string(),
+            "hello world".to_string(),
+            "hello".to_string(),
             Operator::StartsWith,
         )
         .unwrap();
@@ -341,8 +401,8 @@ mod test {
         let engine = build_engine_async(None);
         let condition = Condition::try_build(
             &engine,
-            r#""hello world""#.to_string(),
-            r#""world""#.to_string(),
+            "hello world".to_string(),
+            "world".to_string(),
             Operator::EndsWith,
         )
         .unwrap();
