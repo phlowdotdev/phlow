@@ -116,12 +116,7 @@ impl<'a> Condition<'a> {
             }
         };
 
-        let condition = Self::try_build(
-            engine,
-            Script::to_code_string(&left),
-            Script::to_code_string(&right),
-            operator,
-        )?;
+        let condition = Self::try_build(engine, left, right, operator)?;
 
         Ok(condition)
     }
@@ -132,6 +127,9 @@ impl<'a> Condition<'a> {
         right: String,
         operator: Operator,
     ) -> Result<Self, ConditionError> {
+        let left = Script::to_code_string(&left);
+        let right = Script::to_code_string(&right);
+
         let expression = {
             match operator {
                 Operator::Or => {
@@ -277,8 +275,8 @@ mod test {
         let engine = build_engine_async(None);
         let condition = Condition::try_build(
             &engine,
-            "hello".to_string(),
             "hello world".to_string(),
+            "hello".to_string(),
             Operator::Contains,
         )
         .unwrap();
