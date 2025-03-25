@@ -5,44 +5,47 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
-pub fn yaml_helpers_transform(yaml: &str) -> String {
-    yaml_helpers_eval(&yaml_helpers_include(yaml))
+pub fn yaml_helpers_transform(yaml: &str, base_path: &Path) -> String {
+    yaml_helpers_eval(&yaml_helpers_include(yaml, base_path))
 }
 
-fn yaml_helpers_include(yaml: &str) -> String {
+fn yaml_helpers_include(yaml: &str, base_path: &Path) -> String {
     let include_block_regex = Regex::new(r"(?m)^(\s*)!include\s+(\S+)").unwrap();
     let include_inline_regex = Regex::new(r"!include\s+(\S+)").unwrap();
     let import_inline_regex = Regex::new(r"!import\s+(\S+)").unwrap();
 
-    // Trata includes em bloco (preservando indentação)
     let with_block_includes = include_block_regex.replace_all(yaml, |caps: &regex::Captures| {
         let indent = &caps[1];
-        let path = &caps[2];
-        match process_include_file(path) {
+        let rel_path = &caps[2];
+        let full_path = base_path.join(rel_path);
+        match process_include_file(&full_path) {
             Ok(json_str) => json_str
                 .lines()
                 .map(|line| format!("{}{}", indent, line))
                 .collect::<Vec<_>>()
                 .join("\n"),
-            Err(e) => format!("{}<!-- Error including file: {}: {} -->", indent, path, e),
+            Err(e) => format!(
+                "{}<!-- Error including file: {}: {} -->",
+                indent, rel_path, e
+            ),
         }
     });
 
-    // Trata includes inline
     let with_inline_includes =
         include_inline_regex.replace_all(&with_block_includes, |caps: &regex::Captures| {
-            let path = &caps[1];
-            match process_include_file(path) {
+            let rel_path = &caps[1];
+            let full_path = base_path.join(rel_path);
+            match process_include_file(&full_path) {
                 Ok(json_str) => json_str,
-                Err(e) => format!("<!-- Error including file: {}: {} -->", path, e),
+                Err(e) => format!("<!-- Error including file: {}: {} -->", rel_path, e),
             }
         });
 
-    // Trata import inline
     import_inline_regex
         .replace_all(&with_inline_includes, |caps: &regex::Captures| {
-            let path = &caps[1];
-            match fs::read_to_string(path) {
+            let rel_path = &caps[1];
+            let full_path = base_path.join(rel_path);
+            match fs::read_to_string(&full_path) {
                 Ok(contents) => {
                     let one_line = contents
                         .lines()
@@ -52,7 +55,7 @@ fn yaml_helpers_include(yaml: &str) -> String {
                         .replace('"', "\\\"");
                     format!(r#""{{{{ {} }}}}""#, one_line)
                 }
-                Err(_) => format!("<!-- Error importing file: {} -->", path),
+                Err(_) => format!("<!-- Error importing file: {} -->", rel_path),
             }
         })
         .to_string()
@@ -123,9 +126,8 @@ fn yaml_helpers_eval(yaml: &str) -> String {
     result.to_string()
 }
 
-fn process_include_file(path: &str) -> Result<String, String> {
-    let path_obj = Path::new(path);
-    let extension = path_obj
+fn process_include_file(path: &Path) -> Result<String, String> {
+    let extension = path
         .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("")
@@ -135,7 +137,8 @@ fn process_include_file(path: &str) -> Result<String, String> {
 
     let value = match extension.as_str() {
         "yaml" | "yml" => {
-            let transformed = yaml_helpers_transform(&raw);
+            let parent = path.parent().unwrap_or_else(|| Path::new("."));
+            let transformed = yaml_helpers_transform(&raw, parent);
             let yaml_value: serde_yaml::Value =
                 serde_yaml::from_str(&transformed).map_err(|e| e.to_string())?;
             serde_json::to_value(yaml_value).map_err(|e| e.to_string())?
@@ -148,6 +151,5 @@ fn process_include_file(path: &str) -> Result<String, String> {
         _ => return Err("Unsupported file extension".into()),
     };
 
-    // Converte o conteúdo para uma string JSON bonita
-    serde_json::to_string_pretty(&value).map_err(|e| e.to_string())
+    serde_json::to_string(&value).map_err(|e| e.to_string())
 }

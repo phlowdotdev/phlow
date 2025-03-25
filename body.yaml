@@ -1,2 +1,0 @@
-echo: !eval steps.echo
-main: !import script.rhai

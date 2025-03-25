@@ -1,0 +1,12 @@
+main: restapi
+modules: !include modules.yaml
+steps:
+  - id: echo
+    module: echo
+    input:
+      message: Hello, World!
+  - return:
+      status_code: 201
+      body: !include assets/body.yaml
+      headers:
+        Content-Type: application/json

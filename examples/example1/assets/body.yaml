@@ -1,0 +1,2 @@
+message: !eval steps.echo
+data: !import scripts/script.rhai

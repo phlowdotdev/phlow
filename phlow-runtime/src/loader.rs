@@ -1,7 +1,7 @@
 use clap::{Arg, Command};
 use libloading::{Library, Symbol};
 use sdk::prelude::*;
-use std::fmt::Display;
+use std::{fmt::Display, path::Path};
 use tracing::debug;
 use valu3::json;
 
@@ -113,7 +113,7 @@ fn load_config() -> Result<Value, LoaderError> {
         )
         .get_matches();
 
-    let (main_file, main_ext) = match matches.get_one::<String>("main_file") {
+    let (main_file_path, main_ext) = match matches.get_one::<String>("main_file") {
         Some(file) => {
             let extension = get_file_extension(file);
             (file.clone(), extension)
@@ -124,9 +124,9 @@ fn load_config() -> Result<Value, LoaderError> {
         },
     };
 
-    let file = match std::fs::read_to_string(&main_file) {
+    let file = match std::fs::read_to_string(&main_file_path) {
         Ok(file) => file,
-        Err(_) => return Err(LoaderError::ModuleNotFound(main_file)),
+        Err(_) => return Err(LoaderError::ModuleNotFound(main_file_path)),
     };
 
     let value: Value = match main_ext {
@@ -134,7 +134,10 @@ fn load_config() -> Result<Value, LoaderError> {
             serde_json::from_str(&file).map_err(LoaderError::LoaderErrorJson)?
         }
         ModuleExtension::Yaml => {
-            let yaml = yaml_helpers_transform(&file);
+            let yaml_path = Path::new(&main_file_path)
+                .parent()
+                .unwrap_or_else(|| Path::new("."));
+            let yaml = yaml_helpers_transform(&file, yaml_path);
             println!("{}", yaml);
             serde_yaml::from_str(&yaml).map_err(LoaderError::LoaderErrorYaml)?
         }
