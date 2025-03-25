@@ -3,12 +3,40 @@ modules:
   - module: restapi
   - !include amqp.config.yaml
 steps:
-  - id: queue
-    use: rabbitmq
-    input:
-      message: !eval main
-  - return:
-      status_code: 201
-      body: !eval steps.queue
-      headers:
-        Content-Type: application/json
+  - condition:
+      ## You can create conditions in many ways      
+      ##
+      ## 1. Using the `!eval` directive to evaluate an expression
+      # left: !eval main.method
+      # operator: equal
+      # right: POST
+      
+      ## 2. Using the `!eval` directive to compare the result of an expression
+      # left: !eval main.method == "POST"
+      # operator: equal
+      # right: true
+
+      ## 3. Using the `!import` directive to import a script
+      left: !import scripts/validator.rhai
+      right: true
+      operator: equal
+    then: 
+      steps:
+        - id: queue
+          use: rabbitmq
+          input:
+            message: !eval main
+        - return:
+            status_code: 201
+            body: !eval steps.queue
+            headers:
+              Content-Type: application/json
+    else:
+      return:
+        status_code: 400
+        body:
+          message: "Invalid contract"
+        headers:
+          Content-Type: application/json
+
+  
