@@ -1,38 +1,32 @@
 name: amqp
 description: "RabbitMQ module"
 
-inputs:
+with:
   uri:
     type: string
     required: true
     description: "RabbitMQ URI"
-
   routing_key:
     type: string
     required: false
     description: "RabbitMQ routing key"
-
   exchange:
     type: string
     required: false
     description: "RabbitMQ exchange"
-
   consumer_tag:
     type: string
     required: false
     description: "RabbitMQ consumer tag"
-
   declare:
     type: boolean
     required: false
     description: "Declare exchange and queue"
-
 input:
   message:
     type: any
     required: true
     description: "Message to send"
-
 output:
   success:
     type: boolean

@@ -1,6 +1,6 @@
 name: restapi
 description: A simple REST API server.
-inputs:
+with:
   port:
     type: number
     description: The port number to listen on.
@@ -11,7 +11,7 @@ inputs:
     description: The host to listen on.
     default: "0.0.0.0"
     required: false
-params:
+input:
   headers:
     type: object
     description: The headers to return.
