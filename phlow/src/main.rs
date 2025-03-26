@@ -1,8 +1,9 @@
+mod envs;
 mod loader;
 mod processes;
 mod yaml;
-
 use crossbeam::channel;
+use envs::Envs;
 use loader::{load_module, Loader};
 use phlow_engine::{
     build_engine_async,
@@ -17,8 +18,15 @@ use tracing::{debug, error};
 
 #[tokio::main]
 async fn main() {
+    let envs = Envs::load();
     let _guard = init_tracing_subscriber();
 
+    debug!("STEP_CONSUMERS = {}", envs.step_consumer_count);
+    debug!("PACKAGE_CONSUMERS = {}", envs.package_consumer_count);
+
+    // -------------------------
+    // Load the main file
+    // -------------------------
     let loader = match Loader::load() {
         Ok(main) => main,
         Err(err) => {
@@ -27,14 +35,19 @@ async fn main() {
         }
     };
 
-    let engine = build_engine_async(None);
     let steps: Value = loader.get_steps();
 
+    // -------------------------
+    // Create the channels
+    // -------------------------
     let (tx_trace_step, rx_trace_step) = channel::unbounded::<Step>();
     let (tx_main_package, rx_main_package) = channel::unbounded::<Package>();
 
     let mut modules = Modules::default();
 
+    // -------------------------
+    // Load the modules
+    // -------------------------
     for (id, module) in loader.modules.into_iter().enumerate() {
         let (setup_sender, setup_receive) =
             oneshot::channel::<Option<channel::Sender<ModulePackage>>>();
@@ -82,7 +95,13 @@ async fn main() {
 
     debug!("Starting Phlow");
 
+    // -------------------------
+    // Create the flow
+    // -------------------------
+
     let flow = {
+        let engine = build_engine_async(None);
+
         match Phlow::try_from_value(
             &engine,
             &steps,
@@ -97,18 +116,46 @@ async fn main() {
         }
     };
 
-    tokio::task::spawn(async move {
-        for step in rx_trace_step {
-            processes::step(step);
-        }
-    });
+    // Opcional: se você quer compartilhar 'flow' facilmente entre tasks
+    let flow_arc = Arc::new(flow);
+
+    for i in 0..envs.step_consumer_count {
+        let rx_clone = rx_trace_step.clone();
+
+        tokio::task::spawn_blocking(move || {
+            // Esse loop bloqueia a thread enquanto espera mensagens
+            for step in rx_clone {
+                processes::step(step);
+            }
+            debug!("Step consumer #{} terminou (canal fechado).", i);
+        });
+    }
 
     if loader.main >= 0 {
         debug!("Main module exist");
-        for mut package in rx_main_package {
-            processes::execute_steps(&flow, &mut package).await;
+
+        for i in 0..envs.package_consumer_count {
+            let rx_pkg = rx_main_package.clone();
+            let flow_ref = Arc::clone(&flow_arc);
+
+            tokio::task::spawn_blocking(move || {
+                for mut package in rx_pkg {
+                    // processes::execute_steps é assíncrona => usamos block_in_place
+                    // para chamá-la dentro de um ambiente bloqueante:
+                    tokio::task::block_in_place(|| {
+                        // Obter handle da runtime e rodar a future
+                        let rt = tokio::runtime::Handle::current();
+                        rt.block_on(async {
+                            processes::execute_steps(&flow_ref, &mut package).await;
+                        });
+                    });
+                }
+                debug!("Package consumer #{} terminou (canal fechado).", i);
+            });
         }
     }
 
-    debug!("Phlow finished");
+    drop(tx_main_package);
+
+    debug!("Phlow finished.");
 }
