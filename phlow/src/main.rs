@@ -14,6 +14,7 @@ use sdk::{opentelemetry::init_tracing_subscriber, prelude::*};
 use std::sync::Arc;
 use tokio::sync::oneshot;
 use tracing::{debug, error};
+use tracing_subscriber::field::debug;
 
 #[tokio::main]
 async fn main() {
@@ -97,7 +98,6 @@ async fn main() {
     // -------------------------
     // Create the flow
     // -------------------------
-
     let flow = {
         match Phlow::try_from_value(&steps, Some(Arc::new(modules)), Some(tx_trace_step)) {
             Ok(flow) => flow,
@@ -108,14 +108,12 @@ async fn main() {
         }
     };
 
-    // Opcional: se você quer compartilhar 'flow' facilmente entre tasks
     let flow_arc = Arc::new(flow);
 
     for i in 0..envs.step_consumer_count {
         let rx_clone = rx_trace_step.clone();
 
         tokio::task::spawn_blocking(move || {
-            // Esse loop bloqueia a thread enquanto espera mensagens
             for step in rx_clone {
                 processes::step(step);
             }
@@ -123,21 +121,22 @@ async fn main() {
         });
     }
 
-    if loader.main >= 0 {
+    if loader.main >= -1 {
         debug!("Main module exist");
 
         for i in 0..envs.package_consumer_count {
+            debug!("Starting package consumer #{}", i);
             let rx_pkg = rx_main_package.clone();
             let flow_ref = Arc::clone(&flow_arc);
 
             tokio::task::spawn_blocking(move || {
+                debug!("Package consumer #{} started.", i);
                 for mut package in rx_pkg {
-                    // processes::execute_steps é assíncrona => usamos block_in_place
-                    // para chamá-la dentro de um ambiente bloqueante:
                     tokio::task::block_in_place(|| {
-                        // Obter handle da runtime e rodar a future
+                        debug!("Package consumer #{} executing.", i);
                         let rt = tokio::runtime::Handle::current();
                         rt.block_on(async {
+                            debug!("Package consumer #{} executing async.", i);
                             processes::execute_steps(&flow_ref, &mut package).await;
                         });
                     });
