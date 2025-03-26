@@ -1,7 +1,7 @@
 mod loader;
 mod processes;
 mod yaml;
-
+use crossbeam::channel;
 use loader::{load_module, Loader};
 use phlow_engine::{
     build_engine_async,
@@ -10,10 +10,7 @@ use phlow_engine::{
     Phlow,
 };
 use sdk::{opentelemetry::init_tracing_subscriber, prelude::*};
-use std::sync::{
-    mpsc::{channel, Sender},
-    Arc,
-};
+use std::sync::Arc;
 use tokio::sync::oneshot;
 use tracing::{debug, error};
 
@@ -32,16 +29,17 @@ async fn main() {
     let engine = build_engine_async(None);
     let steps: Value = loader.get_steps();
 
-    let (trace_step_sender, trace_step_receiver) = channel::<Step>();
-    let (main_sender_package, main_receiver_package) = channel::<Package>();
+    let (tx_trace_step, rx_trace_step) = channel::unbounded::<Step>();
+    let (tx_main_package, rx_main_package) = channel::unbounded::<Package>();
 
     let mut modules = Modules::default();
 
     for (id, module) in loader.modules.into_iter().enumerate() {
-        let (setup_sender, setup_receive) = oneshot::channel::<Option<Sender<ModulePackage>>>();
+        let (setup_sender, setup_receive) =
+            oneshot::channel::<Option<channel::Sender<ModulePackage>>>();
 
         let main_sender = if loader.main == id as i32 {
-            Some(main_sender_package.clone())
+            Some(tx_main_package.clone())
         } else {
             None
         };
@@ -88,7 +86,7 @@ async fn main() {
             &engine,
             &steps,
             Some(Arc::new(modules)),
-            Some(trace_step_sender),
+            Some(tx_trace_step),
         ) {
             Ok(flow) => flow,
             Err(err) => {
@@ -99,14 +97,14 @@ async fn main() {
     };
 
     tokio::task::spawn(async move {
-        for step in trace_step_receiver {
+        for step in rx_trace_step {
             processes::step(step);
         }
     });
 
     if loader.main >= 0 {
         debug!("Main module exist");
-        for mut package in main_receiver_package {
+        for mut package in rx_main_package {
             processes::execute_steps(&flow, &mut package).await;
         }
     }

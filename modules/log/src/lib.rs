@@ -1,6 +1,5 @@
-use std::sync::mpsc::channel;
-
 use sdk::{
+    crossbeam::channel,
     modules::ModulePackage,
     prelude::*,
     tracing::{debug, error, info, warn},
@@ -42,7 +41,7 @@ impl From<&Value> for Log {
 
 pub fn log(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!("Log module started");
-    let (tx, rx) = channel::<ModulePackage>();
+    let (tx, rx) = channel::unbounded::<ModulePackage>();
 
     setup.setup_sender.send(Some(tx)).unwrap();
 

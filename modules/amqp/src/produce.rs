@@ -1,6 +1,7 @@
 use lapin::options::BasicPublishOptions;
 use lapin::publisher_confirm::Confirmation;
 use lapin::BasicProperties;
+use sdk::crossbeam::channel;
 use sdk::modules::ModulePackage;
 use sdk::prelude::*;
 use sdk::tracing::debug;
@@ -28,7 +29,7 @@ pub async fn producer(
     config: Config,
     channel: lapin::Channel,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let (tx, rx) = mpsc::channel::<ModulePackage>();
+    let (tx, rx) = channel::unbounded::<ModulePackage>();
     setup_sender.send(Some(tx)).unwrap();
 
     debug!("Producer started");

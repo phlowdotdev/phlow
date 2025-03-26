@@ -81,7 +81,7 @@ impl<'a> Phlow<'a> {
 mod tests {
     use super::*;
     use crate::{collector::Step, engine::build_engine_async, id::ID};
-    use std::sync::mpsc::channel;
+    use crossbeam::channel;
     use valu3::json;
 
     fn get_original() -> Value {
@@ -199,7 +199,7 @@ mod tests {
     async fn test_phlow_channel() {
         let original = get_original();
         let engine = build_engine_async(None);
-        let (sender, receiver) = channel::<Step>();
+        let (sender, receiver) = channel::unbounded::<Step>();
 
         let phlow = Phlow::try_from_value(&engine, &original, None, Some(sender.clone())).unwrap();
         let mut context = Context::new(Some(json!({

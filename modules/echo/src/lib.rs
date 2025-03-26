@@ -1,11 +1,9 @@
-use std::sync::mpsc::channel;
-
-use sdk::{modules::ModulePackage, prelude::*};
+use sdk::{crossbeam::channel, modules::ModulePackage, prelude::*};
 
 plugin_async!(echo);
 
 pub async fn echo(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let (tx, rx) = channel::<ModulePackage>();
+    let (tx, rx) = channel::unbounded::<ModulePackage>();
 
     setup.setup_sender.send(Some(tx)).unwrap();
 

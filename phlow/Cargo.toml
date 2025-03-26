@@ -14,7 +14,7 @@ serde_yaml = "0.9"
 serde_json = "1.0"
 toml = "0.8"
 regex = "1.11.1"
-
+crossbeam = "0.8"
 
 # OpenTelemetry
 opentelemetry = "0.29.0"

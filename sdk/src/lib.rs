@@ -3,9 +3,11 @@ pub mod id;
 pub mod modules;
 pub mod opentelemetry;
 use context::Context;
+pub use crossbeam;
+use crossbeam::channel;
 use modules::ModulePackage;
 use std::fmt::{Debug, Formatter};
-use std::{collections::HashMap, sync::mpsc::Sender};
+use std::{collections::HashMap, sync::mpsc};
 pub use tokio;
 use tokio::sync::oneshot;
 pub use tracing;
@@ -13,8 +15,8 @@ pub use valu3;
 use valu3::{traits::ToValueBehavior, value::Value};
 
 pub type ModuleId = usize;
-pub type MainRuntimeSender = Sender<Package>;
-pub type ModuleSetupSender = oneshot::Sender<Option<Sender<ModulePackage>>>;
+pub type MainRuntimeSender = channel::Sender<Package>;
+pub type ModuleSetupSender = oneshot::Sender<Option<channel::Sender<ModulePackage>>>;
 
 #[derive(Debug)]
 pub struct ModuleSetup {

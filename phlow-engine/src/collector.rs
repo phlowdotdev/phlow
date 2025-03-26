@@ -1,11 +1,10 @@
+use crate::id::ID;
+use crossbeam::channel;
 use serde::Serialize;
-use std::sync::mpsc::Sender;
 use std::{collections::HashMap, fmt::Debug};
 use valu3::prelude::*;
 
-use crate::id::ID;
-
-pub type ContextSender = Sender<Step>;
+pub type ContextSender = channel::Sender<Step>;
 
 #[derive(Clone, Default, PartialEq, Serialize)]
 pub struct Step {
