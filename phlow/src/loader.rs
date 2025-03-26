@@ -83,43 +83,58 @@ impl From<&str> for ModuleExtension {
     }
 }
 
+fn get_main_file(main_path: &str) -> Result<(String, ModuleExtension), LoaderError> {
+    let path = std::path::Path::new(&main_path);
+    if path.is_dir() {
+        let file = find_default_file(&main_path);
+        match file {
+            Some(data) => return Ok(data),
+            None => return Err(LoaderError::ModuleNotFound("main".to_string())),
+        }
+    }
+
+    if path.exists() {
+        let extension = main_path.split('.').last().unwrap();
+        return Ok((main_path.to_string(), ModuleExtension::from(extension)));
+    }
+
+    Err(LoaderError::ModuleNotFound(main_path.to_string()))
+}
+
 // find main.json, main.yaml, main.yml, main.toml
-fn find_default_file() -> Option<(String, ModuleExtension)> {
-    let files = vec!["main.json", "main.yaml", "main.yml", "main.toml"];
+fn find_default_file(base: &str) -> Option<(String, ModuleExtension)> {
+    let files = vec!["main.yaml", "main.yml", "main.json", "main.toml"];
 
     for file in files {
-        if std::path::Path::new(file).exists() {
+        let path = if base.is_empty() || base == "." {
+            file.to_string()
+        } else {
+            format!("{}/{}", base, file)
+        };
+        if std::path::Path::new(&path).exists() {
             let extension = file.split('.').last().unwrap();
-            return Some((file.to_string(), ModuleExtension::from(extension)));
+            return Some((path.to_string(), ModuleExtension::from(extension)));
         }
     }
 
     None
 }
 
-fn get_file_extension(file: &str) -> ModuleExtension {
-    let extension = file.split('.').last().unwrap();
-    ModuleExtension::from(extension)
-}
-
 fn load_config() -> Result<Value, LoaderError> {
     let matches = Command::new("Phlow Runtime")
         .version("0.1.0")
         .arg(
-            Arg::new("main_file")
-                .help("Main file to load")
+            Arg::new("main_path")
+                .help("Main path/file to load")
                 .required(false)
                 .index(1),
         )
         .get_matches();
 
-    let (main_file_path, main_ext) = match matches.get_one::<String>("main_file") {
-        Some(file) => {
-            let extension = get_file_extension(file);
-            (file.clone(), extension)
-        }
-        None => match find_default_file() {
-            Some(file) => file,
+    let (main_file_path, main_ext) = match matches.get_one::<String>("main_path") {
+        Some(file) => get_main_file(file)?,
+        None => match find_default_file("") {
+            Some((file, ext)) => (file, ext),
             None => return Err(LoaderError::ModuleNotFound("main".to_string())),
         },
     };
