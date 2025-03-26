@@ -179,7 +179,10 @@ impl Variable {
             let target = self.get().as_str();
             let other = other.get().as_str();
 
-            return Regex::new(other).unwrap().is_match(target);
+            return match Regex::new(other) {
+                Ok(re) => re.is_match(target),
+                Err(_) => false,
+            };
         }
 
         return false;

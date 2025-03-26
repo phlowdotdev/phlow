@@ -1,6 +1,6 @@
 use opentelemetry::{global, trace::TracerProvider as _};
 use opentelemetry_sdk::{
-    metrics::{MeterProviderBuilder, PeriodicReader, SdkMeterProvider},
+    metrics::{MeterProviderBuilder, MetricError, PeriodicReader, SdkMeterProvider},
     trace::{RandomIdGenerator, Sampler, SdkTracerProvider},
     Resource,
 };
@@ -9,16 +9,22 @@ use tracing_core::Level;
 use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+#[derive(Debug)]
+pub enum OtelError {
+    TracerError(opentelemetry::trace::TraceError),
+    MeterError(MetricError),
+}
+
 pub fn resource() -> Resource {
     Resource::builder().build()
 }
 
-pub fn init_meter_provider() -> SdkMeterProvider {
+fn init_meter_provider() -> Result<SdkMeterProvider, OtelError> {
     let exporter = opentelemetry_otlp::MetricExporter::builder()
         .with_http()
         .with_temporality(opentelemetry_sdk::metrics::Temporality::default())
         .build()
-        .unwrap();
+        .map_err(OtelError::MeterError)?;
 
     let reader = PeriodicReader::builder(exporter)
         .with_interval(std::time::Duration::from_secs(30))
@@ -36,17 +42,17 @@ pub fn init_meter_provider() -> SdkMeterProvider {
 
     global::set_meter_provider(meter_provider.clone());
 
-    meter_provider
+    Ok(meter_provider)
 }
 
 // Construct TracerProvider for OpenTelemetryLayer
-pub fn init_tracer_provider() -> SdkTracerProvider {
+fn init_tracer_provider() -> Result<SdkTracerProvider, OtelError> {
     let exporter = opentelemetry_otlp::SpanExporter::builder()
         .with_http()
         .build()
-        .unwrap();
+        .map_err(OtelError::TracerError)?;
 
-    SdkTracerProvider::builder()
+    Ok(SdkTracerProvider::builder()
         // Customize sampling strategy
         .with_sampler(Sampler::ParentBased(Box::new(Sampler::TraceIdRatioBased(
             1.0,
@@ -55,7 +61,7 @@ pub fn init_tracer_provider() -> SdkTracerProvider {
         .with_id_generator(RandomIdGenerator::default())
         .with_resource(resource())
         .with_batch_exporter(exporter)
-        .build()
+        .build())
 }
 
 fn log_level() -> Level {
@@ -72,7 +78,7 @@ fn log_level() -> Level {
 }
 
 // Initialize tracing-subscriber and return OtelGuard for opentelemetry-related termination processing
-pub fn init_tracing_subscriber() -> OtelGuard {
+pub fn init_tracing_subscriber() -> Result<OtelGuard, OtelError> {
     let env = std::env::var("PHLOW_OTEL").unwrap_or_else(|_| "false".to_string());
 
     // if false log only stdout with log level
@@ -83,14 +89,14 @@ pub fn init_tracing_subscriber() -> OtelGuard {
             ))
             .with(tracing_subscriber::fmt::layer())
             .init();
-        return OtelGuard {
+        return Ok(OtelGuard {
             tracer_provider: SdkTracerProvider::default(),
             meter_provider: SdkMeterProvider::default(),
-        };
+        });
     }
 
-    let tracer_provider: SdkTracerProvider = init_tracer_provider();
-    let meter_provider = init_meter_provider();
+    let tracer_provider: SdkTracerProvider = init_tracer_provider()?;
+    let meter_provider = init_meter_provider()?;
 
     let tracer = tracer_provider.tracer("tracing-otel-subscriber");
 
@@ -110,10 +116,10 @@ pub fn init_tracing_subscriber() -> OtelGuard {
         .with(OpenTelemetryLayer::new(tracer))
         .init();
 
-    OtelGuard {
+    Ok(OtelGuard {
         tracer_provider,
         meter_provider,
-    }
+    })
 }
 
 pub struct OtelGuard {

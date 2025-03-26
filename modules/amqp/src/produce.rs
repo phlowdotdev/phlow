@@ -29,7 +29,12 @@ pub async fn producer(
     channel: lapin::Channel,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let (tx, rx) = channel::unbounded::<ModulePackage>();
-    setup_sender.send(Some(tx)).unwrap();
+    match setup_sender.send(Some(tx)) {
+        Ok(_) => {}
+        Err(e) => {
+            return Err(format!("{:?}", e).into());
+        }
+    };
 
     debug!("Producer started");
 
@@ -41,7 +46,12 @@ pub async fn producer(
                 Some(input) => input,
                 None => {
                     let response = ProducerResponse::from_error("No input provided");
-                    package.sender.send(response.to_value()).unwrap();
+                    match package.sender.send(response.to_value()) {
+                        Ok(_) => {}
+                        Err(e) => {
+                            return Err(format!("{:?}", e).into());
+                        }
+                    }
                     continue;
                 }
             };
@@ -81,16 +91,18 @@ pub async fn producer(
             }
         };
 
-        package
-            .sender
-            .send(
-                ProducerResponse {
-                    success,
-                    error_message,
-                }
-                .to_value(),
-            )
-            .unwrap();
+        match package.sender.send(
+            ProducerResponse {
+                success,
+                error_message,
+            }
+            .to_value(),
+        ) {
+            Ok(_) => {}
+            Err(e) => {
+                return Err(format!("{:?}", e).into());
+            }
+        }
     }
 
     Ok(())

@@ -56,11 +56,12 @@ impl Script {
     pub fn evaluate(&self, context: &Context) -> Result<Value, ScriptError> {
         let mut scope = Scope::new();
 
-        let steps: Dynamic = to_dynamic(context.steps.clone()).unwrap();
-        let params: Dynamic = to_dynamic(context.params.clone()).unwrap();
-        let main: Dynamic = to_dynamic(context.main.clone()).unwrap();
-        let payload: Dynamic = to_dynamic(context.payload.clone()).unwrap();
-        let input: Dynamic = to_dynamic(context.input.clone()).unwrap();
+        let steps: Dynamic = to_dynamic(context.steps.clone()).map_err(ScriptError::EvalError)?;
+        let params: Dynamic = to_dynamic(context.params.clone()).map_err(ScriptError::EvalError)?;
+        let main: Dynamic = to_dynamic(context.main.clone()).map_err(ScriptError::EvalError)?;
+        let payload: Dynamic =
+            to_dynamic(context.payload.clone()).map_err(ScriptError::EvalError)?;
+        let input: Dynamic = to_dynamic(context.input.clone()).map_err(ScriptError::EvalError)?;
 
         scope.push_constant("steps", steps);
         scope.push_constant("params", params);
@@ -76,7 +77,7 @@ impl Script {
                 .eval_ast_with_scope(&mut scope, &value)
                 .map_err(ScriptError::EvalError)?;
 
-            result_map.insert(*key, from_dynamic(&value).unwrap());
+            result_map.insert(*key, from_dynamic(&value).map_err(ScriptError::EvalError)?);
         }
 
         let result = Self::replace_primitives(&self.map_extracted, &result_map);
@@ -150,8 +151,14 @@ impl Script {
                 Value::from(new_array)
             }
             _ => {
-                let index = map_extracted.to_i64().unwrap() as usize;
-                let value = result.get(&index).unwrap().clone();
+                let index = match map_extracted.to_i64() {
+                    Some(index) => index as usize,
+                    None => panic!("Index not found"),
+                };
+                let value = match result.get(&index) {
+                    Some(value) => value.clone(),
+                    None => panic!("Index not found"),
+                };
 
                 value
             }

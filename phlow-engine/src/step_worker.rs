@@ -7,6 +7,7 @@ use crate::{
     script::{Script, ScriptError},
 };
 use rhai::Engine;
+use sdk::sender_safe;
 use serde::Serialize;
 use std::sync::Arc;
 use valu3::prelude::NumberBehavior;
@@ -200,18 +201,18 @@ impl StepWorker {
     pub async fn execute(&self, context: &Context) -> Result<StepOutput, StepWorkerError> {
         if let Some(output) = self.evaluate_return(context)? {
             if let Some(sender) = &self.trace_sender {
-                sender
-                    .send(Step {
+                sender_safe!(
+                    sender,
+                    Step {
                         id: self.id.clone(),
                         label: self.label.clone(),
                         input: None,
                         module: None,
-
                         condition: None,
                         payload: None,
                         return_case: Some(output.clone()),
-                    })
-                    .unwrap();
+                    }
+                );
             }
 
             return Ok(StepOutput {
@@ -222,18 +223,18 @@ impl StepWorker {
 
         if let Ok(Some((module, output, context))) = self.evaluate_module(context).await {
             if let Some(sender) = &self.trace_sender {
-                sender
-                    .send(Step {
+                sender_safe!(
+                    sender,
+                    Step {
                         id: self.id.clone(),
                         label: self.label.clone(),
                         input: context.input.clone(),
                         module,
-
                         condition: None,
-                        payload: None,
+                        payload: output.clone(),
                         return_case: None,
-                    })
-                    .unwrap();
+                    }
+                );
             }
 
             let context = if let Some(output) = output.clone() {
@@ -271,8 +272,9 @@ impl StepWorker {
             };
 
             if let Some(sender) = &self.trace_sender {
-                sender
-                    .send(Step {
+                sender_safe!(
+                    sender,
+                    Step {
                         id: self.id.clone(),
                         label: self.label.clone(),
                         module: None,
@@ -280,8 +282,8 @@ impl StepWorker {
                         condition: Some(condition.raw.clone()),
                         payload: output.clone(),
                         return_case: None,
-                    })
-                    .unwrap();
+                    }
+                );
             }
 
             return Ok(StepOutput { next_step, output });
@@ -290,8 +292,9 @@ impl StepWorker {
         let output = self.evaluate_payload(context, None)?;
 
         if let Some(sender) = &self.trace_sender {
-            sender
-                .send(Step {
+            sender_safe!(
+                sender,
+                Step {
                     id: self.id.clone(),
                     label: self.label.clone(),
                     module: None,
@@ -299,8 +302,8 @@ impl StepWorker {
                     condition: None,
                     payload: output.clone(),
                     return_case: None,
-                })
-                .unwrap();
+                }
+            );
         }
 
         return Ok(StepOutput {

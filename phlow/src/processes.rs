@@ -1,6 +1,6 @@
 use phlow_engine::{collector::Step, Context, Phlow};
-use sdk::prelude::*;
-use tracing::{debug, error};
+use sdk::{prelude::*, tracing::warn};
+use tracing::debug;
 
 #[tracing::instrument]
 pub fn step(step: Step) {
@@ -16,7 +16,7 @@ pub async fn execute_steps(flow: &Phlow, package: &mut Package) {
         let result = match flow.execute(&mut context).await {
             Ok(result) => result,
             Err(err) => {
-                error!("Runtime Error Execute Steps: {:?}", err);
+                warn!("Runtime Error Execute Steps: {:?}", err);
                 return;
             }
         };

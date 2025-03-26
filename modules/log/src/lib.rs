@@ -43,7 +43,12 @@ pub fn log(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + 
     println!("Log module started");
     let (tx, rx) = channel::unbounded::<ModulePackage>();
 
-    setup.setup_sender.send(Some(tx)).unwrap();
+    match setup.setup_sender.send(Some(tx)) {
+        Ok(_) => {}
+        Err(e) => {
+            return Err(format!("{:?}", e).into());
+        }
+    };
 
     println!("Log module setup sender sent");
 

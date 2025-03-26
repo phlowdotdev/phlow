@@ -57,7 +57,10 @@ impl Display for ID {
             f,
             "{}",
             if self.0.is_some() {
-                self.0.as_ref().unwrap()
+                match self.0.as_ref() {
+                    Some(id) => id,
+                    None => "unknown",
+                }
             } else {
                 ""
             }

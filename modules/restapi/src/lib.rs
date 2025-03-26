@@ -7,7 +7,7 @@ use resolver::resolve;
 use sdk::{
     prelude::*,
     tokio::net::TcpListener,
-    tracing::{debug, error, info, warn},
+    tracing::{debug, info, warn},
 };
 use setup::Config;
 use std::net::SocketAddr;
@@ -19,7 +19,12 @@ pub async fn start_server(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if !setup.is_main() {
         warn!("This module is not the main module, exiting");
-        setup.setup_sender.send(None).unwrap();
+        match setup.setup_sender.send(None) {
+            Ok(_) => {}
+            Err(e) => {
+                return Err(format!("{:?}", e).into());
+            }
+        };
         return Ok(());
     }
 
@@ -34,7 +39,12 @@ pub async fn start_server(
 
     let listener = TcpListener::bind(addr).await?;
 
-    setup.setup_sender.send(None).unwrap();
+    match setup.setup_sender.send(None) {
+        Ok(_) => {}
+        Err(e) => {
+            return Err(format!("{:?}", e).into());
+        }
+    };
 
     info!("Listening on http://{}", addr);
     let id = setup.id;
@@ -42,7 +52,12 @@ pub async fn start_server(
     loop {
         let (tcp, peer_addr) = listener.accept().await?;
         let io = TokioIo::new(tcp);
-        let sender = setup.main_sender.clone().unwrap();
+        let sender = match setup.main_sender.clone() {
+            Some(sender) => sender,
+            None => {
+                return Err("Main sender is None".into());
+            }
+        };
 
         tokio::task::spawn(async move {
             let service = service_fn(move |mut req: Request<hyper::body::Incoming>| {
@@ -56,11 +71,7 @@ pub async fn start_server(
                 .serve_connection(io, service)
                 .await
             {
-                if err.is_timeout() {
-                    debug!("Connection timed out");
-                    return;
-                }
-                error!("Error serving connection: {:?}", err);
+                debug!("Connection timed out: {}", err);
             }
         });
     }

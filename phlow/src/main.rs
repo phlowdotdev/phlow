@@ -10,16 +10,15 @@ use phlow_engine::{
     modules::{ModulePackage, Modules},
     Phlow,
 };
-use sdk::{opentelemetry::init_tracing_subscriber, prelude::*};
+use sdk::prelude::*;
 use std::sync::Arc;
 use tokio::sync::oneshot;
 use tracing::{debug, error};
-use tracing_subscriber::field::debug;
 
 #[tokio::main]
 async fn main() {
     let envs = Envs::load();
-    let _guard = init_tracing_subscriber();
+    otlp_start!();
 
     debug!("STEP_CONSUMERS = {}", envs.step_consumer_count);
     debug!("PACKAGE_CONSUMERS = {}", envs.package_consumer_count);
@@ -147,6 +146,4 @@ async fn main() {
     }
 
     drop(tx_main_package);
-
-    debug!("Phlow finished.");
 }

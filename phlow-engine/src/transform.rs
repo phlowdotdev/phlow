@@ -1,4 +1,5 @@
 use rhai::Engine;
+use sdk::tracing::error;
 use std::{collections::HashMap, sync::Arc};
 use valu3::{prelude::*, traits::ToValueBehavior, value::Value};
 
@@ -68,7 +69,13 @@ pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
     }
 
     let json = (map.len() - 1).to_value().to_json(JsonMode::Inline);
-    Value::json_to_value(&json).unwrap()
+    match Value::json_to_value(&json) {
+        Ok(value) => value,
+        Err(err) => {
+            error!("Error parsing json: {:?}", err);
+            Value::Null
+        }
+    }
 }
 
 fn value_to_structs(

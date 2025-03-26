@@ -12,22 +12,29 @@ fn build_engine() -> Engine {
     let mut engine = Engine::new();
 
     // Define operadores personalizados
-    engine
-        .register_custom_operator("starts_with", 80)
-        .unwrap()
-        .register_fn("start_withs", |x: String, y: String| x.starts_with(&y));
+    match engine.register_custom_operator("starts_with", 80) {
+        Ok(engine) => engine.register_fn("start_withs", |x: String, y: String| x.starts_with(&y)),
+        Err(_) => {
+            panic!("Error on register custom operator starts_with");
+        }
+    };
 
-    engine
-        .register_custom_operator("ends_with", 81)
-        .unwrap()
-        .register_fn("ends_with", |x: String, y: String| x.ends_with(&y));
+    match engine.register_custom_operator("ends_with", 81) {
+        Ok(engine) => engine.register_fn("ends_with", |x: String, y: String| x.ends_with(&y)),
+        Err(_) => {
+            panic!("Error on register custom operator ends_with");
+        }
+    };
 
-    engine
-        .register_custom_operator("search", 82)
-        .unwrap()
-        .register_fn("search", |x: String, y: String| {
-            Regex::new(&x).unwrap().is_match(&y)
-        });
+    match engine.register_custom_operator("search", 82) {
+        Ok(engine) => engine.register_fn("search", |x: String, y: String| match Regex::new(&x) {
+            Ok(re) => re.is_match(&y),
+            Err(_) => false,
+        }),
+        Err(_) => {
+            panic!("Error on register custom operator search");
+        }
+    };
 
     engine
 }
@@ -36,7 +43,10 @@ static RUNTIME: OnceLock<Runtime> = OnceLock::new();
 
 pub fn build_engine_sync(repositories: Option<Repositories>) -> Engine {
     let mut engine = build_engine();
-    let rt = RUNTIME.get_or_init(|| Runtime::new().unwrap());
+    let rt = RUNTIME.get_or_init(|| match Runtime::new() {
+        Ok(rt) => rt,
+        Err(e) => panic!("Error creating runtime: {:?}", e),
+    });
 
     if let Some(repositories) = repositories {
         for (key, call) in repositories.repositories {
@@ -53,7 +63,10 @@ pub fn build_engine_sync(repositories: Option<Repositories>) -> Engine {
             }) as RepositoryFunction;
 
             engine.register_fn(key.clone(), move |dynamic: Dynamic| {
-                let value: Value = from_dynamic(&dynamic).unwrap();
+                let value: Value = match from_dynamic(&dynamic) {
+                    Ok(value) => value,
+                    Err(_) => Value::Null,
+                };
                 call(value)
             });
         }
@@ -82,7 +95,10 @@ pub fn build_engine_async(repositories: Option<Repositories>) -> Arc<Engine> {
             }) as RepositoryFunction;
 
             engine.register_fn(key.clone(), move |dynamic: Dynamic| {
-                let value: Value = from_dynamic(&dynamic).unwrap();
+                let value: Value = match from_dynamic(&dynamic) {
+                    Ok(value) => value,
+                    Err(_) => Value::Null,
+                };
                 call(value)
             });
         }

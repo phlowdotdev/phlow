@@ -34,7 +34,10 @@ impl ToValueBehavior for Step {
 impl Debug for Step {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut value = self.to_value();
-        let id = value.get("id").unwrap().clone();
+        let id = match value.get("id") {
+            Some(id) => id.to_string(),
+            None => "unknown".to_string(),
+        };
         value.remove(&"id");
         value.insert("step_id", id);
 

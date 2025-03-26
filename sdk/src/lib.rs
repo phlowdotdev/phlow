@@ -33,16 +33,38 @@ impl ModuleSetup {
 }
 
 #[macro_export]
+macro_rules! sender_safe {
+    ($sender:expr, $data:expr) => {
+        if let Err(err) = $sender.send($data) {
+            $crate::tracing::warn!("Error sending data: {:?}", err);
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! otlp_start {
+    () => {
+        let _ = match sdk::opentelemetry::init_tracing_subscriber() {
+            Ok(guard) => guard,
+            Err(e) => {
+                $crate::tracing::error!("Error creating tracing subscriber: {:?}", e);
+                return;
+            }
+        };
+    };
+}
+
+#[macro_export]
 macro_rules! plugin {
     ($handler:ident) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: ModuleSetup) {
-            let _guard: opentelemetry::OtelGuard = sdk::opentelemetry::init_tracing_subscriber();
+            otlp_start!();
 
             match $handler(setup) {
                 Ok(_) => {}
                 Err(e) => {
-                    sdk::tracing::error!("Error in plugin: {:?}", e);
+                    $crate::tracing::error!("Error in plugin: {:?}", e);
                 }
             }
         }
@@ -53,10 +75,21 @@ macro_rules! plugin_async {
     ($handler:ident) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: ModuleSetup) {
-            let _guard: opentelemetry::OtelGuard = sdk::opentelemetry::init_tracing_subscriber();
+            otlp_start!();
 
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on($handler(setup)).unwrap();
+            let rt = match tokio::runtime::Runtime::new() {
+                Ok(rt) => rt,
+                Err(e) => {
+                    $crate::tracing::error!("Error creating runtime: {:?}", e);
+                    return;
+                }
+            };
+            match rt.block_on($handler(setup)) {
+                Ok(_) => {}
+                Err(e) => {
+                    $crate::tracing::error!("Error in plugin: {:?}", e);
+                }
+            }
         }
     };
 }
@@ -70,7 +103,7 @@ macro_rules! sender_without_response {
             origin: $id,
         };
 
-        $sender.send(package).unwrap();
+        sender_safe!($sender, package);
     }};
 }
 
@@ -85,7 +118,8 @@ macro_rules! sender {
             origin: $id,
         };
 
-        $sender.send(package).unwrap();
+        sender_safe!($sender, package);
+
         rx
     }};
 }
@@ -122,7 +156,7 @@ impl Package {
 
     pub fn send(&mut self, response_data: Value) {
         if let Some(send) = self.send.take() {
-            let _ = send.send(response_data).unwrap();
+            sender_safe!(send, response_data);
         }
     }
 }

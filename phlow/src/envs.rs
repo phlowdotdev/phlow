@@ -10,12 +10,12 @@ impl Envs {
         let step_consumer_count = env::var("STEP_CONSUMERS")
             .ok()
             .and_then(|v| v.parse::<usize>().ok())
-            .unwrap_or(1); // Se não houver valor, assume 1
+            .unwrap_or(10); // Se não houver valor, assume 1
 
         let package_consumer_count = env::var("PACKAGE_CONSUMERS")
             .ok()
             .and_then(|v| v.parse::<usize>().ok())
-            .unwrap_or(1); // Se não houver valor, assume 1
+            .unwrap_or(10); // Se não houver valor, assume 1
 
         Self {
             step_consumer_count: step_consumer_count as i32,

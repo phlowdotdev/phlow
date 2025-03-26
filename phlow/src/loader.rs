@@ -94,7 +94,10 @@ fn get_main_file(main_path: &str) -> Result<(String, ModuleExtension), LoaderErr
     }
 
     if path.exists() {
-        let extension = main_path.split('.').last().unwrap();
+        let extension = match main_path.split('.').last() {
+            Some(extension) => extension,
+            None => return Err(LoaderError::ModuleNotFound(main_path.to_string())),
+        };
         return Ok((main_path.to_string(), ModuleExtension::from(extension)));
     }
 
@@ -112,7 +115,10 @@ fn find_default_file(base: &str) -> Option<(String, ModuleExtension)> {
             format!("{}/{}", base, file)
         };
         if std::path::Path::new(&path).exists() {
-            let extension = file.split('.').last().unwrap();
+            let extension = match file.split('.').last() {
+                Some(extension) => extension,
+                None => return None,
+            };
             return Some((path.to_string(), ModuleExtension::from(extension)));
         }
     }
@@ -230,7 +236,12 @@ impl TryFrom<Value> for Loader {
                 let mut main = -1;
 
                 let mut modules_vec = Vec::new();
-                for module in modules.as_array().unwrap() {
+                let modules_array = match modules.as_array() {
+                    Some(modules) => modules,
+                    None => return Err(LoaderError::ModuleLoaderError),
+                };
+
+                for module in modules_array {
                     let module = match Module::try_from(module.clone()) {
                         Ok(module) => module,
                         Err(_) => return Err(LoaderError::ModuleLoaderError),
