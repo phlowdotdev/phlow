@@ -5,7 +5,6 @@ use sdk::crossbeam::channel;
 use sdk::modules::ModulePackage;
 use sdk::prelude::*;
 use sdk::tracing::debug;
-use std::sync::mpsc;
 
 use crate::setup::Config;
 
