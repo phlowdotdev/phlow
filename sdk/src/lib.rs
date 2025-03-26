@@ -59,7 +59,7 @@ macro_rules! plugin {
     ($handler:ident) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: ModuleSetup) {
-            otlp_start!();
+            $crate::opentelemetry::init_tracing();
 
             match $handler(setup) {
                 Ok(_) => {}
@@ -75,7 +75,7 @@ macro_rules! plugin_async {
     ($handler:ident) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: ModuleSetup) {
-            otlp_start!();
+            $crate::opentelemetry::init_tracing();
 
             let rt = match tokio::runtime::Runtime::new() {
                 Ok(rt) => rt,

@@ -4,7 +4,7 @@ use opentelemetry_sdk::{
     trace::{RandomIdGenerator, Sampler, SdkTracerProvider},
     Resource,
 };
-use tracing::error;
+use tracing::{error, info};
 use tracing_core::Level;
 use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -77,37 +77,22 @@ fn log_level() -> Level {
     }
 }
 
-// Initialize tracing-subscriber and return OtelGuard for opentelemetry-related termination processing
+pub fn init_tracing() {
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::filter::LevelFilter::from_level(
+            log_level(),
+        ))
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+}
+
 pub fn init_tracing_subscriber() -> Result<OtelGuard, OtelError> {
-    let env = std::env::var("PHLOW_OTEL").unwrap_or_else(|_| "false".to_string());
-
-    // if false log only stdout with log level
-    if env.to_lowercase() != "true" {
-        tracing_subscriber::registry()
-            .with(tracing_subscriber::filter::LevelFilter::from_level(
-                log_level(),
-            ))
-            .with(tracing_subscriber::fmt::layer())
-            .init();
-        return Ok(OtelGuard {
-            tracer_provider: SdkTracerProvider::default(),
-            meter_provider: SdkMeterProvider::default(),
-        });
-    }
-
     let tracer_provider: SdkTracerProvider = init_tracer_provider()?;
     let meter_provider = init_meter_provider()?;
 
     let tracer = tracer_provider.tracer("tracing-otel-subscriber");
 
     tracing_subscriber::registry()
-        // The global level filter prevents the exporter network stack
-        // from reentering the globally installed OpenTelemetryLayer with
-        // its own spans while exporting, as the libraries should not use
-        // tracing levels below DEBUG. If the OpenTelemetry layer needs to
-        // trace spans and events with higher verbosity levels, consider using
-        // per-layer filtering to target the telemetry layer specifically,
-        // e.g. by target matching.
         .with(tracing_subscriber::filter::LevelFilter::from_level(
             log_level(),
         ))
@@ -115,6 +100,8 @@ pub fn init_tracing_subscriber() -> Result<OtelGuard, OtelError> {
         .with(MetricsLayer::new(meter_provider.clone()))
         .with(OpenTelemetryLayer::new(tracer))
         .init();
+
+    info!("OpenTelemetry tracing initialized");
 
     Ok(OtelGuard {
         tracer_provider,

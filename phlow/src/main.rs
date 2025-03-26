@@ -17,8 +17,8 @@ use tracing::{debug, error};
 
 #[tokio::main]
 async fn main() {
-    let envs = Envs::load();
     otlp_start!();
+    let envs = Envs::load();
 
     debug!("STEP_CONSUMERS = {}", envs.step_consumer_count);
     debug!("PACKAGE_CONSUMERS = {}", envs.package_consumer_count);
