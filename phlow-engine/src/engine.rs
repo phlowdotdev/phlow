@@ -62,7 +62,7 @@ pub fn build_engine_sync(repositories: Option<Repositories>) -> Engine {
     engine
 }
 
-pub fn build_engine_async(repositories: Option<Repositories>) -> Engine {
+pub fn build_engine_async(repositories: Option<Repositories>) -> Arc<Engine> {
     let mut engine = build_engine();
 
     if let Some(repositories) = repositories {
@@ -88,7 +88,7 @@ pub fn build_engine_async(repositories: Option<Repositories>) -> Engine {
         }
     }
 
-    engine
+    Arc::new(engine)
 }
 
 #[cfg(test)]

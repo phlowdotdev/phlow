@@ -8,7 +8,7 @@ pub fn step(step: Step) {
 }
 
 #[tracing::instrument(skip(flow))]
-pub async fn execute_steps<'a>(flow: &Phlow<'a>, package: &mut Package) {
+pub async fn execute_steps(flow: &Phlow, package: &mut Package) {
     debug!("Processing package: {:?}", package);
 
     if let Some(data) = package.get_data() {

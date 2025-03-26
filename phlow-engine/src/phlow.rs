@@ -1,4 +1,5 @@
 use crate::{
+    build_engine_async,
     collector::ContextSender,
     context::Context,
     modules::Modules,
@@ -6,7 +7,6 @@ use crate::{
     step_worker::NextStep,
     transform::{value_to_pipelines, TransformError},
 };
-use rhai::Engine;
 use std::{collections::HashMap, sync::Arc};
 use valu3::prelude::*;
 
@@ -17,26 +17,27 @@ pub enum PhlowError {
     PipelineNotFound,
 }
 
-pub type PipelineMap<'a> = HashMap<usize, Pipeline<'a>>;
+pub type PipelineMap = HashMap<usize, Pipeline>;
 
 #[derive(Debug, Default)]
-pub struct Phlow<'a> {
-    pipelines: PipelineMap<'a>,
+pub struct Phlow {
+    pipelines: PipelineMap,
 }
 
-impl<'a> Phlow<'a> {
+impl Phlow {
     pub fn try_from_value(
-        engine: &'a Engine,
         value: &Value,
         modules: Option<Arc<Modules>>,
         trace_sender: Option<ContextSender>,
     ) -> Result<Self, PhlowError> {
+        let engine = build_engine_async(None);
+
         let modules = if let Some(modules) = modules {
             modules
         } else {
             Arc::new(Modules::default())
         };
-        let pipelines = value_to_pipelines(&engine, modules, trace_sender, value)
+        let pipelines = value_to_pipelines(engine, modules, trace_sender, value)
             .map_err(PhlowError::TransformError)?;
 
         Ok(Self { pipelines })
@@ -80,7 +81,7 @@ impl<'a> Phlow<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{collector::Step, engine::build_engine_async, id::ID};
+    use crate::{collector::Step, id::ID};
     use crossbeam::channel;
     use valu3::json;
 
@@ -134,8 +135,7 @@ mod tests {
     #[tokio::test]
     async fn test_phlow_original_1() {
         let original = get_original();
-        let engine = build_engine_async(None);
-        let phlow = Phlow::try_from_value(&engine, &original, None, None).unwrap();
+        let phlow = Phlow::try_from_value(&original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 10000.00,
@@ -150,8 +150,7 @@ mod tests {
     #[tokio::test]
     async fn test_phlow_original_2() {
         let original = get_original();
-        let engine = build_engine_async(None);
-        let phlow = Phlow::try_from_value(&engine, &original, None, None).unwrap();
+        let phlow = Phlow::try_from_value(&original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 500.00,
@@ -166,8 +165,7 @@ mod tests {
     #[tokio::test]
     async fn test_phlow_original_3() {
         let original = get_original();
-        let engine = build_engine_async(None);
-        let phlow = Phlow::try_from_value(&engine, &original, None, None).unwrap();
+        let phlow = Phlow::try_from_value(&original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 500.00,
@@ -182,8 +180,7 @@ mod tests {
     #[tokio::test]
     async fn test_phlow_original_4() {
         let original = get_original();
-        let engine = build_engine_async(None);
-        let phlow = Phlow::try_from_value(&engine, &original, None, None).unwrap();
+        let phlow = Phlow::try_from_value(&original, None, None).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 9999.00,
@@ -198,10 +195,8 @@ mod tests {
     #[tokio::test]
     async fn test_phlow_channel() {
         let original = get_original();
-        let engine = build_engine_async(None);
         let (sender, receiver) = channel::unbounded::<Step>();
-
-        let phlow = Phlow::try_from_value(&engine, &original, None, Some(sender.clone())).unwrap();
+        let phlow = Phlow::try_from_value(&original, None, Some(sender.clone())).unwrap();
         let mut context = Context::new(Some(json!({
             "requested": 10000.00,
             "pre_approved": 9999.00,

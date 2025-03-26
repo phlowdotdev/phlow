@@ -5,7 +5,7 @@ use rhai::{
     serde::{from_dynamic, to_dynamic},
     Engine, EvalAltResult, ParseError, Scope, AST,
 };
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 use valu3::prelude::*;
 
 #[derive(Debug)]
@@ -16,14 +16,14 @@ pub enum ScriptError {
 }
 
 #[derive(Debug, Clone)]
-pub struct Script<'a> {
+pub struct Script {
     map_extracted: Value,
     map_index_ast: HashMap<usize, AST>,
-    engine: &'a Engine,
+    engine: Arc<Engine>,
 }
 
-impl<'a> Script<'a> {
-    pub fn try_build(engine: &'a Engine, script: &Value) -> Result<Self, ScriptError> {
+impl Script {
+    pub fn try_build(engine: Arc<Engine>, script: &Value) -> Result<Self, ScriptError> {
         let mut map_index_ast = HashMap::new();
         let mut counter = 0;
         let map_extracted =
@@ -177,7 +177,7 @@ mod test {
 
         let context = Context::new(None);
         let engine = build_engine_async(None);
-        let payload = Script::try_build(&engine, &script.to_value()).unwrap();
+        let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
         let result = payload.evaluate(&context).unwrap();
         assert_eq!(result, Value::from(30i64));
@@ -199,7 +199,7 @@ mod test {
 
         let context = Context::new(None);
         let engine = build_engine_async(None);
-        let payload = Script::try_build(&engine, &script.to_value()).unwrap();
+        let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
         let result = payload.evaluate(&context).unwrap();
         let expected = Value::from({
@@ -219,7 +219,7 @@ mod test {
 
         let context = Context::new(None);
         let engine = build_engine_async(None);
-        let payload = Script::try_build(&engine, &script.to_value()).unwrap();
+        let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from("hello world")));
@@ -241,7 +241,7 @@ mod test {
         })));
 
         let engine = build_engine_async(None);
-        let payload = Script::try_build(&engine, &script.to_value()).unwrap();
+        let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from(30i64)));
@@ -259,7 +259,7 @@ mod test {
         })));
 
         let engine = build_engine_async(None);
-        let payload = Script::try_build(&engine, &script.to_value()).unwrap();
+        let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from(10i64)));
@@ -287,7 +287,7 @@ mod test {
         });
 
         let engine = build_engine_async(None);
-        let payload = Script::try_build(&engine, &script.to_value()).unwrap();
+        let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
         let variable = payload.evaluate_variable(&context).unwrap();
 

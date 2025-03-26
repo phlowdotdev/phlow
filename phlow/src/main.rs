@@ -100,14 +100,7 @@ async fn main() {
     // -------------------------
 
     let flow = {
-        let engine = build_engine_async(None);
-
-        match Phlow::try_from_value(
-            &engine,
-            &steps,
-            Some(Arc::new(modules)),
-            Some(tx_trace_step),
-        ) {
+        match Phlow::try_from_value(&steps, Some(Arc::new(modules)), Some(tx_trace_step)) {
             Ok(flow) => flow,
             Err(err) => {
                 error!("Runtime Error To Value: {:?}", err);
