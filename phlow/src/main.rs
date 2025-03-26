@@ -6,7 +6,6 @@ use crossbeam::channel;
 use envs::Envs;
 use loader::{load_module, Loader};
 use phlow_engine::{
-    build_engine_async,
     collector::Step,
     modules::{ModulePackage, Modules},
     Phlow,
