@@ -119,7 +119,7 @@ async fn main() {
             for step in rx_clone {
                 processes::step(step);
             }
-            debug!("Step consumer #{} terminou (canal fechado).", i);
+            debug!("Step consumer #{} closed channel.", i);
         });
     }
 
