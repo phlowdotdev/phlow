@@ -19,8 +19,8 @@ regex = "1.11.1"
 # OpenTelemetry
 opentelemetry = "0.29.0"
 opentelemetry_sdk = "0.29.0"
-opentelemetry-jaeger = "0.22.0" # Exportador de traces para Jaeger
-opentelemetry-prometheus = "0.29.0" # Exportador de métricas para Prometheus
+opentelemetry-jaeger = "0.22.0"
+opentelemetry-prometheus = "0.29.0"
 tracing-opentelemetry = "0.30.0"
 tracing-subscriber = "0.3.19"
 opentelemetry-stdout = "0.29.0"
