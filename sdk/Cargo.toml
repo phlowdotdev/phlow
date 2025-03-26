@@ -9,6 +9,7 @@ tokio = { version = "1.44", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 tracing = "0.1"
 crossbeam = "0.8"
+tracing-subscriber = "0.3"
 
 # OpenTelemetry
 opentelemetry = "0.28.0"
@@ -16,7 +17,6 @@ opentelemetry_sdk = "0.28.0"
 opentelemetry-jaeger = "0.22.0" # Exportador de traces para Jaeger
 opentelemetry-prometheus = "0.28.0" # Exportador de métricas para Prometheus
 tracing-opentelemetry = "0.29"
-tracing-subscriber = "0.3.19"
 opentelemetry-stdout = "0.28.0"
 opentelemetry-semantic-conventions = { version = "0.28.0", features = [
     "semconv_experimental",

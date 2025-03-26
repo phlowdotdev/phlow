@@ -11,6 +11,7 @@ use std::fmt::{Debug, Formatter};
 pub use tokio;
 use tokio::sync::oneshot;
 pub use tracing;
+pub use tracing_subscriber;
 pub use valu3;
 use valu3::{traits::ToValueBehavior, value::Value};
 

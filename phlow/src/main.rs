@@ -11,9 +11,10 @@ use phlow_engine::{
     Phlow,
 };
 use sdk::prelude::*;
+use sdk::tracing::{debug, error, span, Level};
+use sdk::tracing_subscriber;
 use std::sync::Arc;
 use tokio::sync::oneshot;
-use tracing::{debug, error};
 
 #[tokio::main]
 async fn main() {
