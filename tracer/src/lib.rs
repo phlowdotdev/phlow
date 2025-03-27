@@ -1,13 +1,12 @@
 use sdk::{
-    otlp::{init_tracing_subscriber, init_tracing_subscriber_no_opentelemetry},
+    otlp::init_tracing_subscriber_plugin,
     tracing::{self, dispatcher, info, span, Level, Span},
 };
 
 #[no_mangle]
 pub extern "C" fn plugin(span_ptr: *mut Span, dispatch_ptr: *const dispatcher::Dispatch) {
     unsafe {
-        let _guard =
-            init_tracing_subscriber_no_opentelemetry().expect("failed to initialize tracing");
+        let _guard = init_tracing_subscriber_plugin().expect("failed to initialize tracing");
 
         let dispatch = &*dispatch_ptr;
 
