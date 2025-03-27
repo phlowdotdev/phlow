@@ -7,7 +7,7 @@ use crate::{
     script::{Script, ScriptError},
 };
 use rhai::Engine;
-use sdk::sender_safe;
+use sdk::{sender_safe, tracing};
 use serde::Serialize;
 use std::sync::Arc;
 use valu3::prelude::NumberBehavior;
@@ -198,6 +198,7 @@ impl StepWorker {
         }
     }
 
+    #[tracing::instrument(skip(context))]
     pub async fn execute(&self, context: &Context) -> Result<StepOutput, StepWorkerError> {
         if let Some(output) = self.evaluate_return(context)? {
             if let Some(sender) = &self.trace_sender {

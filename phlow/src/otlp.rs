@@ -42,7 +42,7 @@ fn init_meter_provider() -> Result<SdkMeterProvider, ExporterBuildError> {
 // Construct TracerProvider for OpenTelemetryLayer
 fn init_tracer_provider() -> Result<SdkTracerProvider, ExporterBuildError> {
     let exporter = opentelemetry_otlp::SpanExporter::builder()
-        .with_tonic()
+        .with_http()
         .build()?;
 
     Ok(SdkTracerProvider::builder()

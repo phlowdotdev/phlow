@@ -7,6 +7,7 @@ use crate::{
     step_worker::NextStep,
     transform::{value_to_pipelines, TransformError},
 };
+use sdk::tracing;
 use std::{collections::HashMap, sync::Arc};
 use valu3::prelude::*;
 

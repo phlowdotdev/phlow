@@ -2209,7 +2209,6 @@ dependencies = [
  "futures",
  "libloading",
  "opentelemetry 0.29.0",
- "opentelemetry-jaeger",
  "opentelemetry-otlp 0.29.0",
  "opentelemetry-prometheus 0.29.0",
  "opentelemetry-semantic-conventions 0.29.0",

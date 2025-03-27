@@ -126,6 +126,8 @@ async fn main() {
         });
     }
 
+    let mut handles = Vec::new();
+
     if loader.main >= -1 {
         debug!("Main module exist");
 
@@ -133,7 +135,7 @@ async fn main() {
             let rx_pkg = rx_main_package.clone();
             let flow_ref = Arc::clone(&flow_arc);
 
-            tokio::task::spawn_blocking(move || {
+            let handle = tokio::task::spawn_blocking(move || {
                 for mut package in rx_pkg {
                     let rt = tokio::runtime::Handle::current();
                     rt.block_on(async {
@@ -142,8 +144,10 @@ async fn main() {
                 }
                 debug!("Package consumer #{} terminou (canal fechado).", i);
             });
+
+            handles.push(handle);
         }
     }
 
-    tokio::signal::ctrl_c().await.unwrap();
+    join_all(handles).await;
 }
