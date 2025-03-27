@@ -1,8 +1,10 @@
 [package]
-name = "test_otlp"
+name = "tracer"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-libloading = "0.8.6"
 sdk = { path = "../sdk" }
+
+[lib]
+crate-type = ["cdylib"]

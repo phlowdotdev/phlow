@@ -9,7 +9,7 @@ use resolver::resolve;
 use sdk::{
     prelude::*,
     tokio::net::TcpListener,
-    tracing::{debug, info, warn},
+    tracing::{debug, info, info_span, span, warn, Level},
 };
 use setup::Config;
 use std::net::SocketAddr;
@@ -48,6 +48,8 @@ pub async fn start_server(
         }
     };
 
+    sdk::otlp::init_tracing_subscriber().unwrap();
+
     info!("Listening on http://{}", addr);
     let id = setup.id;
 
@@ -61,7 +63,7 @@ pub async fn start_server(
             }
         };
 
-        tokio::task::spawn(async move {
+        let handler = tokio::task::spawn(async move {
             let base_service = service_fn(move |mut req: Request<hyper::body::Incoming>| {
                 req.extensions_mut().insert(peer_addr);
                 resolve(id, sender.clone(), req)
@@ -78,5 +80,9 @@ pub async fn start_server(
                 debug!("Connection timed out: {}", err);
             }
         });
+
+        handler.await?;
     }
+
+    println!("Hello, world!");
 }

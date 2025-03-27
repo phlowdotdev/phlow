@@ -1,179 +1,32 @@
-use std::sync::mpsc::{channel, Sender};
+use libloading::Library;
+use sdk::otlp::init_tracing_subscriber;
+use sdk::tracing::{dispatcher, span, Dispatch, Level, Span};
 
-use opentelemetry::{global, trace::TracerProvider as _, KeyValue};
-use opentelemetry_otlp::ExporterBuildError;
-use opentelemetry_sdk::{
-    metrics::{MeterProviderBuilder, PeriodicReader, SdkMeterProvider},
-    trace::{RandomIdGenerator, Sampler, SdkTracerProvider},
-    Resource,
-};
-use opentelemetry_semantic_conventions::{
-    resource::{DEPLOYMENT_ENVIRONMENT_NAME, SERVICE_NAME, SERVICE_VERSION},
-    SCHEMA_URL,
-};
-use std::thread::spawn;
-use tracing::{info, span};
-use tracing_core::Level;
-use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+type PluginFn = unsafe extern "C" fn(*mut Span, *const Dispatch);
 
-// Create a Resource that captures information about the entity for which telemetry is recorded.
-fn resource() -> Resource {
-    Resource::builder()
-        .with_schema_url(
-            [
-                KeyValue::new(SERVICE_NAME, env!("CARGO_PKG_NAME")),
-                KeyValue::new(SERVICE_VERSION, env!("CARGO_PKG_VERSION")),
-                KeyValue::new(DEPLOYMENT_ENVIRONMENT_NAME, "develop"),
-            ],
-            SCHEMA_URL,
-        )
-        .build()
-}
+fn main() {
+    // Inicia o OpenTelemetry e Tracing no processo principal
+    let _guard = init_tracing_subscriber().expect("failed to initialize tracing");
 
-// Construct MeterProvider for MetricsLayer
-fn init_meter_provider() -> Result<SdkMeterProvider, ExporterBuildError> {
-    let exporter = opentelemetry_otlp::MetricExporter::builder()
-        .with_tonic()
-        .with_temporality(opentelemetry_sdk::metrics::Temporality::default())
-        .build()?;
-    let reader = PeriodicReader::builder(exporter)
-        .with_interval(std::time::Duration::from_secs(30))
-        .build();
-
-    // For debugging in development
-    let stdout_reader =
-        PeriodicReader::builder(opentelemetry_stdout::MetricExporter::default()).build();
-
-    let meter_provider = MeterProviderBuilder::default()
-        .with_resource(resource())
-        .with_reader(reader)
-        .with_reader(stdout_reader)
-        .build();
-
-    global::set_meter_provider(meter_provider.clone());
-
-    Ok(meter_provider)
-}
-
-// Construct TracerProvider for OpenTelemetryLayer
-fn init_tracer_provider() -> Result<SdkTracerProvider, ExporterBuildError> {
-    let exporter = opentelemetry_otlp::SpanExporter::builder()
-        .with_tonic()
-        .build()?;
-
-    Ok(SdkTracerProvider::builder()
-        // Customize sampling strategy
-        .with_sampler(Sampler::ParentBased(Box::new(Sampler::TraceIdRatioBased(
-            1.0,
-        ))))
-        // If export trace to AWS X-Ray, you can use XrayIdGenerator
-        .with_id_generator(RandomIdGenerator::default())
-        .with_resource(resource())
-        .with_batch_exporter(exporter)
-        .build())
-}
-
-// Initialize tracing-subscriber and return OtelGuard for opentelemetry-related termination processing
-fn init_tracing_subscriber() -> Result<OtelGuard, ExporterBuildError> {
-    let tracer_provider = init_tracer_provider()?;
-    let meter_provider = init_meter_provider()?;
-
-    let tracer = tracer_provider.tracer("tracing-otel-subscriber");
-
-    tracing_subscriber::registry()
-        // The global level filter prevents the exporter network stack
-        // from reentering the globally installed OpenTelemetryLayer with
-        // its own spans while exporting, as the libraries should not use
-        // tracing levels below DEBUG. If the OpenTelemetry layer needs to
-        // trace spans and events with higher verbosity levels, consider using
-        // per-layer filtering to target the telemetry layer specifically,
-        // e.g. by target matching.
-        .with(tracing_subscriber::filter::LevelFilter::from_level(
-            Level::INFO,
-        ))
-        .with(tracing_subscriber::fmt::layer())
-        .with(MetricsLayer::new(meter_provider.clone()))
-        .with(OpenTelemetryLayer::new(tracer))
-        .init();
-
-    Ok(OtelGuard {
-        tracer_provider,
-        meter_provider,
-    })
-}
-
-struct OtelGuard {
-    tracer_provider: SdkTracerProvider,
-    meter_provider: SdkMeterProvider,
-}
-
-impl Drop for OtelGuard {
-    fn drop(&mut self) {
-        if let Err(err) = self.tracer_provider.shutdown() {
-            eprintln!("{err:?}");
-        }
-        if let Err(err) = self.meter_provider.shutdown() {
-            eprintln!("{err:?}");
-        }
-    }
-}
-
-pub struct Package {
-    pub span: tracing::Span,
-    pub sender: Sender<i32>,
-}
-
-async fn inner(tx_main: Sender<Package>) {
-    let _guard = init_tracing_subscriber();
-
-    let span = span!(Level::INFO, "main");
+    // Cria o span principal
+    let span = span!(Level::INFO, "main", component = "main_binary");
     let _enter = span.enter();
 
-    let (tx, rx) = channel::<i32>();
+    sdk::tracing::info!("Log dentro do span main");
 
-    tx_main
-        .clone()
-        .send(Package {
-            span: span.clone(),
-            sender: tx,
-        })
-        .unwrap();
+    // Pega o subscriber (Dispatch) atual
+    let dispatch = dispatcher::get_default(|d| Box::into_raw(Box::new(d.clone())));
 
-    for num in rx {
-        info!("Receive: {}", num);
+    // Carrega a biblioteca dinâmica
+    unsafe {
+        let lib = Library::new("./target/debug/libtracer.so").expect("Failed to load library");
+
+        let func: libloading::Symbol<PluginFn> = lib.get(b"plugin").expect("Failed to get symbol");
+
+        // Chama a função da lib com o Span e o Dispatch
+        func(&span as *const _ as *mut _, dispatch);
     }
-}
 
-fn external(tx_main: Sender<Package>) {
-    let rt = tokio::runtime::Runtime::new().unwrap();
-
-    rt.block_on(async {
-        inner(tx_main).await;
-    });
-}
-
-#[tokio::main]
-async fn main() {
-    let (tx_main, rx_main) = channel::<Package>();
-
-    spawn(|| {
-        external(tx_main);
-    });
-
-    let mut num = 0;
-    for package in rx_main {
-        let _main_enter = package.span.enter();
-
-        let span = span!(Level::INFO, "receiver");
-        let _receiver_enter = span.enter();
-
-        info!("Received main");
-
-        num += 1;
-
-        info!("Send: {}", num);
-
-        package.sender.send(num).unwrap();
-    }
+    // Espera alguns segundos para o exporter enviar tudo (opcional)
+    std::thread::sleep(std::time::Duration::from_secs(2));
 }

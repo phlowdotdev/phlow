@@ -3,7 +3,7 @@ use http_body_util::{BodyExt, Full};
 use hyper::{HeaderMap, Request, Response};
 use sdk::{
     prelude::*,
-    tracing::{debug, error, info, info_span, span, Level},
+    tracing::{error, info, info_span, span, Level},
 };
 use std::{collections::HashMap, convert::Infallible, net::SocketAddr};
 
@@ -14,8 +14,6 @@ pub async fn resolve(
     sender: MainRuntimeSender,
     req: Request<hyper::body::Incoming>,
 ) -> Result<Response<Full<Bytes>>, Infallible> {
-    sdk::otlp::init_tracing_subscriber().unwrap();
-
     let span = span!(Level::INFO, "main");
     let _enter = span.enter();
 
