@@ -1,3 +1,5 @@
+use std::sync::mpsc::{channel, Sender};
+
 use opentelemetry::{global, trace::TracerProvider as _, KeyValue};
 use opentelemetry_otlp::ExporterBuildError;
 use opentelemetry_sdk::{
@@ -5,19 +7,34 @@ use opentelemetry_sdk::{
     trace::{RandomIdGenerator, Sampler, SdkTracerProvider},
     Resource,
 };
+use opentelemetry_semantic_conventions::{
+    resource::{DEPLOYMENT_ENVIRONMENT_NAME, SERVICE_NAME, SERVICE_VERSION},
+    SCHEMA_URL,
+};
+use std::thread::spawn;
+use tracing::{info, span};
 use tracing_core::Level;
 use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 // Create a Resource that captures information about the entity for which telemetry is recorded.
 fn resource() -> Resource {
-    Resource::builder().build()
+    Resource::builder()
+        .with_schema_url(
+            [
+                KeyValue::new(SERVICE_NAME, env!("CARGO_PKG_NAME")),
+                KeyValue::new(SERVICE_VERSION, env!("CARGO_PKG_VERSION")),
+                KeyValue::new(DEPLOYMENT_ENVIRONMENT_NAME, "develop"),
+            ],
+            SCHEMA_URL,
+        )
+        .build()
 }
 
 // Construct MeterProvider for MetricsLayer
 fn init_meter_provider() -> Result<SdkMeterProvider, ExporterBuildError> {
     let exporter = opentelemetry_otlp::MetricExporter::builder()
-        .with_http()
+        .with_tonic()
         .with_temporality(opentelemetry_sdk::metrics::Temporality::default())
         .build()?;
     let reader = PeriodicReader::builder(exporter)
@@ -102,26 +119,61 @@ impl Drop for OtelGuard {
     }
 }
 
-#[tokio::main]
-async fn main() {
-    let _guard = init_tracing_subscriber();
-
-    let handle = tokio::spawn(async {
-        foo().await;
-    });
-
-    // Aguarda a task terminar para garantir o envio das métricas.
-    let _ = handle.await;
+pub struct Package {
+    pub span: tracing::Span,
+    pub sender: Sender<i32>,
 }
 
-#[tracing::instrument]
-async fn foo() {
-    tracing::info!(
-        monotonic_counter.foo = 1_u64,
-        key_1 = "bar",
-        key_2 = 10,
-        "handle foo",
-    );
+async fn inner(tx_main: Sender<Package>) {
+    let _guard = init_tracing_subscriber();
 
-    tracing::info!(histogram.baz = 10, "histogram example",);
+    let span = span!(Level::INFO, "main");
+    let _enter = span.enter();
+
+    let (tx, rx) = channel::<i32>();
+
+    tx_main
+        .clone()
+        .send(Package {
+            span: span.clone(),
+            sender: tx,
+        })
+        .unwrap();
+
+    for num in rx {
+        info!("Receive: {}", num);
+    }
+}
+
+fn external(tx_main: Sender<Package>) {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+
+    rt.block_on(async {
+        inner(tx_main).await;
+    });
+}
+
+#[tokio::main]
+async fn main() {
+    let (tx_main, rx_main) = channel::<Package>();
+
+    spawn(|| {
+        external(tx_main);
+    });
+
+    let mut num = 0;
+    for package in rx_main {
+        let _main_enter = package.span.enter();
+
+        let span = span!(Level::INFO, "receiver");
+        let _receiver_enter = span.enter();
+
+        info!("Received main");
+
+        num += 1;
+
+        info!("Send: {}", num);
+
+        package.sender.send(num).unwrap();
+    }
 }

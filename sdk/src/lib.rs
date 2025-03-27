@@ -1,7 +1,7 @@
 pub mod context;
 pub mod id;
 pub mod modules;
-pub mod opentelemetry;
+pub mod otlp;
 use context::Context;
 pub use crossbeam;
 use crossbeam::channel;
@@ -45,7 +45,7 @@ macro_rules! sender_safe {
 #[macro_export]
 macro_rules! otlp_start {
     () => {
-        let _ = match sdk::opentelemetry::init_tracing_subscriber() {
+        let _ = match sdk::otlp::init_tracing_subscriber() {
             Ok(guard) => guard,
             Err(e) => {
                 $crate::tracing::error!("Error creating tracing subscriber: {:?}", e);
@@ -60,7 +60,7 @@ macro_rules! plugin {
     ($handler:ident) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: ModuleSetup) {
-            $crate::opentelemetry::init_tracing();
+            otlp_start!();
 
             match $handler(setup) {
                 Ok(_) => {}
@@ -76,21 +76,14 @@ macro_rules! plugin_async {
     ($handler:ident) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: ModuleSetup) {
-            $crate::opentelemetry::init_tracing();
-
-            let rt = match tokio::runtime::Runtime::new() {
-                Ok(rt) => rt,
-                Err(e) => {
-                    $crate::tracing::error!("Error creating runtime: {:?}", e);
-                    return;
-                }
-            };
-            match rt.block_on($handler(setup)) {
-                Ok(_) => {}
-                Err(e) => {
+            if let Ok(rt) = tokio::runtime::Runtime::new() {
+                if let Err(e) = rt.block_on($handler(setup)) {
                     $crate::tracing::error!("Error in plugin: {:?}", e);
                 }
-            }
+            } else {
+                $crate::tracing::error!("Error creating runtime");
+                return;
+            };
         }
     };
 }
@@ -117,6 +110,21 @@ macro_rules! sender {
             send: Some(tx),
             request_data: $data,
             origin: $id,
+            span: None,
+        };
+
+        sender_safe!($sender, package);
+
+        rx
+    }};
+    ($span:expr,$id:expr, $sender:expr, $data:expr) => {{
+        let (tx, rx) = tokio::sync::oneshot::channel::<valu3::value::Value>();
+
+        let package = Package {
+            send: Some(tx),
+            request_data: $data,
+            origin: $id,
+            span: Some($span),
         };
 
         sender_safe!($sender, package);
@@ -130,6 +138,7 @@ pub struct Package {
     pub send: Option<oneshot::Sender<Value>>,
     pub request_data: Option<Value>,
     pub origin: ModuleId,
+    pub span: Option<tracing::Span>,
 }
 
 // Only production mode

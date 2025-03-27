@@ -20,8 +20,6 @@ use tokio::sync::oneshot;
 
 #[tokio::main]
 async fn main() {
-    let _guard = init_tracing_subscriber();
-
     let envs = Envs::load();
 
     debug!("STEP_CONSUMERS = {}", envs.step_consumer_count);
@@ -70,7 +68,7 @@ async fn main() {
 
         let module_target = module.module.clone();
 
-        tokio::task::spawn(async move {
+        std::thread::spawn(move || {
             if let Err(err) = load_module(setup, &module_target) {
                 error!("Runtime Error Load Module: {:?}", err)
             }

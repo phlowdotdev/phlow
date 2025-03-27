@@ -1,31 +1,38 @@
-use opentelemetry::{global, trace::TracerProvider as _};
+use opentelemetry::{global, trace::TracerProvider as _, KeyValue};
+use opentelemetry_otlp::ExporterBuildError;
 use opentelemetry_sdk::{
-    metrics::{MeterProviderBuilder, MetricError, PeriodicReader, SdkMeterProvider},
+    metrics::{MeterProviderBuilder, PeriodicReader, SdkMeterProvider},
     trace::{RandomIdGenerator, Sampler, SdkTracerProvider},
     Resource,
 };
-use tracing::{error, info};
+use opentelemetry_semantic_conventions::{
+    resource::{DEPLOYMENT_ENVIRONMENT_NAME, SERVICE_NAME, SERVICE_VERSION},
+    SCHEMA_URL,
+};
 use tracing_core::Level;
 use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-#[derive(Debug)]
-pub enum OtelError {
-    TracerError(opentelemetry::trace::TraceError),
-    MeterError(MetricError),
+// Create a Resource that captures information about the entity for which telemetry is recorded.
+fn resource() -> Resource {
+    Resource::builder()
+        .with_schema_url(
+            [
+                KeyValue::new(SERVICE_NAME, env!("CARGO_PKG_NAME")),
+                KeyValue::new(SERVICE_VERSION, env!("CARGO_PKG_VERSION")),
+                KeyValue::new(DEPLOYMENT_ENVIRONMENT_NAME, "develop"),
+            ],
+            SCHEMA_URL,
+        )
+        .build()
 }
 
-pub fn resource() -> Resource {
-    Resource::builder().build()
-}
-
-fn init_meter_provider() -> Result<SdkMeterProvider, OtelError> {
+// Construct MeterProvider for MetricsLayer
+fn init_meter_provider() -> Result<SdkMeterProvider, ExporterBuildError> {
     let exporter = opentelemetry_otlp::MetricExporter::builder()
         .with_http()
         .with_temporality(opentelemetry_sdk::metrics::Temporality::default())
-        .build()
-        .map_err(OtelError::MeterError)?;
-
+        .build()?;
     let reader = PeriodicReader::builder(exporter)
         .with_interval(std::time::Duration::from_secs(30))
         .build();
@@ -46,11 +53,10 @@ fn init_meter_provider() -> Result<SdkMeterProvider, OtelError> {
 }
 
 // Construct TracerProvider for OpenTelemetryLayer
-fn init_tracer_provider() -> Result<SdkTracerProvider, OtelError> {
+fn init_tracer_provider() -> Result<SdkTracerProvider, ExporterBuildError> {
     let exporter = opentelemetry_otlp::SpanExporter::builder()
         .with_http()
-        .build()
-        .map_err(OtelError::TracerError)?;
+        .build()?;
 
     Ok(SdkTracerProvider::builder()
         // Customize sampling strategy
@@ -64,44 +70,28 @@ fn init_tracer_provider() -> Result<SdkTracerProvider, OtelError> {
         .build())
 }
 
-fn log_level() -> Level {
-    let env = std::env::var("PHLOW_LOG").unwrap_or_else(|_| "info".to_string());
-
-    match env.to_lowercase().as_str() {
-        "trace" => Level::TRACE,
-        "debug" => Level::DEBUG,
-        "info" => Level::INFO,
-        "warn" => Level::WARN,
-        "error" => Level::ERROR,
-        _ => Level::INFO,
-    }
-}
-
-pub fn init_tracing() {
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::filter::LevelFilter::from_level(
-            log_level(),
-        ))
-        .with(tracing_subscriber::fmt::layer())
-        .init();
-}
-
-pub fn init_tracing_subscriber() -> Result<OtelGuard, OtelError> {
-    let tracer_provider: SdkTracerProvider = init_tracer_provider()?;
+// Initialize tracing-subscriber and return OtelGuard for opentelemetry-related termination processing
+pub fn init_tracing_subscriber() -> Result<OtelGuard, ExporterBuildError> {
+    let tracer_provider = init_tracer_provider()?;
     let meter_provider = init_meter_provider()?;
 
     let tracer = tracer_provider.tracer("tracing-otel-subscriber");
 
     tracing_subscriber::registry()
+        // The global level filter prevents the exporter network stack
+        // from reentering the globally installed OpenTelemetryLayer with
+        // its own spans while exporting, as the libraries should not use
+        // tracing levels below DEBUG. If the OpenTelemetry layer needs to
+        // trace spans and events with higher verbosity levels, consider using
+        // per-layer filtering to target the telemetry layer specifically,
+        // e.g. by target matching.
         .with(tracing_subscriber::filter::LevelFilter::from_level(
-            log_level(),
+            Level::INFO,
         ))
         .with(tracing_subscriber::fmt::layer())
         .with(MetricsLayer::new(meter_provider.clone()))
         .with(OpenTelemetryLayer::new(tracer))
         .init();
-
-    info!("OpenTelemetry tracing initialized");
 
     Ok(OtelGuard {
         tracer_provider,
@@ -117,10 +107,10 @@ pub struct OtelGuard {
 impl Drop for OtelGuard {
     fn drop(&mut self) {
         if let Err(err) = self.tracer_provider.shutdown() {
-            error!("{err:?}");
+            eprintln!("{err:?}");
         }
         if let Err(err) = self.meter_provider.shutdown() {
-            error!("{err:?}");
+            eprintln!("{err:?}");
         }
     }
 }

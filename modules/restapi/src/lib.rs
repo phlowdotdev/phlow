@@ -1,8 +1,10 @@
+mod middleware;
 mod resolver;
 mod response;
 mod setup;
 use hyper::{server::conn::http1, service::service_fn, Request};
 use hyper_util::rt::{TokioIo, TokioTimer};
+use middleware::TracingMiddleware;
 use resolver::resolve;
 use sdk::{
     prelude::*,
@@ -60,10 +62,12 @@ pub async fn start_server(
         };
 
         tokio::task::spawn(async move {
-            let service = service_fn(move |mut req: Request<hyper::body::Incoming>| {
+            let base_service = service_fn(move |mut req: Request<hyper::body::Incoming>| {
                 req.extensions_mut().insert(peer_addr);
                 resolve(id, sender.clone(), req)
             });
+
+            let service = TracingMiddleware::new(base_service);
 
             if let Err(err) = http1::Builder::new()
                 .keep_alive(true)

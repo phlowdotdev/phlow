@@ -1,12 +1,11 @@
 use phlow_engine::{collector::Step, Context, Phlow};
 use sdk::{prelude::*, tracing::warn};
-use tracing::debug;
+use tracing::{debug, info_span, span, Level};
 
 pub fn step(step: Step) {
     debug!("Processing step: {:?}", step.to_value());
 }
 
-#[tracing::instrument(skip(flow))]
 pub async fn execute_steps(flow: &Phlow, package: &mut Package) {
     debug!("Processing package: {:?}", package);
 
