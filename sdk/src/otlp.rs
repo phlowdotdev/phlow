@@ -70,6 +70,18 @@ fn init_tracer_provider() -> Result<SdkTracerProvider, ExporterBuildError> {
         .build())
 }
 
+pub fn init_tracing_subscriber_plugin() -> Result<(), ExporterBuildError> {
+    // Initialize tracing-subscriber without OpenTelemetry
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::filter::LevelFilter::from_level(
+            Level::INFO,
+        ))
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
+    Ok(())
+}
+
 // Initialize tracing-subscriber and return OtelGuard for opentelemetry-related termination processing
 pub fn init_tracing_subscriber() -> Result<OtelGuard, ExporterBuildError> {
     let tracer_provider = init_tracer_provider()?;
