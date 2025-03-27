@@ -111,6 +111,7 @@ macro_rules! sender {
             request_data: $data,
             origin: $id,
             span: None,
+            dispatch: None,
         };
 
         sender_safe!($sender, package);
@@ -125,6 +126,7 @@ macro_rules! sender {
             request_data: $data,
             origin: $id,
             span: Some($span),
+            dispatch: None,
         };
 
         sender_safe!($sender, package);
@@ -139,6 +141,7 @@ pub struct Package {
     pub request_data: Option<Value>,
     pub origin: ModuleId,
     pub span: Option<tracing::Span>,
+    pub dispatch: Option<tracing::Dispatch>,
 }
 
 // Only production mode
