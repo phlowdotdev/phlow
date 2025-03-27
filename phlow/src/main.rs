@@ -5,6 +5,7 @@ mod processes;
 mod yaml;
 use crossbeam::channel;
 use envs::Envs;
+use futures::future::join_all;
 use loader::{load_module, Loader};
 use otlp::init_tracing_subscriber;
 use phlow_engine::{
@@ -16,7 +17,6 @@ use sdk::prelude::*;
 use sdk::tracing::{debug, error};
 use std::sync::Arc;
 use tokio::sync::oneshot;
-use tracing::{info, Instrument};
 
 #[tokio::main]
 async fn main() {
@@ -96,6 +96,8 @@ async fn main() {
         }
     }
 
+    drop(tx_main_package);
+
     debug!("Starting Phlow");
 
     // -------------------------
@@ -128,25 +130,20 @@ async fn main() {
         debug!("Main module exist");
 
         for i in 0..envs.package_consumer_count {
-            debug!("Starting package consumer #{}", i);
             let rx_pkg = rx_main_package.clone();
             let flow_ref = Arc::clone(&flow_arc);
 
-            let current_span = tracing::Span::current();
-            info!("Span atual: {:?}", current_span);
-
-            let span = tracing::info_span!("consumer_loop", consumer_id = i);
-            tokio::spawn(
-                async move {
-                    for mut package in rx_pkg {
+            tokio::task::spawn_blocking(move || {
+                for mut package in rx_pkg {
+                    let rt = tokio::runtime::Handle::current();
+                    rt.block_on(async {
                         processes::execute_steps(&flow_ref, &mut package).await;
-                    }
-                    debug!("Package consumer #{} closed channel.", i);
+                    });
                 }
-                .instrument(span), // herda esse span
-            );
+                debug!("Package consumer #{} terminou (canal fechado).", i);
+            });
         }
     }
 
-    drop(tx_main_package);
+    tokio::signal::ctrl_c().await.unwrap();
 }

@@ -106,7 +106,12 @@ impl Drop for OtelGuard {
 async fn main() {
     let _guard = init_tracing_subscriber();
 
-    foo().await;
+    let handle = tokio::spawn(async {
+        foo().await;
+    });
+
+    // Aguarda a task terminar para garantir o envio das métricas.
+    let _ = handle.await;
 }
 
 #[tracing::instrument]
