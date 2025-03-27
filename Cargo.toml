@@ -6,6 +6,6 @@ members = [
     "modules/restapi",
     "modules/echo",
     "modules/amqp",
-    "modules/log",
+    "modules/log", "test_otlp",
 ]
 resolver = '2'

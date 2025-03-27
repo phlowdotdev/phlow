@@ -1,24 +1,27 @@
 mod envs;
 mod loader;
+mod otlp;
 mod processes;
 mod yaml;
 use crossbeam::channel;
 use envs::Envs;
 use loader::{load_module, Loader};
+use otlp::init_tracing_subscriber;
 use phlow_engine::{
     collector::Step,
     modules::{ModulePackage, Modules},
     Phlow,
 };
 use sdk::prelude::*;
-use sdk::tracing::{debug, error, span, Level};
-use sdk::tracing_subscriber;
+use sdk::tracing::{debug, error};
 use std::sync::Arc;
 use tokio::sync::oneshot;
+use tracing::{info, Instrument};
 
 #[tokio::main]
 async fn main() {
-    otlp_start!();
+    let _guard = init_tracing_subscriber();
+
     let envs = Envs::load();
 
     debug!("STEP_CONSUMERS = {}", envs.step_consumer_count);
@@ -129,20 +132,19 @@ async fn main() {
             let rx_pkg = rx_main_package.clone();
             let flow_ref = Arc::clone(&flow_arc);
 
-            tokio::task::spawn_blocking(move || {
-                debug!("Package consumer #{} started.", i);
-                for mut package in rx_pkg {
-                    tokio::task::block_in_place(|| {
-                        debug!("Package consumer #{} executing.", i);
-                        let rt = tokio::runtime::Handle::current();
-                        rt.block_on(async {
-                            debug!("Package consumer #{} executing async.", i);
-                            processes::execute_steps(&flow_ref, &mut package).await;
-                        });
-                    });
+            let current_span = tracing::Span::current();
+            info!("Span atual: {:?}", current_span);
+
+            let span = tracing::info_span!("consumer_loop", consumer_id = i);
+            tokio::spawn(
+                async move {
+                    for mut package in rx_pkg {
+                        processes::execute_steps(&flow_ref, &mut package).await;
+                    }
+                    debug!("Package consumer #{} closed channel.", i);
                 }
-                debug!("Package consumer #{} terminou (canal fechado).", i);
-            });
+                .instrument(span), // herda esse span
+            );
         }
     }
 

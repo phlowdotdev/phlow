@@ -2,7 +2,6 @@ use phlow_engine::{collector::Step, Context, Phlow};
 use sdk::{prelude::*, tracing::warn};
 use tracing::debug;
 
-#[tracing::instrument]
 pub fn step(step: Step) {
     debug!("Processing step: {:?}", step.to_value());
 }
