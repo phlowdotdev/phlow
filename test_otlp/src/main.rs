@@ -1,32 +1,36 @@
 use libloading::Library;
 use sdk::otlp::init_tracing_subscriber;
 use sdk::tracing::{dispatcher, span, Dispatch, Level, Span};
+use std::sync::Arc;
+use std::thread;
 
 type PluginFn = unsafe extern "C" fn(*mut Span, *const Dispatch);
 
 fn main() {
-    // Inicia o OpenTelemetry e Tracing no processo principal
     let _guard = init_tracing_subscriber().expect("failed to initialize tracing");
 
-    // Cria o span principal
     let span = span!(Level::INFO, "main", component = "main_binary");
     let _enter = span.enter();
 
-    sdk::tracing::info!("Log dentro do span main");
+    let dispatch = dispatcher::get_default(|d| Arc::new(d.clone()));
+    let plugins = vec!["./target/debug/libtracer.so"];
 
-    // Pega o subscriber (Dispatch) atual
-    let dispatch = dispatcher::get_default(|d| Box::into_raw(Box::new(d.clone())));
-
-    // Carrega a biblioteca dinâmica
-    unsafe {
-        let lib = Library::new("./target/debug/libtracer.so").expect("Failed to load library");
-
-        let func: libloading::Symbol<PluginFn> = lib.get(b"plugin").expect("Failed to get symbol");
-
-        // Chama a função da lib com o Span e o Dispatch
-        func(&span as *const _ as *mut _, dispatch);
+    for plugin_path in plugins.iter() {
+        let span_clone = span.clone();
+        let dispatch_clone = dispatch.clone();
+        let plugin_path = *plugin_path;
+        thread::spawn(move || unsafe {
+            let lib = Library::new(plugin_path).expect("Falha ao carregar a biblioteca");
+            let func: libloading::Symbol<PluginFn> =
+                lib.get(b"plugin").expect("Falha ao obter símbolo");
+            func(
+                &span_clone as *const _ as *mut _,
+                Arc::into_raw(dispatch_clone),
+            );
+        })
+        .join()
+        .expect("Falha na thread");
     }
 
-    // Espera alguns segundos para o exporter enviar tudo (opcional)
     std::thread::sleep(std::time::Duration::from_secs(2));
 }

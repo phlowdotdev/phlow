@@ -1,10 +1,10 @@
 use sdk::{
     otlp::init_tracing_subscriber_plugin,
-    tracing::{self, dispatcher, info, span, Level, Span},
+    tracing::{self, dispatcher, info, span, Dispatch, Level, Span},
 };
 
 #[no_mangle]
-pub extern "C" fn plugin(span_ptr: *mut Span, dispatch_ptr: *const dispatcher::Dispatch) {
+pub extern "C" fn plugin(span_ptr: *mut Span, dispatch_ptr: *const Dispatch) {
     unsafe {
         let _guard = init_tracing_subscriber_plugin().expect("failed to initialize tracing");
 
