@@ -9,9 +9,10 @@ use opentelemetry_semantic_conventions::{
     resource::{DEPLOYMENT_ENVIRONMENT_NAME, SERVICE_NAME, SERVICE_VERSION},
     SCHEMA_URL,
 };
-use tracing_core::Level;
+use tracing::subscriber::set_global_default;
+use tracing_core::{Level, LevelFilter};
 use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
 // Create a Resource that captures information about the entity for which telemetry is recorded.
 fn resource() -> Resource {
@@ -72,12 +73,11 @@ fn init_tracer_provider() -> Result<SdkTracerProvider, ExporterBuildError> {
 
 pub fn init_tracing_subscriber_plugin() -> Result<(), ExporterBuildError> {
     // Initialize tracing-subscriber without OpenTelemetry
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::filter::LevelFilter::from_level(
-            Level::INFO,
-        ))
-        .with(tracing_subscriber::fmt::layer())
-        .init();
+    let subscriber = tracing_subscriber::registry()
+        .with(LevelFilter::from_level(Level::INFO))
+        .with(fmt::layer());
+
+    set_global_default(subscriber).expect("failed to set subscriber");
 
     Ok(())
 }
