@@ -1,5 +1,4 @@
 use libloading::Library;
-use sdk::opentelemetry::Context;
 use sdk::otlp::init_tracing_subscriber;
 use sdk::tracing::{dispatcher, span, Dispatch, Level};
 use sdk::tracing_opentelemetry::OpenTelemetrySpanExt;
@@ -9,13 +8,10 @@ use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::thread;
 
-type PluginFn = unsafe extern "C" fn(*const Context, *const Dispatch, *const Sender<Package>);
+type PluginFn = unsafe extern "C" fn(*const Dispatch, *const Sender<Package>);
 
 fn main() {
     let _guard = init_tracing_subscriber().expect("failed to initialize tracing");
-
-    let span = span!(Level::INFO, "main");
-    let _enter = span.enter();
 
     let dispatch = dispatcher::get_default(|d| Arc::new(d.clone()));
     let plugins = vec!["./target/debug/libtracer.so"];
@@ -23,18 +19,15 @@ fn main() {
     let (tx, rx) = std::sync::mpsc::channel::<Package>();
 
     for plugin_path in plugins.iter() {
-        let span_clone = span.clone();
         let dispatch_clone = dispatch.clone();
         let plugin_path = *plugin_path;
         let tx_clone = tx.clone();
-        let context = span_clone.context();
 
         thread::spawn(move || unsafe {
             let lib = Library::new(plugin_path).expect("Falha ao carregar a biblioteca");
             let func: libloading::Symbol<PluginFn> =
                 lib.get(b"plugin").expect("Falha ao obter símbolo");
             func(
-                Box::into_raw(Box::new(context)) as *const Context,
                 Arc::into_raw(dispatch_clone),
                 &tx_clone as *const _ as *const Sender<Package>,
             );

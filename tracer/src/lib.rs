@@ -1,5 +1,3 @@
-use sdk::opentelemetry::Context;
-use sdk::tracing_opentelemetry::OpenTelemetrySpanExt;
 use sdk::{
     otlp::init_tracing_subscriber_plugin,
     tokio::sync::oneshot,
@@ -9,30 +7,19 @@ use sdk::{
 use std::sync::mpsc::Sender;
 
 #[no_mangle]
-pub extern "C" fn plugin(
-    context_ptr: *const Context,
-    dispatch_ptr: *const Dispatch,
-    sender: *const Sender<Package>,
-) {
+pub extern "C" fn plugin(dispatch_ptr: *const Dispatch, sender: *const Sender<Package>) {
     let sender: &Sender<Package> = unsafe { &*sender };
+    let dispatch: &Dispatch = unsafe { &*dispatch_ptr };
 
-    unsafe {
-        let _guard = init_tracing_subscriber_plugin().expect("failed to initialize tracing");
+    init_tracing_subscriber_plugin().expect("failed to initialize tracing");
 
-        let dispatch = &*dispatch_ptr;
-        let parent_context = &*context_ptr;
+    dispatcher::with_default(dispatch, || {
+        let span = span!(Level::INFO, "plugin");
+        let _enter = span.enter();
 
-        dispatcher::with_default(dispatch, || {
-            let span = span!(Level::INFO, "plugin");
-            span.set_parent(parent_context.clone());
-            let _enter = span.enter();
-
-            execution(sender, span.clone(), dispatch);
-            info!("Log do plugin dentro do plugin");
-        });
-
-        drop(Box::from_raw(context_ptr as *mut Context));
-    }
+        execution(sender, span.clone(), dispatch);
+        info!("Log do plugin dentro do plugin");
+    });
 }
 
 pub fn execution(sender: &Sender<Package>, span: Span, dispatch: &Dispatch) {
