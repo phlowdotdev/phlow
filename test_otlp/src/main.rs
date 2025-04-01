@@ -61,5 +61,5 @@ fn main() {
     handler.join().unwrap();
 
     // sleep 2s
-    std::thread::sleep(std::time::Duration::from_secs(2));
+    std::thread::sleep(std::time::Duration::from_secs(5));
 }

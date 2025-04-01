@@ -5,10 +5,6 @@ use opentelemetry_sdk::{
     trace::{RandomIdGenerator, Sampler, SdkTracerProvider},
     Resource,
 };
-use opentelemetry_semantic_conventions::{
-    resource::{DEPLOYMENT_ENVIRONMENT_NAME, SERVICE_NAME, SERVICE_VERSION},
-    SCHEMA_URL,
-};
 use tracing::subscriber::set_global_default;
 use tracing_core::{Level, LevelFilter};
 use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
@@ -16,16 +12,7 @@ use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
 // Create a Resource that captures information about the entity for which telemetry is recorded.
 fn resource() -> Resource {
-    Resource::builder()
-        .with_schema_url(
-            [
-                KeyValue::new(SERVICE_NAME, env!("CARGO_PKG_NAME")),
-                KeyValue::new(SERVICE_VERSION, env!("CARGO_PKG_VERSION")),
-                KeyValue::new(DEPLOYMENT_ENVIRONMENT_NAME, "develop"),
-            ],
-            SCHEMA_URL,
-        )
-        .build()
+    Resource::builder().build()
 }
 
 // Construct MeterProvider for MetricsLayer
