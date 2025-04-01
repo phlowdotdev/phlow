@@ -4,13 +4,11 @@ mod response;
 mod setup;
 use hyper::{server::conn::http1, service::service_fn, Request};
 use hyper_util::rt::{TokioIo, TokioTimer};
-use middleware::TracingMiddleware;
 use resolver::resolve;
 use sdk::{
-    otel::init_tracing_subscriber_plugin,
     prelude::*,
     tokio::net::TcpListener,
-    tracing::{debug, info, info_span, span, warn},
+    tracing::{info, info_span, warn},
 };
 use setup::Config;
 use std::net::SocketAddr;
@@ -20,12 +18,9 @@ use std::net::SocketAddr;
 #[no_mangle]
 pub extern "C" fn plugin(setup: ModuleSetup) {
     sdk::otel::init_tracing_subscriber_plugin().expect("failed to initialize tracing");
-    let dispatch = setup.dispatch.clone();
 
     if let Ok(rt) = tokio::runtime::Runtime::new() {
-        if let Err(e) = rt.block_on(sdk::tracing::dispatcher::with_default(&dispatch, || {
-            start_server(setup)
-        })) {
+        if let Err(e) = rt.block_on(start_server(setup)) {
             sdk::tracing::error!("Error in plugin: {:?}", e);
         }
     } else {
@@ -99,19 +94,14 @@ pub async fn start_server(
                 })
             });
 
-            sdk::tracing::dispatcher::with_default(&dispatch.clone(), || {
-                let span = info_span!("plugin");
-                let _enter = span.enter();
-
-                http1::Builder::new()
-                    .keep_alive(true)
-                    .timer(TokioTimer::new())
-                    .serve_connection(io, base_service)
-            })
-            .await
-            .unwrap_or_else(|e| {
-                sdk::tracing::error!("Error serving connection: {:?}", e);
-            });
+            http1::Builder::new()
+                .keep_alive(true)
+                .timer(TokioTimer::new())
+                .serve_connection(io, base_service)
+                .await
+                .unwrap_or_else(|e| {
+                    sdk::tracing::error!("Error serving connection: {:?}", e);
+                });
         });
 
         handler.await?;
