@@ -6,11 +6,12 @@ services:
     environment:
       OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=production,service.namespace=phlow,service.version=beta,service.instance.id=local"
       OTEL_SERVICE_NAME: "phlow-beta"
-      OTEL_EXPORTER_OTLP_ENDPOINT: "http://localhost:4318"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
       OTEL_NODE_RESOURCE_DETECTORS: "env,host,os,serviceinstance"
       OTEL_LOGS_EXPORTER: "otlp"
       OTEL_TRACES_EXPORTER: "otlp"
       OTEL_METRICS_EXPORTER: "otlp"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
     volumes:
       - ./target/debug/test_otlp:/app/test_otlp
       - ./target/debug/libtracer.so:/app/target/debug/libtracer.so

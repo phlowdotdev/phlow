@@ -35,27 +35,27 @@ fn main() {
     }
 
     let handler = thread::spawn(move || {
-        for package in rx.iter() {
-            println!("Received package: {:?}", package);
+        let package = rx.recv().unwrap();
 
-            let dispatch = package.dispatch.unwrap();
+        println!("Received package: {:?}", package);
 
-            dispatcher::with_default(&dispatch, || {
-                let parent = package.span.unwrap();
+        let dispatch = package.dispatch.unwrap();
 
-                let span = span!(Level::INFO, "receivers");
-                span.set_parent(parent.context());
-                let _enter = span.enter();
+        dispatcher::with_default(&dispatch, || {
+            let parent = package.span.unwrap();
 
-                if let Some(sender) = package.send {
-                    let result = sender.send("Hello from main".to_value());
-                    match result {
-                        Ok(_) => println!("Sent value from main"),
-                        Err(_) => println!("Failed to send value from main"),
-                    }
+            let span = span!(Level::INFO, "receivers");
+            span.set_parent(parent.context());
+            let _enter = span.enter();
+
+            if let Some(sender) = package.send {
+                let result = sender.send("Hello from main".to_value());
+                match result {
+                    Ok(_) => println!("Sent value from main"),
+                    Err(_) => println!("Failed to send value from main"),
                 }
-            });
-        }
+            }
+        });
     });
 
     handler.join().unwrap();
