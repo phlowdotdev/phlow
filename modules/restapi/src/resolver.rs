@@ -3,7 +3,7 @@ use http_body_util::{BodyExt, Full};
 use hyper::{HeaderMap, Request, Response};
 use sdk::{
     prelude::*,
-    tracing::{error, info, info_span, span, Dispatch, Level},
+    tracing::{error, info, Dispatch},
 };
 use std::{collections::HashMap, convert::Infallible, net::SocketAddr};
 
@@ -14,7 +14,11 @@ pub async fn resolve(
     sender: MainRuntimeSender,
     req: Request<hyper::body::Incoming>,
     dispatch: Dispatch,
+    span: sdk::tracing::Span,
 ) -> Result<Response<Full<Bytes>>, Infallible> {
+    sdk::tracing::dispatcher::with_default(&dispatch, || {
+        info!("Received request");
+    });
     let client_ip: String = req
         .extensions()
         .get::<SocketAddr>()
@@ -44,10 +48,7 @@ pub async fn resolve(
         "body": body
     });
 
-    let span = info_span!("http_request", method = method, path = path);
-    let _enter = span.enter();
-
-    info!("Request!");
+    info!("Received request: {:?}", data);
 
     let response_value = sender!(span.clone(), dispatch.clone(), id, sender, Some(data))
         .await

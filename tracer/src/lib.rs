@@ -14,6 +14,7 @@ pub extern "C" fn plugin(dispatch_ptr: *const Dispatch, sender: *const Sender<Pa
     init_tracing_subscriber_plugin().expect("failed to initialize tracing");
 
     dispatcher::with_default(dispatch, || {
+        info!("Plugin started");
         let span = span!(Level::INFO, "plugin");
         let _enter = span.enter();
 

@@ -11,7 +11,7 @@ use phlow_engine::{
     modules::{ModulePackage, Modules},
     Phlow,
 };
-use sdk::tracing::{debug, dispatcher, error};
+use sdk::tracing::{debug, error};
 use sdk::{otel::init_tracing_subscriber, prelude::*};
 use std::sync::Arc;
 use tokio::sync::oneshot;

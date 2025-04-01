@@ -5,7 +5,7 @@ use opentelemetry_sdk::{
     trace::{RandomIdGenerator, Sampler, SdkTracerProvider},
     Resource,
 };
-use tracing::{dispatcher, Dispatch};
+use tracing::{dispatcher, subscriber::set_global_default, Dispatch};
 use tracing_core::{Level, LevelFilter};
 use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt};
@@ -60,9 +60,11 @@ fn init_tracer_provider() -> Result<SdkTracerProvider, ExporterBuildError> {
 
 pub fn init_tracing_subscriber_plugin() -> Result<(), ExporterBuildError> {
     // Initialize tracing-subscriber without OpenTelemetry
-    tracing_subscriber::registry()
+    let subscriber = tracing_subscriber::registry()
         .with(LevelFilter::from_level(Level::INFO))
         .with(fmt::layer());
+
+    set_global_default(subscriber).expect("Failed to set global default subscriber");
 
     Ok(())
 }

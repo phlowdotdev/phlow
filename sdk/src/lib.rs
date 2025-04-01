@@ -64,19 +64,13 @@ macro_rules! plugin {
         #[no_mangle]
         pub extern "C" fn plugin(setup: ModuleSetup) {
             sdk::otel::init_tracing_subscriber_plugin().expect("failed to initialize tracing");
-            let dispatch = setup.dispatch.clone();
 
-            sdk::tracing::dispatcher::with_default(&dispatch, || {
-                let span = sdk::tracing::span!(sdk::tracing::Level::INFO, "plugin");
-                let _enter = span.enter();
-
-                match $handler(setup) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        $crate::tracing::error!("Error in plugin: {:?}", e);
-                    }
+            match $handler(setup) {
+                Ok(_) => {}
+                Err(e) => {
+                    $crate::tracing::error!("Error in plugin: {:?}", e);
                 }
-            });
+            }
         }
     };
 }
@@ -86,18 +80,10 @@ macro_rules! plugin_async {
     ($handler:ident) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: ModuleSetup) {
-            sdk::otel::init_tracing_subscriber_plugin().expect("failed to initialize tracing");
-            let dispatch = setup.dispatch.clone();
-
             if let Ok(rt) = tokio::runtime::Runtime::new() {
-                sdk::tracing::dispatcher::with_default(&dispatch, || {
-                    let span = sdk::tracing::span!(sdk::tracing::Level::INFO, "plugin");
-                    let _enter = span.enter();
-
-                    if let Err(e) = rt.block_on($handler(setup)) {
-                        sdk::tracing::error!("Error in plugin: {:?}", e);
-                    }
-                });
+                if let Err(e) = rt.block_on($handler(setup)) {
+                    sdk::tracing::error!("Error in plugin: {:?}", e);
+                }
             } else {
                 sdk::tracing::error!("Error creating runtime");
                 return;

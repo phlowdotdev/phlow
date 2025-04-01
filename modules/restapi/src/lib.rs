@@ -7,14 +7,32 @@ use hyper_util::rt::{TokioIo, TokioTimer};
 use middleware::TracingMiddleware;
 use resolver::resolve;
 use sdk::{
+    otel::init_tracing_subscriber_plugin,
     prelude::*,
     tokio::net::TcpListener,
-    tracing::{debug, info, warn},
+    tracing::{debug, info, info_span, span, warn},
 };
 use setup::Config;
 use std::net::SocketAddr;
 
-plugin_async!(start_server);
+// plugin_async!(start_server);
+
+#[no_mangle]
+pub extern "C" fn plugin(setup: ModuleSetup) {
+    sdk::otel::init_tracing_subscriber_plugin().expect("failed to initialize tracing");
+    let dispatch = setup.dispatch.clone();
+
+    if let Ok(rt) = tokio::runtime::Runtime::new() {
+        if let Err(e) = rt.block_on(sdk::tracing::dispatcher::with_default(&dispatch, || {
+            start_server(setup)
+        })) {
+            sdk::tracing::error!("Error in plugin: {:?}", e);
+        }
+    } else {
+        sdk::tracing::error!("Error creating runtime");
+        return;
+    };
+}
 
 pub async fn start_server(
     setup: ModuleSetup,
@@ -41,6 +59,8 @@ pub async fn start_server(
 
     let listener = TcpListener::bind(addr).await?;
 
+    info!("Listening on {}", listener.local_addr()?);
+
     match setup.setup_sender.send(None) {
         Ok(_) => {}
         Err(e) => {
@@ -48,9 +68,6 @@ pub async fn start_server(
         }
     };
 
-    sdk::otel::init_tracing_subscriber().unwrap();
-
-    info!("Listening on http://{}", addr);
     let id = setup.id;
 
     loop {
@@ -65,21 +82,36 @@ pub async fn start_server(
         };
 
         let handler = tokio::task::spawn(async move {
+            let dispatch_clone = dispatch.clone();
             let base_service = service_fn(move |mut req: Request<hyper::body::Incoming>| {
-                req.extensions_mut().insert(peer_addr);
-                resolve(id, sender.clone(), req, dispatch.clone())
+                sdk::tracing::dispatcher::with_default(&dispatch_clone.clone(), || {
+                    let span = info_span!("resolve");
+                    let _enter = span.enter();
+
+                    req.extensions_mut().insert(peer_addr);
+                    resolve(
+                        id,
+                        sender.clone(),
+                        req,
+                        dispatch_clone.clone(),
+                        span.clone(),
+                    )
+                })
             });
 
-            let service = TracingMiddleware::new(base_service);
+            sdk::tracing::dispatcher::with_default(&dispatch.clone(), || {
+                let span = info_span!("plugin");
+                let _enter = span.enter();
 
-            if let Err(err) = http1::Builder::new()
-                .keep_alive(true)
-                .timer(TokioTimer::new())
-                .serve_connection(io, service)
-                .await
-            {
-                debug!("Connection timed out: {}", err);
-            }
+                http1::Builder::new()
+                    .keep_alive(true)
+                    .timer(TokioTimer::new())
+                    .serve_connection(io, base_service)
+            })
+            .await
+            .unwrap_or_else(|e| {
+                sdk::tracing::error!("Error serving connection: {:?}", e);
+            });
         });
 
         handler.await?;
