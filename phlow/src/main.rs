@@ -1,20 +1,18 @@
 mod envs;
 mod loader;
-mod otlp;
 mod processes;
 mod yaml;
 use crossbeam::channel;
 use envs::Envs;
 use futures::future::join_all;
 use loader::{load_module, Loader};
-use otlp::init_tracing_subscriber;
 use phlow_engine::{
     collector::Step,
     modules::{ModulePackage, Modules},
     Phlow,
 };
-use sdk::prelude::*;
-use sdk::tracing::{debug, error};
+use sdk::tracing::{debug, dispatcher, error};
+use sdk::{otel::init_tracing_subscriber, prelude::*};
 use std::sync::Arc;
 use tokio::sync::oneshot;
 
@@ -138,12 +136,8 @@ async fn main() {
 
             let handle = tokio::task::spawn_blocking(move || {
                 for mut package in rx_pkg {
-                    let rt = tokio::runtime::Handle::current();
-                    rt.block_on(async {
-                        processes::execute_steps(&flow_ref, &mut package).await;
-                    });
+                    processes::execute_steps(&flow_ref, &mut package);
                 }
-                debug!("Package consumer #{} terminou (canal fechado).", i);
             });
 
             handles.push(handle);

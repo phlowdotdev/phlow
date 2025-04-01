@@ -136,7 +136,7 @@ macro_rules! sender {
 
         rx
     }};
-    ($span:expr,$id:expr, $sender:expr, $data:expr) => {{
+    ($span:expr, $dispatch:expr, $id:expr, $sender:expr, $data:expr) => {{
         let (tx, rx) = tokio::sync::oneshot::channel::<valu3::value::Value>();
 
         let package = Package {
@@ -144,7 +144,7 @@ macro_rules! sender {
             request_data: $data,
             origin: $id,
             span: Some($span),
-            dispatch: None,
+            dispatch: Some($dispatch),
         };
 
         sender_safe!($sender, package);

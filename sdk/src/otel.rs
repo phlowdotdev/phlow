@@ -5,7 +5,7 @@ use opentelemetry_sdk::{
     trace::{RandomIdGenerator, Sampler, SdkTracerProvider},
     Resource,
 };
-use tracing::subscriber::set_global_default;
+use tracing::{dispatcher, Dispatch};
 use tracing_core::{Level, LevelFilter};
 use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt};
@@ -90,15 +90,19 @@ pub fn init_tracing_subscriber() -> Result<OtelGuard, ExporterBuildError> {
         .with(OpenTelemetryLayer::new(tracer))
         .init();
 
+    let dispatch = dispatcher::get_default(|d| d.clone());
+
     Ok(OtelGuard {
         tracer_provider,
         meter_provider,
+        dispatch,
     })
 }
 
 pub struct OtelGuard {
-    tracer_provider: SdkTracerProvider,
-    meter_provider: SdkMeterProvider,
+    pub tracer_provider: SdkTracerProvider,
+    pub meter_provider: SdkMeterProvider,
+    pub dispatch: Dispatch,
 }
 
 impl Drop for OtelGuard {

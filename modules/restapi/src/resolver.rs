@@ -15,9 +15,6 @@ pub async fn resolve(
     req: Request<hyper::body::Incoming>,
     dispatch: Dispatch,
 ) -> Result<Response<Full<Bytes>>, Infallible> {
-    let span = span!(Level::INFO, "main");
-    let _enter = span.enter();
-
     let client_ip: String = req
         .extensions()
         .get::<SocketAddr>()
@@ -52,7 +49,7 @@ pub async fn resolve(
 
     info!("Request!");
 
-    let response_value = sender!(span.clone(), id, sender, Some(data))
+    let response_value = sender!(span.clone(), dispatch.clone(), id, sender, Some(data))
         .await
         .unwrap_or(Value::Null);
 

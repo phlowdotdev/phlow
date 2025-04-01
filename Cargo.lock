@@ -1924,12 +1924,6 @@ dependencies = [
  "crossbeam",
  "futures",
  "libloading",
- "opentelemetry",
- "opentelemetry-otlp",
- "opentelemetry-prometheus",
- "opentelemetry-semantic-conventions",
- "opentelemetry-stdout",
- "opentelemetry_sdk",
  "phlow-engine",
  "regex",
  "sdk",
@@ -1938,10 +1932,6 @@ dependencies = [
  "serde_yaml",
  "tokio",
  "toml",
- "tracing",
- "tracing-core",
- "tracing-opentelemetry",
- "tracing-subscriber",
 ]
 
 [[package]]

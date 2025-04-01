@@ -9,7 +9,7 @@ use resolver::resolve;
 use sdk::{
     prelude::*,
     tokio::net::TcpListener,
-    tracing::{debug, info, info_span, span, warn, Level},
+    tracing::{debug, info, warn},
 };
 use setup::Config;
 use std::net::SocketAddr;
