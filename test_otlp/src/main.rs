@@ -3,7 +3,7 @@ use sdk::otlp::init_tracing_subscriber;
 use sdk::tracing::{dispatcher, span, Dispatch, Level};
 use sdk::tracing_opentelemetry::OpenTelemetrySpanExt;
 use sdk::valu3::prelude::*;
-use sdk::Package;
+use sdk::{tokio, Package};
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::thread;
@@ -59,4 +59,7 @@ fn main() {
     });
 
     handler.join().unwrap();
+
+    // sleep 2s
+    std::thread::sleep(std::time::Duration::from_secs(2));
 }
