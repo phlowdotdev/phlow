@@ -98,6 +98,14 @@ pub fn init_tracing_subscriber() -> Result<OtelGuard, ExporterBuildError> {
     })
 }
 
+#[macro_export]
+macro_rules! init_tracing_subscriber {
+    () => {{
+        let _guard = $crate::otel::init_tracing_subscriber().expect("failed to initialize tracing");
+        $crate::tracing::dispatcher::get_default(|d| Arc::new(d.clone()))
+    }};
+}
+
 pub struct OtelGuard {
     tracer_provider: SdkTracerProvider,
     meter_provider: SdkMeterProvider,

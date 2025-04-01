@@ -1,5 +1,5 @@
 use libloading::Library;
-use sdk::otlp::init_tracing_subscriber;
+use sdk::otel::init_tracing_subscriber;
 use sdk::tracing::{dispatcher, span, Dispatch, Level};
 use sdk::tracing_opentelemetry::OpenTelemetrySpanExt;
 use sdk::valu3::prelude::*;
@@ -12,7 +12,6 @@ type PluginFn = unsafe extern "C" fn(*const Dispatch, *const Sender<Package>);
 
 fn main() {
     let _guard = init_tracing_subscriber().expect("failed to initialize tracing");
-
     let dispatch = dispatcher::get_default(|d| Arc::new(d.clone()));
     let plugins = vec!["./target/debug/libtracer.so"];
 

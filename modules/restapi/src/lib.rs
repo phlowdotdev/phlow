@@ -48,7 +48,7 @@ pub async fn start_server(
         }
     };
 
-    sdk::otlp::init_tracing_subscriber().unwrap();
+    sdk::otel::init_tracing_subscriber().unwrap();
 
     info!("Listening on http://{}", addr);
     let id = setup.id;

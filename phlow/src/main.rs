@@ -7,7 +7,6 @@ use crossbeam::channel;
 use envs::Envs;
 use futures::future::join_all;
 use loader::{load_module, Loader};
-use otlp::init_tracing_subscriber;
 use phlow_engine::{
     collector::Step,
     modules::{ModulePackage, Modules},
@@ -20,6 +19,8 @@ use tokio::sync::oneshot;
 
 #[tokio::main]
 async fn main() {
+    let dispatch = init_tracing_subscriber!();
+
     let envs = Envs::load();
 
     debug!("STEP_CONSUMERS = {}", envs.step_consumer_count);

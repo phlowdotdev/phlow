@@ -1,5 +1,5 @@
 use sdk::{
-    otlp::init_tracing_subscriber_plugin,
+    otel::init_tracing_subscriber_plugin,
     tokio::sync::oneshot,
     tracing::{dispatcher, info, span, Dispatch, Level, Span},
     Package,

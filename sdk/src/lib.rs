@@ -1,7 +1,7 @@
 pub mod context;
 pub mod id;
 pub mod modules;
-pub mod otlp;
+pub mod otel;
 use context::Context;
 pub use crossbeam;
 use crossbeam::channel;
@@ -47,7 +47,7 @@ macro_rules! sender_safe {
 #[macro_export]
 macro_rules! otlp_start {
     () => {
-        let _ = match sdk::otlp::init_tracing_subscriber() {
+        let _ = match sdk::otel::init_tracing_subscriber_plugin() {
             Ok(guard) => guard,
             Err(e) => {
                 $crate::tracing::error!("Error creating tracing subscriber: {:?}", e);
@@ -78,6 +78,8 @@ macro_rules! plugin_async {
     ($handler:ident) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: ModuleSetup) {
+            otlp_start!();
+
             if let Ok(rt) = tokio::runtime::Runtime::new() {
                 if let Err(e) = rt.block_on($handler(setup)) {
                     $crate::tracing::error!("Error in plugin: {:?}", e);
