@@ -80,7 +80,12 @@ pub async fn start_server(
             let dispatch_clone = dispatch.clone();
             let base_service = service_fn(move |mut req: Request<hyper::body::Incoming>| {
                 sdk::tracing::dispatcher::with_default(&dispatch_clone.clone(), || {
-                    let span = info_span!("resolve");
+                    let path = req.uri().path().to_string();
+                    let method = req.method().to_string();
+
+                    let span = info_span!("http_request", %method, %path);
+                    span.record("otel.name", &path);
+
                     let _enter = span.enter();
 
                     req.extensions_mut().insert(peer_addr);
@@ -90,6 +95,8 @@ pub async fn start_server(
                         req,
                         dispatch_clone.clone(),
                         span.clone(),
+                        method,
+                        path,
                     )
                 })
             });

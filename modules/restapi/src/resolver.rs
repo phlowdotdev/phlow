@@ -5,7 +5,7 @@ use sdk::{
     prelude::*,
     tracing::{error, info, Dispatch},
 };
-use std::{collections::HashMap, convert::Infallible, net::SocketAddr};
+use std::{collections::HashMap, convert::Infallible, net::SocketAddr, path};
 
 use crate::response::ResponseHandler;
 
@@ -15,10 +15,9 @@ pub async fn resolve(
     req: Request<hyper::body::Incoming>,
     dispatch: Dispatch,
     span: sdk::tracing::Span,
+    method: String,
+    path: String,
 ) -> Result<Response<Full<Bytes>>, Infallible> {
-    sdk::tracing::dispatcher::with_default(&dispatch, || {
-        info!("Received request");
-    });
     let client_ip: String = req
         .extensions()
         .get::<SocketAddr>()
@@ -26,8 +25,6 @@ pub async fn resolve(
         .unwrap_or_else(|| "Unknown".to_string());
 
     let query = req.uri().query().unwrap_or_default().to_string();
-    let path = req.uri().path().to_string();
-    let method = req.method().to_string();
 
     let headers = resolve_headers(req.headers().clone());
     let body = resolve_body(req);
