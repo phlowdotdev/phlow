@@ -3,7 +3,7 @@ use sdk::otel::init_tracing_subscriber;
 use sdk::tracing::{dispatcher, span, Dispatch, Level};
 use sdk::tracing_opentelemetry::OpenTelemetrySpanExt;
 use sdk::valu3::prelude::*;
-use sdk::{tokio, Package};
+use sdk::Package;
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::thread;

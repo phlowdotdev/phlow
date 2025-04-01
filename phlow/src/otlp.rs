@@ -3,16 +3,11 @@ use opentelemetry_otlp::ExporterBuildError;
 use opentelemetry_sdk::{
     metrics::{MeterProviderBuilder, PeriodicReader, SdkMeterProvider},
     trace::{RandomIdGenerator, Sampler, SdkTracerProvider},
-    Resource,
 };
+use tracing::dispatcher;
 use tracing_core::Level;
 use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
-// Create a Resource that captures information about the entity for which telemetry is recorded.
-fn resource() -> Resource {
-    Resource::builder().build()
-}
 
 // Construct MeterProvider for MetricsLayer
 fn init_meter_provider() -> Result<SdkMeterProvider, ExporterBuildError> {
@@ -29,7 +24,6 @@ fn init_meter_provider() -> Result<SdkMeterProvider, ExporterBuildError> {
         PeriodicReader::builder(opentelemetry_stdout::MetricExporter::default()).build();
 
     let meter_provider = MeterProviderBuilder::default()
-        .with_resource(resource())
         .with_reader(reader)
         .with_reader(stdout_reader)
         .build();
@@ -52,7 +46,6 @@ fn init_tracer_provider() -> Result<SdkTracerProvider, ExporterBuildError> {
         ))))
         // If export trace to AWS X-Ray, you can use XrayIdGenerator
         .with_id_generator(RandomIdGenerator::default())
-        .with_resource(resource())
         .with_batch_exporter(exporter)
         .build())
 }
@@ -80,15 +73,19 @@ pub fn init_tracing_subscriber() -> Result<OtelGuard, ExporterBuildError> {
         .with(OpenTelemetryLayer::new(tracer))
         .init();
 
+    let dispatch = dispatcher::get_default(|d| d.clone());
+
     Ok(OtelGuard {
         tracer_provider,
         meter_provider,
+        dispatch,
     })
 }
 
 pub struct OtelGuard {
-    tracer_provider: SdkTracerProvider,
-    meter_provider: SdkMeterProvider,
+    pub tracer_provider: SdkTracerProvider,
+    pub meter_provider: SdkMeterProvider,
+    pub dispatch: dispatcher::Dispatch,
 }
 
 impl Drop for OtelGuard {

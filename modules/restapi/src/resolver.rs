@@ -3,7 +3,7 @@ use http_body_util::{BodyExt, Full};
 use hyper::{HeaderMap, Request, Response};
 use sdk::{
     prelude::*,
-    tracing::{error, info, info_span, span, Level},
+    tracing::{error, info, info_span, span, Dispatch, Level},
 };
 use std::{collections::HashMap, convert::Infallible, net::SocketAddr};
 
@@ -13,6 +13,7 @@ pub async fn resolve(
     id: ModuleId,
     sender: MainRuntimeSender,
     req: Request<hyper::body::Incoming>,
+    dispatch: Dispatch,
 ) -> Result<Response<Full<Bytes>>, Infallible> {
     let span = span!(Level::INFO, "main");
     let _enter = span.enter();

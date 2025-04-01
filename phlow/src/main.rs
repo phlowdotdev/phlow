@@ -7,6 +7,7 @@ use crossbeam::channel;
 use envs::Envs;
 use futures::future::join_all;
 use loader::{load_module, Loader};
+use otlp::init_tracing_subscriber;
 use phlow_engine::{
     collector::Step,
     modules::{ModulePackage, Modules},
@@ -19,7 +20,7 @@ use tokio::sync::oneshot;
 
 #[tokio::main]
 async fn main() {
-    let dispatch = init_tracing_subscriber!();
+    let guard = init_tracing_subscriber().expect("Failed to initialize tracing subscriber");
 
     let envs = Envs::load();
 
@@ -65,6 +66,7 @@ async fn main() {
             setup_sender,
             main_sender,
             with: module.with.clone(),
+            dispatch: guard.dispatch.clone(),
         };
 
         let module_target = module.module.clone();

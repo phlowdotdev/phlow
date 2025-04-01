@@ -27,6 +27,7 @@ pub struct ModuleSetup {
     pub setup_sender: ModuleSetupSender,
     pub main_sender: Option<MainRuntimeSender>,
     pub with: Value,
+    pub dispatch: tracing::Dispatch,
 }
 
 impl ModuleSetup {
@@ -62,30 +63,43 @@ macro_rules! plugin {
     ($handler:ident) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: ModuleSetup) {
-            otlp_start!();
+            sdk::otel::init_tracing_subscriber_plugin().expect("failed to initialize tracing");
+            let dispatch = setup.dispatch.clone();
 
-            match $handler(setup) {
-                Ok(_) => {}
-                Err(e) => {
-                    $crate::tracing::error!("Error in plugin: {:?}", e);
+            sdk::tracing::dispatcher::with_default(&dispatch, || {
+                let span = sdk::tracing::span!(sdk::tracing::Level::INFO, "plugin");
+                let _enter = span.enter();
+
+                match $handler(setup) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        $crate::tracing::error!("Error in plugin: {:?}", e);
+                    }
                 }
-            }
+            });
         }
     };
 }
+
 #[macro_export]
 macro_rules! plugin_async {
     ($handler:ident) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: ModuleSetup) {
-            otlp_start!();
+            sdk::otel::init_tracing_subscriber_plugin().expect("failed to initialize tracing");
+            let dispatch = setup.dispatch.clone();
 
             if let Ok(rt) = tokio::runtime::Runtime::new() {
-                if let Err(e) = rt.block_on($handler(setup)) {
-                    $crate::tracing::error!("Error in plugin: {:?}", e);
-                }
+                sdk::tracing::dispatcher::with_default(&dispatch, || {
+                    let span = sdk::tracing::span!(sdk::tracing::Level::INFO, "plugin");
+                    let _enter = span.enter();
+
+                    if let Err(e) = rt.block_on($handler(setup)) {
+                        sdk::tracing::error!("Error in plugin: {:?}", e);
+                    }
+                });
             } else {
-                $crate::tracing::error!("Error creating runtime");
+                sdk::tracing::error!("Error creating runtime");
                 return;
             };
         }

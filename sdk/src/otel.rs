@@ -1,4 +1,4 @@
-use opentelemetry::{global, trace::TracerProvider as _, KeyValue};
+use opentelemetry::{global, trace::TracerProvider as _};
 use opentelemetry_otlp::ExporterBuildError;
 use opentelemetry_sdk::{
     metrics::{MeterProviderBuilder, PeriodicReader, SdkMeterProvider},
@@ -60,11 +60,9 @@ fn init_tracer_provider() -> Result<SdkTracerProvider, ExporterBuildError> {
 
 pub fn init_tracing_subscriber_plugin() -> Result<(), ExporterBuildError> {
     // Initialize tracing-subscriber without OpenTelemetry
-    let subscriber = tracing_subscriber::registry()
+    tracing_subscriber::registry()
         .with(LevelFilter::from_level(Level::INFO))
         .with(fmt::layer());
-
-    set_global_default(subscriber).expect("failed to set subscriber");
 
     Ok(())
 }
@@ -96,14 +94,6 @@ pub fn init_tracing_subscriber() -> Result<OtelGuard, ExporterBuildError> {
         tracer_provider,
         meter_provider,
     })
-}
-
-#[macro_export]
-macro_rules! init_tracing_subscriber {
-    () => {{
-        let _guard = $crate::otel::init_tracing_subscriber().expect("failed to initialize tracing");
-        $crate::tracing::dispatcher::get_default(|d| Arc::new(d.clone()))
-    }};
 }
 
 pub struct OtelGuard {

@@ -55,7 +55,8 @@ pub async fn start_server(
 
     loop {
         let (tcp, peer_addr) = listener.accept().await?;
-        let io = TokioIo::new(tcp);
+        let io: TokioIo<tokio::net::TcpStream> = TokioIo::new(tcp);
+        let dispatch = setup.dispatch.clone();
         let sender = match setup.main_sender.clone() {
             Some(sender) => sender,
             None => {
@@ -66,7 +67,7 @@ pub async fn start_server(
         let handler = tokio::task::spawn(async move {
             let base_service = service_fn(move |mut req: Request<hyper::body::Incoming>| {
                 req.extensions_mut().insert(peer_addr);
-                resolve(id, sender.clone(), req)
+                resolve(id, sender.clone(), req, dispatch.clone())
             });
 
             let service = TracingMiddleware::new(base_service);
@@ -83,6 +84,4 @@ pub async fn start_server(
 
         handler.await?;
     }
-
-    println!("Hello, world!");
 }
