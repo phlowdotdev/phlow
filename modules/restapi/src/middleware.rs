@@ -12,8 +12,6 @@ pub struct RequestContext {
     pub dispatch: Dispatch,
     pub span: sdk::tracing::Span,
     pub client_ip: String,
-    pub method: String,
-    pub path: String,
 }
 
 #[derive(Debug, Clone)]
@@ -38,18 +36,13 @@ where
 
     fn call(&self, mut req: Request<Incoming>) -> Self::Future {
         sdk::tracing::dispatcher::with_default(&self.dispatch.clone(), || {
-            let path = req.uri().path().to_string();
-            let method = req.method().to_string();
-            let span_name = format!("{} {}", method, path);
-            let size = req.body().size_hint().lower();
-
             let span = tracing::span!(
                 Level::INFO,
                 "http_request",
-                otel.name = span_name,
-                http.route = path.clone(),
-                http.request.body.size = size,
-                http.request.method = method.clone(),
+                otel.name = field::Empty,
+                http.route = field::Empty,
+                http.request.body.size = field::Empty,
+                http.request.method = field::Empty,
                 http.request.size = field::Empty,
                 http.connection.state = field::Empty,
                 "http.request.method-original" = field::Empty,
@@ -120,10 +113,8 @@ where
                 id: self.id,
                 sender: self.sender.clone(),
                 dispatch: self.dispatch.clone(),
-                span: span.clone(),
                 client_ip: self.peer_addr.to_string(),
-                method: method.clone(),
-                path: path.clone(),
+                span,
             };
 
             req.extensions_mut().insert(context);

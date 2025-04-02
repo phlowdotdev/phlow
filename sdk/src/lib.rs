@@ -129,6 +129,27 @@ macro_rules! plugin_async {
         }
     };
 }
+#[macro_export]
+macro_rules! main_plugin_async {
+    ($handler:ident) => {
+        #[no_mangle]
+        pub extern "C" fn plugin(setup: ModuleSetup) {
+            let dispatch = setup.dispatch.clone();
+            sdk::tracing::dispatcher::with_default(&dispatch, || {
+                sdk::otel::init_tracing_subscriber().expect("failed to initialize tracing");
+
+                if let Ok(rt) = sdk::tokio::runtime::Runtime::new() {
+                    rt.block_on(start_server(setup)).unwrap_or_else(|e| {
+                        sdk::tracing::error!("Error in plugin: {:?}", e);
+                    });
+                } else {
+                    sdk::tracing::error!("Error creating runtime");
+                    return;
+                };
+            });
+        }
+    };
+}
 
 #[macro_export]
 macro_rules! sender_without_response {

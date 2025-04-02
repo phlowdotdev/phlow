@@ -1,20 +1,18 @@
 use opentelemetry::{
     global::{self, BoxedTracer},
     trace::TracerProvider,
-    InstrumentationScope,
 };
 use opentelemetry_otlp::ExporterBuildError;
 use opentelemetry_sdk::{
     metrics::{MeterProviderBuilder, PeriodicReader, SdkMeterProvider},
-    trace::{RandomIdGenerator, Sampler, SdkTracerProvider, Tracer},
+    trace::{RandomIdGenerator, Sampler, SdkTracerProvider},
     Resource,
 };
-use tracing::{dispatcher, subscriber::set_global_default, Dispatch};
-use tracing_core::{Level, LevelFilter};
+use tracing::{dispatcher, Dispatch};
+use tracing_core::Level;
 use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
-use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-// Create a Resource that captures information about the entity for which telemetry is recorded.
 fn resource() -> Resource {
     Resource::builder().build()
 }
@@ -23,7 +21,6 @@ pub fn get_tracer() -> BoxedTracer {
     global::tracer("tracing-otel-subscriber")
 }
 
-// Construct MeterProvider for MetricsLayer
 fn init_meter_provider() -> Result<SdkMeterProvider, ExporterBuildError> {
     let exporter = opentelemetry_otlp::MetricExporter::builder()
         .with_http()
@@ -48,7 +45,6 @@ fn init_meter_provider() -> Result<SdkMeterProvider, ExporterBuildError> {
     Ok(meter_provider)
 }
 
-// Construct TracerProvider for OpenTelemetryLayer
 fn init_tracer_provider() -> Result<SdkTracerProvider, ExporterBuildError> {
     let exporter = opentelemetry_otlp::SpanExporter::builder()
         .with_http()
@@ -66,18 +62,6 @@ fn init_tracer_provider() -> Result<SdkTracerProvider, ExporterBuildError> {
         .build())
 }
 
-pub fn init_tracing_subscriber_plugin() -> Result<(), ExporterBuildError> {
-    // Initialize tracing-subscriber without OpenTelemetry
-    let subscriber = tracing_subscriber::registry()
-        .with(LevelFilter::from_level(Level::INFO))
-        .with(fmt::layer());
-
-    set_global_default(subscriber).expect("Failed to set global default subscriber");
-
-    Ok(())
-}
-
-// Initialize tracing-subscriber and return OtelGuard for opentelemetry-related termination processing
 pub fn init_tracing_subscriber() -> Result<OtelGuard, ExporterBuildError> {
     let tracer_provider = init_tracer_provider()?;
     let meter_provider = init_meter_provider()?;
@@ -85,13 +69,6 @@ pub fn init_tracing_subscriber() -> Result<OtelGuard, ExporterBuildError> {
     let tracer = tracer_provider.tracer("tracing-otel-subscriber");
 
     tracing_subscriber::registry()
-        // The global level filter prevents the exporter network stack
-        // from reentering the globally installed OpenTelemetryLayer with
-        // its own spans while exporting, as the libraries should not use
-        // tracing levels below DEBUG. If the OpenTelemetry layer needs to
-        // trace spans and events with higher verbosity levels, consider using
-        // per-layer filtering to target the telemetry layer specifically,
-        // e.g. by target matching.
         .with(tracing_subscriber::filter::LevelFilter::from_level(
             Level::INFO,
         ))

@@ -1,13 +1,13 @@
+use crate::{middleware::RequestContext, response::ResponseHandler};
 use bytes::Bytes;
 use http_body_util::{BodyExt, Full};
+use hyper::body::Body;
 use hyper::{HeaderMap, Request, Response};
 use sdk::{
     prelude::*,
     tracing::{error, info, Span},
 };
 use std::{collections::HashMap, convert::Infallible};
-
-use crate::{middleware::RequestContext, response::ResponseHandler};
 
 macro_rules! to_span_format {
     ($target:expr, $key:expr) => {{
@@ -25,12 +25,25 @@ pub async fn proxy(
         .cloned()
         .expect("RequestContext not found");
 
+    let path = req.uri().path().to_string();
+    let method = req.method().to_string();
+    let body_size = req.body().size_hint().lower();
+    let request_size = req.size_hint().lower();
+
     let query = req.uri().query().unwrap_or_default().to_string();
 
     let headers = resolve_headers(req.headers().clone(), &context.span);
     let body = resolve_body(req);
 
     let query_params = resolve_query_params(&query);
+
+    context
+        .span
+        .record("otel.name", format!("{} {}", method, path));
+    context.span.record("http.request.body.size", body_size);
+    context.span.record("http.request.size", request_size);
+    context.span.record("http.request.method", &method);
+    context.span.record("http.request.path", &path);
 
     let query_params = query_params.await;
     let body = body.await;
@@ -39,8 +52,8 @@ pub async fn proxy(
     let data = HashMap::from([
         ("client_ip", context.client_ip.to_value()),
         ("headers", headers.to_value()),
-        ("method", context.method.to_value()),
-        ("path", context.path.to_value()),
+        ("method", method.to_value()),
+        ("path", path.to_value()),
         ("query_string", query.to_value()),
         ("query_params", query_params),
         ("body", body),

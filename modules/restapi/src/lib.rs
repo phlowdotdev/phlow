@@ -2,47 +2,19 @@ mod middleware;
 mod resolver;
 mod response;
 mod setup;
-mod trace;
-use hyper::{
-    server::conn::http1,
-    service::{self, service_fn},
-    Request,
-};
+use hyper::{server::conn::http1, service::service_fn};
 use hyper_util::rt::{TokioIo, TokioTimer};
 use middleware::TracingMiddleware;
 use resolver::proxy;
 use sdk::{
-    opentelemetry::{
-        global,
-        trace::{FutureExt, Span, SpanKind, Tracer},
-    },
-    otel::get_tracer,
     prelude::*,
     tokio::net::TcpListener,
-    tracing::{dispatcher, info, info_span, warn, Instrument},
-    tracing_opentelemetry::OpenTelemetrySpanExt,
+    tracing::{info, warn},
 };
 use setup::Config;
 use std::net::SocketAddr;
 
-// plugin_async!(start_server);
-
-#[no_mangle]
-pub extern "C" fn plugin(setup: ModuleSetup) {
-    let dispatch = setup.dispatch.clone();
-    dispatcher::with_default(&dispatch, || {
-        sdk::otel::init_tracing_subscriber().expect("failed to initialize tracing");
-
-        if let Ok(rt) = tokio::runtime::Runtime::new() {
-            rt.block_on(start_server(setup)).unwrap_or_else(|e| {
-                sdk::tracing::error!("Error in plugin: {:?}", e);
-            });
-        } else {
-            sdk::tracing::error!("Error creating runtime");
-            return;
-        };
-    });
-}
+main_plugin_async!(start_server);
 
 pub async fn start_server(
     setup: ModuleSetup,
