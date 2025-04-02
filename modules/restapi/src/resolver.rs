@@ -5,57 +5,18 @@ use sdk::{
     prelude::*,
     tracing::{error, info, Dispatch},
 };
-use std::{collections::HashMap, convert::Infallible, net::SocketAddr, path};
+use std::{collections::HashMap, convert::Infallible};
 
-use crate::response::ResponseHandler;
+use crate::{middleware::RequestContext, response::ResponseHandler};
 
-pub async fn request_resolve(
+pub async fn proxy(
     req: Request<hyper::body::Incoming>,
 ) -> Result<Response<Full<Bytes>>, Infallible> {
-    let id = req
+    let context = req
         .extensions()
-        .get::<ModuleId>()
+        .get::<RequestContext>()
         .cloned()
-        .unwrap_or_default();
-
-    let sender = req
-        .extensions()
-        .get::<MainRuntimeSender>()
-        .cloned()
-        .expect("MainRuntimeSender not found");
-
-    let dispatch = req
-        .extensions()
-        .get::<Dispatch>()
-        .cloned()
-        .expect("Dispatch not found");
-
-    let span = req
-        .extensions()
-        .get::<sdk::tracing::Span>()
-        .cloned()
-        .expect("Span not found");
-
-    let method = req.method().to_string();
-    let path = req.uri().path().to_string();
-
-    resolve(id, sender, req, dispatch, span, method, path).await
-}
-
-pub async fn resolve(
-    id: ModuleId,
-    sender: MainRuntimeSender,
-    req: Request<hyper::body::Incoming>,
-    dispatch: Dispatch,
-    span: sdk::tracing::Span,
-    method: String,
-    path: String,
-) -> Result<Response<Full<Bytes>>, Infallible> {
-    let client_ip: String = req
-        .extensions()
-        .get::<SocketAddr>()
-        .map(|addr| addr.ip().to_string())
-        .unwrap_or_else(|| "Unknown".to_string());
+        .expect("RequestContext not found");
 
     let query = req.uri().query().unwrap_or_default().to_string();
 
@@ -68,21 +29,28 @@ pub async fn resolve(
     let body = body.await;
     let headers = headers.await;
 
-    let data = json!({
-        "client_ip": client_ip,
-        "headers": headers,
-        "method": method,
-        "path": path,
-        "query_string": query,
-        "query_params": query_params,
-        "body": body
-    });
+    let data = HashMap::from([
+        ("client_ip", context.client_ip.to_value()),
+        ("headers", headers.to_value()),
+        ("method", context.method.to_value()),
+        ("path", context.path.to_value()),
+        ("query_string", query.to_value()),
+        ("query_params", query_params),
+        ("body", body),
+    ])
+    .to_value();
 
     info!("Received request: {:?}", data);
 
-    let response_value = sender!(span.clone(), dispatch.clone(), id, sender, Some(data))
-        .await
-        .unwrap_or(Value::Null);
+    let response_value = sender!(
+        context.span.clone(),
+        context.dispatch.clone(),
+        context.id,
+        context.sender,
+        Some(data)
+    )
+    .await
+    .unwrap_or(Value::Null);
 
     let response = ResponseHandler::from(response_value).build();
 

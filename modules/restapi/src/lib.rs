@@ -9,11 +9,11 @@ use hyper::{
 };
 use hyper_util::rt::{TokioIo, TokioTimer};
 use middleware::TracingMiddleware;
-use resolver::{request_resolve, resolve};
+use resolver::proxy;
 use sdk::{
     opentelemetry::{
         global,
-        trace::{Span, SpanKind, Tracer},
+        trace::{FutureExt, Span, SpanKind, Tracer},
     },
     otel::get_tracer,
     prelude::*,
@@ -88,14 +88,14 @@ pub async fn start_server(
         };
 
         let handler = tokio::task::spawn(async move {
-            let base_service = service_fn(request_resolve);
+            let base_service = service_fn(proxy);
 
             let middleware = TracingMiddleware {
                 inner: base_service,
                 dispatch: dispatch.clone(),
                 sender: sender.clone(),
                 id,
-                peer_addr: Some(peer_addr),
+                peer_addr,
             };
 
             http1::Builder::new()

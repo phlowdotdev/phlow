@@ -2,11 +2,24 @@ use hyper::body::Body;
 use hyper::{body::Incoming, service::Service, Request};
 use sdk::opentelemetry::trace::TraceContextExt;
 use sdk::opentelemetry::KeyValue;
+use sdk::tracing::Dispatch;
 use sdk::tracing_opentelemetry::OpenTelemetrySpanExt;
+use sdk::ModuleId;
 use sdk::{
     tracing::{self, Instrument},
     MainRuntimeSender,
 };
+
+#[derive(Debug, Clone)]
+pub struct RequestContext {
+    pub id: ModuleId,
+    pub sender: MainRuntimeSender,
+    pub dispatch: Dispatch,
+    pub span: sdk::tracing::Span,
+    pub client_ip: String,
+    pub method: String,
+    pub path: String,
+}
 
 use std::{future::Future, pin::Pin};
 #[derive(Debug, Clone)]
@@ -15,7 +28,7 @@ pub struct TracingMiddleware<S> {
     pub inner: S,
     pub dispatch: sdk::tracing::Dispatch,
     pub sender: MainRuntimeSender,
-    pub peer_addr: Option<std::net::SocketAddr>,
+    pub peer_addr: std::net::SocketAddr,
 }
 
 impl<S> Service<Request<Incoming>> for TracingMiddleware<S>
@@ -57,11 +70,17 @@ where
 
             otel_span.set_attribute(KeyValue::new("http.route", path.clone()));
 
-            req.extensions_mut().insert(self.peer_addr);
-            req.extensions_mut().insert(self.id.clone());
-            req.extensions_mut().insert(self.sender.clone());
-            req.extensions_mut().insert(self.dispatch.clone());
-            req.extensions_mut().insert(span.clone());
+            let context = RequestContext {
+                id: self.id,
+                sender: self.sender.clone(),
+                dispatch: self.dispatch.clone(),
+                span: span.clone(),
+                client_ip: self.peer_addr.to_string(),
+                method: method.clone(),
+                path: path.clone(),
+            };
+
+            req.extensions_mut().insert(context);
 
             let fut = self.inner.call(req);
 
