@@ -55,6 +55,8 @@ where
                 http.request.body.size = %req.body().size_hint().lower(),
             );
 
+            span.set_attribute("tes.attr", "1");
+
             let cx = span.context();
             let otel_span = cx.span();
 
@@ -73,6 +75,8 @@ where
             }
 
             otel_span.set_attribute(KeyValue::new("http.route", path.clone()));
+            let span_clone = span.clone();
+            let _enter = span.enter();
 
             let context = RequestContext {
                 id: self.id,
@@ -88,7 +92,7 @@ where
 
             let fut = self.inner.call(req);
 
-            Box::pin(async move { fut.instrument(span.clone()).await })
+            Box::pin(async move { fut.instrument(span_clone.clone()).await })
         })
     }
 }
