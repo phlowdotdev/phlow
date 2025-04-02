@@ -3,6 +3,7 @@ use hyper::{body::Incoming, service::Service, Request};
 use sdk::tracing::{field, Dispatch, Level};
 use sdk::ModuleId;
 use sdk::{tracing, MainRuntimeSender};
+use std::{future::Future, pin::Pin};
 
 #[derive(Debug, Clone)]
 pub struct RequestContext {
@@ -14,10 +15,6 @@ pub struct RequestContext {
     pub method: String,
     pub path: String,
 }
-
-use std::{future::Future, pin::Pin};
-
-use crate::resolver::resolve_headers;
 
 #[derive(Debug, Clone)]
 pub struct TracingMiddleware<S> {
