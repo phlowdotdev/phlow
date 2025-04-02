@@ -13,6 +13,7 @@ steps:
         body: !include assets/body.yaml
         headers:
           Content-Type: application/json
+          X-Transaction-ID: xxxx
     else:
       return:
         status_code: 200

@@ -28,7 +28,6 @@ impl ResponseHandler {
                 error!("Error creating response: {:?}", e);
                 Response::builder()
                     .status(500)
-                    .header("Content-Type", "application/json")
                     .body(Full::new(Bytes::from(
                         r#"{"error": "Internal Server Error"}"#,
                     )))
@@ -45,16 +44,15 @@ impl From<Value> for ResponseHandler {
             _ => 200,
         };
 
-        let headers = match value.get("headers") {
-            Some(Value::Object(obj)) => obj
-                .iter()
-                .map(|(key, value)| (key.to_string(), value.to_string()))
-                .collect(),
-            _ => {
-                let mut map = HashMap::new();
-                map.insert("Content-Type".to_string(), "application/json".to_string());
-                map
-            }
+        let mut headers: HashMap<_, _> = HashMap::new();
+        headers.insert("content-type".to_string(), "application/json".to_string());
+
+        if let Some(Value::Object(obj)) = value.get("headers") {
+            obj.iter().for_each(|(key, value)| {
+                let key = key.to_string().to_lowercase();
+                let value = value.to_string();
+                headers.insert(key, value);
+            });
         };
 
         let body = match value.get("body") {
