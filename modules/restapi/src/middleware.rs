@@ -1,15 +1,21 @@
+use hyper::body::Body;
 use hyper::{body::Incoming, service::Service, Request};
-use sdk::tracing::{info_span, Instrument};
+use sdk::opentelemetry::trace::TraceContextExt;
+use sdk::opentelemetry::KeyValue;
+use sdk::tracing_opentelemetry::OpenTelemetrySpanExt;
+use sdk::{
+    tracing::{self, info_span, Instrument},
+    MainRuntimeSender,
+};
+
 use std::{future::Future, pin::Pin};
 #[derive(Debug, Clone)]
 pub struct TracingMiddleware<S> {
     inner: S,
-}
-
-impl<S> TracingMiddleware<S> {
-    pub fn new(inner: S) -> Self {
-        Self { inner }
-    }
+    dispatch: sdk::tracing::Dispatch,
+    sender: MainRuntimeSender,
+    id: String,
+    peer_addr: Option<std::net::SocketAddr>,
 }
 
 impl<S> Service<Request<Incoming>> for TracingMiddleware<S>
@@ -23,13 +29,43 @@ where
     type Error = S::Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
-    fn call(&self, req: Request<Incoming>) -> Self::Future {
-        let method = req.method().clone();
-        let path = req.uri().path().to_string();
+    fn call(&self, mut req: Request<Incoming>) -> Self::Future {
+        sdk::tracing::dispatcher::with_default(&self.dispatch.clone(), || {
+            let path = req.uri().path().to_string();
+            let method = req.method().to_string();
+            let span_name = format!("{} {}", method, path);
+            let span = tracing::span!(
+                tracing::Level::INFO,
+                "http_request",
+                otel.name = %span_name,
+                http.request.method = %req.method(),
+                http.request.body.size = %req.body().size_hint().lower(),
+            );
 
-        let span = info_span!("http_request", %method, %path);
-        let fut = self.inner.call(req);
+            let cx = span.context();
+            let otel_span = cx.span();
 
-        Box::pin(async move { fut.instrument(span).await })
+            for (key, value) in req.headers().iter() {
+                if let Ok(value_str) = value.to_str() {
+                    let attr_name = format!(
+                        "http.request.header.{}",
+                        key.as_str().to_lowercase().replace('-', "_")
+                    );
+                    otel_span.set_attribute(KeyValue::new(attr_name, value_str.to_string()));
+                }
+            }
+
+            otel_span.set_attribute(KeyValue::new("http.route", path.clone()));
+
+            req.extensions_mut().insert(self.peer_addr);
+            req.extensions_mut().insert(self.id.clone());
+            req.extensions_mut().insert(self.sender.clone());
+            req.extensions_mut().insert(self.dispatch.clone());
+            req.extensions_mut().insert(span.clone());
+
+            let fut = self.inner.call(req);
+
+            Box::pin(async move { fut.instrument(span.clone()).await })
+        })
     }
 }
