@@ -9,6 +9,39 @@ use std::{collections::HashMap, convert::Infallible, net::SocketAddr, path};
 
 use crate::response::ResponseHandler;
 
+pub async fn request_resolve(
+    req: Request<hyper::body::Incoming>,
+) -> Result<Response<Full<Bytes>>, Infallible> {
+    let id = req
+        .extensions()
+        .get::<ModuleId>()
+        .cloned()
+        .unwrap_or_default();
+
+    let sender = req
+        .extensions()
+        .get::<MainRuntimeSender>()
+        .cloned()
+        .expect("MainRuntimeSender not found");
+
+    let dispatch = req
+        .extensions()
+        .get::<Dispatch>()
+        .cloned()
+        .expect("Dispatch not found");
+
+    let span = req
+        .extensions()
+        .get::<sdk::tracing::Span>()
+        .cloned()
+        .expect("Span not found");
+
+    let method = req.method().to_string();
+    let path = req.uri().path().to_string();
+
+    resolve(id, sender, req, dispatch, span, method, path).await
+}
+
 pub async fn resolve(
     id: ModuleId,
     sender: MainRuntimeSender,

@@ -4,18 +4,18 @@ use sdk::opentelemetry::trace::TraceContextExt;
 use sdk::opentelemetry::KeyValue;
 use sdk::tracing_opentelemetry::OpenTelemetrySpanExt;
 use sdk::{
-    tracing::{self, info_span, Instrument},
+    tracing::{self, Instrument},
     MainRuntimeSender,
 };
 
 use std::{future::Future, pin::Pin};
 #[derive(Debug, Clone)]
 pub struct TracingMiddleware<S> {
-    inner: S,
-    dispatch: sdk::tracing::Dispatch,
-    sender: MainRuntimeSender,
-    id: String,
-    peer_addr: Option<std::net::SocketAddr>,
+    pub id: usize,
+    pub inner: S,
+    pub dispatch: sdk::tracing::Dispatch,
+    pub sender: MainRuntimeSender,
+    pub peer_addr: Option<std::net::SocketAddr>,
 }
 
 impl<S> Service<Request<Incoming>> for TracingMiddleware<S>

@@ -2,9 +2,14 @@ mod middleware;
 mod resolver;
 mod response;
 mod setup;
-use hyper::{server::conn::http1, service::service_fn, Request};
+use hyper::{
+    server::conn::http1,
+    service::{self, service_fn},
+    Request,
+};
 use hyper_util::rt::{TokioIo, TokioTimer};
-use resolver::resolve;
+use middleware::TracingMiddleware;
+use resolver::{request_resolve, resolve};
 use sdk::{
     opentelemetry::{
         global,
@@ -83,40 +88,20 @@ pub async fn start_server(
         };
 
         let handler = tokio::task::spawn(async move {
-            let dispatch_clone = dispatch.clone();
-            let base_service = service_fn(move |mut req: Request<hyper::body::Incoming>| {
-                sdk::tracing::dispatcher::with_default(&dispatch_clone.clone(), || {
-                    let path = req.uri().path().to_string();
-                    let method = req.method().to_string();
-                    let span_name = format!("{} {}", method, path);
-                    let span = tracing::span!(
-                        tracing::Level::INFO,
-                        "http_request",
-                        otel.name = %span_name,
-                        http.request.method = %req.method(),
-                        http.route = %req.uri().path()
-                    );
+            let base_service = service_fn(request_resolve);
 
-                    let _enter = span.enter();
-
-                    req.extensions_mut().insert(peer_addr);
-                    resolve(
-                        id,
-                        sender.clone(),
-                        req,
-                        dispatch_clone.clone(),
-                        span.clone(),
-                        method,
-                        path,
-                    )
-                    .instrument(span.clone())
-                })
-            });
+            let middleware = TracingMiddleware {
+                inner: base_service,
+                dispatch: dispatch.clone(),
+                sender: sender.clone(),
+                id,
+                peer_addr: Some(peer_addr),
+            };
 
             http1::Builder::new()
                 .keep_alive(true)
                 .timer(TokioTimer::new())
-                .serve_connection(io, base_service)
+                .serve_connection(io, middleware)
                 .await
                 .unwrap_or_else(|e| {
                     sdk::tracing::error!("Error serving connection: {:?}", e);
