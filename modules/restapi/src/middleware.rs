@@ -1,6 +1,10 @@
 use hyper::body::Body;
 use hyper::{body::Incoming, service::Service, Request};
-use sdk::tracing::Dispatch;
+use sdk::tracing::field::FieldSet;
+use sdk::tracing::{field, Dispatch, Level, Value};
+use sdk::tracing::{Metadata, Span};
+use sdk::tracing_core::callsite::{DefaultCallsite, Identifier};
+use sdk::tracing_core::{self, Callsite, Kind};
 use sdk::ModuleId;
 use sdk::{tracing, MainRuntimeSender};
 
@@ -16,6 +20,8 @@ pub struct RequestContext {
 }
 
 use std::{future::Future, pin::Pin};
+
+use crate::trace::META;
 #[derive(Debug, Clone)]
 pub struct TracingMiddleware<S> {
     pub id: usize,
@@ -41,15 +47,27 @@ where
             let path = req.uri().path().to_string();
             let method = req.method().to_string();
             let span_name = format!("{} {}", method, path);
-            let span = tracing::span!(
-                tracing::Level::INFO,
-                "http_request",
-                otel.name = %span_name,
-                http.request.method = %req.method(),
-                http.request.body.size = %req.body().size_hint().lower(),
-                http.route = %path,
-                initial = true,
-            );
+            let size = req.body().size_hint().lower();
+
+            let fields = META.fields();
+
+            let val = [
+                (
+                    &fields.field("otel.name").unwrap(),
+                    Some(&span_name as &dyn Value),
+                ),
+                (&fields.field("http.request.method").unwrap(), Some(&method)),
+                (
+                    &fields.field("http.request.body.size").unwrap(),
+                    Some(&size),
+                ),
+                (&fields.field("http.route").unwrap(), Some(&path)),
+            ];
+
+            let values = fields.value_set(&val);
+
+            // Criando o span manualmente
+            let span = tracing::Span::new(&META, &values);
 
             let context = RequestContext {
                 id: self.id,

@@ -2,6 +2,7 @@ mod middleware;
 mod resolver;
 mod response;
 mod setup;
+mod trace;
 use hyper::{
     server::conn::http1,
     service::{self, service_fn},
