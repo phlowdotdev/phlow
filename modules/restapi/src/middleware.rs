@@ -1,10 +1,6 @@
 use hyper::body::Body;
 use hyper::{body::Incoming, service::Service, Request};
-use sdk::tracing::field::FieldSet;
-use sdk::tracing::{field, span, Dispatch, Level, Value};
-use sdk::tracing::{Metadata, Span};
-use sdk::tracing_core::callsite::{DefaultCallsite, Identifier};
-use sdk::tracing_core::{self, Callsite, Kind};
+use sdk::tracing::{field, Dispatch, Level};
 use sdk::ModuleId;
 use sdk::{tracing, MainRuntimeSender};
 
@@ -17,14 +13,11 @@ pub struct RequestContext {
     pub client_ip: String,
     pub method: String,
     pub path: String,
-    pub headers: HashMap<String, String>,
 }
 
-use std::collections::HashMap;
 use std::{future::Future, pin::Pin};
 
 use crate::resolver::resolve_headers;
-use crate::trace::get_meta;
 
 #[derive(Debug, Clone)]
 pub struct TracingMiddleware<S> {
@@ -61,27 +54,20 @@ where
                 http.route = path.clone(),
                 http.request.body.size = size,
                 http.request.method = method.clone(),
-                http.request.header.user_agent =
-                    headers.get("user-agent").unwrap_or(&"".to_string()),
-                http.request.header.host = headers.get("host").unwrap_or(&"".to_string()),
-                http.request.header.x_request_id =
-                    headers.get("x-request-id").unwrap_or(&"".to_string()),
-                http.request.header.x_transaction_id =
-                    headers.get("x-transaction-id").unwrap_or(&"".to_string()),
-                http.request.header.referer = headers.get("referer").unwrap_or(&"".to_string()),
-                http.request.header.content_type =
-                    headers.get("content-type").unwrap_or(&"".to_string()),
-                http.request.header.accept = headers.get("accept").unwrap_or(&"".to_string()),
-                http.request.header.origin = headers.get("origin").unwrap_or(&"".to_string()),
-                http.request.header.x_forwarded_for =
-                    headers.get("x-forwarded-for").unwrap_or(&"".to_string()),
+                http.request.header.user_agent = field::Empty,
+                http.request.header.host = field::Empty,
+                http.request.header.x_request_id = field::Empty,
+                http.request.header.x_transaction_id = field::Empty,
+                http.request.header.referer = field::Empty,
+                http.request.header.content_type = field::Empty,
+                http.request.header.accept = field::Empty,
+                http.request.header.origin = field::Empty,
+                http.request.header.x_forwarded_for = field::Empty,
                 http.request.header.x_real_ip = self.peer_addr.to_string(),
-                http.request.header.cache_control =
-                    headers.get("cache-control").unwrap_or(&"".to_string()),
-                http.request.header.accept_encoding =
-                    headers.get("accept-encoding").unwrap_or(&"".to_string()),
-                http.response.status_code = 0,
-                http.response.size = 0
+                http.request.header.cache_control = field::Empty,
+                http.request.header.accept_encoding = field::Empty,
+                http.response.body.size = field::Empty,
+                http.response.status_code = field::Empty,
             );
 
             let context = RequestContext {
@@ -92,7 +78,6 @@ where
                 client_ip: self.peer_addr.to_string(),
                 method: method.clone(),
                 path: path.clone(),
-                headers: headers.clone(),
             };
 
             req.extensions_mut().insert(context);

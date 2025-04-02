@@ -1,8 +1,6 @@
 use bytes::Bytes;
 use http_body_util::{BodyExt, Full};
 use hyper::{HeaderMap, Request, Response};
-use sdk::opentelemetry::trace::TraceContextExt;
-use sdk::tracing_opentelemetry::OpenTelemetrySpanExt;
 use sdk::{
     prelude::*,
     tracing::{error, info},
@@ -22,16 +20,18 @@ pub async fn proxy(
 
     let query = req.uri().query().unwrap_or_default().to_string();
 
+    let headers = resolve_headers(req.headers().clone());
     let body = resolve_body(req);
 
     let query_params = resolve_query_params(&query);
 
     let query_params = query_params.await;
     let body = body.await;
+    let headers = headers.await;
 
     let data = HashMap::from([
         ("client_ip", context.client_ip.to_value()),
-        ("headers", context.headers.to_value()),
+        ("headers", headers.to_value()),
         ("method", context.method.to_value()),
         ("path", context.path.to_value()),
         ("query_string", query.to_value()),
@@ -42,24 +42,71 @@ pub async fn proxy(
 
     info!("Received request: {:?}", data);
 
-    let response_value = sender!(
-        context.span.clone(),
-        context.dispatch.clone(),
-        context.id,
-        context.sender,
-        Some(data)
-    )
+    let response_value = {
+        let result = sender!(
+            context.span.clone(),
+            context.dispatch.clone(),
+            context.id,
+            context.sender,
+            Some(data)
+        );
+
+        // return
+        headers.iter().for_each(|(key, value)| {
+            if key == "x-request-id" {
+                context
+                    .span
+                    .record("http.request.header.x_request_id", value);
+            } else if key == "origin" {
+                context.span.record("http.request.header.origin", value);
+            } else if key == "referer" {
+                context.span.record("http.request.header.referer", value);
+            } else if key == "user-agent" {
+                context.span.record("http.request.header.user_agent", value);
+            } else if key == "host" {
+                context.span.record("http.request.header.host", value);
+            } else if key == "x-transaction-id" {
+                context
+                    .span
+                    .record("http.request.header.x_transaction_id", value);
+            } else if key == "accept" {
+                context.span.record("http.request.header.accept", value);
+            } else if key == "content-type" {
+                context
+                    .span
+                    .record("http.request.header.content_type", value);
+            } else if key == "x-forwarded-for" {
+                context
+                    .span
+                    .record("http.request.header.x_forwarded_for", value);
+            } else if key == "x-real-ip" {
+                context.span.record("http.request.header.x_real_ip", value);
+            } else if key == "cache-control" {
+                context
+                    .span
+                    .record("http.request.header.cache_control", value);
+            } else if key == "accept-encoding" {
+                context
+                    .span
+                    .record("http.request.header.accept_encoding", value);
+            }
+        });
+
+        result
+    }
     .await
     .unwrap_or(Value::Null);
 
-    let response_handler = ResponseHandler::from(response_value);
+    let response = ResponseHandler::from(response_value);
+
     context
         .span
-        .record("http.response.status_code", response_handler.status_code);
+        .record("http.response.status_code", response.status_code);
+    context
+        .span
+        .record("http.response.body.size", response.body.len());
 
-    let response = response_handler.build();
-
-    Ok(response)
+    Ok(response.build())
 }
 
 pub async fn resolve_query_params(query: &str) -> Value {
@@ -103,7 +150,7 @@ pub async fn resolve_body(req: Request<hyper::body::Incoming>) -> Value {
     body
 }
 
-pub fn resolve_headers(headers: HeaderMap) -> HashMap<String, String> {
+pub async fn resolve_headers(headers: HeaderMap) -> HashMap<String, String> {
     headers
         .iter()
         .filter_map(|(key, value)| match value.to_str() {
