@@ -1,8 +1,12 @@
-use opentelemetry::{global, trace::TracerProvider as _, InstrumentationScope};
+use opentelemetry::{
+    global::{self, BoxedTracer},
+    trace::TracerProvider,
+    InstrumentationScope,
+};
 use opentelemetry_otlp::ExporterBuildError;
 use opentelemetry_sdk::{
     metrics::{MeterProviderBuilder, PeriodicReader, SdkMeterProvider},
-    trace::{RandomIdGenerator, Sampler, SdkTracerProvider},
+    trace::{RandomIdGenerator, Sampler, SdkTracerProvider, Tracer},
     Resource,
 };
 use tracing::{dispatcher, subscriber::set_global_default, Dispatch};
@@ -10,16 +14,13 @@ use tracing_core::{Level, LevelFilter};
 use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
-pub(crate) fn get_scope() -> InstrumentationScope {
-    InstrumentationScope::builder("actix-web-opentelemetry")
-        .with_version(env!("CARGO_PKG_VERSION"))
-        .with_schema_url(opentelemetry_semantic_conventions::SCHEMA_URL)
-        .build()
-}
-
 // Create a Resource that captures information about the entity for which telemetry is recorded.
 fn resource() -> Resource {
     Resource::builder().build()
+}
+
+pub fn get_tracer() -> BoxedTracer {
+    global::tracer("tracing-otel-subscriber")
 }
 
 // Construct MeterProvider for MetricsLayer

@@ -6,9 +6,15 @@ use hyper::{server::conn::http1, service::service_fn, Request};
 use hyper_util::rt::{TokioIo, TokioTimer};
 use resolver::resolve;
 use sdk::{
+    opentelemetry::{
+        global,
+        trace::{Span, SpanKind, Tracer},
+    },
+    otel::get_tracer,
     prelude::*,
     tokio::net::TcpListener,
-    tracing::{info, info_span, warn},
+    tracing::{info, info_span, warn, Instrument},
+    tracing_opentelemetry::OpenTelemetrySpanExt,
 };
 use setup::Config;
 use std::net::SocketAddr;
@@ -28,7 +34,7 @@ pub extern "C" fn plugin(setup: ModuleSetup) {
         return;
     };
 }
-
+use sdk::opentelemetry::trace::TraceContextExt;
 pub async fn start_server(
     setup: ModuleSetup,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -82,9 +88,14 @@ pub async fn start_server(
                 sdk::tracing::dispatcher::with_default(&dispatch_clone.clone(), || {
                     let path = req.uri().path().to_string();
                     let method = req.method().to_string();
-
-                    let span = info_span!("http_request", %method, %path);
-                    span.record("otel.name", &path);
+                    let span_name = format!("{} {}", method, path);
+                    let span = tracing::span!(
+                        tracing::Level::INFO,
+                        "http_request",
+                        otel.name = %span_name,
+                        http.request.method = %req.method(),
+                        http.route = %req.uri().path()
+                    );
 
                     let _enter = span.enter();
 
@@ -98,6 +109,7 @@ pub async fn start_server(
                         method,
                         path,
                     )
+                    .instrument(span.clone())
                 })
             });
 
