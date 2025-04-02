@@ -1,6 +1,8 @@
 use bytes::Bytes;
 use http_body_util::{BodyExt, Full};
 use hyper::{HeaderMap, Request, Response};
+use sdk::opentelemetry::trace::TraceContextExt;
+use sdk::tracing_opentelemetry::OpenTelemetrySpanExt;
 use sdk::{
     prelude::*,
     tracing::{error, info},
@@ -42,6 +44,15 @@ pub async fn proxy(
 
     info!("Received request: {:?}", data);
 
+    let cx = context.span.clone().context();
+    let otel_span = cx.span();
+
+    if !otel_span.span_context().is_valid() {
+        sdk::tracing::warn!("🚨 otel_span is not valid (NoopSpan?)");
+    } else {
+        sdk::tracing::info!("✅ otel_span is valid");
+    }
+
     let response_value = sender!(
         context.span.clone(),
         context.dispatch.clone(),
@@ -57,7 +68,7 @@ pub async fn proxy(
     Ok(response)
 }
 
-async fn resolve_query_params(query: &str) -> Value {
+pub async fn resolve_query_params(query: &str) -> Value {
     let mut map = HashMap::new();
 
     for pair in query.split('&') {
@@ -71,7 +82,7 @@ async fn resolve_query_params(query: &str) -> Value {
     map.to_value()
 }
 
-async fn resolve_body(req: Request<hyper::body::Incoming>) -> Value {
+pub async fn resolve_body(req: Request<hyper::body::Incoming>) -> Value {
     let body_bytes: Bytes = match req.into_body().collect().await {
         Ok(full_body) => full_body.to_bytes(),
         Err(e) => {
@@ -98,7 +109,7 @@ async fn resolve_body(req: Request<hyper::body::Incoming>) -> Value {
     body
 }
 
-async fn resolve_headers(headers: HeaderMap) -> Value {
+pub async fn resolve_headers(headers: HeaderMap) -> Value {
     headers
         .iter()
         .filter_map(|(key, value)| match value.to_str() {

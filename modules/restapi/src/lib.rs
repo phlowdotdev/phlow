@@ -28,25 +28,23 @@ use std::net::SocketAddr;
 
 #[no_mangle]
 pub extern "C" fn plugin(setup: ModuleSetup) {
-    sdk::otel::init_tracing_subscriber().expect("failed to initialize tracing");
     let dispatch = setup.dispatch.clone();
+    dispatcher::with_default(&dispatch, || {
+        sdk::otel::init_tracing_subscriber().expect("failed to initialize tracing");
 
-    if let Ok(rt) = tokio::runtime::Runtime::new() {
-        dispatcher::with_default(&dispatch, || {
-            rt.block_on(start_server(setup, dispatch.clone()))
-                .unwrap_or_else(|e| {
-                    sdk::tracing::error!("Error in plugin: {:?}", e);
-                });
-        });
-    } else {
-        sdk::tracing::error!("Error creating runtime");
-        return;
-    };
+        if let Ok(rt) = tokio::runtime::Runtime::new() {
+            rt.block_on(start_server(setup)).unwrap_or_else(|e| {
+                sdk::tracing::error!("Error in plugin: {:?}", e);
+            });
+        } else {
+            sdk::tracing::error!("Error creating runtime");
+            return;
+        };
+    });
 }
 
 pub async fn start_server(
     setup: ModuleSetup,
-    dispatch: sdk::tracing::Dispatch,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if !setup.is_main() {
         warn!("This module is not the main module, exiting");
@@ -84,7 +82,7 @@ pub async fn start_server(
     loop {
         let (tcp, peer_addr) = listener.accept().await?;
         let io: TokioIo<tokio::net::TcpStream> = TokioIo::new(tcp);
-        let dispatch = dispatch.clone();
+        let dispatch = setup.dispatch.clone();
         let sender = match setup.main_sender.clone() {
             Some(sender) => sender,
             None => {

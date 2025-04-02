@@ -1,14 +1,8 @@
 use hyper::body::Body;
 use hyper::{body::Incoming, service::Service, Request};
-use sdk::opentelemetry::trace::TraceContextExt;
-use sdk::opentelemetry::KeyValue;
 use sdk::tracing::Dispatch;
-use sdk::tracing_opentelemetry::OpenTelemetrySpanExt;
 use sdk::ModuleId;
-use sdk::{
-    tracing::{self, Instrument},
-    MainRuntimeSender,
-};
+use sdk::{tracing, MainRuntimeSender};
 
 #[derive(Debug, Clone)]
 pub struct RequestContext {
@@ -57,32 +51,6 @@ where
                 initial = true,
             );
 
-            let cx = span.context();
-            let otel_span = cx.span();
-
-            if !otel_span.span_context().is_valid() {
-                sdk::tracing::warn!("🚨 otel_span is not valid (NoopSpan?)");
-            } else {
-                sdk::tracing::info!("✅ otel_span is valid");
-            }
-
-            for (key, value) in req.headers().iter() {
-                if key.as_str().eq_ignore_ascii_case("authorization") {
-                    continue;
-                }
-
-                if let Ok(value_str) = value.to_str() {
-                    let attr_name = format!(
-                        "http.request.header.{}",
-                        key.as_str().to_lowercase().replace('-', "_")
-                    );
-                    otel_span.set_attribute(KeyValue::new(attr_name, value_str.to_string()));
-                }
-            }
-
-            let span_clone = span.clone();
-            let _enter = span.enter();
-
             let context = RequestContext {
                 id: self.id,
                 sender: self.sender.clone(),
@@ -95,9 +63,9 @@ where
 
             req.extensions_mut().insert(context);
 
-            let fut = self.inner.call(req);
+            let fut: <S as Service<Request<Incoming>>>::Future = self.inner.call(req);
 
-            Box::pin(async move { fut.instrument(span_clone.clone()).await })
+            Box::pin(async move { fut.await })
         })
     }
 }
