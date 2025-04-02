@@ -36,6 +36,45 @@ impl ModuleSetup {
     }
 }
 
+#[derive(Default)]
+pub struct Package {
+    pub send: Option<oneshot::Sender<Value>>,
+    pub request_data: Option<Value>,
+    pub origin: ModuleId,
+    pub span: Option<tracing::Span>,
+    pub dispatch: Option<tracing::Dispatch>,
+}
+
+// Only production mode
+impl Debug for Package {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let map: HashMap<_, _> = vec![
+            ("request_data", self.request_data.to_value()),
+            ("step_position", self.origin.to_value()),
+        ]
+        .into_iter()
+        .collect();
+
+        write!(
+            f,
+            "{}",
+            map.to_value().to_json(valu3::prelude::JsonMode::Inline)
+        )
+    }
+}
+
+impl Package {
+    pub fn get_data(&self) -> Option<&Value> {
+        self.request_data.as_ref()
+    }
+
+    pub fn send(&mut self, response_data: Value) {
+        if let Some(send) = self.send.take() {
+            sender_safe!(send, response_data);
+        }
+    }
+}
+
 #[macro_export]
 macro_rules! sender_safe {
     ($sender:expr, $data:expr) => {
@@ -137,45 +176,6 @@ macro_rules! sender {
 
         rx
     }};
-}
-
-#[derive(Default)]
-pub struct Package {
-    pub send: Option<oneshot::Sender<Value>>,
-    pub request_data: Option<Value>,
-    pub origin: ModuleId,
-    pub span: Option<tracing::Span>,
-    pub dispatch: Option<tracing::Dispatch>,
-}
-
-// Only production mode
-impl Debug for Package {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let map: HashMap<_, _> = vec![
-            ("request_data", self.request_data.to_value()),
-            ("step_position", self.origin.to_value()),
-        ]
-        .into_iter()
-        .collect();
-
-        write!(
-            f,
-            "{}",
-            map.to_value().to_json(valu3::prelude::JsonMode::Inline)
-        )
-    }
-}
-
-impl Package {
-    pub fn get_data(&self) -> Option<&Value> {
-        self.request_data.as_ref()
-    }
-
-    pub fn send(&mut self, response_data: Value) {
-        if let Some(send) = self.send.take() {
-            sender_safe!(send, response_data);
-        }
-    }
 }
 
 pub mod prelude {
