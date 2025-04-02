@@ -110,30 +110,10 @@ pub async fn resolve_headers(headers: HeaderMap, span: &Span) -> HashMap<String,
         .iter()
         .filter_map(|(key, value)| match value.to_str() {
             Ok(val_str) => {
-                if key == "x-request-id" {
-                    span.record("http.request.header.x_request_id", val_str);
-                } else if key == "origin" {
-                    span.record("http.request.header.origin", val_str);
-                } else if key == "referer" {
-                    span.record("http.request.header.referer", val_str);
-                } else if key == "user-agent" {
-                    span.record("http.request.header.user_agent", val_str);
-                } else if key == "host" {
-                    span.record("http.request.header.host", val_str);
-                } else if key == "x-transaction-id" {
-                    span.record("http.request.header.x_transaction_id", val_str);
-                } else if key == "accept" {
-                    span.record("http.request.header.accept", val_str);
-                } else if key == "content-type" {
-                    span.record("http.request.header.content_type", val_str);
-                } else if key == "x-forwarded-for" {
-                    span.record("http.request.header.x_forwarded_for", val_str);
-                } else if key == "x-real-ip" {
-                    span.record("http.request.header.x_real_ip", val_str);
-                } else if key == "cache-control" {
-                    span.record("http.request.header.cache_control", val_str);
-                } else if key == "accept-encoding" {
-                    span.record("http.request.header.accept_encoding", val_str);
+                {
+                    let key = key.as_str().replace("-", "_").to_lowercase();
+                    let key = format!("http.request.header.{}", key);
+                    span.record(key.as_str(), val_str);
                 }
 
                 Some((key.as_str().to_string(), val_str.to_string()))
