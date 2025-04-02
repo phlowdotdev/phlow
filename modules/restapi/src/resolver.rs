@@ -3,7 +3,7 @@ use http_body_util::{BodyExt, Full};
 use hyper::{HeaderMap, Request, Response};
 use sdk::{
     prelude::*,
-    tracing::{error, info},
+    tracing::{error, info, Span},
 };
 use std::{collections::HashMap, convert::Infallible};
 
@@ -20,7 +20,7 @@ pub async fn proxy(
 
     let query = req.uri().query().unwrap_or_default().to_string();
 
-    let headers = resolve_headers(req.headers().clone());
+    let headers = resolve_headers(req.headers().clone(), &context.span);
     let body = resolve_body(req);
 
     let query_params = resolve_query_params(&query);
@@ -42,58 +42,13 @@ pub async fn proxy(
 
     info!("Received request: {:?}", data);
 
-    let response_value = {
-        let result = sender!(
-            context.span.clone(),
-            context.dispatch.clone(),
-            context.id,
-            context.sender,
-            Some(data)
-        );
-
-        // return
-        headers.iter().for_each(|(key, value)| {
-            if key == "x-request-id" {
-                context
-                    .span
-                    .record("http.request.header.x_request_id", value);
-            } else if key == "origin" {
-                context.span.record("http.request.header.origin", value);
-            } else if key == "referer" {
-                context.span.record("http.request.header.referer", value);
-            } else if key == "user-agent" {
-                context.span.record("http.request.header.user_agent", value);
-            } else if key == "host" {
-                context.span.record("http.request.header.host", value);
-            } else if key == "x-transaction-id" {
-                context
-                    .span
-                    .record("http.request.header.x_transaction_id", value);
-            } else if key == "accept" {
-                context.span.record("http.request.header.accept", value);
-            } else if key == "content-type" {
-                context
-                    .span
-                    .record("http.request.header.content_type", value);
-            } else if key == "x-forwarded-for" {
-                context
-                    .span
-                    .record("http.request.header.x_forwarded_for", value);
-            } else if key == "x-real-ip" {
-                context.span.record("http.request.header.x_real_ip", value);
-            } else if key == "cache-control" {
-                context
-                    .span
-                    .record("http.request.header.cache_control", value);
-            } else if key == "accept-encoding" {
-                context
-                    .span
-                    .record("http.request.header.accept_encoding", value);
-            }
-        });
-
-        result
-    }
+    let response_value = sender!(
+        context.span.clone(),
+        context.dispatch.clone(),
+        context.id,
+        context.sender,
+        Some(data)
+    )
     .await
     .unwrap_or(Value::Null);
 
@@ -150,11 +105,39 @@ pub async fn resolve_body(req: Request<hyper::body::Incoming>) -> Value {
     body
 }
 
-pub async fn resolve_headers(headers: HeaderMap) -> HashMap<String, String> {
+pub async fn resolve_headers(headers: HeaderMap, span: &Span) -> HashMap<String, String> {
     headers
         .iter()
         .filter_map(|(key, value)| match value.to_str() {
-            Ok(val_str) => Some((key.as_str().to_string(), val_str.to_string())),
+            Ok(val_str) => {
+                if key == "x-request-id" {
+                    span.record("http.request.header.x_request_id", val_str);
+                } else if key == "origin" {
+                    span.record("http.request.header.origin", val_str);
+                } else if key == "referer" {
+                    span.record("http.request.header.referer", val_str);
+                } else if key == "user-agent" {
+                    span.record("http.request.header.user_agent", val_str);
+                } else if key == "host" {
+                    span.record("http.request.header.host", val_str);
+                } else if key == "x-transaction-id" {
+                    span.record("http.request.header.x_transaction_id", val_str);
+                } else if key == "accept" {
+                    span.record("http.request.header.accept", val_str);
+                } else if key == "content-type" {
+                    span.record("http.request.header.content_type", val_str);
+                } else if key == "x-forwarded-for" {
+                    span.record("http.request.header.x_forwarded_for", val_str);
+                } else if key == "x-real-ip" {
+                    span.record("http.request.header.x_real_ip", val_str);
+                } else if key == "cache-control" {
+                    span.record("http.request.header.cache_control", val_str);
+                } else if key == "accept-encoding" {
+                    span.record("http.request.header.accept_encoding", val_str);
+                }
+
+                Some((key.as_str().to_string(), val_str.to_string()))
+            }
             Err(e) => {
                 error!("Header value is not a valid UTF-8 string: {:?}", e);
                 None
