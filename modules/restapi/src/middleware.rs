@@ -59,6 +59,10 @@ where
             let otel_span = cx.span();
 
             for (key, value) in req.headers().iter() {
+                if key.as_str().eq_ignore_ascii_case("authorization") {
+                    continue;
+                }
+
                 if let Ok(value_str) = value.to_str() {
                     let attr_name = format!(
                         "http.request.header.{}",

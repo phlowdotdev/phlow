@@ -3,7 +3,7 @@ use http_body_util::{BodyExt, Full};
 use hyper::{HeaderMap, Request, Response};
 use sdk::{
     prelude::*,
-    tracing::{error, info, Dispatch},
+    tracing::{error, info},
 };
 use std::{collections::HashMap, convert::Infallible};
 
