@@ -102,8 +102,6 @@ macro_rules! plugin {
     ($handler:ident) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: ModuleSetup) {
-            sdk::otel::init_tracing_subscriber_plugin().expect("failed to initialize tracing");
-
             match $handler(setup) {
                 Ok(_) => {}
                 Err(e) => {

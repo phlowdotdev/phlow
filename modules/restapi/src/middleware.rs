@@ -53,12 +53,18 @@ where
                 otel.name = %span_name,
                 http.request.method = %req.method(),
                 http.request.body.size = %req.body().size_hint().lower(),
+                http.route = %path,
+                initial = true,
             );
-
-            span.set_attribute("tes.attr", "1");
 
             let cx = span.context();
             let otel_span = cx.span();
+
+            if !otel_span.span_context().is_valid() {
+                sdk::tracing::warn!("🚨 otel_span is not valid (NoopSpan?)");
+            } else {
+                sdk::tracing::info!("✅ otel_span is valid");
+            }
 
             for (key, value) in req.headers().iter() {
                 if key.as_str().eq_ignore_ascii_case("authorization") {
@@ -74,7 +80,6 @@ where
                 }
             }
 
-            otel_span.set_attribute(KeyValue::new("http.route", path.clone()));
             let span_clone = span.clone();
             let _enter = span.enter();
 

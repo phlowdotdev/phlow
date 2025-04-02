@@ -130,12 +130,14 @@ async fn main() {
     if loader.main >= -1 {
         debug!("Main module exist");
 
-        for i in 0..envs.package_consumer_count {
+        for _i in 0..envs.package_consumer_count {
             let rx_pkg = rx_main_package.clone();
             let flow_ref = Arc::clone(&flow_arc);
 
             let handle = tokio::task::spawn_blocking(move || {
                 for mut package in rx_pkg {
+                    println!("Package: {:?}", package);
+
                     processes::execute_steps(&flow_ref, &mut package);
                 }
             });
