@@ -22,18 +22,16 @@ pub async fn proxy(
 
     let query = req.uri().query().unwrap_or_default().to_string();
 
-    let headers = resolve_headers(req.headers().clone());
     let body = resolve_body(req);
 
     let query_params = resolve_query_params(&query);
 
     let query_params = query_params.await;
     let body = body.await;
-    let headers = headers.await;
 
     let data = HashMap::from([
         ("client_ip", context.client_ip.to_value()),
-        ("headers", headers.to_value()),
+        ("headers", context.headers.to_value()),
         ("method", context.method.to_value()),
         ("path", context.path.to_value()),
         ("query_string", query.to_value()),
@@ -43,15 +41,6 @@ pub async fn proxy(
     .to_value();
 
     info!("Received request: {:?}", data);
-
-    let cx = context.span.clone().context();
-    let otel_span = cx.span();
-
-    if !otel_span.span_context().is_valid() {
-        sdk::tracing::warn!("🚨 otel_span is not valid (NoopSpan?)");
-    } else {
-        sdk::tracing::info!("✅ otel_span is valid");
-    }
 
     let response_value = sender!(
         context.span.clone(),
@@ -63,7 +52,12 @@ pub async fn proxy(
     .await
     .unwrap_or(Value::Null);
 
-    let response = ResponseHandler::from(response_value).build();
+    let response_handler = ResponseHandler::from(response_value);
+    context
+        .span
+        .record("http.response.status_code", response_handler.status_code);
+
+    let response = response_handler.build();
 
     Ok(response)
 }
@@ -109,7 +103,7 @@ pub async fn resolve_body(req: Request<hyper::body::Incoming>) -> Value {
     body
 }
 
-pub async fn resolve_headers(headers: HeaderMap) -> Value {
+pub fn resolve_headers(headers: HeaderMap) -> HashMap<String, String> {
     headers
         .iter()
         .filter_map(|(key, value)| match value.to_str() {
@@ -120,5 +114,4 @@ pub async fn resolve_headers(headers: HeaderMap) -> Value {
             }
         })
         .collect::<HashMap<String, String>>()
-        .to_value()
 }

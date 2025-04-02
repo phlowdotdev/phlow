@@ -1,7 +1,7 @@
 use hyper::body::Body;
 use hyper::{body::Incoming, service::Service, Request};
 use sdk::tracing::field::FieldSet;
-use sdk::tracing::{field, Dispatch, Level, Value};
+use sdk::tracing::{field, span, Dispatch, Level, Value};
 use sdk::tracing::{Metadata, Span};
 use sdk::tracing_core::callsite::{DefaultCallsite, Identifier};
 use sdk::tracing_core::{self, Callsite, Kind};
@@ -17,11 +17,15 @@ pub struct RequestContext {
     pub client_ip: String,
     pub method: String,
     pub path: String,
+    pub headers: HashMap<String, String>,
 }
 
+use std::collections::HashMap;
 use std::{future::Future, pin::Pin};
 
-use crate::trace::META;
+use crate::resolver::resolve_headers;
+use crate::trace::get_meta;
+
 #[derive(Debug, Clone)]
 pub struct TracingMiddleware<S> {
     pub id: usize,
@@ -49,25 +53,36 @@ where
             let span_name = format!("{} {}", method, path);
             let size = req.body().size_hint().lower();
 
-            let fields = META.fields();
-
-            let val = [
-                (
-                    &fields.field("otel.name").unwrap(),
-                    Some(&span_name as &dyn Value),
-                ),
-                (&fields.field("http.request.method").unwrap(), Some(&method)),
-                (
-                    &fields.field("http.request.body.size").unwrap(),
-                    Some(&size),
-                ),
-                (&fields.field("http.route").unwrap(), Some(&path)),
-            ];
-
-            let values = fields.value_set(&val);
-
-            // Criando o span manualmente
-            let span = tracing::Span::new(&META, &values);
+            let headers = resolve_headers(req.headers().clone());
+            let span = tracing::span!(
+                Level::INFO,
+                "http_request",
+                otel.name = span_name,
+                http.route = path.clone(),
+                http.request.body.size = size,
+                http.request.method = method.clone(),
+                http.request.header.user_agent =
+                    headers.get("user-agent").unwrap_or(&"".to_string()),
+                http.request.header.host = headers.get("host").unwrap_or(&"".to_string()),
+                http.request.header.x_request_id =
+                    headers.get("x-request-id").unwrap_or(&"".to_string()),
+                http.request.header.x_transaction_id =
+                    headers.get("x-transaction-id").unwrap_or(&"".to_string()),
+                http.request.header.referer = headers.get("referer").unwrap_or(&"".to_string()),
+                http.request.header.content_type =
+                    headers.get("content-type").unwrap_or(&"".to_string()),
+                http.request.header.accept = headers.get("accept").unwrap_or(&"".to_string()),
+                http.request.header.origin = headers.get("origin").unwrap_or(&"".to_string()),
+                http.request.header.x_forwarded_for =
+                    headers.get("x-forwarded-for").unwrap_or(&"".to_string()),
+                http.request.header.x_real_ip = self.peer_addr.to_string(),
+                http.request.header.cache_control =
+                    headers.get("cache-control").unwrap_or(&"".to_string()),
+                http.request.header.accept_encoding =
+                    headers.get("accept-encoding").unwrap_or(&"".to_string()),
+                http.response.status_code = 0,
+                http.response.size = 0
+            );
 
             let context = RequestContext {
                 id: self.id,
@@ -77,6 +92,7 @@ where
                 client_ip: self.peer_addr.to_string(),
                 method: method.clone(),
                 path: path.clone(),
+                headers: headers.clone(),
             };
 
             req.extensions_mut().insert(context);

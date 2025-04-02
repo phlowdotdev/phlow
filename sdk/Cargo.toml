@@ -10,7 +10,7 @@ serde = { version = "1.0", features = ["derive"] }
 crossbeam = "0.8"
 
 # OpenTelemetry
-opentelemetry = "=0.29.0"
+opentelemetry = "0.29.1"
 opentelemetry_sdk = "=0.29.0"
 opentelemetry-prometheus = "=0.29.0"
 tracing-opentelemetry = "=0.30.0"
