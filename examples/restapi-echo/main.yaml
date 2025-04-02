@@ -5,8 +5,19 @@ steps:
     use: echo
     input:
       message: Hello, World!
-  - return:
-      status_code: 201
-      body: !include assets/body.yaml
-      headers:
-        Content-Type: application/json
+  - condition:
+      assert: !eval main.method == "POST"
+    then:
+      return:
+        status_code: 201
+        body: !include assets/body.yaml
+        headers:
+          Content-Type: application/json
+    else:
+      return:
+        status_code: 200
+        body: !include assets/body.yaml
+        headers:
+          Content-Type: application/json
+
+  
