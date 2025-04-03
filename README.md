@@ -6,6 +6,22 @@ Whether you're creating APIs, consumers, automations, or event-driven systems, P
 
 ---
 
+## 📚 Table of Contents
+
+- [🎯 Philosophy](#-philosophy)
+- [🚀 Use Cases](#-use-cases)
+- [🔌 Module Types](#-module-types)
+- [🧱 Example: `main.yaml` for an HTTP Gateway](#-example-mainyaml-for-an-http-gateway)
+- [🧩 YAML Superpowers](#-yaml-superpowers)
+- [🧠 Creating Your Own Module: `log`](#-creating-your-own-module-log)
+- [📦 Project Structure](#-project-structure)
+- [📡 Observability](#-observability)
+- [🌍 Environment Settings](#-environment-settings)
+- [🧪 Opentelemetry](#-opentelemetry)
+- [📜 License](#-license)
+
+---
+
 ## 🎯 Philosophy
 
 Phlow was built around the following principles:
@@ -208,6 +224,81 @@ PHLOW_OTEL=true
 PHLOW_LOG=DEBUG
 PHLOW_SPAN=INFO
 ```
+---
+
+## 🌍 Environment Settings
+
+Below is a list of **all** environment variables used by the application, combining those defined in both files, along with their descriptions, default values, and types.
+
+### Environment Variables Table
+
+| Variable                                        | Description                                                                                                                       | Default Value | Type    |
+|-------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|----------------|---------|
+| **PHLOW_PACKAGE_CONSUMERS_COUNT**               | **Number of package consumers**<br>Defines how many threads will be used to process packages.                                     | `10`           | `i32`   |
+| **PHLOW_MIN_ALLOCATED_MEMORY_MB**               | **Minimum allocated memory (MB)**<br>Defines the minimum amount of memory, in MB, allocated to the process.                       | `10`           | `usize` |
+| **PHLOW_GARBAGE_COLLECTION_ENABLED**            | **Enable garbage collection**<br>Enables or disables garbage collection (GC).                                                     | `true`         | `bool`  |
+| **PHLOW_GARBAGE_COLLECTION_INTERVAL_SECONDS**   | **Garbage collection interval (seconds)**<br>Defines the interval at which garbage collection will be performed.                  | `60`           | `u64`   |
+| **PHLOW_LOG**                                   | **Log level**<br>Defines the log verbosity for standard logging output. Possible values typically include `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`. | `WARN` | `str`   |
+| **PHLOW_SPAN**                                  | **Span level**<br>Defines the verbosity level for span (OpenTelemetry) tracing. Possible values typically include `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`. | `INFO` | `str`   |
+| **PHLOW_OTEL**                                  | **Enable OpenTelemetry**<br>Enables or disables OpenTelemetry tracing and metrics.                                                | `true`         | `bool`  |
+
+---
+
+### Notes
+
+- If an environment variable is not set, the default value indicated in the table above will be used.
+- Set the corresponding environment variables before running the application to override the defaults.
+- The **log level** (`PHLOW_LOG`) and **span level** (`PHLOW_SPAN`) control different layers of logging:
+  - `PHLOW_LOG`: Affects standard logging (e.g., error, warning, info messages).
+  - `PHLOW_SPAN`: Affects tracing spans (useful for deeper telemetry insights with OpenTelemetry).
+- The `PHLOW_OTEL` variable controls whether or not OpenTelemetry providers (for both tracing and metrics) are initialized.
+
+---
+## 🧪 OpenTelemetry + Jaeger (Local Dev Setup)
+
+To enable observability with **Jaeger** during development, you can run a full OpenTelemetry-compatible collector locally in seconds.
+
+### 🔄 1. Run Jaeger with OTLP support
+
+!!!bash
+docker run -d \
+  -p4318:4318 \  # OTLP HTTP
+  -p4317:4317 \  # OTLP gRPC
+  -p16686:16686 \  # Jaeger UI
+  jaegertracing/all-in-one:latest
+
+This container supports OTLP over HTTP and gRPC, which are both compatible with Phlow's OpenTelemetry output.
+
+---
+
+### ⚙️ 2. Configure environment variables
+
+Set the following environment variables in your shell or `.env` file:
+
+!!!bash
+export OTEL_RESOURCE_ATTRIBUTES="service.name=phlow-dev,service.version=0.1.0"
+export OTEL_SERVICE_NAME="phlow-dev"
+
+You can change the `service.name` to any label that helps identify your instance in Jaeger.
+
+---
+
+### 🔍 3. Open the Jaeger UI
+
+Once running, access the Jaeger web interface at:
+
+[http://localhost:16686](http://localhost:16686)
+
+Search for your service using the name defined in `OTEL_SERVICE_NAME`.
+
+---
+
+### ✅ Tips
+
+- Combine this with `PHLOW_OTEL=true`, `PHLOW_SPAN=INFO`, and `PHLOW_LOG=DEBUG` for full observability.
+- You can also integrate with **Grafana Tempo** or **AWS X-Ray** by replacing the collector backend.
+
+
 ---
 
 ## 📜 License
