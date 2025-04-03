@@ -17,7 +17,7 @@ Whether you're creating APIs, consumers, automations, or event-driven systems, P
 - [📦 Project Structure](#-project-structure)
 - [📡 Observability](#-observability)
 - [🌍 Environment Settings](#-environment-settings)
-- [🧪 Opentelemetry](#-opentelemetry)
+- [🧪 Opentelemetry](#-opentelemetry--jaeger-local-dev-setup)
 - [📜 License](#-license)
 
 ---
