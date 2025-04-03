@@ -13,9 +13,9 @@ use tracing::{dispatcher, Dispatch};
 use tracing_core::LevelFilter;
 use tracing_opentelemetry::MetricsLayer;
 use tracing_opentelemetry::OpenTelemetryLayer;
+use tracing_subscriber::fmt;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::Registry;
-use tracing_subscriber::{field::debug, fmt};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 fn resource() -> Resource {
@@ -89,7 +89,7 @@ fn get_otel_active() -> bool {
 }
 
 pub fn init_tracing_subscriber() -> OtelGuard {
-    if get_otel_active() {
+    if !get_otel_active() {
         Registry::default()
             .with(fmt::layer().with_filter(LevelFilter::from_level(get_log_level())))
             .init();
