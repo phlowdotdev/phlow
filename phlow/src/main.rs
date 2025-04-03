@@ -7,7 +7,6 @@ use envs::Envs;
 use futures::future::join_all;
 use loader::{load_module, Loader};
 use phlow_engine::{
-    collector::Step,
     modules::{ModulePackage, Modules},
     Phlow,
 };
@@ -22,7 +21,6 @@ async fn main() {
 
     let envs = Envs::load();
 
-    debug!("STEP_CONSUMERS = {}", envs.step_consumer_count);
     debug!("PACKAGE_CONSUMERS = {}", envs.package_consumer_count);
 
     // -------------------------
@@ -41,7 +39,6 @@ async fn main() {
     // -------------------------
     // Create the channels
     // -------------------------
-    let (tx_trace_step, rx_trace_step) = channel::unbounded::<Step>();
     let (tx_main_package, rx_main_package) = channel::unbounded::<Package>();
 
     let mut modules = Modules::default();
@@ -103,7 +100,7 @@ async fn main() {
     // Create the flow
     // -------------------------
     let flow = {
-        match Phlow::try_from_value(&steps, Some(Arc::new(modules)), Some(tx_trace_step)) {
+        match Phlow::try_from_value(&steps, Some(Arc::new(modules)), None) {
             Ok(flow) => flow,
             Err(err) => {
                 error!("Runtime Error To Value: {:?}", err);
@@ -113,17 +110,6 @@ async fn main() {
     };
 
     let flow_arc = Arc::new(flow);
-
-    for i in 0..envs.step_consumer_count {
-        let rx_clone = rx_trace_step.clone();
-
-        tokio::task::spawn_blocking(move || {
-            for step in rx_clone {
-                processes::step(step);
-            }
-            debug!("Step consumer #{} closed channel.", i);
-        });
-    }
 
     let mut handles = Vec::new();
 

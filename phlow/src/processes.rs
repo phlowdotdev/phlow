@@ -1,14 +1,10 @@
-use phlow_engine::{collector::Step, Context, Phlow};
+use phlow_engine::{Context, Phlow};
 use sdk::tracing_opentelemetry::OpenTelemetrySpanExt;
 use sdk::{
     prelude::*,
     tracing::{dispatcher, span, warn, Level},
 };
 use tracing::debug;
-
-pub fn step(step: Step) {
-    debug!("Processing step: {:?}", step.to_value());
-}
 
 pub fn execute_steps(flow: &Phlow, package: &mut Package) {
     debug!("Processing package: {:?}", package);
