@@ -1,4 +1,4 @@
-name: restapi
+name: http_rest_api
 description: A simple REST API server.
 with:
   port:

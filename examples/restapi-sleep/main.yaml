@@ -1,4 +1,4 @@
-main: restapi
+main: http_rest_api
 modules: !include modules.yaml
 steps:
   - use: sleep

@@ -95,10 +95,10 @@ steps:
             module: request
             with:
                 method: !eval main.method
-                url: !eval `public-service.local${main.uri}?` 
+                url: !eval `private-service.local${main.uri}?` 
                 headers:
-                x-forwarded-for: !eval main.client_ip
-                x-original-path: !eval main.path   
+                    x-forwarded-for: !eval main.client_ip
+                    x-original-path: !eval main.path   
                 body: !eval main.body
     - return:
         status_code: 401
@@ -223,7 +223,7 @@ phlow/
 ├── scripts/
 │   └── resolve_url.phs
 ├── phlow_modules/
-│   ├── restapi/
+│   ├── http_rest_api/
 │   │   └── module.so
 │   ├── request/
 │   │   └── module.so

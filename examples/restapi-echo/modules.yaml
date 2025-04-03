@@ -1,2 +1,2 @@
-- module: restapi
+- module: http_rest_api
 - module: echo

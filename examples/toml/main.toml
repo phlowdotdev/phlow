@@ -1,7 +1,7 @@
-main = "restapi"
+main = "http_rest_api"
 
 [[modules]]
-name = "restapi"
+name = "http_rest_api"
 
 [[modules]]
 name = "echo"

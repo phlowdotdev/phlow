@@ -3,7 +3,7 @@ members = [
     'phlow-engine',
     "phlow",
     "sdk",
-    "modules/restapi",
+    "modules/http_rest_api",
     "modules/echo",
     "modules/amqp",
     "modules/log",

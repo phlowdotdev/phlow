@@ -40,6 +40,7 @@ pub async fn proxy(
     let body_size = req.body().size_hint().lower();
     let request_size = req.size_hint().lower();
     let query = req.uri().query().unwrap_or_default().to_string();
+    let uri = req.uri().to_string();
 
     let headers = resolve_headers(
         req.headers().clone(),
@@ -69,6 +70,9 @@ pub async fn proxy(
         ("query_string", query.to_value()),
         ("query_params", query_params),
         ("body", body),
+        ("uri", uri.to_value()),
+        ("body_size", body_size.to_value()),
+        ("request_size", request_size.to_value()),
     ])
     .to_value();
 

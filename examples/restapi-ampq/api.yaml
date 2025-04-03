@@ -1,6 +1,6 @@
-main: restapi
+main: http_rest_api
 modules: 
-  - module: restapi
+  - module: http_rest_api
   - !include config/amqp.yaml
 steps:
   - condition:

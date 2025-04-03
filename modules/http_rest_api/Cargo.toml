@@ -1,5 +1,5 @@
 [package]
-name = "restapi"
+name = "http_rest_api"
 version = "0.1.0"
 edition = "2021"
 
@@ -12,5 +12,5 @@ bytes = "1.10.1"
 futures-util = "0.3.31"
 
 [lib]
-name = "restapi"
+name = "http_rest_api"
 crate-type = ["cdylib"]

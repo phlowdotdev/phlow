@@ -1147,6 +1147,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "http_rest_api"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "futures-util",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "sdk",
+]
+
+[[package]]
 name = "httparse"
 version = "1.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2325,18 +2337,6 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "windows-registry",
-]
-
-[[package]]
-name = "restapi"
-version = "0.1.0"
-dependencies = [
- "bytes",
- "futures-util",
- "http-body-util",
- "hyper",
- "hyper-util",
- "sdk",
 ]
 
 [[package]]
