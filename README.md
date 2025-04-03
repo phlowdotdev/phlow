@@ -72,16 +72,40 @@ modules:
     module: request
 
 steps:
-  - id: gateway
-    module: request
-    with:
-      method: GET
-      url: !eval main.path.replace("/proxy/", "https://")
-      headers:
-        x-forwarded-for: !eval main.client_ip
-        x-original-path: !eval main.path
-      query: !eval main.query_params
-      body: !eval main.body
+  - condition:
+      assert: !eval main.path.start_with("/public")
+      then:
+        module: request
+          with:
+            method: !eval main.method
+            url: !eval `public-service.local${main.uri}?` 
+            headers:
+              x-forwarded-for: !eval main.client_ip
+              x-original-path: !eval main.path   
+            body: !eval main.body
+  - condition:
+      assert: !eval main.path.start_with("/private")
+      then:
+        condition:
+           assert: !import validation.phs
+        then:
+          module: request
+          with:
+            method: !eval main.method
+            url: !eval `public-service.local${main.uri}?` 
+            headers:
+              x-forwarded-for: !eval main.client_ip
+              x-original-path: !eval main.path   
+            body: !eval main.body
+        else:
+          return:
+            status_code: 401
+            body: {
+                message: unauthorized,
+                code: 401
+            }
+
+
 ```
 ---
 
