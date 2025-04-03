@@ -1,9 +1,6 @@
 main: restapi
 modules: !include modules.yaml
 steps:
-  - use: sleep
-    input:
-      milliseconds: 100
   - id: echo
     use: echo
     input:
@@ -11,16 +8,12 @@ steps:
   - condition:
       assert: !eval main.method == "POST"
     then:
-      steps:
-        - use: sleep
-          input:
-            milliseconds: 10
-        - return:
-            status_code: 201
-            body: !include assets/body.yaml
-            headers:
-              Content-Type: application/json
-              X-Transaction-ID: xxxx
+      return:
+        status_code: 201
+        body: !include assets/body.yaml
+        headers:
+          Content-Type: application/json
+          X-Transaction-ID: xxxx
     else:
       return:
         status_code: 200

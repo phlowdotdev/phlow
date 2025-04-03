@@ -1,3 +1,2 @@
 - module: restapi
 - module: echo
-- module: sleep
