@@ -40,7 +40,11 @@ pub async fn proxy(
     let request_size = req.size_hint().lower();
     let query = req.uri().query().unwrap_or_default().to_string();
 
-    let headers = resolve_headers(req.headers().clone(), &context.span, &context.settings);
+    let headers = resolve_headers(
+        req.headers().clone(),
+        &context.span,
+        &context.authorization_span_mode,
+    );
     let body = resolve_body(req);
     let query_params = resolve_query_params(&query);
 
@@ -148,14 +152,17 @@ fn resolve_authorization(authorization: &str, mode: &AuthorizationSpanMode) -> S
     }
 }
 
-async fn resolve_headers(headers: HeaderMap, span: &Span, settings: &Arc<Settings>) -> Value {
+async fn resolve_headers(
+    headers: HeaderMap,
+    span: &Span,
+    authorization_span_mode: &AuthorizationSpanMode,
+) -> Value {
     headers
         .iter()
         .filter_map(|(key, value)| match value.to_str() {
             Ok(val_str) => {
                 if key == "authorization" {
-                    let authorization =
-                        resolve_authorization(val_str, &settings.authorization_span_mode);
+                    let authorization = resolve_authorization(val_str, authorization_span_mode);
                     span.record("http.request.header.authorization", authorization);
                 } else {
                     span.record(to_span_format!("http.request.header.{}", key), val_str);

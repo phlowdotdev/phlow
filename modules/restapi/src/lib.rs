@@ -45,8 +45,8 @@ pub async fn start_server(
     sender_safe!(setup.setup_sender, None);
 
     loop {
-        let settings = settings.clone();
         let dispatch = setup.dispatch.clone();
+        let authorization_span_mode = settings.authorization_span_mode.clone();
         let sender = match setup.main_sender.clone() {
             Some(sender) => sender,
             None => {
@@ -66,7 +66,7 @@ pub async fn start_server(
                 sender: sender.clone(),
                 id: setup.id,
                 peer_addr,
-                settings,
+                authorization_span_mode,
             };
 
             if let Err(e) = http1::Builder::new()
