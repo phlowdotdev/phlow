@@ -3,6 +3,7 @@ mod memory;
 mod settings;
 mod yaml;
 use crossbeam::channel;
+use futures::future::join_all;
 use loader::{load_module, Loader};
 use memory::force_memory_release;
 use phlow_engine::{
@@ -17,7 +18,7 @@ use tokio::sync::oneshot;
 
 #[tokio::main]
 async fn main() {
-    let guard = init_tracing_subscriber().expect("Failed to initialize tracing subscriber");
+    let guard = init_tracing_subscriber();
 
     let settings = Settings::load();
 
@@ -119,11 +120,13 @@ async fn main() {
         }
     });
 
+    let mut handles = Vec::new();
+
     for _i in 0..settings.package_consumer_count {
         let rx_pkg = rx_main_package.clone();
         let flow = flow.clone();
 
-        tokio::task::spawn_blocking(move || {
+        let handle = tokio::task::spawn_blocking(move || {
             for mut package in rx_pkg {
                 let flow = flow.clone();
                 let parent = package.span.clone().expect("Span not found in main module");
@@ -154,5 +157,9 @@ async fn main() {
                 });
             }
         });
+
+        handles.push(handle);
     }
+
+    join_all(handles).await;
 }
