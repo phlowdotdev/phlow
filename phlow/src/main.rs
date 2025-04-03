@@ -1,6 +1,5 @@
 mod envs;
 mod loader;
-mod processes;
 mod yaml;
 use crossbeam::channel;
 use envs::Envs;
@@ -8,9 +7,9 @@ use futures::future::join_all;
 use loader::{load_module, Loader};
 use phlow_engine::{
     modules::{ModulePackage, Modules},
-    Phlow,
+    Context, Phlow,
 };
-use sdk::tracing::{debug, error};
+use sdk::tracing::{debug, dispatcher, error, warn};
 use sdk::{otel::init_tracing_subscriber, prelude::*};
 use std::sync::Arc;
 use tokio::sync::oneshot;
@@ -99,8 +98,6 @@ async fn main() {
 
     drop(tx_main_package);
 
-    debug!("Starting Phlow");
-
     // -------------------------
     // Create the flow
     // -------------------------
@@ -114,24 +111,45 @@ async fn main() {
         }
     });
 
-    let mut handles = Vec::new();
+    let mut handles: Vec<tokio::task::JoinHandle<()>> = Vec::new();
 
     for _i in 0..envs.package_consumer_count {
         let rx_pkg = rx_main_package.clone();
-        let flow_ref = flow.clone();
-
-        debug!("Starting package consumer {}", _i);
+        let flow = flow.clone();
 
         let handle = tokio::task::spawn_blocking(move || {
             for mut package in rx_pkg {
-                debug!("Processing package in consumer {}", _i);
-                processes::execute_steps(&flow_ref, &mut package);
+                let flow = flow.clone();
+                let parent = package.span.clone().expect("Span not found in main module");
+                let dispatch = package
+                    .dispatch
+                    .clone()
+                    .expect("Dispatch not found in main module");
+
+                tokio::task::block_in_place(move || {
+                    dispatcher::with_default(&dispatch, || {
+                        let _enter = parent.enter();
+                        let rt = tokio::runtime::Handle::current();
+                        rt.block_on(async {
+                            if let Some(data) = package.get_data() {
+                                let mut context = Context::from_main(data.clone());
+                                match flow.execute(&mut context).await {
+                                    Ok(result) => {
+                                        package.send(result.unwrap_or(Value::Null));
+                                    }
+                                    Err(err) => {
+                                        warn!("Runtime Error Execute Steps: {:?}", err);
+                                    }
+                                }
+                            }
+                        });
+                    });
+                });
             }
         });
 
         handles.push(handle);
     }
 
-    debug!("Waiting for all handles to finish...");
     join_all(handles).await;
 }

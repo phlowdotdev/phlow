@@ -1,4 +1,4 @@
-use crate::settings::{self, AuthorizationSpanMode, Settings};
+use crate::settings::{AuthorizationSpanMode, Settings};
 use crate::{middleware::RequestContext, response::ResponseHandler};
 use bytes::Bytes;
 use http_body_util::{BodyExt, Full};
