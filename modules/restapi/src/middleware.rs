@@ -1,9 +1,8 @@
-use crate::settings::Settings;
+use crate::settings::AuthorizationSpanMode;
 use hyper::{body::Incoming, service::Service, Request};
 use sdk::tracing::{field, Dispatch, Level};
-use sdk::ModuleId;
+use sdk::{span_enter, ModuleId};
 use sdk::{tracing, MainRuntimeSender};
-use std::sync::Arc;
 use std::{future::Future, pin::Pin};
 
 #[derive(Debug, Clone)]
@@ -13,7 +12,7 @@ pub struct RequestContext {
     pub dispatch: Dispatch,
     pub span: sdk::tracing::Span,
     pub client_ip: String,
-    pub settings: Arc<Settings>,
+    pub authorization_span_mode: AuthorizationSpanMode,
 }
 
 #[derive(Debug, Clone)]
@@ -23,7 +22,7 @@ pub struct TracingMiddleware<S> {
     pub dispatch: sdk::tracing::Dispatch,
     pub sender: MainRuntimeSender,
     pub peer_addr: std::net::SocketAddr,
-    pub settings: Arc<Settings>,
+    pub authorization_span_mode: AuthorizationSpanMode,
 }
 
 impl<S> Service<Request<Incoming>> for TracingMiddleware<S>
@@ -117,13 +116,15 @@ where
                 "http.response.header.via" = field::Empty,
             );
 
+            span_enter!(span);
+
             let context = RequestContext {
                 id: self.id,
                 sender: self.sender.clone(),
                 dispatch: self.dispatch.clone(),
                 client_ip: self.peer_addr.to_string(),
                 span,
-                settings: self.settings.clone(),
+                authorization_span_mode: self.authorization_span_mode.clone(),
             };
 
             req.extensions_mut().insert(context);

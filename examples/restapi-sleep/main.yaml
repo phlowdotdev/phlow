@@ -1,0 +1,37 @@
+main: restapi
+modules: !include modules.yaml
+steps:
+  - use: sleep
+    input:
+      milliseconds: 15
+      # seconds: 1
+      # minutes: 1
+      # hours: 1
+  - use: sleep
+    input:
+      milliseconds: 5      
+  - id: echo
+    use: echo
+    input:
+      message: Hello, World!
+  - condition:
+      assert: !eval main.method == "POST"
+    then:
+      steps:
+        - use: sleep
+          input:
+            milliseconds: 10
+        - return:
+            status_code: 201
+            body: !include assets/body.yaml
+            headers:
+              Content-Type: application/json
+              X-Transaction-ID: xxxx
+    else:
+      return:
+        status_code: 200
+        body: !include assets/body.yaml
+        headers:
+          Content-Type: application/json
+
+  

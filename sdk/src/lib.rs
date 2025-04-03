@@ -1,4 +1,5 @@
 pub mod context;
+pub mod count;
 pub mod id;
 pub mod modules;
 pub mod otel;
@@ -77,6 +78,14 @@ impl Package {
 }
 
 #[macro_export]
+macro_rules! span_enter {
+    ($span:expr) => {
+        let span_enter_clone = $span.clone();
+        let _enter = span_enter_clone.enter();
+    };
+}
+
+#[macro_export]
 macro_rules! sender_safe {
     ($sender:expr, $data:expr) => {
         if let Err(err) = $sender.send($data) {
@@ -136,16 +145,21 @@ macro_rules! main_plugin_async {
         pub extern "C" fn plugin(setup: ModuleSetup) {
             let dispatch = setup.dispatch.clone();
             sdk::tracing::dispatcher::with_default(&dispatch, || {
-                sdk::otel::init_tracing_subscriber().expect("failed to initialize tracing");
+                let _guard = sdk::otel::init_tracing_subscriber();
 
                 if let Ok(rt) = sdk::tokio::runtime::Runtime::new() {
                     rt.block_on(start_server(setup)).unwrap_or_else(|e| {
                         sdk::tracing::error!("Error in plugin: {:?}", e);
                     });
+                    println!("Plugin loaded");
                 } else {
                     sdk::tracing::error!("Error creating runtime");
+                    println!("Plugin loaded");
+
                     return;
                 };
+
+                println!("Plugin loaded");
             });
         }
     };

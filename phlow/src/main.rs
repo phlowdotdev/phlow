@@ -1,29 +1,26 @@
-mod envs;
 mod loader;
+mod memory;
+mod settings;
 mod yaml;
 use crossbeam::channel;
-use envs::Envs;
+use futures::future::join_all;
 use loader::{load_module, Loader};
-// use mimalloc::MiMalloc;
+use memory::force_memory_release;
 use phlow_engine::{
     modules::{ModulePackage, Modules},
     Context, Phlow,
 };
 use sdk::tracing::{debug, dispatcher, error, warn};
 use sdk::{otel::init_tracing_subscriber, prelude::*};
-use std::sync::Arc;
+use settings::Settings;
+use std::{sync::Arc, thread};
 use tokio::sync::oneshot;
-
-// #[global_allocator]
-// static GLOBAL: MiMalloc = MiMalloc;
 
 #[tokio::main]
 async fn main() {
-    let guard = init_tracing_subscriber().expect("Failed to initialize tracing subscriber");
+    let guard = init_tracing_subscriber();
 
-    let envs = Envs::load();
-
-    debug!("PACKAGE_CONSUMERS = {}", envs.package_consumer_count);
+    let settings = Settings::load();
 
     // -------------------------
     // Load the main file
@@ -37,13 +34,12 @@ async fn main() {
     };
 
     let steps: Value = loader.get_steps();
+    let mut modules = Modules::default();
 
     // -------------------------
     // Create the channels
     // -------------------------
     let (tx_main_package, rx_main_package) = channel::unbounded::<Package>();
-
-    let mut modules = Modules::default();
 
     // -------------------------
     // Load the modules
@@ -101,6 +97,16 @@ async fn main() {
 
     drop(tx_main_package);
 
+    #[cfg(target_os = "linux")]
+    if settings.garbage_collection {
+        thread::spawn(move || loop {
+            thread::sleep(std::time::Duration::from_secs(
+                settings.garbage_collection_interval,
+            ));
+            force_memory_release(settings.min_allocated_memory);
+        });
+    }
+
     // -------------------------
     // Create the flow
     // -------------------------
@@ -114,11 +120,13 @@ async fn main() {
         }
     });
 
-    for _i in 0..envs.package_consumer_count {
+    let mut handles = Vec::new();
+
+    for _i in 0..settings.package_consumer_count {
         let rx_pkg = rx_main_package.clone();
         let flow = flow.clone();
 
-        tokio::task::spawn_blocking(move || {
+        let handle = tokio::task::spawn_blocking(move || {
             for mut package in rx_pkg {
                 let flow = flow.clone();
                 let parent = package.span.clone().expect("Span not found in main module");
@@ -131,6 +139,7 @@ async fn main() {
                     dispatcher::with_default(&dispatch, || {
                         let _enter = parent.enter();
                         let rt = tokio::runtime::Handle::current();
+
                         rt.block_on(async {
                             if let Some(data) = package.get_data() {
                                 let mut context = Context::from_main(data.clone());
@@ -148,5 +157,9 @@ async fn main() {
                 });
             }
         });
+
+        handles.push(handle);
     }
+
+    join_all(handles).await;
 }

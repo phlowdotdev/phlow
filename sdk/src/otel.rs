@@ -8,7 +8,7 @@ use opentelemetry_sdk::{
     trace::{RandomIdGenerator, Sampler, SdkTracerProvider},
     Resource,
 };
-use tracing::Level;
+use tracing::{debug, Level};
 use tracing::{dispatcher, Dispatch};
 use tracing_core::LevelFilter;
 use tracing_opentelemetry::MetricsLayer;
@@ -81,45 +81,86 @@ fn get_span_level() -> Level {
     }
 }
 
-pub fn init_tracing_subscriber() -> Result<OtelGuard, ExporterBuildError> {
-    let tracer_provider = init_tracer_provider()?;
-    let meter_provider = init_meter_provider()?;
+fn get_otel_active() -> bool {
+    match std::env::var("PHLOW_OTEL") {
+        Ok(active) => active.parse::<bool>().unwrap_or(true),
+        Err(_) => true,
+    }
+}
 
-    let tracer = tracer_provider.tracer("tracing-otel-subscriber");
+pub fn init_tracing_subscriber() -> OtelGuard {
+    if !get_otel_active() {
+        Registry::default()
+            .with(fmt::layer().with_filter(LevelFilter::from_level(get_log_level())))
+            .init();
 
-    let fmt_layer = fmt::layer().with_filter(LevelFilter::from_level(get_log_level())); // logs (ex: WARN)
+        debug!("PHLOW_OTEL is set to false, using default subscriber");
 
-    let otel_layer =
-        OpenTelemetryLayer::new(tracer).with_filter(LevelFilter::from_level(get_span_level())); // spans (ex: INFO)
+        return OtelGuard {
+            tracer_provider: None,
+            meter_provider: None,
+            dispatch: dispatcher::get_default(|d| d.clone()),
+        };
+    }
 
-    Registry::default()
-        .with(fmt_layer)
-        .with(otel_layer)
-        .with(MetricsLayer::new(meter_provider.clone()))
-        .init();
+    let tracer_provider = init_tracer_provider().ok();
+    let meter_provider = init_meter_provider().ok();
+
+    let (tracer_provider, meter_provider) = if tracer_provider.is_some() && meter_provider.is_some()
+    {
+        let tracer_provider = tracer_provider.unwrap();
+        let meter_provider = meter_provider.unwrap();
+        let tracer = tracer_provider.tracer("tracing-otel-subscriber");
+
+        let fmt_layer = fmt::layer().with_filter(LevelFilter::from_level(get_log_level())); // logs (ex: WARN)
+
+        let otel_layer =
+            OpenTelemetryLayer::new(tracer).with_filter(LevelFilter::from_level(get_span_level())); // spans (ex: INFO)
+
+        Registry::default()
+            .with(fmt_layer)
+            .with(otel_layer)
+            .with(MetricsLayer::new(meter_provider.clone()))
+            .init();
+
+        debug!("OpenTelemetry provider found, using OpenTelemetry subscriber");
+
+        (Some(tracer_provider), Some(meter_provider))
+    } else {
+        Registry::default()
+            .with(fmt::layer().with_filter(LevelFilter::from_level(get_log_level())))
+            .init();
+
+        debug!("No OpenTelemetry provider found, using default subscriber");
+        (None, None)
+    };
 
     let dispatch = dispatcher::get_default(|d| d.clone());
 
-    Ok(OtelGuard {
+    OtelGuard {
         tracer_provider,
         meter_provider,
         dispatch,
-    })
+    }
 }
 
 pub struct OtelGuard {
-    pub tracer_provider: SdkTracerProvider,
-    pub meter_provider: SdkMeterProvider,
+    pub tracer_provider: Option<SdkTracerProvider>,
+    pub meter_provider: Option<SdkMeterProvider>,
     pub dispatch: Dispatch,
 }
 
 impl Drop for OtelGuard {
     fn drop(&mut self) {
-        if let Err(err) = self.tracer_provider.shutdown() {
-            eprintln!("{err:?}");
+        if let Some(tracer_provider) = &self.tracer_provider {
+            if let Err(err) = tracer_provider.shutdown() {
+                eprintln!("{err:?}");
+            }
         }
-        if let Err(err) = self.meter_provider.shutdown() {
-            eprintln!("{err:?}");
+        if let Some(meter_provider) = &self.meter_provider {
+            if let Err(err) = meter_provider.shutdown() {
+                eprintln!("{err:?}");
+            }
         }
     }
 }
