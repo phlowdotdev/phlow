@@ -284,13 +284,13 @@ To enable observability with **Jaeger** during development, you can run a full O
 
 ### 🔄 1. Run Jaeger with OTLP support
 
-!!!bash
+```bash
 docker run -d \
   -p4318:4318 \  # OTLP HTTP
   -p4317:4317 \  # OTLP gRPC
   -p16686:16686 \  # Jaeger UI
   jaegertracing/all-in-one:latest
-
+```
 This container supports OTLP over HTTP and gRPC, which are both compatible with Phlow's OpenTelemetry output.
 
 ---
@@ -299,10 +299,10 @@ This container supports OTLP over HTTP and gRPC, which are both compatible with 
 
 Set the following environment variables in your shell or `.env` file:
 
-!!!bash
+```bash
 export OTEL_RESOURCE_ATTRIBUTES="service.name=phlow-dev,service.version=0.1.0"
 export OTEL_SERVICE_NAME="phlow-dev"
-
+```
 You can change the `service.name` to any label that helps identify your instance in Jaeger.
 
 ---
