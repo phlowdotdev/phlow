@@ -29,12 +29,10 @@ pub async fn proxy(
     let method = req.method().to_string();
     let body_size = req.body().size_hint().lower();
     let request_size = req.size_hint().lower();
-
     let query = req.uri().query().unwrap_or_default().to_string();
 
     let headers = resolve_headers(req.headers().clone(), &context.span);
     let body = resolve_body(req);
-
     let query_params = resolve_query_params(&query);
 
     context
@@ -51,7 +49,7 @@ pub async fn proxy(
 
     let data = HashMap::from([
         ("client_ip", context.client_ip.to_value()),
-        ("headers", headers.to_value()),
+        ("headers", headers),
         ("method", method.to_value()),
         ("path", path.to_value()),
         ("query_string", query.to_value()),
@@ -59,8 +57,6 @@ pub async fn proxy(
         ("body", body),
     ])
     .to_value();
-
-    info!("Received request: {:?}", data);
 
     let response_value = sender!(
         context.span.clone(),
@@ -131,7 +127,7 @@ pub async fn resolve_body(req: Request<hyper::body::Incoming>) -> Value {
     body
 }
 
-pub async fn resolve_headers(headers: HeaderMap, span: &Span) -> HashMap<String, String> {
+pub async fn resolve_headers(headers: HeaderMap, span: &Span) -> Value {
     headers
         .iter()
         .filter_map(|(key, value)| match value.to_str() {
@@ -145,4 +141,5 @@ pub async fn resolve_headers(headers: HeaderMap, span: &Span) -> HashMap<String,
             }
         })
         .collect::<HashMap<String, String>>()
+        .to_value()
 }
