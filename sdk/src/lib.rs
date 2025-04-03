@@ -80,7 +80,7 @@ impl Package {
 macro_rules! sender_safe {
     ($sender:expr, $data:expr) => {
         if let Err(err) = $sender.send($data) {
-            $crate::tracing::warn!("Error sending data: {:?}", err);
+            $crate::tracing::debug!("Error sending data: {:?}", err);
         }
     };
 }

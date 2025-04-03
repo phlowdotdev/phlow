@@ -10,7 +10,7 @@ use resolver::proxy;
 use sdk::{
     prelude::*,
     tokio::net::TcpListener,
-    tracing::{info, warn},
+    tracing::{debug, info, warn},
 };
 use settings::Settings;
 use setup::Config;
@@ -84,7 +84,7 @@ pub async fn start_server(
                 .serve_connection(io, middleware)
                 .await
             {
-                sdk::tracing::error!("Error serving connection from {}: {:?}", peer_addr, e);
+                debug!("Error serving connection: {}", e);
             }
         });
     }
