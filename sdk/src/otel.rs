@@ -84,7 +84,7 @@ fn get_span_level() -> Level {
 fn get_otel_active() -> bool {
     match std::env::var("PHLOW_OTEL") {
         Ok(active) => active.parse::<bool>().unwrap_or(true),
-        Err(_) => false,
+        Err(_) => true,
     }
 }
 
