@@ -72,40 +72,40 @@ modules:
     module: request
 
 steps:
-  - condition:
-      assert: !eval main.path.start_with("/public")
-      then:
-        module: request
-          with:
-            method: !eval main.method
-            url: !eval `public-service.local${main.uri}?` 
-            headers:
-              x-forwarded-for: !eval main.client_ip
-              x-original-path: !eval main.path   
-            body: !eval main.body
-  - condition:
-      assert: !eval main.path.start_with("/private")
-      then:
-        condition:
-           assert: !import validation.phs
+    - condition:
+        assert: !eval main.path.start_with("/public")
         then:
-          module: request
-          with:
-            method: !eval main.method
-            url: !eval `public-service.local${main.uri}?` 
-            headers:
-              x-forwarded-for: !eval main.client_ip
-              x-original-path: !eval main.path   
-            body: !eval main.body
+            module: request
+                with:
+                    method: !eval main.method
+                    url: !eval `public-service.local${main.uri}?` 
+                    headers:
+                        x-forwarded-for: !eval main.client_ip
+                        x-original-path: !eval main.path   
+                    body: !eval main.body
         else:
-          return:
-            status_code: 401
-            body: {
-                message: unauthorized,
-                code: 401
-            }
-
-
+            - use: authorization
+                id: auth
+                input:
+                    api_key: main.header.authorization
+            - condition:
+                assert: !eval steps.auth.authorized == true          
+                then:
+                    module: request
+                    with:
+                        method: !eval main.method
+                        url: !eval `public-service.local${main.uri}?` 
+                        headers:
+                        x-forwarded-for: !eval main.client_ip
+                        x-original-path: !eval main.path   
+                        body: !eval main.body
+                else:
+                    return:
+                        status_code: 401
+                        body: {
+                            "message": "unauthorized",
+                            "code": 401
+                        }
 ```
 ---
 
