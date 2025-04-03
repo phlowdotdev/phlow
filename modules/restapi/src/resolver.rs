@@ -18,6 +18,18 @@ macro_rules! to_span_format {
     }};
 }
 
+pub async fn ping(
+    _req: Request<hyper::body::Incoming>,
+) -> Result<Response<Full<Bytes>>, Infallible> {
+    let response = Response::builder()
+        .status(200)
+        .header("Content-Type", "application/json")
+        .body(Full::new(Bytes::from("{\"status\": \"ok\"}")))
+        .unwrap();
+
+    Ok(response)
+}
+
 pub async fn proxy(
     req: Request<hyper::body::Incoming>,
 ) -> Result<Response<Full<Bytes>>, Infallible> {
@@ -88,7 +100,7 @@ pub async fn proxy(
     Ok(response.build())
 }
 
-pub async fn resolve_query_params(query: &str) -> Value {
+async fn resolve_query_params(query: &str) -> Value {
     let mut map = HashMap::new();
 
     for pair in query.split('&') {
@@ -102,7 +114,7 @@ pub async fn resolve_query_params(query: &str) -> Value {
     map.to_value()
 }
 
-pub async fn resolve_body(req: Request<hyper::body::Incoming>) -> Value {
+async fn resolve_body(req: Request<hyper::body::Incoming>) -> Value {
     let body_bytes: Bytes = match req.into_body().collect().await {
         Ok(full_body) => full_body.to_bytes(),
         Err(e) => {
@@ -141,7 +153,7 @@ fn resolve_authorization(authorization: &str, mode: &AuthorizationSpanMode) -> S
     }
 }
 
-pub async fn resolve_headers(headers: HeaderMap, span: &Span, settings: &Arc<Settings>) -> Value {
+async fn resolve_headers(headers: HeaderMap, span: &Span, settings: &Arc<Settings>) -> Value {
     headers
         .iter()
         .filter_map(|(key, value)| match value.to_str() {

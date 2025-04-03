@@ -6,7 +6,7 @@ mod setup;
 use hyper::{server::conn::http1, service::service_fn};
 use hyper_util::rt::TokioIo;
 use middleware::TracingMiddleware;
-use resolver::proxy;
+use resolver::{ping, proxy};
 use sdk::{
     prelude::*,
     tokio::net::TcpListener,
