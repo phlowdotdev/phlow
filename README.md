@@ -78,17 +78,17 @@ steps:
         assert: !eval main.path.start_with("/public")
         then:
             module: request
-                with:
-                    method: !eval main.method
-                    url: !eval `public-service.local${main.uri}?` 
-                    headers:
-                        x-forwarded-for: !eval main.client_ip
-                        x-original-path: !eval main.path   
-                    body: !eval main.body
+            input:
+                method: !eval main.method
+                url: !eval `public-service.local${main.uri}?` 
+                headers:
+                    x-forwarded-for: !eval main.client_ip
+                    x-original-path: !eval main.path   
+                body: !eval main.body
     - use: authorization
         id: auth
         input:
-            api_key: main.header.authorization
+            api_key: !eval main.header.authorization
     - condition:
         assert: !eval steps.auth.authorized == true          
         then:
