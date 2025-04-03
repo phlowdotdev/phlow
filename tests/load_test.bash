@@ -4,9 +4,7 @@
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
 npx autocannon \
-  -c 100 \
+  -c 10000 \
   -d 10 \
-  -m POST \
-  -H "Content-Type: application/json" \
-  -b "$(cat "$SCRIPT_DIR/data.json")" \
-  http://localhost:3000
+  -m GET \
+  http://localhost:3000/ping

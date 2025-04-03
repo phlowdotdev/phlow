@@ -57,8 +57,6 @@ pub async fn start_server(
 
     loop {
         let settings = settings.clone();
-        let (tcp, peer_addr) = listener.accept().await?;
-        let io: TokioIo<tokio::net::TcpStream> = TokioIo::new(tcp);
         let dispatch = setup.dispatch.clone();
         let sender = match setup.main_sender.clone() {
             Some(sender) => sender,
@@ -66,6 +64,9 @@ pub async fn start_server(
                 return Err("Main sender is None".into());
             }
         };
+
+        let (tcp, peer_addr) = listener.accept().await?;
+        let io: TokioIo<tokio::net::TcpStream> = TokioIo::new(tcp);
 
         tokio::task::spawn(async move {
             let service = service_fn(proxy);

@@ -4,6 +4,7 @@ mod yaml;
 use crossbeam::channel;
 use envs::Envs;
 use loader::{load_module, Loader};
+use mimalloc::MiMalloc;
 use phlow_engine::{
     modules::{ModulePackage, Modules},
     Context, Phlow,
@@ -12,6 +13,9 @@ use sdk::tracing::{debug, dispatcher, error, warn};
 use sdk::{otel::init_tracing_subscriber, prelude::*};
 use std::sync::Arc;
 use tokio::sync::oneshot;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 #[tokio::main]
 async fn main() {

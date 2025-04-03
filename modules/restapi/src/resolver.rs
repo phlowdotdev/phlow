@@ -69,17 +69,21 @@ pub async fn proxy(
     ])
     .to_value();
 
-    let response_value = sender!(
-        context.span.clone(),
-        context.dispatch.clone(),
-        context.id,
-        context.sender,
-        Some(data)
-    )
-    .await
-    .unwrap_or(Value::Null);
+    // let response_value = sender!(
+    //     context.span.clone(),
+    //     context.dispatch.clone(),
+    //     context.id,
+    //     context.sender,
+    //     Some(data)
+    // )
+    // .await
+    // .unwrap_or(Value::Null);
 
-    let response = ResponseHandler::from(response_value);
+    let response = ResponseHandler {
+        status_code: 200,
+        headers: HashMap::new(),
+        body: "".to_string(),
+    };
 
     context
         .span

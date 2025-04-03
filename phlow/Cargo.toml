@@ -7,7 +7,6 @@ edition = "2021"
 sdk = { path = "../sdk" }
 phlow-engine = { path = "../phlow-engine" }
 serde = { version = "1.0", features = ["derive"] }
-tokio = { version = "1", features = ["full"] }
 libloading = "0.8"
 clap = "4"
 serde_yaml = "0.9"
@@ -16,3 +15,9 @@ toml = "0.8"
 regex = "1.11.1"
 crossbeam = "0.8"
 futures = "0.3"
+mimalloc = { version = "0.1", features = ["secure"] }
+
+
+[profile.release]
+opt-level = "z"
+lto = true
