@@ -2,7 +2,10 @@
 
 **Phlow** is a high-performance and highly composable flow runtime built with Rust. It provides a new way to build backend systems using declarative configuration, modular logic, and pluggable runtime behavior — all driven by YAML, JSON, or TOML.
 
-Whether you're creating APIs, consumers, automations, or event-driven systems, Phlow makes it easy to connect logic, transform data, and build applications like pipelines.
+Phlow comes with **native support for OpenTelemetry**, enabling full observability of flows, modules, and runtime execution. You can export traces and metrics to systems like **Jaeger**, **Grafana Tempo**, or **AWS X-Ray** with minimal configuration using environment variables.
+
+Whether you're building APIs, consumers, automations, or event-driven systems, Phlow makes it easy to connect logic, transform data, and monitor everything — all in a composable and developer-friendly way.
+
 
 ---
 
