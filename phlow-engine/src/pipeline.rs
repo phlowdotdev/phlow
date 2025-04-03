@@ -9,11 +9,11 @@ pub enum PipelineError {
 }
 
 #[derive(Debug, Clone)]
-pub struct Pipeline<'a> {
-    pub(crate) steps: Vec<StepWorker<'a>>,
+pub struct Pipeline {
+    pub(crate) steps: Vec<StepWorker>,
 }
 
-impl<'a> Pipeline<'a> {
+impl Pipeline {
     pub async fn execute(
         &self,
         context: &mut Context,

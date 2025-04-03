@@ -7,6 +7,7 @@ use crate::{
     script::{Script, ScriptError},
 };
 use rhai::Engine;
+use sdk::{sender_safe, tracing};
 use serde::Serialize;
 use std::sync::Arc;
 use valu3::prelude::NumberBehavior;
@@ -34,23 +35,23 @@ pub struct StepOutput {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct StepWorker<'a> {
+pub struct StepWorker {
     pub(crate) id: ID,
     pub(crate) label: Option<String>,
     pub(crate) module: Option<String>,
-    pub(crate) condition: Option<Condition<'a>>,
-    pub(crate) input: Option<Script<'a>>,
-    pub(crate) payload: Option<Script<'a>>,
+    pub(crate) condition: Option<Condition>,
+    pub(crate) input: Option<Script>,
+    pub(crate) payload: Option<Script>,
     pub(crate) then_case: Option<usize>,
     pub(crate) else_case: Option<usize>,
     pub(crate) modules: Arc<Modules>,
-    pub(crate) return_case: Option<Script<'a>>,
+    pub(crate) return_case: Option<Script>,
     pub(crate) trace_sender: Option<ContextSender>,
 }
 
-impl<'a> StepWorker<'a> {
+impl StepWorker {
     pub fn try_from_value(
-        engine: &'a Engine,
+        engine: Arc<Engine>,
         modules: Arc<Modules>,
         trace_sender: Option<ContextSender>,
         value: &Value,
@@ -66,7 +67,7 @@ impl<'a> StepWorker<'a> {
         let condition = {
             if let Some(condition) = value
                 .get("condition")
-                .map(|condition| Condition::try_from_value(engine, condition))
+                .map(|condition| Condition::try_from_value(engine.clone(), condition))
             {
                 Some(condition.map_err(StepWorkerError::ConditionError)?)
             } else {
@@ -74,14 +75,14 @@ impl<'a> StepWorker<'a> {
             }
         };
         let payload = match value.get("payload") {
-            Some(payload) => match Script::try_build(&engine, payload) {
+            Some(payload) => match Script::try_build(engine.clone(), payload) {
                 Ok(payload) => Some(payload),
                 Err(err) => return Err(StepWorkerError::PayloadError(err)),
             },
             None => None,
         };
         let input = match value.get("input") {
-            Some(input) => match Script::try_build(&engine, input) {
+            Some(input) => match Script::try_build(engine.clone(), input) {
                 Ok(input) => Some(input),
                 Err(err) => return Err(StepWorkerError::InputError(err)),
             },
@@ -102,7 +103,7 @@ impl<'a> StepWorker<'a> {
             None => None,
         };
         let return_case = match value.get("return") {
-            Some(return_case) => match Script::try_build(&engine, return_case) {
+            Some(return_case) => match Script::try_build(engine, return_case) {
                 Ok(return_case) => Some(return_case),
                 Err(err) => return Err(StepWorkerError::PayloadError(err)),
             },
@@ -197,21 +198,22 @@ impl<'a> StepWorker<'a> {
         }
     }
 
+    #[tracing::instrument(skip(context))]
     pub async fn execute(&self, context: &Context) -> Result<StepOutput, StepWorkerError> {
         if let Some(output) = self.evaluate_return(context)? {
             if let Some(sender) = &self.trace_sender {
-                sender
-                    .send(Step {
+                sender_safe!(
+                    sender,
+                    Step {
                         id: self.id.clone(),
                         label: self.label.clone(),
                         input: None,
                         module: None,
-
                         condition: None,
                         payload: None,
                         return_case: Some(output.clone()),
-                    })
-                    .unwrap();
+                    }
+                );
             }
 
             return Ok(StepOutput {
@@ -222,18 +224,18 @@ impl<'a> StepWorker<'a> {
 
         if let Ok(Some((module, output, context))) = self.evaluate_module(context).await {
             if let Some(sender) = &self.trace_sender {
-                sender
-                    .send(Step {
+                sender_safe!(
+                    sender,
+                    Step {
                         id: self.id.clone(),
                         label: self.label.clone(),
                         input: context.input.clone(),
                         module,
-
                         condition: None,
-                        payload: None,
+                        payload: output.clone(),
                         return_case: None,
-                    })
-                    .unwrap();
+                    }
+                );
             }
 
             let context = if let Some(output) = output.clone() {
@@ -271,8 +273,9 @@ impl<'a> StepWorker<'a> {
             };
 
             if let Some(sender) = &self.trace_sender {
-                sender
-                    .send(Step {
+                sender_safe!(
+                    sender,
+                    Step {
                         id: self.id.clone(),
                         label: self.label.clone(),
                         module: None,
@@ -280,8 +283,8 @@ impl<'a> StepWorker<'a> {
                         condition: Some(condition.raw.clone()),
                         payload: output.clone(),
                         return_case: None,
-                    })
-                    .unwrap();
+                    }
+                );
             }
 
             return Ok(StepOutput { next_step, output });
@@ -290,8 +293,9 @@ impl<'a> StepWorker<'a> {
         let output = self.evaluate_payload(context, None)?;
 
         if let Some(sender) = &self.trace_sender {
-            sender
-                .send(Step {
+            sender_safe!(
+                sender,
+                Step {
                     id: self.id.clone(),
                     label: self.label.clone(),
                     module: None,
@@ -299,8 +303,8 @@ impl<'a> StepWorker<'a> {
                     condition: None,
                     payload: output.clone(),
                     return_case: None,
-                })
-                .unwrap();
+                }
+            );
         }
 
         return Ok(StepOutput {
@@ -333,7 +337,7 @@ mod test {
     async fn test_step_execute() {
         let engine = build_engine_async(None);
         let step = StepWorker {
-            payload: Some(Script::try_build(&engine, &"10".to_value()).unwrap()),
+            payload: Some(Script::try_build(engine, &"10".to_value()).unwrap()),
             ..Default::default()
         };
 
@@ -352,14 +356,14 @@ mod test {
             id: ID::new(),
             condition: Some(
                 Condition::try_build_with_operator(
-                    &engine,
+                    engine.clone(),
                     "10".to_string(),
                     "20".to_string(),
                     crate::condition::Operator::NotEqual,
                 )
                 .unwrap(),
             ),
-            payload: Some(Script::try_build(&engine, &"10".to_value()).unwrap()),
+            payload: Some(Script::try_build(engine, &"10".to_value()).unwrap()),
             ..Default::default()
         };
 
@@ -378,14 +382,14 @@ mod test {
             id: ID::new(),
             condition: Some(
                 Condition::try_build_with_operator(
-                    &engine,
+                    engine.clone(),
                     "10".to_string(),
                     "20".to_string(),
                     crate::condition::Operator::NotEqual,
                 )
                 .unwrap(),
             ),
-            payload: Some(Script::try_build(&engine, &"10".to_value()).unwrap()),
+            payload: Some(Script::try_build(engine, &"10".to_value()).unwrap()),
             then_case: Some(0),
             ..Default::default()
         };
@@ -405,14 +409,14 @@ mod test {
             id: ID::new(),
             condition: Some(
                 Condition::try_build_with_operator(
-                    &engine,
+                    engine.clone(),
                     "10".to_string(),
                     "20".to_string(),
                     crate::condition::Operator::Equal,
                 )
                 .unwrap(),
             ),
-            payload: Some(Script::try_build(&engine, &"10".to_value()).unwrap()),
+            payload: Some(Script::try_build(engine.clone(), &"10".to_value()).unwrap()),
             else_case: Some(1),
             ..Default::default()
         };
@@ -430,7 +434,7 @@ mod test {
         let engine = build_engine_async(None);
         let step = StepWorker {
             id: ID::new(),
-            return_case: Some(Script::try_build(&engine, &"10".to_value()).unwrap()),
+            return_case: Some(Script::try_build(engine.clone(), &"10".to_value()).unwrap()),
             ..Default::default()
         };
 
@@ -447,8 +451,8 @@ mod test {
         let engine = build_engine_async(None);
         let step = StepWorker {
             id: ID::new(),
-            payload: Some(Script::try_build(&engine, &"10".to_value()).unwrap()),
-            return_case: Some(Script::try_build(&engine, &"20".to_value()).unwrap()),
+            payload: Some(Script::try_build(engine.clone(), &"10".to_value()).unwrap()),
+            return_case: Some(Script::try_build(engine.clone(), &"20".to_value()).unwrap()),
             ..Default::default()
         };
 
@@ -467,14 +471,14 @@ mod test {
             id: ID::new(),
             condition: Some(
                 Condition::try_build_with_operator(
-                    &engine,
+                    engine.clone(),
                     "10".to_string(),
                     "20".to_string(),
                     crate::condition::Operator::Equal,
                 )
                 .unwrap(),
             ),
-            return_case: Some(Script::try_build(&engine, &"10".to_value()).unwrap()),
+            return_case: Some(Script::try_build(engine.clone(), &"10".to_value()).unwrap()),
             ..Default::default()
         };
 
@@ -493,7 +497,7 @@ mod test {
             id: ID::new(),
             condition: Some(
                 Condition::try_build_with_operator(
-                    &engine,
+                    engine.clone(),
                     "10".to_string(),
                     "20".to_string(),
                     crate::condition::Operator::Equal,
@@ -501,7 +505,7 @@ mod test {
                 .unwrap(),
             ),
             then_case: Some(0),
-            return_case: Some(Script::try_build(&engine, &"Ok".to_value()).unwrap()),
+            return_case: Some(Script::try_build(engine.clone(), &"Ok".to_value()).unwrap()),
             ..Default::default()
         };
 
@@ -519,7 +523,7 @@ mod test {
             id: ID::new(),
             condition: Some(
                 Condition::try_build_with_operator(
-                    &engine,
+                    engine.clone(),
                     "10".to_string(),
                     "20".to_string(),
                     crate::condition::Operator::Equal,
@@ -527,7 +531,7 @@ mod test {
                 .unwrap(),
             ),
             else_case: Some(0),
-            return_case: Some(Script::try_build(&engine, &"Ok".to_value()).unwrap()),
+            return_case: Some(Script::try_build(engine.clone(), &"Ok".to_value()).unwrap()),
             ..Default::default()
         };
 

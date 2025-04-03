@@ -1,29 +1,35 @@
+mod middleware;
 mod resolver;
 mod response;
+mod settings;
 mod setup;
-use hyper::{server::conn::http1, service::service_fn, Request};
-use hyper_util::rt::{TokioIo, TokioTimer};
-use resolver::resolve;
-use sdk::{
-    prelude::*,
-    tokio::net::TcpListener,
-    tracing::{debug, error, info, warn},
-};
+use hyper::{server::conn::http1, service::service_fn};
+use hyper_util::rt::TokioIo;
+use middleware::TracingMiddleware;
+use resolver::proxy;
+use sdk::{prelude::*, tokio::net::TcpListener, tracing::debug};
+use settings::Settings;
 use setup::Config;
-use std::net::SocketAddr;
+use std::{net::SocketAddr, sync::Arc};
 
-plugin_async!(start_server);
+main_plugin_async!(start_server);
 
 pub async fn start_server(
     setup: ModuleSetup,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if !setup.is_main() {
-        warn!("This module is not the main module, exiting");
-        setup.setup_sender.send(None).unwrap();
+        debug!("This module is not the main module, exiting");
+        match setup.setup_sender.send(None) {
+            Ok(_) => {}
+            Err(e) => {
+                return Err(format!("{:?}", e).into());
+            }
+        };
         return Ok(());
     }
 
     let config: Config = Config::from(setup.with);
+    let settings = Arc::new(Settings::load());
 
     let addr: SocketAddr = format!(
         "{}:{}",
@@ -34,33 +40,41 @@ pub async fn start_server(
 
     let listener = TcpListener::bind(addr).await?;
 
-    setup.setup_sender.send(None).unwrap();
+    debug!("Listening on {}", listener.local_addr()?);
 
-    info!("Listening on http://{}", addr);
-    let id = setup.id;
+    sender_safe!(setup.setup_sender, None);
 
     loop {
+        let settings = settings.clone();
+        let dispatch = setup.dispatch.clone();
+        let sender = match setup.main_sender.clone() {
+            Some(sender) => sender,
+            None => {
+                return Err("Main sender is None".into());
+            }
+        };
+
         let (tcp, peer_addr) = listener.accept().await?;
-        let io = TokioIo::new(tcp);
-        let sender = setup.main_sender.clone().unwrap();
+        let io: TokioIo<tokio::net::TcpStream> = TokioIo::new(tcp);
 
         tokio::task::spawn(async move {
-            let service = service_fn(move |mut req: Request<hyper::body::Incoming>| {
-                req.extensions_mut().insert(peer_addr);
-                resolve(id, sender.clone(), req)
-            });
+            let service = service_fn(proxy);
 
-            if let Err(err) = http1::Builder::new()
+            let middleware = TracingMiddleware {
+                inner: service,
+                dispatch: dispatch.clone(),
+                sender: sender.clone(),
+                id: setup.id,
+                peer_addr,
+                settings,
+            };
+
+            if let Err(e) = http1::Builder::new()
                 .keep_alive(true)
-                .timer(TokioTimer::new())
-                .serve_connection(io, service)
+                .serve_connection(io, middleware)
                 .await
             {
-                if err.is_timeout() {
-                    debug!("Connection timed out");
-                    return;
-                }
-                error!("Error serving connection: {:?}", err);
+                debug!("Error serving connection: {}", e);
             }
         });
     }

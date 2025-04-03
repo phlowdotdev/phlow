@@ -16,7 +16,7 @@ impl From<Value> for Config {
         }
 
         let port = match value.get("port") {
-            Some(port) => Some(port.to_u64().unwrap() as u16),
+            Some(port) => Some(port.to_u64().unwrap_or(3000) as u16),
             None => Some(3000),
         };
 

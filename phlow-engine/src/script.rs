@@ -5,7 +5,7 @@ use rhai::{
     serde::{from_dynamic, to_dynamic},
     Engine, EvalAltResult, ParseError, Scope, AST,
 };
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 use valu3::prelude::*;
 
 #[derive(Debug)]
@@ -16,14 +16,14 @@ pub enum ScriptError {
 }
 
 #[derive(Debug, Clone)]
-pub struct Script<'a> {
+pub struct Script {
     map_extracted: Value,
     map_index_ast: HashMap<usize, AST>,
-    engine: &'a Engine,
+    engine: Arc<Engine>,
 }
 
-impl<'a> Script<'a> {
-    pub fn try_build(engine: &'a Engine, script: &Value) -> Result<Self, ScriptError> {
+impl Script {
+    pub fn try_build(engine: Arc<Engine>, script: &Value) -> Result<Self, ScriptError> {
         let mut map_index_ast = HashMap::new();
         let mut counter = 0;
         let map_extracted =
@@ -56,11 +56,12 @@ impl<'a> Script<'a> {
     pub fn evaluate(&self, context: &Context) -> Result<Value, ScriptError> {
         let mut scope = Scope::new();
 
-        let steps: Dynamic = to_dynamic(context.steps.clone()).unwrap();
-        let params: Dynamic = to_dynamic(context.params.clone()).unwrap();
-        let main: Dynamic = to_dynamic(context.main.clone()).unwrap();
-        let payload: Dynamic = to_dynamic(context.payload.clone()).unwrap();
-        let input: Dynamic = to_dynamic(context.input.clone()).unwrap();
+        let steps: Dynamic = to_dynamic(context.steps.clone()).map_err(ScriptError::EvalError)?;
+        let params: Dynamic = to_dynamic(context.params.clone()).map_err(ScriptError::EvalError)?;
+        let main: Dynamic = to_dynamic(context.main.clone()).map_err(ScriptError::EvalError)?;
+        let payload: Dynamic =
+            to_dynamic(context.payload.clone()).map_err(ScriptError::EvalError)?;
+        let input: Dynamic = to_dynamic(context.input.clone()).map_err(ScriptError::EvalError)?;
 
         scope.push_constant("steps", steps);
         scope.push_constant("params", params);
@@ -76,7 +77,7 @@ impl<'a> Script<'a> {
                 .eval_ast_with_scope(&mut scope, &value)
                 .map_err(ScriptError::EvalError)?;
 
-            result_map.insert(*key, from_dynamic(&value).unwrap());
+            result_map.insert(*key, from_dynamic(&value).map_err(ScriptError::EvalError)?);
         }
 
         let result = Self::replace_primitives(&self.map_extracted, &result_map);
@@ -150,8 +151,14 @@ impl<'a> Script<'a> {
                 Value::from(new_array)
             }
             _ => {
-                let index = map_extracted.to_i64().unwrap() as usize;
-                let value = result.get(&index).unwrap().clone();
+                let index = match map_extracted.to_i64() {
+                    Some(index) => index as usize,
+                    None => panic!("Index not found"),
+                };
+                let value = match result.get(&index) {
+                    Some(value) => value.clone(),
+                    None => panic!("Index not found"),
+                };
 
                 value
             }
@@ -177,7 +184,7 @@ mod test {
 
         let context = Context::new(None);
         let engine = build_engine_async(None);
-        let payload = Script::try_build(&engine, &script.to_value()).unwrap();
+        let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
         let result = payload.evaluate(&context).unwrap();
         assert_eq!(result, Value::from(30i64));
@@ -199,7 +206,7 @@ mod test {
 
         let context = Context::new(None);
         let engine = build_engine_async(None);
-        let payload = Script::try_build(&engine, &script.to_value()).unwrap();
+        let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
         let result = payload.evaluate(&context).unwrap();
         let expected = Value::from({
@@ -219,7 +226,7 @@ mod test {
 
         let context = Context::new(None);
         let engine = build_engine_async(None);
-        let payload = Script::try_build(&engine, &script.to_value()).unwrap();
+        let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from("hello world")));
@@ -241,7 +248,7 @@ mod test {
         })));
 
         let engine = build_engine_async(None);
-        let payload = Script::try_build(&engine, &script.to_value()).unwrap();
+        let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from(30i64)));
@@ -259,7 +266,7 @@ mod test {
         })));
 
         let engine = build_engine_async(None);
-        let payload = Script::try_build(&engine, &script.to_value()).unwrap();
+        let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from(10i64)));
@@ -287,7 +294,7 @@ mod test {
         });
 
         let engine = build_engine_async(None);
-        let payload = Script::try_build(&engine, &script.to_value()).unwrap();
+        let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
         let variable = payload.evaluate_variable(&context).unwrap();
 

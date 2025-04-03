@@ -1,0 +1,17 @@
+main: restapi
+modules:
+  - module: restapi
+  - module: echo
+steps:
+  - id: echo
+    use: echo
+    input:
+      message: Hello, World!
+  - return:
+      status_code: 201
+      body: !eval steps.echo
+      headers:
+        Content-Type: application/json
+        X-Transaction-ID: xxxx
+
+  

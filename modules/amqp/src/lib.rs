@@ -55,7 +55,12 @@ pub async fn start_server(
     if setup.is_main() {
         info!("Main module started");
         let channel = conn.create_channel().await?;
-        let main_sender = setup.main_sender.clone().unwrap();
+        let main_sender = match setup.main_sender.clone() {
+            Some(sender) => sender,
+            None => {
+                return Err("Main sender is None".into());
+            }
+        };
         let id = setup.id.clone();
         let config = config.clone();
         tokio::task::spawn(async move {

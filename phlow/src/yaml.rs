@@ -8,9 +8,18 @@ pub fn yaml_helpers_transform(yaml: &str, base_path: &Path) -> String {
 }
 
 fn yaml_helpers_include(yaml: &str, base_path: &Path) -> String {
-    let include_block_regex = Regex::new(r"(?m)^(\s*)!include\s+(\S+)").unwrap();
-    let include_inline_regex = Regex::new(r"!include\s+(\S+)").unwrap();
-    let import_inline_regex = Regex::new(r"!import\s+(\S+)").unwrap();
+    let include_block_regex = match Regex::new(r"(?m)^(\s*)!include\s+(\S+)") {
+        Ok(re) => re,
+        Err(_) => return yaml.to_string(),
+    };
+    let include_inline_regex = match Regex::new(r"!include\s+(\S+)") {
+        Ok(re) => re,
+        Err(_) => return yaml.to_string(),
+    };
+    let import_inline_regex = match Regex::new(r"!import\s+(\S+)") {
+        Ok(re) => re,
+        Err(_) => return yaml.to_string(),
+    };
 
     let with_block_includes = include_block_regex.replace_all(yaml, |caps: &regex::Captures| {
         let indent = &caps[1];

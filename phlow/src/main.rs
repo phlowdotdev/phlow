@@ -1,26 +1,33 @@
+mod envs;
 mod loader;
-mod processes;
 mod yaml;
-
+use crossbeam::channel;
+use envs::Envs;
 use loader::{load_module, Loader};
+// use mimalloc::MiMalloc;
 use phlow_engine::{
-    build_engine_async,
-    collector::Step,
     modules::{ModulePackage, Modules},
-    Phlow,
+    Context, Phlow,
 };
-use sdk::{opentelemetry::init_tracing_subscriber, prelude::*};
-use std::sync::{
-    mpsc::{channel, Sender},
-    Arc,
-};
+use sdk::tracing::{debug, dispatcher, error, warn};
+use sdk::{otel::init_tracing_subscriber, prelude::*};
+use std::sync::Arc;
 use tokio::sync::oneshot;
-use tracing::{debug, error};
+
+// #[global_allocator]
+// static GLOBAL: MiMalloc = MiMalloc;
 
 #[tokio::main]
 async fn main() {
-    let _guard = init_tracing_subscriber();
+    let guard = init_tracing_subscriber().expect("Failed to initialize tracing subscriber");
 
+    let envs = Envs::load();
+
+    debug!("PACKAGE_CONSUMERS = {}", envs.package_consumer_count);
+
+    // -------------------------
+    // Load the main file
+    // -------------------------
     let loader = match Loader::load() {
         Ok(main) => main,
         Err(err) => {
@@ -29,19 +36,24 @@ async fn main() {
         }
     };
 
-    let engine = build_engine_async(None);
     let steps: Value = loader.get_steps();
 
-    let (trace_step_sender, trace_step_receiver) = channel::<Step>();
-    let (main_sender_package, main_receiver_package) = channel::<Package>();
+    // -------------------------
+    // Create the channels
+    // -------------------------
+    let (tx_main_package, rx_main_package) = channel::unbounded::<Package>();
 
     let mut modules = Modules::default();
 
+    // -------------------------
+    // Load the modules
+    // -------------------------
     for (id, module) in loader.modules.into_iter().enumerate() {
-        let (setup_sender, setup_receive) = oneshot::channel::<Option<Sender<ModulePackage>>>();
+        let (setup_sender, setup_receive) =
+            oneshot::channel::<Option<channel::Sender<ModulePackage>>>();
 
         let main_sender = if loader.main == id as i32 {
-            Some(main_sender_package.clone())
+            Some(tx_main_package.clone())
         } else {
             None
         };
@@ -51,11 +63,12 @@ async fn main() {
             setup_sender,
             main_sender,
             with: module.with.clone(),
+            dispatch: guard.dispatch.clone(),
         };
 
         let module_target = module.module.clone();
 
-        tokio::task::spawn(async move {
+        std::thread::spawn(move || {
             if let Err(err) = load_module(setup, &module_target) {
                 error!("Runtime Error Load Module: {:?}", err)
             }
@@ -81,35 +94,59 @@ async fn main() {
         }
     }
 
-    debug!("Starting Phlow");
+    if loader.main == -1 {
+        error!("Runtime Error Main Module: No main module found");
+        return;
+    }
 
-    let flow = {
-        match Phlow::try_from_value(
-            &engine,
-            &steps,
-            Some(Arc::new(modules)),
-            Some(trace_step_sender),
-        ) {
+    drop(tx_main_package);
+
+    // -------------------------
+    // Create the flow
+    // -------------------------
+    let flow = Arc::new({
+        match Phlow::try_from_value(&steps, Some(Arc::new(modules)), None) {
             Ok(flow) => flow,
             Err(err) => {
                 error!("Runtime Error To Value: {:?}", err);
                 return;
             }
         }
-    };
-
-    tokio::task::spawn(async move {
-        for step in trace_step_receiver {
-            processes::step(step);
-        }
     });
 
-    if loader.main >= 0 {
-        debug!("Main module exist");
-        for mut package in main_receiver_package {
-            processes::execute_steps(&flow, &mut package).await;
-        }
-    }
+    for _i in 0..envs.package_consumer_count {
+        let rx_pkg = rx_main_package.clone();
+        let flow = flow.clone();
 
-    debug!("Phlow finished");
+        tokio::task::spawn_blocking(move || {
+            for mut package in rx_pkg {
+                let flow = flow.clone();
+                let parent = package.span.clone().expect("Span not found in main module");
+                let dispatch = package
+                    .dispatch
+                    .clone()
+                    .expect("Dispatch not found in main module");
+
+                tokio::task::block_in_place(move || {
+                    dispatcher::with_default(&dispatch, || {
+                        let _enter = parent.enter();
+                        let rt = tokio::runtime::Handle::current();
+                        rt.block_on(async {
+                            if let Some(data) = package.get_data() {
+                                let mut context = Context::from_main(data.clone());
+                                match flow.execute(&mut context).await {
+                                    Ok(result) => {
+                                        package.send(result.unwrap_or(Value::Null));
+                                    }
+                                    Err(err) => {
+                                        warn!("Runtime Error Execute Steps: {:?}", err);
+                                    }
+                                }
+                            }
+                        });
+                    });
+                });
+            }
+        });
+    }
 }

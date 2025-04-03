@@ -1,11 +1,10 @@
+use crate::id::ID;
+use crossbeam::channel;
 use serde::Serialize;
-use std::sync::mpsc::Sender;
 use std::{collections::HashMap, fmt::Debug};
 use valu3::prelude::*;
 
-use crate::id::ID;
-
-pub type ContextSender = Sender<Step>;
+pub type ContextSender = channel::Sender<Step>;
 
 #[derive(Clone, Default, PartialEq, Serialize)]
 pub struct Step {
@@ -35,7 +34,10 @@ impl ToValueBehavior for Step {
 impl Debug for Step {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut value = self.to_value();
-        let id = value.get("id").unwrap().clone();
+        let id = match value.get("id") {
+            Some(id) => id.to_string(),
+            None => "unknown".to_string(),
+        };
         value.remove(&"id");
         value.insert("step_id", id);
 

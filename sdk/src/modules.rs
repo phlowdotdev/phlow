@@ -1,4 +1,5 @@
-use std::{collections::HashMap, sync::mpsc::Sender};
+use crossbeam::channel;
+use std::collections::HashMap;
 use tokio::sync::oneshot;
 use valu3::value::Value;
 
@@ -18,7 +19,7 @@ pub struct ModulePackage {
 
 #[derive(Debug, Default, Clone)]
 pub struct Modules {
-    pub modules: HashMap<String, Sender<ModulePackage>>,
+    pub modules: HashMap<String, channel::Sender<ModulePackage>>,
 }
 
 impl Modules {
@@ -28,7 +29,7 @@ impl Modules {
         }
     }
 
-    pub fn register(&mut self, name: &str, sender: Sender<ModulePackage>) {
+    pub fn register(&mut self, name: &str, sender: channel::Sender<ModulePackage>) {
         self.modules.insert(name.to_string(), sender);
     }
 

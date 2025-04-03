@@ -9,7 +9,8 @@ docker run -d -p4318:4318 -p4317:4317 -p16686:16686 jaegertracing/all-in-one:lat
 
 ## Add envs
 ```
-OTEL_RESOURCE_ATTRIBUTES="service.name=YOUR_SERVICE_NAME,service.version=YOUR_SERVICE_VERSION_" OTEL_SERVICE_NAME="YOUR_SERVICE_NAME" 
+export OTEL_RESOURCE_ATTRIBUTES="service.name=YOUR_SERVICE_NAME,service.version=YOUR_SERVICE_VERSION_";
+export OTEL_SERVICE_NAME="YOUR_SERVICE_NAME" 
 ```
 
 open: [http://localhost:16686](http://localhost:16686)

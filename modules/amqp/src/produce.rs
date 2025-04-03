@@ -1,10 +1,10 @@
 use lapin::options::BasicPublishOptions;
 use lapin::publisher_confirm::Confirmation;
 use lapin::BasicProperties;
+use sdk::crossbeam::channel;
 use sdk::modules::ModulePackage;
 use sdk::prelude::*;
 use sdk::tracing::debug;
-use std::sync::mpsc;
 
 use crate::setup::Config;
 
@@ -28,8 +28,13 @@ pub async fn producer(
     config: Config,
     channel: lapin::Channel,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let (tx, rx) = mpsc::channel::<ModulePackage>();
-    setup_sender.send(Some(tx)).unwrap();
+    let (tx, rx) = channel::unbounded::<ModulePackage>();
+    match setup_sender.send(Some(tx)) {
+        Ok(_) => {}
+        Err(e) => {
+            return Err(format!("{:?}", e).into());
+        }
+    };
 
     debug!("Producer started");
 
@@ -41,7 +46,12 @@ pub async fn producer(
                 Some(input) => input,
                 None => {
                     let response = ProducerResponse::from_error("No input provided");
-                    package.sender.send(response.to_value()).unwrap();
+                    match package.sender.send(response.to_value()) {
+                        Ok(_) => {}
+                        Err(e) => {
+                            return Err(format!("{:?}", e).into());
+                        }
+                    }
                     continue;
                 }
             };
@@ -81,16 +91,18 @@ pub async fn producer(
             }
         };
 
-        package
-            .sender
-            .send(
-                ProducerResponse {
-                    success,
-                    error_message,
-                }
-                .to_value(),
-            )
-            .unwrap();
+        match package.sender.send(
+            ProducerResponse {
+                success,
+                error_message,
+            }
+            .to_value(),
+        ) {
+            Ok(_) => {}
+            Err(e) => {
+                return Err(format!("{:?}", e).into());
+            }
+        }
     }
 
     Ok(())

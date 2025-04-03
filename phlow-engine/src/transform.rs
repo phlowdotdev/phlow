@@ -1,4 +1,5 @@
 use rhai::Engine;
+use sdk::tracing::error;
 use std::{collections::HashMap, sync::Arc};
 use valu3::{prelude::*, traits::ToValueBehavior, value::Value};
 
@@ -16,12 +17,12 @@ pub enum TransformError {
     Parser(valu3::Error),
 }
 
-pub(crate) fn value_to_pipelines<'a>(
-    engine: &'a Engine,
+pub(crate) fn value_to_pipelines(
+    engine: Arc<Engine>,
     modules: Arc<Modules>,
     trace_sender: Option<ContextSender>,
     input: &Value,
-) -> Result<PipelineMap<'a>, TransformError> {
+) -> Result<PipelineMap, TransformError> {
     let mut map = Vec::new();
 
     process_raw_steps(input, &mut map);
@@ -68,15 +69,21 @@ pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
     }
 
     let json = (map.len() - 1).to_value().to_json(JsonMode::Inline);
-    Value::json_to_value(&json).unwrap()
+    match Value::json_to_value(&json) {
+        Ok(value) => value,
+        Err(err) => {
+            error!("Error parsing json: {:?}", err);
+            Value::Null
+        }
+    }
 }
 
-fn value_to_structs<'a>(
-    engine: &'a Engine,
+fn value_to_structs(
+    engine: Arc<Engine>,
     modules: Arc<Modules>,
     trace_sender: &Option<ContextSender>,
     map: &Vec<Value>,
-) -> Result<PipelineMap<'a>, TransformError> {
+) -> Result<PipelineMap, TransformError> {
     let mut pipelines = HashMap::new();
 
     for (pipeline_id, steps) in map.iter().enumerate() {
@@ -84,9 +91,13 @@ fn value_to_structs<'a>(
             let mut steps = Vec::new();
 
             for step in arr.into_iter() {
-                let step_worker =
-                    StepWorker::try_from_value(engine, modules.clone(), trace_sender.clone(), step)
-                        .map_err(TransformError::InnerStepError)?;
+                let step_worker = StepWorker::try_from_value(
+                    engine.clone(),
+                    modules.clone(),
+                    trace_sender.clone(),
+                    step,
+                )
+                .map_err(TransformError::InnerStepError)?;
                 steps.push(step_worker);
             }
 

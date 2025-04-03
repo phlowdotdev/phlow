@@ -1,6 +1,5 @@
-use std::sync::mpsc::channel;
-
 use sdk::{
+    crossbeam::channel,
     modules::ModulePackage,
     prelude::*,
     tracing::{debug, error, info, warn},
@@ -22,7 +21,6 @@ struct Log {
 
 impl From<&Value> for Log {
     fn from(value: &Value) -> Self {
-        println!("Log from value: {:?}", value);
         let level = match value.get("level") {
             Some(level) => match level.to_string().as_str() {
                 "info" => LogLevel::Info,
@@ -41,12 +39,14 @@ impl From<&Value> for Log {
 }
 
 pub fn log(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    println!("Log module started");
-    let (tx, rx) = channel::<ModulePackage>();
+    let (tx, rx) = channel::unbounded::<ModulePackage>();
 
-    setup.setup_sender.send(Some(tx)).unwrap();
-
-    println!("Log module setup sender sent");
+    match setup.setup_sender.send(Some(tx)) {
+        Ok(_) => {}
+        Err(e) => {
+            return Err(format!("{:?}", e).into());
+        }
+    };
 
     for package in rx {
         let log = match package.context.input {
@@ -64,8 +64,6 @@ pub fn log(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + 
             LogLevel::Error => error!("{}", log.message),
         }
     }
-
-    println!("Log module finished");
 
     Ok(())
 }

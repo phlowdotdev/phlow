@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rhai::Engine;
 use serde::Serialize;
 use valu3::{prelude::StringBehavior, traits::ToValueBehavior, value::Value};
@@ -78,13 +80,13 @@ impl From<&Value> for Operator {
 }
 
 #[derive(Debug, Clone)]
-pub struct Condition<'a> {
-    pub(crate) expression: Script<'a>,
+pub struct Condition {
+    pub(crate) expression: Script,
     pub(crate) raw: Value,
 }
 
-impl<'a> Condition<'a> {
-    pub fn try_from_value(engine: &'a Engine, value: &Value) -> Result<Self, ConditionError> {
+impl Condition {
+    pub fn try_from_value(engine: Arc<Engine>, value: &Value) -> Result<Self, ConditionError> {
         if let Some(assert) = value.get("assert") {
             return Ok(Self::try_build_with_assert(engine, assert.to_string())?);
         }
@@ -120,7 +122,7 @@ impl<'a> Condition<'a> {
     }
 
     pub fn try_build_with_assert(
-        engine: &'a Engine,
+        engine: Arc<Engine>,
         assert: String,
     ) -> Result<Self, ConditionError> {
         let expression =
@@ -133,7 +135,7 @@ impl<'a> Condition<'a> {
     }
 
     pub fn try_build_with_operator(
-        engine: &'a Engine,
+        engine: Arc<Engine>,
         left: String,
         right: String,
         operator: Operator,
@@ -236,7 +238,7 @@ mod test {
     fn test_condition_execute_equal() {
         let engine = build_engine_async(None);
         let condition = Condition::try_build_with_operator(
-            &engine,
+            engine,
             "10".to_string(),
             "20".to_string(),
             Operator::Equal,
@@ -253,7 +255,7 @@ mod test {
     fn test_condition_execute_not_equal() {
         let engine = build_engine_async(None);
         let condition = Condition::try_build_with_operator(
-            &engine,
+            engine,
             "10".to_string(),
             "20".to_string(),
             Operator::NotEqual,
@@ -270,7 +272,7 @@ mod test {
     fn test_condition_execute_greater_than() {
         let engine = build_engine_async(None);
         let condition = Condition::try_build_with_operator(
-            &engine,
+            engine,
             "10".to_string(),
             "20".to_string(),
             Operator::GreaterThan,
@@ -287,7 +289,7 @@ mod test {
     fn test_condition_execute_contains() {
         let engine = build_engine_async(None);
         let condition = Condition::try_build_with_operator(
-            &engine,
+            engine,
             "hello world".to_string(),
             "hello".to_string(),
             Operator::Contains,
@@ -304,7 +306,7 @@ mod test {
     fn test_condition_execute_regex() {
         let engine = build_engine_async(None);
         let condition = Condition::try_build_with_operator(
-            &engine,
+            engine,
             "hello".to_string(),
             "hello world".to_string(),
             Operator::Regex,
@@ -321,7 +323,7 @@ mod test {
     fn test_condition_execute_not_regex() {
         let engine = build_engine_async(None);
         let condition = Condition::try_build_with_operator(
-            &engine,
+            engine,
             "hello".to_string(),
             "hello world".to_string(),
             Operator::NotRegex,
@@ -338,7 +340,7 @@ mod test {
     fn test_condition_execute_start_with() {
         let engine = build_engine_async(None);
         let condition = Condition::try_build_with_operator(
-            &engine,
+            engine,
             "hello world".to_string(),
             "hello".to_string(),
             Operator::StartsWith,
@@ -355,7 +357,7 @@ mod test {
     fn test_condition_execute_end_with() {
         let engine = build_engine_async(None);
         let condition = Condition::try_build_with_operator(
-            &engine,
+            engine,
             "hello world".to_string(),
             "world".to_string(),
             Operator::EndsWith,
