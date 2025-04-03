@@ -14,10 +14,8 @@ impl From<&Value> for Sleep {
             value.to_u64().unwrap_or(0) * 1000
         } else if let Some(value) = value.get("minutes") {
             value.to_u64().unwrap_or(0) * 1000 * 60
-        } else if let Some(value) = value.get("minutes") {
-            value.to_u64().unwrap_or(0) * 1000 * 60
         } else if let Some(value) = value.get("hours") {
-            value.to_u64().unwrap_or(0) * 1000 * 60 * 60
+            value.to_u64().unwrap_or(0) * 1000 * 60
         } else {
             0
         };
