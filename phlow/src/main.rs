@@ -4,7 +4,6 @@ mod yaml;
 use crossbeam::channel;
 use envs::Envs;
 use loader::{load_module, Loader};
-// use mimalloc::MiMalloc;
 use phlow_engine::{
     modules::{ModulePackage, Modules},
     Context, Phlow,
@@ -13,9 +12,6 @@ use sdk::tracing::{debug, dispatcher, error, warn};
 use sdk::{otel::init_tracing_subscriber, prelude::*};
 use std::sync::Arc;
 use tokio::sync::oneshot;
-
-// #[global_allocator]
-// static GLOBAL: MiMalloc = MiMalloc;
 
 #[tokio::main]
 async fn main() {
@@ -37,13 +33,12 @@ async fn main() {
     };
 
     let steps: Value = loader.get_steps();
+    let mut modules = Modules::default();
 
     // -------------------------
     // Create the channels
     // -------------------------
     let (tx_main_package, rx_main_package) = channel::unbounded::<Package>();
-
-    let mut modules = Modules::default();
 
     // -------------------------
     // Load the modules
@@ -131,6 +126,7 @@ async fn main() {
                     dispatcher::with_default(&dispatch, || {
                         let _enter = parent.enter();
                         let rt = tokio::runtime::Handle::current();
+
                         rt.block_on(async {
                             if let Some(data) = package.get_data() {
                                 let mut context = Context::from_main(data.clone());

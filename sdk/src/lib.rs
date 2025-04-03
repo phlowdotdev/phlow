@@ -1,4 +1,5 @@
 pub mod context;
+pub mod count;
 pub mod id;
 pub mod modules;
 pub mod otel;
