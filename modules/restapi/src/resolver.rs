@@ -1,4 +1,4 @@
-use crate::settings::{AuthorizationSpanMode, Settings};
+use crate::settings::AuthorizationSpanMode;
 use crate::{middleware::RequestContext, response::ResponseHandler};
 use bytes::Bytes;
 use http_body_util::{BodyExt, Full};
@@ -6,8 +6,6 @@ use hyper::body::Body;
 use hyper::{HeaderMap, Request, Response};
 use sdk::tracing::debug;
 use sdk::{prelude::*, tracing::Span};
-use std::sync::Arc;
-use std::thread;
 use std::{collections::HashMap, convert::Infallible};
 
 macro_rules! to_span_format {
@@ -34,6 +32,8 @@ pub async fn proxy(
         .get::<RequestContext>()
         .cloned()
         .expect("RequestContext not found");
+
+    span_enter!(context.span);
 
     let path = req.uri().path().to_string();
     let method = req.method().to_string();

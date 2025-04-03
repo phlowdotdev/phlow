@@ -78,6 +78,14 @@ impl Package {
 }
 
 #[macro_export]
+macro_rules! span_enter {
+    ($span:expr) => {
+        let span_enter_clone = $span.clone();
+        let _enter = span_enter_clone.enter();
+    };
+}
+
+#[macro_export]
 macro_rules! sender_safe {
     ($sender:expr, $data:expr) => {
         if let Err(err) = $sender.send($data) {
