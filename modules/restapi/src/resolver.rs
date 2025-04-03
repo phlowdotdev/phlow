@@ -7,6 +7,7 @@ use hyper::{HeaderMap, Request, Response};
 use sdk::tracing::debug;
 use sdk::{prelude::*, tracing::Span};
 use std::sync::Arc;
+use std::thread;
 use std::{collections::HashMap, convert::Infallible};
 
 macro_rules! to_span_format {

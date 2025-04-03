@@ -1,9 +1,10 @@
 use crate::settings::{AuthorizationSpanMode, Settings};
 use hyper::{body::Incoming, service::Service, Request};
-use sdk::tracing::{field, Dispatch, Level};
+use sdk::tracing::{field, Dispatch, Instrument, Level};
 use sdk::ModuleId;
 use sdk::{tracing, MainRuntimeSender};
 use std::sync::Arc;
+use std::thread;
 use std::{future::Future, pin::Pin};
 
 #[derive(Debug, Clone)]
@@ -116,6 +117,9 @@ where
                 "http.response.header.dnt" = field::Empty,
                 "http.response.header.via" = field::Empty,
             );
+
+            let span_clone = span.clone();
+            let _guard = span_clone.enter();
 
             let context = RequestContext {
                 id: self.id,
