@@ -3,7 +3,7 @@ mod resolver;
 mod response;
 mod setup;
 use hyper::{server::conn::http1, service::service_fn};
-use hyper_util::rt::{TokioIo, TokioTimer};
+use hyper_util::rt::TokioIo;
 use middleware::TracingMiddleware;
 use resolver::proxy;
 use sdk::{
@@ -63,7 +63,7 @@ pub async fn start_server(
             }
         };
 
-        let handler = tokio::task::spawn(async move {
+        tokio::task::spawn(async move {
             let base_service = service_fn(proxy);
 
             let middleware = TracingMiddleware {
@@ -74,16 +74,13 @@ pub async fn start_server(
                 peer_addr,
             };
 
-            http1::Builder::new()
+            if let Err(e) = http1::Builder::new()
                 .keep_alive(true)
-                .timer(TokioTimer::new())
                 .serve_connection(io, middleware)
                 .await
-                .unwrap_or_else(|e| {
-                    sdk::tracing::error!("Error serving connection: {:?}", e);
-                });
+            {
+                sdk::tracing::error!("Error serving connection from {}: {:?}", peer_addr, e);
+            }
         });
-
-        handler.await?;
     }
 }

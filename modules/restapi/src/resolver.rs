@@ -5,7 +5,7 @@ use hyper::body::Body;
 use hyper::{HeaderMap, Request, Response};
 use sdk::{
     prelude::*,
-    tracing::{error, info, Span},
+    tracing::{error, Span},
 };
 use std::{collections::HashMap, convert::Infallible};
 

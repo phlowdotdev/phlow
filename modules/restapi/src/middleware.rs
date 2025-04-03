@@ -1,4 +1,3 @@
-use hyper::body::Body;
 use hyper::{body::Incoming, service::Service, Request};
 use sdk::tracing::{field, Dispatch, Level};
 use sdk::ModuleId;
