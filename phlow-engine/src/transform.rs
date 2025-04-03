@@ -35,11 +35,16 @@ pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
 
         new_pipeline.remove(&"steps");
 
+        // Tratamento para THEN
         if let Some(then) = pipeline.get("then") {
-            new_pipeline.insert("then".to_string(), process_raw_steps(then, map));
+            let then_value = process_raw_steps(then, map);
+            new_pipeline.insert("then".to_string(), then_value);
         }
+
+        // Tratamento para ELSE
         if let Some(els) = pipeline.get("else") {
-            new_pipeline.insert("else".to_string(), process_raw_steps(els, map));
+            let else_value = process_raw_steps(els, map);
+            new_pipeline.insert("else".to_string(), else_value);
         }
 
         let mut new_steps = if new_pipeline.is_empty() {
@@ -50,18 +55,39 @@ pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
 
         if let Some(steps) = pipeline.get("steps") {
             if let Value::Array(steps) = steps {
-                for step in steps.into_iter() {
+                for step in steps {
                     let mut new_step = step.clone();
 
                     if let Some(then) = step.get("then") {
                         new_step.insert("then".to_string(), process_raw_steps(then, map));
                     }
+
                     if let Some(els) = step.get("else") {
                         new_step.insert("else".to_string(), process_raw_steps(els, map));
                     }
 
                     new_steps.push(new_step);
                 }
+            }
+        }
+
+        map.push(new_steps.to_value());
+    } else if let Value::Array(pipeline) = input {
+        let mut new_steps = Vec::new();
+
+        for step in pipeline {
+            if let Value::Object(step) = step {
+                let mut new_step = step.clone();
+
+                if let Some(then) = step.get("then") {
+                    new_step.insert("then".to_string(), process_raw_steps(then, map));
+                }
+
+                if let Some(els) = step.get("else") {
+                    new_step.insert("else".to_string(), process_raw_steps(els, map));
+                }
+
+                new_steps.push(new_step);
             }
         }
 
@@ -157,6 +183,58 @@ mod test {
                   }
                 ]
               }
+            }
+          ]
+        });
+        let target = json!([[{"payload": "params.requested"}],[{"return": "params.requested"}],[{"return": "steps.approved.total"}],[{"condition": {"left": "params.score","operator": "greater_than","right": 0.5}},{"id": "approved","payload": {"total": "(params.requested * 0.3) + params.pre-approved"}},{"else": 2,"condition": {"operator": "greater_than","right": "params.requested","left": "steps.approved.total"},"then": 1}],[{"condition": {"right": "params.pre-approved","left": "params.requested","operator": "less_than"},"else": 3,"then": 0}]]);
+
+        process_raw_steps(&original, &mut map);
+
+        assert_eq!(map.to_value(), target);
+    }
+
+    #[test]
+    fn test_transform_value_array() {
+        let mut map = Vec::new();
+        let original = json!({
+          "steps": [
+            {
+              "condition": {
+                "left": "params.requested",
+                "right": "params.pre-approved",
+                "operator": "less_than"
+              },
+              "then": {
+                "payload": "params.requested"
+              },
+              "else": [
+                {
+                  "condition": {
+                    "left": "params.score",
+                    "right": 0.5,
+                    "operator": "greater_than"
+                  }
+                },
+                {
+                  "id": "approved",
+                  "payload": {
+                    "total": "(params.requested * 0.3) + params.pre-approved"
+                  }
+                },
+                {
+                  "condition": {
+                    "left": "steps.approved.total",
+                    "right": "params.requested",
+                    "operator": "greater_than"
+                  },
+                  "then": {
+                    "return": "params.requested"
+                  },
+                  "else": {
+                    "return": "steps.approved.total"
+                  }
+                }
+              ]
             }
           ]
         });
