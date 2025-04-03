@@ -7,11 +7,7 @@ use hyper::{server::conn::http1, service::service_fn};
 use hyper_util::rt::TokioIo;
 use middleware::TracingMiddleware;
 use resolver::proxy;
-use sdk::{
-    prelude::*,
-    tokio::net::TcpListener,
-    tracing::{debug, info, warn},
-};
+use sdk::{prelude::*, tokio::net::TcpListener, tracing::debug};
 use settings::Settings;
 use setup::Config;
 use std::{net::SocketAddr, sync::Arc};
@@ -22,7 +18,7 @@ pub async fn start_server(
     setup: ModuleSetup,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if !setup.is_main() {
-        warn!("This module is not the main module, exiting");
+        debug!("This module is not the main module, exiting");
         match setup.setup_sender.send(None) {
             Ok(_) => {}
             Err(e) => {
@@ -44,16 +40,9 @@ pub async fn start_server(
 
     let listener = TcpListener::bind(addr).await?;
 
-    info!("Listening on {}", listener.local_addr()?);
+    debug!("Listening on {}", listener.local_addr()?);
 
-    match setup.setup_sender.send(None) {
-        Ok(_) => {}
-        Err(e) => {
-            return Err(format!("{:?}", e).into());
-        }
-    };
-
-    let id = setup.id;
+    sender_safe!(setup.setup_sender, None);
 
     loop {
         let settings = settings.clone();
@@ -75,7 +64,7 @@ pub async fn start_server(
                 inner: service,
                 dispatch: dispatch.clone(),
                 sender: sender.clone(),
-                id,
+                id: setup.id,
                 peer_addr,
                 settings,
             };

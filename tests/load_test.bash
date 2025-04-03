@@ -7,4 +7,4 @@ npx autocannon \
   -c 10000 \
   -d 10 \
   -m GET \
-  http://localhost:3000/ping
+  http://localhost:3000/health

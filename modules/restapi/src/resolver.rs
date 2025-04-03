@@ -4,10 +4,8 @@ use bytes::Bytes;
 use http_body_util::{BodyExt, Full};
 use hyper::body::Body;
 use hyper::{HeaderMap, Request, Response};
-use sdk::{
-    prelude::*,
-    tracing::{error, Span},
-};
+use sdk::tracing::debug;
+use sdk::{prelude::*, tracing::Span};
 use std::sync::Arc;
 use std::{collections::HashMap, convert::Infallible};
 
@@ -69,21 +67,17 @@ pub async fn proxy(
     ])
     .to_value();
 
-    // let response_value = sender!(
-    //     context.span.clone(),
-    //     context.dispatch.clone(),
-    //     context.id,
-    //     context.sender,
-    //     Some(data)
-    // )
-    // .await
-    // .unwrap_or(Value::Null);
+    let response_value = sender!(
+        context.span.clone(),
+        context.dispatch.clone(),
+        context.id,
+        context.sender,
+        Some(data)
+    )
+    .await
+    .unwrap_or(Value::Null);
 
-    let response = ResponseHandler {
-        status_code: 200,
-        headers: HashMap::new(),
-        body: "".to_string(),
-    };
+    let response = ResponseHandler::from(response_value);
 
     context
         .span
@@ -119,7 +113,7 @@ async fn resolve_body(req: Request<hyper::body::Incoming>) -> Value {
     let body_bytes: Bytes = match req.into_body().collect().await {
         Ok(full_body) => full_body.to_bytes(),
         Err(e) => {
-            error!("Error reading request body: {:?}", e);
+            debug!("Error reading request body: {:?}", e);
             Bytes::new()
         }
     };
@@ -134,7 +128,7 @@ async fn resolve_body(req: Request<hyper::body::Incoming>) -> Value {
             }
         }
         Err(e) => {
-            error!("Error parsing request body: {:?}", e);
+            debug!("Error parsing request body: {:?}", e);
             "".to_string().to_value()
         }
     };
@@ -170,7 +164,7 @@ async fn resolve_headers(headers: HeaderMap, span: &Span, settings: &Arc<Setting
                 Some((key.as_str().to_string(), val_str.to_string()))
             }
             Err(e) => {
-                error!("Header value is not a valid UTF-8 string: {:?}", e);
+                debug!("Header value is not a valid UTF-8 string: {:?}", e);
                 None
             }
         })

@@ -9,7 +9,7 @@ impl Envs {
         let package_consumer_count = env::var("PHLOW_PACKAGE_CONSUMERS")
             .ok()
             .and_then(|v| v.parse::<usize>().ok())
-            .unwrap_or(100);
+            .unwrap_or(1);
 
         Self {
             package_consumer_count: package_consumer_count as i32,
