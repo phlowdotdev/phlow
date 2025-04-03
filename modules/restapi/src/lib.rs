@@ -8,11 +8,11 @@ use middleware::TracingMiddleware;
 use resolver::proxy;
 use sdk::{
     prelude::*,
-    tokio::net::TcpListener,
+    tokio::{net::TcpListener, time::sleep},
     tracing::{info, warn},
 };
 use setup::Config;
-use std::net::SocketAddr;
+use std::{net::SocketAddr, thread};
 
 main_plugin_async!(start_server);
 

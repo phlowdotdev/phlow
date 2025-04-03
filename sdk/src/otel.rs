@@ -62,6 +62,16 @@ fn init_tracer_provider() -> Result<SdkTracerProvider, ExporterBuildError> {
         .build())
 }
 
+fn get_log_level() -> Level {
+    match std::env::var("PHLOW_LOG") {
+        Ok(level) => match level.parse::<Level>() {
+            Ok(level) => level,
+            Err(_) => Level::ERROR,
+        },
+        Err(_) => Level::INFO,
+    }
+}
+
 pub fn init_tracing_subscriber() -> Result<OtelGuard, ExporterBuildError> {
     let tracer_provider = init_tracer_provider()?;
     let meter_provider = init_meter_provider()?;
@@ -70,7 +80,7 @@ pub fn init_tracing_subscriber() -> Result<OtelGuard, ExporterBuildError> {
 
     tracing_subscriber::registry()
         .with(tracing_subscriber::filter::LevelFilter::from_level(
-            Level::INFO,
+            get_log_level(),
         ))
         .with(tracing_subscriber::fmt::layer())
         .with(MetricsLayer::new(meter_provider.clone()))

@@ -21,7 +21,6 @@ struct Log {
 
 impl From<&Value> for Log {
     fn from(value: &Value) -> Self {
-        println!("Log from value: {:?}", value);
         let level = match value.get("level") {
             Some(level) => match level.to_string().as_str() {
                 "info" => LogLevel::Info,
@@ -40,7 +39,6 @@ impl From<&Value> for Log {
 }
 
 pub fn log(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    println!("Log module started");
     let (tx, rx) = channel::unbounded::<ModulePackage>();
 
     match setup.setup_sender.send(Some(tx)) {
@@ -49,8 +47,6 @@ pub fn log(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + 
             return Err(format!("{:?}", e).into());
         }
     };
-
-    println!("Log module setup sender sent");
 
     for package in rx {
         let log = match package.context.input {
@@ -68,8 +64,6 @@ pub fn log(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + 
             LogLevel::Error => error!("{}", log.message),
         }
     }
-
-    println!("Log module finished");
 
     Ok(())
 }

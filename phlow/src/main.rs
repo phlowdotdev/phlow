@@ -122,8 +122,6 @@ async fn main() {
 
             let handle = tokio::task::spawn_blocking(move || {
                 for mut package in rx_pkg {
-                    println!("Package: {:?}", package);
-
                     processes::execute_steps(&flow_ref, &mut package);
                 }
             });
