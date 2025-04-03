@@ -266,7 +266,7 @@ impl StepWorker {
                 let next_step = if let Some(ref else_case) = self.else_case {
                     NextStep::Pipeline(*else_case)
                 } else {
-                    NextStep::Stop
+                    NextStep::Next
                 };
 
                 (next_step, None)

@@ -14,11 +14,15 @@ steps:
         headers:
           Content-Type: application/json
           X-Transaction-ID: xxxx
-    else:
-      return:
-        status_code: 200
-        body: !include assets/body.yaml
-        headers:
-          Content-Type: application/json
-
+    # else:
+    #   return:
+    #     status_code: 400
+    #     body: !include assets/body.yaml
+    #     headers:
+    #       Content-Type: application/json
+  - return:
+      status_code: 200
+      body: !include assets/body.yaml
+      headers:
+        Content-Type: application/json
   
