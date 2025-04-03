@@ -85,29 +85,28 @@ steps:
                         x-forwarded-for: !eval main.client_ip
                         x-original-path: !eval main.path   
                     body: !eval main.body
+    - use: authorization
+        id: auth
+        input:
+            api_key: main.header.authorization
+    - condition:
+        assert: !eval steps.auth.authorized == true          
+        then:
+            module: request
+            with:
+                method: !eval main.method
+                url: !eval `public-service.local${main.uri}?` 
+                headers:
+                x-forwarded-for: !eval main.client_ip
+                x-original-path: !eval main.path   
+                body: !eval main.body
         else:
-            - use: authorization
-                id: auth
-                input:
-                    api_key: main.header.authorization
-            - condition:
-                assert: !eval steps.auth.authorized == true          
-                then:
-                    module: request
-                    with:
-                        method: !eval main.method
-                        url: !eval `public-service.local${main.uri}?` 
-                        headers:
-                        x-forwarded-for: !eval main.client_ip
-                        x-original-path: !eval main.path   
-                        body: !eval main.body
-                else:
-                    return:
-                        status_code: 401
-                        body: {
-                            "message": "unauthorized",
-                            "code": 401
-                        }
+            return:
+                status_code: 401
+                body: {
+                    "message": "unauthorized",
+                    "code": 401
+                }
 ```
 ---
 
