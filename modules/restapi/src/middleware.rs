@@ -1,11 +1,10 @@
+use crate::settings::Settings;
 use hyper::{body::Incoming, service::Service, Request};
 use sdk::tracing::{field, Dispatch, Level};
 use sdk::ModuleId;
 use sdk::{tracing, MainRuntimeSender};
 use std::sync::Arc;
 use std::{future::Future, pin::Pin};
-
-use crate::settings::Settings;
 
 #[derive(Debug, Clone)]
 pub struct RequestContext {
@@ -39,6 +38,11 @@ where
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
     fn call(&self, mut req: Request<Incoming>) -> Self::Future {
+        if req.method() == hyper::Method::GET && req.uri().path() == "/health" {
+            let fut: <S as Service<Request<Incoming>>>::Future = self.inner.call(req);
+            return Box::pin(async move { fut.await });
+        }
+
         sdk::tracing::dispatcher::with_default(&self.dispatch.clone(), || {
             let span = tracing::span!(
                 Level::INFO,

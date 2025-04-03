@@ -6,7 +6,7 @@ mod setup;
 use hyper::{server::conn::http1, service::service_fn};
 use hyper_util::rt::TokioIo;
 use middleware::TracingMiddleware;
-use resolver::{ping, proxy};
+use resolver::proxy;
 use sdk::{
     prelude::*,
     tokio::net::TcpListener,
@@ -68,10 +68,10 @@ pub async fn start_server(
         };
 
         tokio::task::spawn(async move {
-            let base_service = service_fn(proxy);
+            let service = service_fn(proxy);
 
             let middleware = TracingMiddleware {
-                inner: base_service,
+                inner: service,
                 dispatch: dispatch.clone(),
                 sender: sender.clone(),
                 id,

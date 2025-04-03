@@ -18,21 +18,18 @@ macro_rules! to_span_format {
     }};
 }
 
-pub async fn ping(
-    _req: Request<hyper::body::Incoming>,
-) -> Result<Response<Full<Bytes>>, Infallible> {
-    let response = Response::builder()
-        .status(200)
-        .header("Content-Type", "application/json")
-        .body(Full::new(Bytes::from("{\"status\": \"ok\"}")))
-        .unwrap();
-
-    Ok(response)
-}
-
 pub async fn proxy(
     req: Request<hyper::body::Incoming>,
 ) -> Result<Response<Full<Bytes>>, Infallible> {
+    if req.method() == hyper::Method::GET && req.uri().path() == "/health" {
+        let response = Response::builder()
+            .status(200)
+            .body(Full::new(Bytes::from(r#"ok"#)))
+            .unwrap();
+
+        return Ok(response);
+    }
+
     let context = req
         .extensions()
         .get::<RequestContext>()
