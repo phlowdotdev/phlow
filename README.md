@@ -100,13 +100,12 @@ steps:
                 x-forwarded-for: !eval main.client_ip
                 x-original-path: !eval main.path   
                 body: !eval main.body
-        else:
-            return:
-                status_code: 401
-                body: {
-                    "message": "unauthorized",
-                    "code": 401
-                }
+    - return:
+        status_code: 401
+        body: {
+            "message": "unauthorized",
+            "code": 401
+        }
 ```
 ---
 
