@@ -92,6 +92,11 @@ async fn main() {
         }
     }
 
+    if loader.main == -1 {
+        error!("Runtime Error Main Module: No main module found");
+        return;
+    }
+
     drop(tx_main_package);
 
     debug!("Starting Phlow");
@@ -99,7 +104,7 @@ async fn main() {
     // -------------------------
     // Create the flow
     // -------------------------
-    let flow = {
+    let flow = Arc::new({
         match Phlow::try_from_value(&steps, Some(Arc::new(modules)), None) {
             Ok(flow) => flow,
             Err(err) => {
@@ -107,27 +112,21 @@ async fn main() {
                 return;
             }
         }
-    };
-
-    let flow_arc = Arc::new(flow);
+    });
 
     let mut handles = Vec::new();
 
-    if loader.main >= -1 {
-        debug!("Main module exist");
+    for _i in 0..envs.package_consumer_count {
+        let rx_pkg = rx_main_package.clone();
+        let flow_ref = flow.clone();
 
-        for _i in 0..envs.package_consumer_count {
-            let rx_pkg = rx_main_package.clone();
-            let flow_ref = Arc::clone(&flow_arc);
+        let handle = tokio::task::spawn_blocking(move || {
+            for mut package in rx_pkg {
+                processes::execute_steps(&flow_ref, &mut package);
+            }
+        });
 
-            let handle = tokio::task::spawn_blocking(move || {
-                for mut package in rx_pkg {
-                    processes::execute_steps(&flow_ref, &mut package);
-                }
-            });
-
-            handles.push(handle);
-        }
+        handles.push(handle);
     }
 
     join_all(handles).await;
