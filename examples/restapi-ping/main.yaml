@@ -2,7 +2,7 @@ main: restapi
 modules: !include modules.yaml
 steps:
   - return:
-      status_code: 201
+      status_code: 200
       body: 
         message: "ping"
       headers:
