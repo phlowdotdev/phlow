@@ -1,6 +1,7 @@
 mod middleware;
 mod resolver;
 mod response;
+mod settings;
 mod setup;
 use hyper::{server::conn::http1, service::service_fn};
 use hyper_util::rt::TokioIo;
@@ -8,11 +9,12 @@ use middleware::TracingMiddleware;
 use resolver::proxy;
 use sdk::{
     prelude::*,
-    tokio::{net::TcpListener, time::sleep},
+    tokio::net::TcpListener,
     tracing::{info, warn},
 };
+use settings::Settings;
 use setup::Config;
-use std::{net::SocketAddr, thread};
+use std::{net::SocketAddr, sync::Arc};
 
 main_plugin_async!(start_server);
 
@@ -31,6 +33,7 @@ pub async fn start_server(
     }
 
     let config: Config = Config::from(setup.with);
+    let settings = Arc::new(Settings::load());
 
     let addr: SocketAddr = format!(
         "{}:{}",
@@ -53,6 +56,7 @@ pub async fn start_server(
     let id = setup.id;
 
     loop {
+        let settings = settings.clone();
         let (tcp, peer_addr) = listener.accept().await?;
         let io: TokioIo<tokio::net::TcpStream> = TokioIo::new(tcp);
         let dispatch = setup.dispatch.clone();
@@ -72,6 +76,7 @@ pub async fn start_server(
                 sender: sender.clone(),
                 id,
                 peer_addr,
+                settings,
             };
 
             if let Err(e) = http1::Builder::new()

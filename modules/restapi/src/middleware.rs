@@ -2,7 +2,10 @@ use hyper::{body::Incoming, service::Service, Request};
 use sdk::tracing::{field, Dispatch, Level};
 use sdk::ModuleId;
 use sdk::{tracing, MainRuntimeSender};
+use std::sync::Arc;
 use std::{future::Future, pin::Pin};
+
+use crate::settings::Settings;
 
 #[derive(Debug, Clone)]
 pub struct RequestContext {
@@ -11,6 +14,7 @@ pub struct RequestContext {
     pub dispatch: Dispatch,
     pub span: sdk::tracing::Span,
     pub client_ip: String,
+    pub settings: Arc<Settings>,
 }
 
 #[derive(Debug, Clone)]
@@ -20,6 +24,7 @@ pub struct TracingMiddleware<S> {
     pub dispatch: sdk::tracing::Dispatch,
     pub sender: MainRuntimeSender,
     pub peer_addr: std::net::SocketAddr,
+    pub settings: Arc<Settings>,
 }
 
 impl<S> Service<Request<Incoming>> for TracingMiddleware<S>
@@ -114,6 +119,7 @@ where
                 dispatch: self.dispatch.clone(),
                 client_ip: self.peer_addr.to_string(),
                 span,
+                settings: self.settings.clone(),
             };
 
             req.extensions_mut().insert(context);

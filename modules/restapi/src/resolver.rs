@@ -1,3 +1,4 @@
+use crate::settings::{self, AuthorizationSpanMode, Settings};
 use crate::{middleware::RequestContext, response::ResponseHandler};
 use bytes::Bytes;
 use http_body_util::{BodyExt, Full};
@@ -7,6 +8,7 @@ use sdk::{
     prelude::*,
     tracing::{error, Span},
 };
+use std::sync::Arc;
 use std::{collections::HashMap, convert::Infallible};
 
 macro_rules! to_span_format {
@@ -31,7 +33,7 @@ pub async fn proxy(
     let request_size = req.size_hint().lower();
     let query = req.uri().query().unwrap_or_default().to_string();
 
-    let headers = resolve_headers(req.headers().clone(), &context.span);
+    let headers = resolve_headers(req.headers().clone(), &context.span, &context.settings);
     let body = resolve_body(req);
     let query_params = resolve_query_params(&query);
 
@@ -127,12 +129,31 @@ pub async fn resolve_body(req: Request<hyper::body::Incoming>) -> Value {
     body
 }
 
-pub async fn resolve_headers(headers: HeaderMap, span: &Span) -> Value {
+fn resolve_authorization(authorization: &str, mode: &AuthorizationSpanMode) -> String {
+    match mode {
+        AuthorizationSpanMode::None => "".to_string(),
+        AuthorizationSpanMode::Hidden => "x".repeat(authorization.len()),
+        AuthorizationSpanMode::Prefix => format!("{}...", &authorization[0..12]),
+        AuthorizationSpanMode::Suffix => {
+            format!("...{}", &authorization[authorization.len() - 6..])
+        }
+        AuthorizationSpanMode::All => authorization.to_string(),
+    }
+}
+
+pub async fn resolve_headers(headers: HeaderMap, span: &Span, settings: &Arc<Settings>) -> Value {
     headers
         .iter()
         .filter_map(|(key, value)| match value.to_str() {
             Ok(val_str) => {
-                span.record(to_span_format!("http.request.header.{}", key), val_str);
+                if key == "authorization" {
+                    let authorization =
+                        resolve_authorization(val_str, &settings.authorization_span_mode);
+                    span.record("http.request.header.authorization", authorization);
+                } else {
+                    span.record(to_span_format!("http.request.header.{}", key), val_str);
+                }
+
                 Some((key.as_str().to_string(), val_str.to_string()))
             }
             Err(e) => {

@@ -8,9 +8,14 @@ use opentelemetry_sdk::{
     trace::{RandomIdGenerator, Sampler, SdkTracerProvider},
     Resource,
 };
+use tracing::Level;
 use tracing::{dispatcher, Dispatch};
-use tracing_core::Level;
-use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
+use tracing_core::LevelFilter;
+use tracing_opentelemetry::MetricsLayer;
+use tracing_opentelemetry::OpenTelemetryLayer;
+use tracing_subscriber::fmt;
+use tracing_subscriber::prelude::*;
+use tracing_subscriber::Registry;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 fn resource() -> Resource {
@@ -18,7 +23,7 @@ fn resource() -> Resource {
 }
 
 pub fn get_tracer() -> BoxedTracer {
-    global::tracer("tracing-otel-subscriber")
+    global::tracer("phlow-tracing-otel-subscriber")
 }
 
 fn init_meter_provider() -> Result<SdkMeterProvider, ExporterBuildError> {
@@ -64,10 +69,14 @@ fn init_tracer_provider() -> Result<SdkTracerProvider, ExporterBuildError> {
 
 fn get_log_level() -> Level {
     match std::env::var("PHLOW_LOG") {
-        Ok(level) => match level.parse::<Level>() {
-            Ok(level) => level,
-            Err(_) => Level::ERROR,
-        },
+        Ok(level) => level.parse::<Level>().unwrap_or(Level::ERROR),
+        Err(_) => Level::WARN,
+    }
+}
+
+fn get_span_level() -> Level {
+    match std::env::var("PHLOW_SPAN") {
+        Ok(level) => level.parse::<Level>().unwrap_or(Level::INFO),
         Err(_) => Level::INFO,
     }
 }
@@ -78,13 +87,15 @@ pub fn init_tracing_subscriber() -> Result<OtelGuard, ExporterBuildError> {
 
     let tracer = tracer_provider.tracer("tracing-otel-subscriber");
 
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::filter::LevelFilter::from_level(
-            get_log_level(),
-        ))
-        .with(tracing_subscriber::fmt::layer())
+    let fmt_layer = fmt::layer().with_filter(LevelFilter::from_level(get_log_level())); // logs (ex: WARN)
+
+    let otel_layer =
+        OpenTelemetryLayer::new(tracer).with_filter(LevelFilter::from_level(get_span_level())); // spans (ex: INFO)
+
+    Registry::default()
+        .with(fmt_layer)
+        .with(otel_layer)
         .with(MetricsLayer::new(meter_provider.clone()))
-        .with(OpenTelemetryLayer::new(tracer))
         .init();
 
     let dispatch = dispatcher::get_default(|d| d.clone());
