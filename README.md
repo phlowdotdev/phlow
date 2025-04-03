@@ -59,17 +59,19 @@ Control lives in YAML (`steps`, `conditions`, `includes`). Behavior lives in mod
 ## 🧱 Example: `main.yaml` for an HTTP Gateway
 
 ```yaml
-main: restapi
+main: gateway
 
 modules:
-  - name: restapi
-    module: restapi
-    with:
-      host: 0.0.0.0
-      port: 3000
+    - name: gateway
+        module: rest_api
+        with:
+            host: 0.0.0.0
+            port: 3000
 
-  - name: request
-    module: request
+    - name: request
+        module: http_request
+        with:
+            timeout: 29000 # 29s
 
 steps:
     - condition:
