@@ -120,8 +120,11 @@ async fn main() {
         let rx_pkg = rx_main_package.clone();
         let flow_ref = flow.clone();
 
+        debug!("Starting package consumer {}", _i);
+
         let handle = tokio::task::spawn_blocking(move || {
             for mut package in rx_pkg {
+                debug!("Processing package in consumer {}", _i);
                 processes::execute_steps(&flow_ref, &mut package);
             }
         });
@@ -129,5 +132,6 @@ async fn main() {
         handles.push(handle);
     }
 
+    debug!("Waiting for all handles to finish...");
     join_all(handles).await;
 }

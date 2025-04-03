@@ -6,7 +6,7 @@ pub struct Envs {
 
 impl Envs {
     pub fn load() -> Self {
-        let package_consumer_count = env::var("PACKAGE_CONSUMERS")
+        let package_consumer_count = env::var("PHLOW_PACKAGE_CONSUMERS")
             .ok()
             .and_then(|v| v.parse::<usize>().ok())
             .unwrap_or(100);
