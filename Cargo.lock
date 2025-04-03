@@ -1942,6 +1942,7 @@ dependencies = [
  "clap",
  "crossbeam",
  "futures",
+ "libc",
  "libloading",
  "mimalloc",
  "phlow-engine",

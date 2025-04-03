@@ -1,25 +1,25 @@
-mod envs;
 mod loader;
+mod memory;
+mod settings;
 mod yaml;
 use crossbeam::channel;
-use envs::Envs;
 use loader::{load_module, Loader};
+use memory::force_memory_release;
 use phlow_engine::{
     modules::{ModulePackage, Modules},
     Context, Phlow,
 };
 use sdk::tracing::{debug, dispatcher, error, warn};
 use sdk::{otel::init_tracing_subscriber, prelude::*};
-use std::sync::Arc;
+use settings::Settings;
+use std::{sync::Arc, thread};
 use tokio::sync::oneshot;
 
 #[tokio::main]
 async fn main() {
     let guard = init_tracing_subscriber().expect("Failed to initialize tracing subscriber");
 
-    let envs = Envs::load();
-
-    debug!("PACKAGE_CONSUMERS = {}", envs.package_consumer_count);
+    let settings = Settings::load();
 
     // -------------------------
     // Load the main file
@@ -96,6 +96,15 @@ async fn main() {
 
     drop(tx_main_package);
 
+    if settings.garbage_collection {
+        thread::spawn(move || loop {
+            thread::sleep(std::time::Duration::from_secs(
+                settings.garbage_collection_interval,
+            ));
+            force_memory_release(settings.min_allocated_memory);
+        });
+    }
+
     // -------------------------
     // Create the flow
     // -------------------------
@@ -109,7 +118,7 @@ async fn main() {
         }
     });
 
-    for _i in 0..envs.package_consumer_count {
+    for _i in 0..settings.package_consumer_count {
         let rx_pkg = rx_main_package.clone();
         let flow = flow.clone();
 
