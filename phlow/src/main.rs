@@ -3,7 +3,6 @@ mod loader;
 mod yaml;
 use crossbeam::channel;
 use envs::Envs;
-use futures::future::join_all;
 use loader::{load_module, Loader};
 use phlow_engine::{
     modules::{ModulePackage, Modules},
@@ -111,13 +110,11 @@ async fn main() {
         }
     });
 
-    let mut handles: Vec<tokio::task::JoinHandle<()>> = Vec::new();
-
     for _i in 0..envs.package_consumer_count {
         let rx_pkg = rx_main_package.clone();
         let flow = flow.clone();
 
-        let handle = tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || {
             for mut package in rx_pkg {
                 let flow = flow.clone();
                 let parent = package.span.clone().expect("Span not found in main module");
@@ -147,9 +144,5 @@ async fn main() {
                 });
             }
         });
-
-        handles.push(handle);
     }
-
-    join_all(handles).await;
 }
