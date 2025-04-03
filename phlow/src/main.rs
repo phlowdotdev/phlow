@@ -96,6 +96,7 @@ async fn main() {
 
     drop(tx_main_package);
 
+    #[cfg(target_os = "linux")]
     if settings.garbage_collection {
         thread::spawn(move || loop {
             thread::sleep(std::time::Duration::from_secs(
