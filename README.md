@@ -258,7 +258,7 @@ steps:
 ## 📦 Project Structure
 
 ```bash
-phlow/
+you_project/
 ├── main.yaml
 ├── modules.yaml
 ├── assets/
@@ -276,7 +276,7 @@ phlow/
 ---
 
 ```bash
-phlow/
+you_project/
 ├── main.yaml
 ├── modules.yaml
 ├── assets/
