@@ -1,13 +1,13 @@
 mod cli;
+mod loader;
 mod memory;
-mod module_manager;
 mod settings;
 mod yaml;
 use cli::Cli;
 use crossbeam::channel;
 use futures::future::join_all;
+use loader::Loader;
 use memory::force_memory_release;
-use module_manager::{download, load, loader::Loader};
 use phlow_engine::{
     modules::{ModulePackage, Modules},
     Context, Phlow,
@@ -25,7 +25,7 @@ async fn main() {
     let settings = Settings::load();
     let cli = Cli::load().expect("Error loading CLI");
 
-    let loader = match load(&cli.main_path) {
+    let loader = match Loader::load(&cli.main_path, &cli.main_ext) {
         Ok(main) => main,
         Err(err) => {
             error!("Runtime Error Main File: {:?}", err);
