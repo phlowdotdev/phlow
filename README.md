@@ -266,24 +266,6 @@ you_project/
 ├── scripts/
 │   └── resolve_url.phs
 ├── phlow_modules/
-│   ├── http_rest_api/
-│   │   └── module.so
-│   ├── request/
-│   │   └── module.so
-│   └── log/
-│       └── module.so
-```
----
-
-```bash
-you_project/
-├── main.yaml
-├── modules.yaml
-├── assets/
-│   └── body.yaml
-├── scripts/
-│   └── resolve_url.phs
-├── phlow_modules/
 │   ├── restapi/
 │   │   └── module.so
 │   ├── request/
