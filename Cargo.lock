@@ -1949,7 +1949,7 @@ dependencies = [
 
 [[package]]
 name = "phlow"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "clap",
  "crossbeam",
@@ -1968,7 +1968,7 @@ dependencies = [
 
 [[package]]
 name = "phlow-engine"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "crossbeam",
  "regex",
@@ -2551,7 +2551,7 @@ dependencies = [
 
 [[package]]
 name = "sdk"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "crossbeam",
  "opentelemetry",
