@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
-rhai = { version = "1.21.0", features = ["serde", "sync"] }
-regex = "1.11.1"
-valu3 = "0.8"
-tokio = { version = "1.44.0", features = ["full"] }
-sdk = { path = "../sdk" }
-crossbeam = "0.8"
+serde = { workspace = true }
+rhai = { workspace = true }
+regex = { workspace = true }
+valu3 = { workspace = true }
+tokio = { workspace = true }
+sdk = { workspace = true }
+crossbeam = { workspace = true }

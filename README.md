@@ -19,11 +19,17 @@ Whether you're building APIs, consumers, automations, or event-driven systems, P
 - [🧠 Creating Your Own Module: `log`](#-creating-your-own-module-log)
 - [📦 Project Structure](#-project-structure)
 - [📡 Observability](#-observability)
+- [🧪 OpenTelemetry + Jaeger (Local Dev Setup)](#-opentelemetry--jaeger-local-dev-setup)
 - [🌍 Environment Settings](#-environment-settings)
-- [🧪 Opentelemetry](#-opentelemetry--jaeger-local-dev-setup)
 - [📜 License](#-license)
 
 ---
+
+```bash
+./build.sh
+
+This will compile each module as a shared library (`cdylib`) into the correct directory.
+
 
 ## 🎯 Philosophy
 
@@ -235,6 +241,27 @@ phlow/
 ```
 ---
 
+```bash
+phlow/
+├── main.yaml
+├── modules.yaml
+├── assets/
+│   └── body.yaml
+├── scripts/
+│   └── resolve_url.phs
+├── phlow_modules/
+│   ├── restapi/
+│   │   └── module.so
+│   ├── request/
+│   │   └── module.so
+│   └── log/
+│       └── module.so
+
+All compiled `.so` modules **must be placed inside the `phlow_modules/` directory**.
+
+To build all modules at once, this project includes a utility script:
+---
+
 ## 📡 Observability
 
 Phlow integrates with:
@@ -253,6 +280,50 @@ PHLOW_SPAN=INFO
 ```
 ---
 
+## 🧪 OpenTelemetry + Jaeger (Local Dev Setup)
+
+To enable observability with **Jaeger** during development, you can run a full OpenTelemetry-compatible collector locally in seconds.
+
+### 🔄 1. Run Jaeger with OTLP support
+
+```bash
+docker run -d \
+  -p4318:4318 \  # OTLP HTTP
+  -p4317:4317 \  # OTLP gRPC
+  -p16686:16686 \  # Jaeger UI
+  jaegertracing/all-in-one:latest
+```
+This container supports OTLP over HTTP and gRPC, which are both compatible with Phlow's OpenTelemetry output.
+
+---
+
+### ⚙️ 2. Configure environment variables
+
+Set the following environment variables in your shell or `.env` file:
+
+```bash
+export OTEL_RESOURCE_ATTRIBUTES="service.name=phlow-dev,service.version=0.1.0"
+export OTEL_SERVICE_NAME="phlow-dev"
+```
+---
+
+### 🔍 3. Open the Jaeger UI
+
+Once running, access the Jaeger web interface at:
+
+[http://localhost:16686](http://localhost:16686)
+
+Search for your service using the name defined in `OTEL_SERVICE_NAME`.
+
+---
+
+### ✅ Tips
+
+- Combine this with `PHLOW_OTEL=true`, `PHLOW_SPAN=INFO`, and `PHLOW_LOG=DEBUG` for full observability.
+- You can also integrate with **Grafana Tempo** or **AWS X-Ray** by replacing the collector backend.
+
+
+---
 ## 🌍 Environment Settings
 
 Below is a list of **all** environment variables used by the application, combining those defined in both files, along with their descriptions, default values, and types.
@@ -279,52 +350,6 @@ Below is a list of **all** environment variables used by the application, combin
   - `PHLOW_LOG`: Affects standard logging (e.g., error, warning, info messages).
   - `PHLOW_SPAN`: Affects tracing spans (useful for deeper telemetry insights with OpenTelemetry).
 - The `PHLOW_OTEL` variable controls whether or not OpenTelemetry providers (for both tracing and metrics) are initialized.
-
----
-## 🧪 OpenTelemetry + Jaeger (Local Dev Setup)
-
-To enable observability with **Jaeger** during development, you can run a full OpenTelemetry-compatible collector locally in seconds.
-
-### 🔄 1. Run Jaeger with OTLP support
-
-```bash
-docker run -d \
-  -p4318:4318 \  # OTLP HTTP
-  -p4317:4317 \  # OTLP gRPC
-  -p16686:16686 \  # Jaeger UI
-  jaegertracing/all-in-one:latest
-```
-This container supports OTLP over HTTP and gRPC, which are both compatible with Phlow's OpenTelemetry output.
-
----
-
-### ⚙️ 2. Configure environment variables
-
-Set the following environment variables in your shell or `.env` file:
-
-```bash
-export OTEL_RESOURCE_ATTRIBUTES="service.name=phlow-dev,service.version=0.1.0"
-export OTEL_SERVICE_NAME="phlow-dev"
-```
-You can change the `service.name` to any label that helps identify your instance in Jaeger.
-
----
-
-### 🔍 3. Open the Jaeger UI
-
-Once running, access the Jaeger web interface at:
-
-[http://localhost:16686](http://localhost:16686)
-
-Search for your service using the name defined in `OTEL_SERVICE_NAME`.
-
----
-
-### ✅ Tips
-
-- Combine this with `PHLOW_OTEL=true`, `PHLOW_SPAN=INFO`, and `PHLOW_LOG=DEBUG` for full observability.
-- You can also integrate with **Grafana Tempo** or **AWS X-Ray** by replacing the collector backend.
-
 
 ---
 
