@@ -1,9 +1,10 @@
 <p align="center">
   <img src="./docs/phlow.svg" alt="Phlow logo" width="100"/>
+  <h1 align="center">Phlow</h1>
 </p>
 
 
-<h1 align="center">Phlow</h1>
+
 
 ## Modular Flow Runtime for Composable Backends
 
