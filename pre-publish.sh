@@ -3,11 +3,28 @@ set -euo pipefail
 
 # Diretórios base
 RELEASE_DIR="target/release"
-DEST_DIR="phlow_modules"
-MODULES_DIR="modules"
-PACKAGE_DIR="phlow_packages"
+DEST_DIR=".tmp/modules"
+PACKAGE_DIR=".tmp/packages"
 FINAL_DIR="packages"
 INDEXS_DIR="indexs"
+
+# Argumentos CLI
+MODULES_DIR="modules"
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --dir)
+      MODULES_DIR="$2"
+      shift 2
+      ;;
+    *)
+      echo "Uso: $0 [--dir <diretório_de_módulos>]"
+      exit 1
+      ;;
+  esac
+done
+
+echo "Usando diretório de módulos: $MODULES_DIR"
 
 # Garante diretórios existentes
 mkdir -p "$DEST_DIR" "$PACKAGE_DIR" "$FINAL_DIR"
@@ -97,11 +114,9 @@ update_index() {
     fi
 }
 
-# Compilação
 echo "Compilando projeto em modo release..."
 cargo build --release --locked
 
-# Ativa nullglob
 shopt -s nullglob
 so_files=("$RELEASE_DIR"/lib*.so)
 
@@ -110,61 +125,82 @@ if [ ${#so_files[@]} -eq 0 ]; then
     exit 1
 fi
 
+# Descobre os módulos a serem processados
+module_dirs=()
+
+if compgen -G "$MODULES_DIR/phlow.*" > /dev/null; then
+  # Diretório de um único módulo
+  single_module=$(basename "$MODULES_DIR")
+  module_dirs+=("$single_module")
+  SINGLE_MODULE_DIR="$MODULES_DIR"
+  MODULES_DIR=".tmp/single"  # diretório temporário para tratar como múltiplos
+  mkdir -p "$MODULES_DIR/$single_module"
+  cp -r "$SINGLE_MODULE_DIR"/* "$MODULES_DIR/$single_module/"
+else
+  # Múltiplos módulos
+  for d in "$MODULES_DIR"/*; do
+    [ -d "$d" ] || continue
+    module_dirs+=("$(basename "$d")")
+  done
+fi
+
 # Processamento dos módulos
-for file in "${so_files[@]}"; do
-    filename=$(basename "$file")
-    modulename=${filename#lib}
-    modulename_no_ext="${modulename%.so}"
+for modulename_no_ext in "${module_dirs[@]}"; do
+  file="$RELEASE_DIR/lib${modulename_no_ext}.so"
+  if [ ! -f "$file" ]; then
+      echo "Aviso: Arquivo $file não encontrado. Pulando."
+      continue
+  fi
 
-    module_dest_dir="$DEST_DIR/$modulename_no_ext"
-    mkdir -p "$module_dest_dir"
+  filename=$(basename "$file")
+  module_dest_dir="$DEST_DIR/$modulename_no_ext"
+  mkdir -p "$module_dest_dir"
 
-    cp "$file" "$module_dest_dir/module.so"
-    echo "Copy: $file -> $module_dest_dir/module.so"
+  cp "$file" "$module_dest_dir/module.so"
+  echo "Copy: $file -> $module_dest_dir/module.so"
 
-    version=""
-    found_metadata=false
+  version=""
+  found_metadata=false
 
-    for ext in yaml yml json; do
-        props_file="$MODULES_DIR/$modulename_no_ext/phlow.$ext"
-        if [ -f "$props_file" ]; then
-            cp "$props_file" "$module_dest_dir/phlow.$ext"
-            echo "Copy: $props_file -> $module_dest_dir/phlow.$ext"
-            version=$(get_version "$props_file" "$ext")
-            found_metadata=true
-            break
-        fi
-    done
+  for ext in yaml yml json; do
+      props_file="$MODULES_DIR/$modulename_no_ext/phlow.$ext"
+      if [ -f "$props_file" ]; then
+          cp "$props_file" "$module_dest_dir/phlow.$ext"
+          echo "Copy: $props_file -> $module_dest_dir/phlow.$ext"
+          version=$(get_version "$props_file" "$ext")
+          found_metadata=true
+          break
+      fi
+  done
 
-    if [ "$found_metadata" = false ]; then
-        echo "Aviso: Nenhum arquivo phlow.{yaml,yml,json} encontrado para $modulename_no_ext"
-        continue
-    fi
+  if [ "$found_metadata" = false ]; then
+      echo "Aviso: Nenhum arquivo phlow.{yaml,yml,json} encontrado para $modulename_no_ext"
+      continue
+  fi
 
-    if [ -z "$version" ]; then
-        echo "Erro: Não foi possível extrair a versão de $modulename_no_ext"
-        exit 1
-    fi
+  if [ -z "$version" ]; then
+      echo "Erro: Não foi possível extrair a versão de $modulename_no_ext"
+      exit 1
+  fi
 
-    package_name="${modulename_no_ext}-${version}.tar.gz"
-    tar -czf "$PACKAGE_DIR/$package_name" -C "$DEST_DIR" "$modulename_no_ext"
-    echo "Pacote criado: $PACKAGE_DIR/$package_name"
+  package_name="${modulename_no_ext}-${version}.tar.gz"
+  tar -czf "$PACKAGE_DIR/$package_name" -C "$DEST_DIR" "$modulename_no_ext"
+  echo "Pacote criado: $PACKAGE_DIR/$package_name"
 
-    update_index "$module_dest_dir" "$package_name"
+  update_index "$module_dest_dir" "$package_name"
 done
 
-# Distribuição dos pacotes na estrutura m/e/u/d/i/r/
+# Distribuição
 echo ""
 echo "Distribuindo pacotes..."
 for filepath in "$PACKAGE_DIR"/*.tar.gz; do
     [ -e "$filepath" ] || continue
-
     filename=$(basename "$filepath")
     base_name="${filename%.tar.gz}"
-    module_name="${base_name%-*}"  # Remove a versão
+    module_name="${base_name%-*}"
 
     if [ ${#module_name} -lt 2 ]; then
-        echo "Aviso: Nome $module_name muito curto para distribuição. Pulando."
+        echo "Aviso: Nome $module_name muito curto. Pulando."
         continue
     fi
 
@@ -176,5 +212,6 @@ for filepath in "$PACKAGE_DIR"/*.tar.gz; do
     echo "Movido: $filepath -> $current_path/"
 done
 
+rm -rf "$PACKAGE_DIR" "$DEST_DIR"
 echo ""
 echo "Processo concluído com sucesso! 🎉"
