@@ -1,9 +1,10 @@
 use std::{fmt::Display, fs::File, path::Path};
 
-use libloading::{Library, Symbol};
-use phlow_sdk::prelude::*;
-
 use crate::{cli::ModuleExtension, yaml::yaml_helpers_transform};
+use libloading::{Library, Symbol};
+use phlow_sdk::{prelude::*, tracing::info};
+use reqwest::Client;
+use std::io::Write;
 
 pub enum Error {
     ModuleLoaderError,
@@ -83,7 +84,6 @@ impl TryFrom<Value> for Module {
                 repository += "/";
             }
 
-            repository.pop();
             repository += module.as_str();
 
             Some(repository)
@@ -151,12 +151,6 @@ impl Loader {
 
                     if Some(module.name.clone()) == main_name {
                         main = modules_vec.len() as i32;
-                    }
-
-                    let module_path = format!("phlow_modules/{}/module.so", module.module);
-
-                    if !std::path::Path::new(&module_path).exists() {
-                        return Err(Error::ModuleNotFound(module.module));
                     }
 
                     modules_vec.push(module);
@@ -252,18 +246,36 @@ impl Loader {
             Self::download_file(&url, &module.module, "module.so").await?;
         }
 
+        info!("All modules downloaded successfully");
         Ok(())
     }
 
-    async fn download_file(url: &str, module: &str, target: &str) -> Result<(), Error> {
-        let response = reqwest::get(url).await.map_err(Error::GetFileError)?;
+    pub async fn download_file(url: &str, module: &str, target: &str) -> Result<(), Error> {
+        let target_path = format!("phlow_modules/{}/{}", module, target);
+        let target_url = format!("{}/{}", url.trim_end_matches('/'), target);
 
-        let mut file = File::create(format!("phlow_modules/{}/{}", module, target))
-            .map_err(Error::FileCreateError)?;
+        if Path::new(&target_path).exists() {
+            return Ok(());
+        }
+
+        info!("Downloading module {} from {}", target, target_url);
+
+        if let Some(parent) = Path::new(&target_path).parent() {
+            std::fs::create_dir_all(parent).map_err(Error::FileCreateError)?;
+        }
+
+        let client = Client::new();
+        let response = client
+            .get(&target_url)
+            .send()
+            .await
+            .map_err(Error::GetFileError)?;
 
         let content = response.bytes().await.map_err(Error::BufferError)?;
+        let mut file = File::create(&target_path).map_err(Error::FileCreateError)?;
+        file.write_all(&content).map_err(Error::CopyError)?;
 
-        std::io::copy(&mut content.as_ref(), &mut file).map_err(Error::CopyError)?;
+        info!("Module {} downloaded to {}", target, target_path);
         Ok(())
     }
 }

@@ -30,6 +30,9 @@ futures = { workspace = true }
 mimalloc = { workspace = true }
 libc = { workspace = true }
 reqwest = { workspace = true }
+futures-util = "0.3.31"
+
+
 [[bin]]
 name = "phlow"
 path = "src/main.rs"

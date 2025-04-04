@@ -12,7 +12,7 @@ use phlow_engine::{
     modules::{ModulePackage, Modules},
     Context, Phlow,
 };
-use phlow_sdk::tracing::{debug, dispatcher, error, warn};
+use phlow_sdk::tracing::{debug, dispatcher, error, info, warn};
 use phlow_sdk::{otel::init_tracing_subscriber, prelude::*};
 use settings::Settings;
 use std::{sync::Arc, thread};
@@ -32,6 +32,11 @@ async fn main() {
             return;
         }
     };
+
+    loader
+        .download(&settings.default_package_repository_url)
+        .await
+        .expect("Error downloading modules");
 
     let steps: Value = loader.get_steps();
     let mut modules = Modules::default();
@@ -121,6 +126,8 @@ async fn main() {
     });
 
     let mut handles = Vec::new();
+
+    info!("Phlow!");
 
     for _i in 0..settings.package_consumer_count {
         let rx_pkg = rx_main_package.clone();

@@ -2,6 +2,7 @@ use clap::{Arg, Command};
 
 #[derive(Debug)]
 pub enum Error {
+    #[warn(dead_code)]
     ModuleNotFound(String),
 }
 

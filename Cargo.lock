@@ -2085,6 +2085,7 @@ dependencies = [
  "clap",
  "crossbeam",
  "futures",
+ "futures-util",
  "libc",
  "libloading",
  "mimalloc",
