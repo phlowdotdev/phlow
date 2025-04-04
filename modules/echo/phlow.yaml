@@ -1,0 +1,14 @@
+
+name: echo
+description: Echo a message.
+version: 0.1
+author: Philippe Assis <codephilippe@gmail.com>
+license: MIT
+tags:
+  - echo
+input:
+  !root:
+    type: any
+    description: The message to echo.
+    required: true
+    default: null

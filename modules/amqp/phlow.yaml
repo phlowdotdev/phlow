@@ -1,6 +1,15 @@
-name: amqp
-description: "AMQP module"
 
+name: amqp
+description: This module provides a simple interface to send and receive messages using AMQP (Advanced Message Queuing Protocol).
+version: 0.1
+author: Philippe Assis <codephilippe@gmail.com>
+license: MIT
+tags:
+  - queue
+  - message
+  - rabbitmq
+  - producer
+  - consumer
 with:
   host:
     type: string

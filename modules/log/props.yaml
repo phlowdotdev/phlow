@@ -1,7 +1,0 @@
-inputs:
-params:
-  $param:
-    type: any
-    description: The parameter to return.
-    required: false
-    default: null

@@ -1,0 +1,31 @@
+
+name: sleep
+description: Sleep for a specified duration.
+version: 0.1
+author: Philippe Assis <codephilippe@gmail.com>
+license: MIT
+tags:
+  - sleep
+  - wait
+  - delay
+inputs:
+  milliseconds:
+    type: integer
+    description: The number of milliseconds to sleep.
+    required: false
+    default: 0  
+  seconds:
+    type: integer
+    description: The number of seconds to sleep.
+    required: false
+    default: 0
+  minutes:
+    type: integer
+    description: The number of minutes to sleep.
+    required: false
+    default: 0
+  hours:
+    type: integer
+    description: The number of hours to sleep.
+    required: false
+    default: 0

@@ -1,0 +1,20 @@
+
+name: log
+description: Log a message to the console.
+version: 0.1
+author: Philippe Assis <codephilippe@gmail.com>
+license: MIT
+tags:
+  - log
+  - echo
+  - print
+inputs:
+  message:
+    type: string
+    description: The message to log.
+    required: true
+  level:
+    type: string
+    description: The log level (e.g., info, debug, warn, error).
+    default: info
+    required: false

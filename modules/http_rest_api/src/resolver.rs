@@ -72,7 +72,6 @@ pub async fn proxy(
         ("body", body),
         ("uri", uri.to_value()),
         ("body_size", body_size.to_value()),
-        ("request_size", request_size.to_value()),
     ])
     .to_value();
 
