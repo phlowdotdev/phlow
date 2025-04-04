@@ -49,8 +49,7 @@ impl Cli {
             .arg(
                 Arg::new("publish")
                     .long("publish")
-                    .help("Publish module on phlow.dev")
-                    .default_value("default_publish_path"),
+                    .help("Publish module on phlow.dev"),
             )
             .get_matches();
 
