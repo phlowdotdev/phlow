@@ -12,11 +12,10 @@ Whether you're building APIs, consumers, automations, or event-driven systems, P
 ## 📚 Table of Contents
 
 - [🎯 Philosophy](#-philosophy)
-- [🚀 Use Cases](#-use-cases)
 - [🔌 Module Types](#-module-types)
 - [🧱 Example: `main.yaml` for an HTTP Gateway](#-example-mainyaml-for-an-http-gateway)
-- [⚙️ Install & Usage](#-install-&-usage)
 - [🧩 YAML Superpowers](#-yaml-superpowers)
+- [⚙️ Install & Usage](#%EF%B8%8F-installation--usage)
 - [🧠 Creating Your Own Module: `log`](#-creating-your-own-module-log)
 - [📦 Project Structure](#-project-structure)
 - [📡 Observability](#-observability)
@@ -123,11 +122,6 @@ Phlow extends YAML with:
 
 ---
 
-## 🧠 Creating Your Own Module: `log`
-
-Phlow modules are written in Rust and compiled as shared libraries. Here’s a real example of a simple **log module** that prints messages at various log levels.
-
-
 ## ⚙️ Installation & Usage
 
 Install Phlow globally using Cargo:
@@ -159,6 +153,11 @@ phlow -h
 # or
 phlow --help
 ```
+---
+
+## 🧠 Creating Your Own Module: `log`
+
+Phlow modules are written in Rust and compiled as shared libraries. Here’s a real example of a simple **log module** that prints messages at various log levels.
 
 ### 🔧 Code (`src/lib.rs`)
 
