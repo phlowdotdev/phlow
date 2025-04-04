@@ -11,6 +11,7 @@ pub struct Cli {
     pub main_path: String,
     pub main_ext: ModuleExtension,
     pub only_download_modules: bool,
+    pub publish_path: Option<String>,
 }
 
 impl Cli {
