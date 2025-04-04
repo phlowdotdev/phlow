@@ -1981,6 +1981,7 @@ dependencies = [
  "libc",
  "libloading",
  "mimalloc",
+ "phlop",
  "phlow-engine",
  "phlow-sdk",
  "regex",
