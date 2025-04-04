@@ -1,4 +1,11 @@
-# 🌀 Phlow — Modular Flow Runtime for Composable Backends
+<p align="center">
+  <img src="./docs/phlow.svg" alt="Phlow logo" width="200"/>
+</p>
+
+
+<h1 align="center">Phlow</h1>
+
+## Modular Flow Runtime for Composable Backends
 
 **Phlow** is a high-performance and highly composable flow runtime built with Rust. It provides a new way to build backend systems using declarative configuration, modular logic, and pluggable runtime behavior — all driven by YAML, JSON, or TOML.
 
