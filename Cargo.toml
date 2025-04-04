@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "phlow-engine",
-    "phlow",
+    "phlow-runtime",
     "phlow-sdk",
     "modules/http_rest_api",
     "modules/echo",

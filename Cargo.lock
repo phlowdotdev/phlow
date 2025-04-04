@@ -1948,7 +1948,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "phlow"
+name = "phlow-engine"
+version = "0.0.1"
+dependencies = [
+ "crossbeam",
+ "phlow-sdk",
+ "regex",
+ "rhai",
+ "serde",
+ "tokio",
+ "valu3",
+]
+
+[[package]]
+name = "phlow-runtime"
 version = "0.0.1"
 dependencies = [
  "clap",
@@ -1964,19 +1977,6 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "toml",
-]
-
-[[package]]
-name = "phlow-engine"
-version = "0.0.1"
-dependencies = [
- "crossbeam",
- "phlow-sdk",
- "regex",
- "rhai",
- "serde",
- "tokio",
- "valu3",
 ]
 
 [[package]]

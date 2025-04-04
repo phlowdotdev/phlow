@@ -1,11 +1,11 @@
 [package]
-name = "phlow"
+name = "phlow-runtime"
 version = "0.0.1"
 edition = "2021"
 description = "Phlow is a fast, modular runtime for building backends with YAML flows, Rust modules, and native OpenTelemetry observability."
 license = "MIT"
 repository = "https://github.com/lowcarboncode/phlow"
-keywords = ["phlow", "runtime", "workflow", "cli", "automation"]
+keywords = ["phlow", "phlow-runtime", "workflow", "cli", "automation"]
 categories = ["development-tools"]
 readme = "../README.md"
 homepage = "https://github.com/lowcarboncode/phlow"
