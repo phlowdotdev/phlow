@@ -1950,6 +1950,13 @@ dependencies = [
 [[package]]
 name = "phlop"
 version = "0.0.1"
+dependencies = [
+ "clap",
+ "phlow-sdk",
+ "serde_json",
+ "serde_yaml",
+ "toml",
+]
 
 [[package]]
 name = "phlow-engine"
