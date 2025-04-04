@@ -1,4 +1,4 @@
-use sdk::prelude::*;
+use phlow_sdk::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct Config {

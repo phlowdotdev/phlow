@@ -135,7 +135,7 @@ Phlow modules are written in Rust and compiled as shared libraries. Here’s a r
 ### 🔧 Code (`src/lib.rs`)
 
 ```rust
-use sdk::{
+use phlow_sdk::{
     crossbeam::channel,
     modules::ModulePackage,
     prelude::*,

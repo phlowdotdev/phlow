@@ -10,8 +10,8 @@ use phlow_engine::{
     modules::{ModulePackage, Modules},
     Context, Phlow,
 };
-use sdk::tracing::{debug, dispatcher, error, warn};
-use sdk::{otel::init_tracing_subscriber, prelude::*};
+use phlow_sdk::tracing::{debug, dispatcher, error, warn};
+use phlow_sdk::{otel::init_tracing_subscriber, prelude::*};
 use settings::Settings;
 use std::{sync::Arc, thread};
 use tokio::sync::oneshot;

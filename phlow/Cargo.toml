@@ -1,7 +1,6 @@
 [package]
 name = "phlow"
 edition = "2021"
-
 version = "0.0.1"
 description = "Phlow is a fast, modular runtime for building backends with YAML flows, Rust modules, and native OpenTelemetry observability."
 license = "MIT"
@@ -20,7 +19,7 @@ homepage = "https://github.com/lowcarboncode/phlow"
 documentation = "https://docs.rs/phlow"
 
 [dependencies]
-sdk = { workspace = true }
+phlow-sdk = { workspace = true }
 phlow-engine = { workspace = true }
 serde = { workspace = true }
 libloading = { workspace = true }

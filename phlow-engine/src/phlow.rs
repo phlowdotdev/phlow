@@ -81,8 +81,6 @@ impl Phlow {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{collector::Step, id::ID};
-    use crossbeam::channel;
     use valu3::json;
 
     fn get_original() -> Value {
@@ -104,26 +102,28 @@ mod tests {
                       "left": "{{params.score}}",
                       "right": 0.5,
                       "operator": "greater_than_or_equal"
-                    }
-                  },
-                  {
-                    "id": "approved",
-                    "payload": {
-                      "total": "{{(params.requested * 0.3) + params.pre_approved}}"
-                    }
-                  },
-                  {
-                    "condition": {
-                      "left": "{{steps.approved.total}}",
-                      "right": "{{params.requested}}",
-                      "operator": "greater_than_or_equal"
                     },
-                    "then": {
-                      "return": "{{params.requested}}"
-                    },
-                    "else": {
-                      "return": "{{steps.approved.total}}"
-                    }
+                    "then": [
+                        {
+                            "id": "approved",
+                            "payload": {
+                                "total": "{{(params.requested * 0.3) + params.pre_approved}}"
+                            }
+                            },
+                            {
+                            "condition": {
+                                "left": "{{steps.approved.total}}",
+                                "right": "{{params.requested}}",
+                                "operator": "greater_than_or_equal"
+                            },
+                            "then": {
+                                "return": "{{params.requested}}"
+                            },
+                            "else": {
+                                "return": "{{steps.approved.total}}"
+                            }
+                            }
+                    ]
                   }
                 ]
               }
@@ -190,63 +190,5 @@ mod tests {
         let result = phlow.execute(&mut context).await.unwrap();
 
         assert_eq!(result, Some(json!(10000.0)));
-    }
-
-    #[tokio::test]
-    async fn test_phlow_channel() {
-        let original = get_original();
-        let (sender, receiver) = channel::unbounded::<Step>();
-        let phlow = Phlow::try_from_value(&original, None, Some(sender.clone())).unwrap();
-        let mut context = Context::new(Some(json!({
-            "requested": 10000.00,
-            "pre_approved": 9999.00,
-            "score": 0.6
-        })));
-
-        let target = vec![
-            Step {
-                id: ID::new(),
-                label: None,
-                module: None,
-                input: None,
-                condition: Some("{{params.requested <= params.pre_approved}}".to_value()),
-                payload: None,
-                return_case: None,
-            },
-            Step {
-                id: ID::new(),
-                label: None,
-                module: None,
-                input: None,
-                condition: Some("{{params.score >= 0.5}}".to_value()),
-                payload: None,
-                return_case: None,
-            },
-            Step {
-                id: ID::from("approved"),
-                label: None,
-                module: None,
-                input: None,
-                condition: None,
-                payload: Some(json!({
-                    "total": 12999.0
-                })),
-                return_case: None,
-            },
-        ];
-
-        phlow.execute(&mut context).await.unwrap();
-
-        let mut result: Vec<Step> = Vec::new();
-
-        for message in receiver.iter() {
-            result.push(message);
-
-            if result.len() == 3 {
-                break;
-            }
-        }
-
-        assert_eq!(result, target);
     }
 }

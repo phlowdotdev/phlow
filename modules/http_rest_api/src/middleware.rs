@@ -1,8 +1,8 @@
 use crate::settings::AuthorizationSpanMode;
 use hyper::{body::Incoming, service::Service, Request};
-use sdk::tracing::{field, Dispatch, Level};
-use sdk::{span_enter, ModuleId};
-use sdk::{tracing, MainRuntimeSender};
+use phlow_sdk::tracing::{field, Dispatch, Level};
+use phlow_sdk::{span_enter, ModuleId};
+use phlow_sdk::{tracing, MainRuntimeSender};
 use std::{future::Future, pin::Pin};
 
 #[derive(Debug, Clone)]
@@ -10,7 +10,7 @@ pub struct RequestContext {
     pub id: ModuleId,
     pub sender: MainRuntimeSender,
     pub dispatch: Dispatch,
-    pub span: sdk::tracing::Span,
+    pub span: phlow_sdk::tracing::Span,
     pub client_ip: String,
     pub authorization_span_mode: AuthorizationSpanMode,
 }
@@ -19,7 +19,7 @@ pub struct RequestContext {
 pub struct TracingMiddleware<S> {
     pub id: usize,
     pub inner: S,
-    pub dispatch: sdk::tracing::Dispatch,
+    pub dispatch: phlow_sdk::tracing::Dispatch,
     pub sender: MainRuntimeSender,
     pub peer_addr: std::net::SocketAddr,
     pub authorization_span_mode: AuthorizationSpanMode,
@@ -42,7 +42,7 @@ where
             return Box::pin(async move { fut.await });
         }
 
-        sdk::tracing::dispatcher::with_default(&self.dispatch.clone(), || {
+        phlow_sdk::tracing::dispatcher::with_default(&self.dispatch.clone(), || {
             let span = tracing::span!(
                 Level::INFO,
                 "http_request",

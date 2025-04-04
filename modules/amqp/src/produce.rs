@@ -1,10 +1,10 @@
 use lapin::options::BasicPublishOptions;
 use lapin::publisher_confirm::Confirmation;
 use lapin::BasicProperties;
-use sdk::crossbeam::channel;
-use sdk::modules::ModulePackage;
-use sdk::prelude::*;
-use sdk::tracing::debug;
+use phlow_sdk::crossbeam::channel;
+use phlow_sdk::modules::ModulePackage;
+use phlow_sdk::prelude::*;
+use phlow_sdk::tracing::debug;
 
 use crate::setup::Config;
 

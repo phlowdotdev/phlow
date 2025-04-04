@@ -105,7 +105,7 @@ version = "0.1.0"
 dependencies = [
  "futures-lite 2.6.0",
  "lapin",
- "sdk",
+ "phlow-sdk",
 ]
 
 [[package]]
@@ -784,7 +784,7 @@ checksum = "fea41bba32d969b513997752735605054bc0dfa92b4c56bf1189f2e174be7a10"
 name = "echo"
 version = "0.1.0"
 dependencies = [
- "sdk",
+ "phlow-sdk",
 ]
 
 [[package]]
@@ -1155,7 +1155,7 @@ dependencies = [
  "http-body-util",
  "hyper",
  "hyper-util",
- "sdk",
+ "phlow-sdk",
 ]
 
 [[package]]
@@ -1558,7 +1558,7 @@ dependencies = [
 name = "log"
 version = "0.1.0"
 dependencies = [
- "sdk",
+ "phlow-sdk",
 ]
 
 [[package]]
@@ -1958,8 +1958,8 @@ dependencies = [
  "libloading",
  "mimalloc",
  "phlow-engine",
+ "phlow-sdk",
  "regex",
- "sdk",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -1968,14 +1968,34 @@ dependencies = [
 
 [[package]]
 name = "phlow-engine"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "crossbeam",
+ "phlow-sdk",
  "regex",
  "rhai",
- "sdk",
  "serde",
  "tokio",
+ "valu3",
+]
+
+[[package]]
+name = "phlow-sdk"
+version = "0.0.1"
+dependencies = [
+ "crossbeam",
+ "opentelemetry",
+ "opentelemetry-otlp",
+ "opentelemetry-prometheus",
+ "opentelemetry-semantic-conventions",
+ "opentelemetry-stdout",
+ "opentelemetry_sdk",
+ "serde",
+ "tokio",
+ "tracing",
+ "tracing-core",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
  "valu3",
 ]
 
@@ -2550,26 +2570,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sdk"
-version = "0.0.0"
-dependencies = [
- "crossbeam",
- "opentelemetry",
- "opentelemetry-otlp",
- "opentelemetry-prometheus",
- "opentelemetry-semantic-conventions",
- "opentelemetry-stdout",
- "opentelemetry_sdk",
- "serde",
- "tokio",
- "tracing",
- "tracing-core",
- "tracing-opentelemetry",
- "tracing-subscriber",
- "valu3",
-]
-
-[[package]]
 name = "security-framework"
 version = "2.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2717,7 +2717,7 @@ dependencies = [
 name = "sleep"
 version = "0.1.0"
 dependencies = [
- "sdk",
+ "phlow-sdk",
 ]
 
 [[package]]

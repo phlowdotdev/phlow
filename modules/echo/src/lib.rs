@@ -1,4 +1,4 @@
-use sdk::{crossbeam::channel, modules::ModulePackage, prelude::*};
+use phlow_sdk::{crossbeam::channel, modules::ModulePackage, prelude::*};
 
 plugin_async!(echo);
 

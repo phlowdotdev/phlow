@@ -1,8 +1,8 @@
 use crate::setup::Config;
 use lapin::message::DeliveryResult;
 use lapin::{options::*, types::FieldTable};
-use sdk::prelude::*;
-use sdk::tracing::debug;
+use phlow_sdk::prelude::*;
+use phlow_sdk::tracing::debug;
 
 pub async fn consumer(
     id: ModuleId,

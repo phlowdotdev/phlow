@@ -1,6 +1,22 @@
 [package]
-name = "sdk"
+name = "phlow-sdk"
 edition = "2021"
+version = "0.0.1"
+description = "SDK for Phlow, a fast, modular runtime for building backends with YAML flows, Rust modules, and native OpenTelemetry observability."
+license = "MIT"
+repository = "https://github.com/lowcarboncode/phlow"
+keywords = [
+    "phlow",
+    "runtime",
+    "workflow",
+    "opentelemetry",
+    "observability",
+    "yaml",
+]
+categories = ["development-tools"]
+readme = "../README.md"
+homepage = "https://github.com/lowcarboncode/phlow"
+documentation = "https://docs.rs/phlow"
 
 [dependencies]
 valu3 = { workspace = true }

@@ -97,7 +97,7 @@ macro_rules! sender_safe {
 #[macro_export]
 macro_rules! otlp_start {
     () => {
-        let _ = match sdk::otel::init_tracing_subscriber_plugin() {
+        let _ = match phlow_sdk::otel::init_tracing_subscriber_plugin() {
             Ok(guard) => guard,
             Err(e) => {
                 $crate::tracing::error!("Error creating tracing subscriber: {:?}", e);
@@ -129,10 +129,10 @@ macro_rules! plugin_async {
         pub extern "C" fn plugin(setup: ModuleSetup) {
             if let Ok(rt) = tokio::runtime::Runtime::new() {
                 if let Err(e) = rt.block_on($handler(setup)) {
-                    sdk::tracing::error!("Error in plugin: {:?}", e);
+                    phlow_sdk::tracing::error!("Error in plugin: {:?}", e);
                 }
             } else {
-                sdk::tracing::error!("Error creating runtime");
+                phlow_sdk::tracing::error!("Error creating runtime");
                 return;
             };
         }
@@ -144,16 +144,16 @@ macro_rules! main_plugin_async {
         #[no_mangle]
         pub extern "C" fn plugin(setup: ModuleSetup) {
             let dispatch = setup.dispatch.clone();
-            sdk::tracing::dispatcher::with_default(&dispatch, || {
-                let _guard = sdk::otel::init_tracing_subscriber();
+            phlow_sdk::tracing::dispatcher::with_default(&dispatch, || {
+                let _guard = phlow_sdk::otel::init_tracing_subscriber();
 
-                if let Ok(rt) = sdk::tokio::runtime::Runtime::new() {
+                if let Ok(rt) = phlow_sdk::tokio::runtime::Runtime::new() {
                     rt.block_on(start_server(setup)).unwrap_or_else(|e| {
-                        sdk::tracing::error!("Error in plugin: {:?}", e);
+                        phlow_sdk::tracing::error!("Error in plugin: {:?}", e);
                     });
                     println!("Plugin loaded");
                 } else {
-                    sdk::tracing::error!("Error creating runtime");
+                    phlow_sdk::tracing::error!("Error creating runtime");
                     println!("Plugin loaded");
 
                     return;

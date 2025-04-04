@@ -2,7 +2,7 @@
 members = [
     "phlow-engine",
     "phlow",
-    "sdk",
+    "phlow-sdk",
     "modules/http_rest_api",
     "modules/echo",
     "modules/amqp",
@@ -21,7 +21,7 @@ repository = "https://github.com/lowcarboncode/phlow"
 
 [workspace.dependencies]
 phlow-engine = { path = "phlow-engine" }
-sdk = { path = "sdk" }
+phlow-sdk = { path = "phlow-sdk" }
 valu3 = "0.8"
 tokio = { version = "1.44.1", features = ["full", "tracing"] }
 serde = { version = "1.0", features = ["derive"] }

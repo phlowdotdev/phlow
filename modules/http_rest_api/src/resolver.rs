@@ -4,8 +4,8 @@ use bytes::Bytes;
 use http_body_util::{BodyExt, Full};
 use hyper::body::Body;
 use hyper::{HeaderMap, Request, Response};
-use sdk::tracing::debug;
-use sdk::{prelude::*, tracing::Span};
+use phlow_sdk::tracing::debug;
+use phlow_sdk::{prelude::*, tracing::Span};
 use std::{collections::HashMap, convert::Infallible};
 
 macro_rules! to_span_format {

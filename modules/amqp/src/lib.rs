@@ -3,9 +3,9 @@ mod produce;
 mod setup;
 use lapin::ExchangeKind;
 use lapin::{options::*, types::FieldTable, Connection, ConnectionProperties};
+use phlow_sdk::prelude::*;
+use phlow_sdk::tracing::{debug, info};
 use produce::producer;
-use sdk::prelude::*;
-use sdk::tracing::{debug, info};
 use setup::Config;
 
 plugin_async!(start_server);
