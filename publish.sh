@@ -176,7 +176,5 @@ for filepath in "$PACKAGE_DIR"/*.tar.gz; do
     echo "Movido: $filepath -> $current_path/"
 done
 
-
-
 echo ""
 echo "Processo concluído com sucesso! 🎉"
