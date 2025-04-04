@@ -7,10 +7,19 @@ pub struct Publish {
     pub modules_dir: PathBuf,
 }
 
-impl Publish {
-    pub fn new(modules_dir: PathBuf) -> Self {
-        Self { modules_dir }
+impl TryFrom<String> for Publish {
+    type Error = anyhow::Error;
+
+    fn try_from(modules_dir: String) -> Result<Self> {
+        let modules_dir = PathBuf::from(modules_dir);
+        if !modules_dir.exists() {
+            bail!("Error: Directory {} does not exist", modules_dir.display());
+        }
+        Ok(Publish { modules_dir })
     }
+}
+
+impl Publish {
     pub fn run(&self) -> Result<()> {
         let release_dir = PathBuf::from("target/release");
         let dest_dir = PathBuf::from("phlow_modules");

@@ -7,9 +7,14 @@ pub enum Error {
 }
 
 #[derive(Debug)]
+pub struct MainArgs {
+    pub path: String,
+    pub ext: ModuleExtension,
+}
+
+#[derive(Debug)]
 pub struct Cli {
-    pub main_path: String,
-    pub main_ext: ModuleExtension,
+    pub main: Option<MainArgs>,
     pub only_download_modules: bool,
     pub publish_path: Option<String>,
 }
@@ -49,11 +54,14 @@ impl Cli {
             )
             .get_matches();
 
-        let (main_file_path, main_ext) = match matches.get_one::<String>("main_path") {
-            Some(file) => get_main_file(file)?,
+        let main = match matches.get_one::<String>("main_path") {
+            Some(file) => {
+                let (path, ext) = get_main_file(file)?;
+                Some(MainArgs { path, ext })
+            }
             None => match find_default_file("") {
-                Some((file, ext)) => (file, ext),
-                None => return Err(Error::ModuleNotFound("main".to_string())),
+                Some((path, ext)) => Some(MainArgs { path, ext }),
+                None => None,
             },
         };
 
@@ -62,8 +70,7 @@ impl Cli {
         let publish_path = matches.get_one::<String>("publish").map(|s| s.to_string());
 
         Ok(Cli {
-            main_path: main_file_path,
-            main_ext,
+            main,
             only_download_modules: install,
             publish_path,
         })
