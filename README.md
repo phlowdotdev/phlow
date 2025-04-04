@@ -144,6 +144,13 @@ To run a specific file:
 phlow path/to/your-flow.yaml
 ```
 
+If you provide a directory path and it contains a \`main.yaml\`, Phlow will automatically run that:
+
+```bash
+phlow path/to/directory
+# → runs path/to/directory/main.yaml
+```
+
 ### 🆘 Help
 
 For all available options and usage info:
