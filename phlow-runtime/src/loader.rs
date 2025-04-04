@@ -1,9 +1,9 @@
-use std::fmt::Display;
+use std::{fmt::Display, path::Path};
 
 use libloading::{Library, Symbol};
 use phlow_sdk::prelude::*;
 
-use crate::cli::ModuleExtension;
+use crate::{cli::ModuleExtension, yaml::yaml_helpers_transform};
 
 pub enum Error {
     ModuleLoaderError,
@@ -157,7 +157,13 @@ impl Loader {
 
         let value: Value = match main_ext {
             ModuleExtension::Json => serde_json::from_str(&file).map_err(Error::LoaderErrorJson)?,
-            ModuleExtension::Yaml => serde_yaml::from_str(&file).map_err(Error::LoaderErrorYaml)?,
+            ModuleExtension::Yaml => {
+                let yaml_path = Path::new(&main_file_path)
+                    .parent()
+                    .unwrap_or_else(|| Path::new("."));
+                let yaml = yaml_helpers_transform(&file, yaml_path);
+                serde_yaml::from_str(&yaml).map_err(Error::LoaderErrorYaml)?
+            }
             ModuleExtension::Toml => toml::from_str(&file).map_err(Error::LoaderErrorToml)?,
         };
 
