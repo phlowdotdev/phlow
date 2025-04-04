@@ -15,6 +15,7 @@ Whether you're building APIs, consumers, automations, or event-driven systems, P
 - [🚀 Use Cases](#-use-cases)
 - [🔌 Module Types](#-module-types)
 - [🧱 Example: `main.yaml` for an HTTP Gateway](#-example-mainyaml-for-an-http-gateway)
+- [⚙️ Install & Usage](#-install-&-usage)
 - [🧩 YAML Superpowers](#-yaml-superpowers)
 - [🧠 Creating Your Own Module: `log`](#-creating-your-own-module-log)
 - [📦 Project Structure](#-project-structure)
@@ -131,6 +132,39 @@ Phlow extends YAML with:
 ## 🧠 Creating Your Own Module: `log`
 
 Phlow modules are written in Rust and compiled as shared libraries. Here’s a real example of a simple **log module** that prints messages at various log levels.
+
+
+## ⚙️ Installation & Usage
+
+Install Phlow globally using Cargo:
+
+```bash
+cargo install phlow-runtime
+```
+
+### 🔧 Running a Flow
+
+By default, Phlow will look for a \`main.yaml\` in the current directory:
+
+```bash
+phlow
+```
+
+To run a specific file:
+
+```bash
+phlow path/to/your-flow.yaml
+```
+
+### 🆘 Help
+
+For all available options and usage info:
+
+```bash
+phlow -h
+# or
+phlow --help
+```
 
 ### 🔧 Code (`src/lib.rs`)
 
