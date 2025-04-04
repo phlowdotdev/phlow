@@ -1,15 +1,18 @@
 [package]
 name = "phlow-engine"
-edition = "2021"
-version = "0.0.1"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
 description = "Engine for Phlow, a fast, modular runtime for building backends with YAML flows, Rust modules, and native OpenTelemetry observability."
-license = "MIT"
-repository = "https://github.com/lowcarboncode/phlow"
 keywords = ["phlow", "engine", "lib"]
 categories = ["development-tools"]
 readme = "../README.md"
 homepage = "https://github.com/lowcarboncode/phlow"
 documentation = "https://docs.rs/phlow"
+
 
 [dependencies]
 serde = { workspace = true }
