@@ -1,5 +1,5 @@
 [package]
-name = "http_rest_api"
+name = "http_server"
 version = "0.1.0"
 edition = "2021"
 
@@ -12,5 +12,5 @@ bytes = "1.10.1"
 futures-util = "0.3.31"
 
 [lib]
-name = "http_rest_api"
+name = "http_server"
 crate-type = ["cdylib"]

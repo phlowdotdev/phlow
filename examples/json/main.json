@@ -1,8 +1,8 @@
 {
-    "main": "http_rest_api",
+    "main": "http_server",
     "modules": [
         {
-            "name": "http_rest_api"
+            "name": "http_server"
         },
         {
             "name": "echo"

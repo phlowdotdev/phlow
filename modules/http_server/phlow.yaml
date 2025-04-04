@@ -1,5 +1,5 @@
 
-name: http_rest_api
+name: http_server
 description: A simple REST API server.
 version: 0.0.1
 author: Philippe Assis <codephilippe@gmail.com>

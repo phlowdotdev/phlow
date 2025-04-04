@@ -1171,7 +1171,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "http_rest_api"
+name = "http_request"
+version = "0.1.0"
+dependencies = [
+ "phlow-sdk",
+ "reqwest",
+]
+
+[[package]]
+name = "http_server"
 version = "0.1.0"
 dependencies = [
  "bytes",

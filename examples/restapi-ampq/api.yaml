@@ -1,6 +1,6 @@
-main: http_rest_api
+main: http_server
 modules: 
-  - module: http_rest_api
+  - module: http_server
   - !include config/amqp.yaml
 steps:
   - condition:

@@ -3,11 +3,12 @@ members = [
     "phlow-engine",
     "phlow-runtime",
     "phlow-sdk",
-    "modules/http_rest_api",
+    "modules/http_server",
     "modules/echo",
     "modules/amqp",
     "modules/log",
     "modules/sleep",
+    "modules/http_request",
 ]
 resolver = "2"
 
