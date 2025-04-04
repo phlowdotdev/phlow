@@ -41,6 +41,12 @@ impl Cli {
                     .value_parser(clap::builder::BoolishValueParser::new()) // permite "true"/"false"
                     .default_value("true"),
             )
+            .arg(
+                Arg::new("publish")
+                    .long("publish")
+                    .help("Publish module on phlow.dev")
+                    .default_value("default_publish_path"),
+            )
             .get_matches();
 
         let (main_file_path, main_ext) = match matches.get_one::<String>("main_path") {
@@ -53,10 +59,13 @@ impl Cli {
 
         let install = *matches.get_one::<bool>("install").unwrap_or(&false);
 
+        let publish_path = matches.get_one::<String>("publish").map(|s| s.to_string());
+
         Ok(Cli {
             main_path: main_file_path,
             main_ext,
             only_download_modules: install,
+            publish_path,
         })
     }
 }

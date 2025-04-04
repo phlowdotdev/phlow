@@ -8,7 +8,6 @@ members = [
     "modules/amqp",
     "modules/log",
     "modules/sleep",
-    "phlow-publish",
 ]
 resolver = "2"
 
@@ -24,7 +23,6 @@ repository = "https://github.com/lowcarboncode/phlow"
 # internal
 phlow-engine = { path = "phlow-engine", version = "0.0.1" }
 phlow-sdk = { path = "phlow-sdk", version = "0.0.1" }
-phlow-publish = { path = "phlow-publish", version = "0.0.1" }
 phlop = { path = "phlop", version = "0.0.1" }
 
 #phlow
