@@ -1,8 +1,9 @@
 
 name: http_rest_api
 description: A simple REST API server.
-version: 0.1
+version: 0.0.1
 author: Philippe Assis <codephilippe@gmail.com>
+repository: https://github.com/lowcarboncode/phlow
 license: MIT
 tags:
   - http
