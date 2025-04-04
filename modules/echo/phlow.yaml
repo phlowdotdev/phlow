@@ -1,7 +1,7 @@
 
 name: echo
 description: Echo a message.
-version: 0.0.1
+version: 0.0.2
 author: Philippe Assis <codephilippe@gmail.com>
 repository: https://github.com/lowcarboncode/phlow
 license: MIT
