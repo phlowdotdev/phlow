@@ -66,7 +66,7 @@ output:
     required: true
   uri:
     type: string
-    description: The full URI of the request, including the query string, example: /path?query=param
+    description: "The full URI of the request, including the query string, example: /path?query=param"
     required: true
   client_ip:
     type: string

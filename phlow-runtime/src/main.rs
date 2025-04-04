@@ -1,5 +1,6 @@
 mod cli;
 mod loader;
+mod log;
 mod memory;
 mod publish;
 mod runtime;
@@ -7,6 +8,7 @@ mod settings;
 mod yaml;
 use cli::Cli;
 use loader::Loader;
+use log::init_tracing;
 use phlow_sdk::prelude::*;
 use phlow_sdk::tracing::error;
 use publish::Publish;
@@ -19,10 +21,20 @@ async fn main() {
     let cli = Cli::load().expect("Error loading CLI");
 
     if let Some(publish_path) = cli.publish_path {
-        Publish::try_from(publish_path)
-            .expect("Error publishing module")
-            .run()
-            .expect("Error publishing module");
+        init_tracing();
+
+        match Publish::try_from(publish_path) {
+            Ok(publish) => {
+                if let Err(err) = publish.run() {
+                    error!("Error publishing module: {:?}", err);
+                    return;
+                }
+            }
+            Err(err) => {
+                error!("Error creating publish instance: {:?}", err);
+                return;
+            }
+        }
     }
 
     if let Some(main) = &cli.main {

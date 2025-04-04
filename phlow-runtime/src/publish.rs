@@ -1,258 +1,168 @@
 use std::{
     fs::{self, File},
-    io::Write,
-    path::{Path, PathBuf},
+    path::PathBuf,
     process::Command,
 };
 
 use anyhow::{anyhow, bail, Context, Result};
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use phlow_sdk::tracing::info;
+use regex::Regex;
+use serde::Deserialize;
 
 #[derive(Debug)]
 pub struct Publish {
-    pub modules_dir: PathBuf,
+    pub module_dir: PathBuf,
 }
 
-impl TryFrom<String> for Publish {
-    type Error = anyhow::Error;
-
-    fn try_from(modules_dir: String) -> Result<Self> {
-        let modules_dir = PathBuf::from(&modules_dir);
-        if !modules_dir.exists() {
-            bail!("Error: Directory {} does not exist", modules_dir.display());
-        }
-        Ok(Publish { modules_dir })
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-struct IndexEntry {
+#[derive(Deserialize)]
+struct ModuleMetadata {
+    name: String,
     version: String,
     repository: String,
-    archive: String,
+    license: String,
+    author: String,
 }
 
 impl Publish {
     pub fn run(&self) -> Result<()> {
         let release_dir = PathBuf::from("target/release");
-        let dest_dir = PathBuf::from(".tmp/modules");
-        let package_dir = PathBuf::from(".tmp/packages");
-        let final_dir = PathBuf::from("packages");
-        let indexs_dir = PathBuf::from("indexs");
 
+        info!(
+            "Searching for metadata file in: {}",
+            self.module_dir.display()
+        );
+
+        let metadata_path = ["phlow.yaml", "phlow.yml", "phlow.json"]
+            .iter()
+            .map(|f| self.module_dir.join(f))
+            .find(|p| p.exists())
+            .ok_or_else(|| {
+                anyhow!(
+                    "No phlow.yaml/yml/json file found in {}",
+                    self.module_dir.display()
+                )
+            })?;
+
+        info!("Metadata file found: {}", metadata_path.display());
+
+        let metadata: ModuleMetadata = match metadata_path.extension().and_then(|ext| ext.to_str())
+        {
+            Some("json") => {
+                info!("Reading metadata as JSON");
+                serde_json::from_reader(File::open(&metadata_path)?).with_context(|| {
+                    format!("Failed to parse JSON file: {}", metadata_path.display())
+                })?
+            }
+            Some("toml") => {
+                info!("Reading metadata as TOML");
+                let content = fs::read_to_string(&metadata_path)?;
+                toml::de::from_str(&content).with_context(|| {
+                    format!("Failed to parse TOML file: {}", metadata_path.display())
+                })?
+            }
+            _ => {
+                info!("Reading metadata as YAML");
+                let content = fs::read_to_string(&metadata_path)?;
+                serde_yaml::from_str(&content).with_context(|| {
+                    format!("Failed to parse YAML file: {}", metadata_path.display())
+                })?
+            }
+        };
+
+        info!("Metadata loaded:\n  - name: {}\n  - version: {}\n  - repository: {}\n  - license: {}\n  - author: {}",
+            metadata.name, metadata.version, metadata.repository, metadata.license, metadata.author);
+
+        info!("Validating version...");
+        let version_regex = Regex::new(r"^\d+\.\d+\.\d+(?:-[\w\.-]+)?(?:\+[\w\.-]+)?$")?;
+        if !version_regex.is_match(&metadata.version) {
+            bail!("Invalid version: must follow MAJOR.MINOR.PATCH-prerelease+build format");
+        }
+
+        info!("Validating author...");
+        let author_regex = Regex::new(r"^.+ <.+@.+>$")?;
+        if !author_regex.is_match(&metadata.author) {
+            bail!("Invalid author: must follow the pattern 'name <email>'");
+        }
+
+        info!("Validating license...");
+        let known_licenses = [
+            "MIT",
+            "Apache-2.0",
+            "GPL-3.0",
+            "BSD-3-Clause",
+            "MPL-2.0",
+            "LGPL-3.0",
+            "CDDL-1.0",
+            "EPL-2.0",
+            "Unlicense",
+        ];
+        if !known_licenses.contains(&metadata.license.as_str()) {
+            if !metadata.license.starts_with("http://") && !metadata.license.starts_with("https://")
+            {
+                bail!("Invalid license: must be a known open source license or a URL to license terms");
+            }
+        }
+
+        info!("Starting project build...");
         Command::new("cargo")
             .args(["build", "--release", "--locked"])
             .status()
-            .context("Erro ao compilar")?
+            .context("Failed to run cargo build")?
             .success()
             .then_some(())
-            .context("Compilação falhou")?;
+            .context("Build failed")?;
 
-        fs::create_dir_all(&dest_dir)?;
-        fs::create_dir_all(&package_dir)?;
-        fs::create_dir_all(&final_dir)?;
+        let temp_dir = PathBuf::from(format!(".tmp/{}", metadata.name));
+        info!("Creating temporary directory: {}", temp_dir.display());
+        fs::create_dir_all(&temp_dir)?;
 
-        let module_dirs = self.discover_modules()?;
+        let so_name = format!("lib{}.so", metadata.name);
+        let so_path = release_dir.join(&so_name);
+        if !so_path.exists() {
+            bail!("Missing .so file: {}", so_path.display());
+        }
+        info!(
+            "Copying .so file from {} to {}",
+            so_path.display(),
+            temp_dir.display()
+        );
+        fs::copy(&so_path, temp_dir.join("module.so"))?;
 
-        for modulename in module_dirs {
-            let so_path = release_dir.join(format!("lib{modulename}.so"));
-            if !so_path.exists() {
-                eprintln!("Aviso: Arquivo {} não encontrado", so_path.display());
-                continue;
-            }
+        info!("Copying metadata file to temp folder");
+        fs::copy(
+            &metadata_path,
+            temp_dir.join(metadata_path.file_name().unwrap()),
+        )?;
 
-            let module_dest_dir = dest_dir.join(&modulename);
-            fs::create_dir_all(&module_dest_dir)?;
+        let archive_name = format!("{}-{}.tar.gz", metadata.name, metadata.version);
 
-            fs::copy(&so_path, module_dest_dir.join("module.so"))?;
+        info!("Creating archive: {}", archive_name);
+        let status = Command::new("tar")
+            .args(["-czf", &archive_name, "-C", ".tmp", &metadata.name])
+            .status()
+            .context("Failed to create archive")?;
 
-            let (props_path, version, repository) =
-                self.extract_metadata(&modulename, &module_dest_dir)?;
-
-            let package_name = format!("{modulename}-{version}.tar.gz");
-            let package_path = package_dir.join(&package_name);
-
-            let status = Command::new("tar")
-                .args([
-                    "-czf",
-                    package_path.to_str().unwrap(),
-                    "-C",
-                    dest_dir.to_str().unwrap(),
-                    &modulename,
-                ])
-                .status()?;
-
-            if !status.success() {
-                bail!("Erro ao criar pacote {}", package_path.display());
-            }
-
-            self.update_index(
-                &modulename,
-                &version,
-                &repository,
-                &package_name,
-                &indexs_dir,
-            )?;
+        if !status.success() {
+            bail!("Failed to generate package: {}", archive_name);
         }
 
-        self.distribute_packages(&package_dir, &final_dir)?;
-
-        fs::remove_dir_all(&package_dir).ok();
-        fs::remove_dir_all(&dest_dir).ok();
-
-        println!("\nProcesso concluído com sucesso! 🎉");
+        info!("Success! Package created: {} 🎉", archive_name);
         Ok(())
     }
+}
 
-    fn discover_modules(&self) -> Result<Vec<String>> {
-        let mut result = vec![];
+impl TryFrom<String> for Publish {
+    type Error = anyhow::Error;
 
-        if self.modules_dir.join("phlow.yaml").exists()
-            || self.modules_dir.join("phlow.yml").exists()
-            || self.modules_dir.join("phlow.json").exists()
-        {
-            let name = self
-                .modules_dir
-                .file_name()
-                .unwrap()
-                .to_string_lossy()
-                .to_string();
-
-            let temp_dir = PathBuf::from(".tmp/single");
-            let target = temp_dir.join(&name);
-            fs::create_dir_all(&target)?;
-            for entry in fs::read_dir(&self.modules_dir)? {
-                let entry = entry?;
-                fs::copy(entry.path(), target.join(entry.file_name()))?;
-            }
-            result.push(name);
-        } else {
-            for entry in fs::read_dir(&self.modules_dir)? {
-                let entry = entry?;
-                if entry.path().is_dir() {
-                    result.push(entry.file_name().to_string_lossy().to_string());
-                }
-            }
+    fn try_from(path: String) -> Result<Self, Self::Error> {
+        let module_dir = PathBuf::from(&path);
+        if !module_dir.exists() {
+            bail!("Directory not found: {}", module_dir.display());
         }
-        Ok(result)
-    }
-
-    fn extract_metadata(
-        &self,
-        modulename: &str,
-        dest_dir: &Path,
-    ) -> Result<(PathBuf, String, String)> {
-        for ext in ["yaml", "yml", "json"] {
-            let props_path = self
-                .modules_dir
-                .join(modulename)
-                .join(format!("phlow.{ext}"));
-            if !props_path.exists() {
-                continue;
-            }
-
-            fs::copy(&props_path, dest_dir.join(props_path.file_name().unwrap()))?;
-
-            if ext == "json" {
-                let data: Value = serde_json::from_reader(File::open(&props_path)?)?;
-                let version = data["version"]
-                    .as_str()
-                    .ok_or_else(|| anyhow!("Versão ausente"))?
-                    .to_string();
-                let repo = data["repository"]
-                    .as_str()
-                    .ok_or_else(|| anyhow!("Repositório ausente"))?
-                    .to_string();
-                return Ok((props_path, version, repo));
-            } else {
-                let content = fs::read_to_string(&props_path)?;
-                let mut version = None;
-                let mut repo = None;
-                for line in content.lines() {
-                    if let Some(v) = line.strip_prefix("version:") {
-                        version = Some(v.trim().to_string());
-                    }
-                    if let Some(r) = line.strip_prefix("repository:") {
-                        repo = Some(r.trim().to_string());
-                    }
-                }
-                if let (Some(v), Some(r)) = (version, repo) {
-                    return Ok((props_path, v, r));
-                }
-            }
-        }
-        bail!("Arquivo de metadados não encontrado para {modulename}");
-    }
-
-    fn update_index(
-        &self,
-        modulename: &str,
-        version: &str,
-        repository: &str,
-        archive: &str,
-        indexs_dir: &Path,
-    ) -> Result<()> {
-        let (p1, p2) = Self::build_path_from_name(modulename);
-        let index_path = indexs_dir.join(p1).join(p2);
-        fs::create_dir_all(&index_path)?;
-        let index_file = index_path.join(format!("{modulename}.json"));
-
-        let mut entries: Vec<IndexEntry> = if index_file.exists() {
-            serde_json::from_reader(File::open(&index_file)?)?
-        } else {
-            vec![]
-        };
-
-        if entries.iter().any(|e| e.version == version) {
-            println!("Versão {version} já existe para {modulename}");
-            return Ok(());
-        }
-
-        entries.push(IndexEntry {
-            version: version.to_string(),
-            repository: repository.to_string(),
-            archive: archive.to_string(),
-        });
-
-        let mut file = File::create(&index_file)?;
-        file.write_all(serde_json::to_string_pretty(&entries)?.as_bytes())?;
-        println!("Indice atualizado: {}", index_file.display());
-
-        Ok(())
-    }
-
-    fn distribute_packages(&self, package_dir: &Path, final_dir: &Path) -> Result<()> {
-        for entry in fs::read_dir(package_dir)? {
-            let entry = entry?;
-            let path = entry.path();
-            let filename = entry.file_name().into_string().unwrap();
-
-            if !filename.ends_with(".tar.gz") {
-                continue;
-            }
-
-            let base = filename.trim_end_matches(".tar.gz");
-            let module = base.rsplit_once('-').map(|(m, _)| m).unwrap_or("");
-            if module.len() < 2 {
-                eprintln!("Nome muito curto: {module}");
-                continue;
-            }
-
-            let (p1, p2) = Self::build_path_from_name(module);
-            let target = final_dir.join(p1).join(p2).join(module);
-            fs::create_dir_all(&target)?;
-
-            fs::rename(path, target.join(&filename))?;
-            println!("Movido: {filename} -> {}", target.display());
-        }
-        Ok(())
-    }
-
-    fn build_path_from_name(name: &str) -> (String, String) {
-        let padded = format!("{name}____");
-        let p1 = &padded[0..2];
-        let p2 = &padded[2..4];
-        (p1.to_string(), p2.to_string())
+        println!(
+            "[INFO] Initializing Publish struct for directory: {}",
+            module_dir.display()
+        );
+        Ok(Publish { module_dir })
     }
 }
