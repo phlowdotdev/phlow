@@ -283,7 +283,7 @@ phlow/
 │   │   └── module.so
 │   └── log/
 │       └── module.so
-
+```
 All compiled `.so` modules **must be placed inside the `phlow_modules/` directory**.
 
 To build all modules at once, this project includes a utility script:
