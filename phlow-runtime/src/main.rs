@@ -38,6 +38,10 @@ async fn main() {
         .await
         .expect("Error downloading modules");
 
+    if cli.only_download_modules {
+        return;
+    }
+
     let steps: Value = loader.get_steps();
     let mut modules = Modules::default();
 

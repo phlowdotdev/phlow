@@ -10,6 +10,7 @@ pub enum Error {
 pub struct Cli {
     pub main_path: String,
     pub main_ext: ModuleExtension,
+    pub only_download_modules: bool,
 }
 
 impl Cli {
@@ -22,6 +23,23 @@ impl Cli {
                     .required(false)
                     .index(1),
             )
+            .arg(
+                Arg::new("install")
+                    .long("install")
+                    .short('i')
+                    .value_parser(clap::builder::BoolishValueParser::new()) // permite "true"/"false"
+                    .help("Install dependencies")
+                    .action(clap::ArgAction::SetTrue)
+                    .default_value("false"),
+            )
+            .arg(
+                Arg::new("download")
+                    .long("download")
+                    .short('d')
+                    .help("Enable download modules before running")
+                    .value_parser(clap::builder::BoolishValueParser::new()) // permite "true"/"false"
+                    .default_value("true"),
+            )
             .get_matches();
 
         let (main_file_path, main_ext) = match matches.get_one::<String>("main_path") {
@@ -32,9 +50,12 @@ impl Cli {
             },
         };
 
+        let install = *matches.get_one::<bool>("install").unwrap_or(&false);
+
         Ok(Cli {
             main_path: main_file_path,
             main_ext,
+            only_download_modules: install,
         })
     }
 }
