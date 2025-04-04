@@ -26,12 +26,6 @@ Whether you're building APIs, consumers, automations, or event-driven systems, P
 
 ---
 
-```bash
-./build.sh
-
-This will compile each module as a shared library (`cdylib`) into the correct directory.
-
-
 ## 🎯 Philosophy
 
 Phlow was built around the following principles:
