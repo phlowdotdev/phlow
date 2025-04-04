@@ -1,11 +1,13 @@
-mod loader;
+mod cli;
 mod memory;
+mod module_manager;
 mod settings;
 mod yaml;
+use cli::Cli;
 use crossbeam::channel;
 use futures::future::join_all;
-use loader::{load_module, Loader};
 use memory::force_memory_release;
+use module_manager::{download, load, loader::Loader};
 use phlow_engine::{
     modules::{ModulePackage, Modules},
     Context, Phlow,
@@ -21,11 +23,9 @@ async fn main() {
     let guard = init_tracing_subscriber();
 
     let settings = Settings::load();
+    let cli = Cli::load().expect("Error loading CLI");
 
-    // -------------------------
-    // Load the main file
-    // -------------------------
-    let loader = match Loader::load() {
+    let loader = match load(&cli.main_path) {
         Ok(main) => main,
         Err(err) => {
             error!("Runtime Error Main File: {:?}", err);
@@ -65,7 +65,7 @@ async fn main() {
         let module_target = module.module.clone();
 
         std::thread::spawn(move || {
-            if let Err(err) = load_module(setup, &module_target) {
+            if let Err(err) = Loader::load_module(setup, &module_target) {
                 error!("Runtime Error Load Module: {:?}", err)
             }
         });

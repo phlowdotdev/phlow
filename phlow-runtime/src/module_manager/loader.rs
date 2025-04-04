@@ -1,0 +1,193 @@
+use std::fmt::Display;
+
+use libloading::{Library, Symbol};
+use phlow_sdk::prelude::*;
+
+use crate::cli::ModuleExtension;
+
+pub enum Error {
+    ModuleLoaderError,
+    ModuleNotFound(String),
+    StepsNotDefined,
+    LibLoadingError(libloading::Error),
+    LoaderErrorJson(serde_json::Error),
+    LoaderErrorYaml(serde_yaml::Error),
+    LoaderErrorToml(toml::de::Error),
+}
+
+impl std::fmt::Debug for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::ModuleLoaderError => write!(f, "Module loader error"),
+            Error::StepsNotDefined => write!(f, "Steps not defined"),
+            Error::ModuleNotFound(name) => write!(f, "Module not found: {}", name),
+            Error::LibLoadingError(err) => write!(f, "Lib loading error: {:?}", err),
+            Error::LoaderErrorJson(err) => write!(f, "Json error: {:?}", err),
+            Error::LoaderErrorYaml(err) => write!(f, "Yaml error: {:?}", err),
+            Error::LoaderErrorToml(err) => write!(f, "Toml error: {:?}", err),
+        }
+    }
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::ModuleLoaderError => write!(f, "Module loader error"),
+            Error::StepsNotDefined => write!(f, "Steps not defined"),
+            Error::ModuleNotFound(name) => write!(f, "Module not found: {}", name),
+            Error::LibLoadingError(err) => write!(f, "Lib loading error: {:?}", err),
+            Error::LoaderErrorJson(err) => write!(f, "Json error: {:?}", err),
+            Error::LoaderErrorYaml(err) => write!(f, "Yaml error: {:?}", err),
+            Error::LoaderErrorToml(err) => write!(f, "Toml error: {:?}", err),
+        }
+    }
+}
+
+#[derive(ToValue, FromValue, Clone, Debug)]
+pub struct Module {
+    pub version: Option<String>,
+    pub repository: Option<String>,
+    pub module: String,
+    pub name: String,
+    pub with: Value,
+}
+
+impl TryFrom<Value> for Module {
+    type Error = Error;
+
+    fn try_from(value: Value) -> Result<Self, Error> {
+        let module = match value.get("module") {
+            Some(module) => module.to_string(),
+            None => return Err(Error::ModuleLoaderError),
+        };
+        let repository = value.get("repository").map(|v| v.to_string());
+
+        let version = value.get("version").map(|v| v.to_string());
+
+        let name = match value.get("name") {
+            Some(name) => name.to_string(),
+            None => module.clone(),
+        };
+
+        let with = match value.get("with") {
+            Some(with) => with.clone(),
+            None => Value::Null,
+        };
+        Ok(Module {
+            module,
+            repository,
+            version,
+            name,
+            with,
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Loader {
+    pub main: i32,
+    pub modules: Vec<Module>,
+    pub steps: Value,
+}
+
+impl Loader {
+    pub fn load(main_path: &str, main_ext: &ModuleExtension) -> Result<Self, Error> {
+        let value = Self::load_main(main_path, main_ext)?;
+
+        let (main, modules) = match value.get("modules") {
+            Some(modules) => {
+                if !modules.is_array() {
+                    return Err(Error::ModuleLoaderError);
+                }
+
+                let main_name = match value.get("main") {
+                    Some(main) => Some(main.to_string()),
+                    None => None,
+                };
+
+                let mut main = -1;
+
+                let mut modules_vec = Vec::new();
+                let modules_array = match modules.as_array() {
+                    Some(modules) => modules,
+                    None => return Err(Error::ModuleLoaderError),
+                };
+
+                for module in modules_array {
+                    let module = match Module::try_from(module.clone()) {
+                        Ok(module) => module,
+                        Err(_) => return Err(Error::ModuleLoaderError),
+                    };
+
+                    if Some(module.name.clone()) == main_name {
+                        main = modules_vec.len() as i32;
+                    }
+
+                    let module_path = format!("phlow_modules/{}/module.so", module.module);
+
+                    if !std::path::Path::new(&module_path).exists() {
+                        return Err(Error::ModuleNotFound(module.module));
+                    }
+
+                    modules_vec.push(module);
+                }
+
+                (main, modules_vec)
+            }
+            None => (-1, Vec::new()),
+        };
+
+        let steps = match value.get("steps") {
+            Some(steps) => steps.clone(),
+            None => return Err(Error::StepsNotDefined),
+        };
+
+        Ok(Self {
+            main,
+            modules,
+            steps,
+        })
+    }
+
+    pub fn load_main(main_file_path: &str, main_ext: &ModuleExtension) -> Result<Value, Error> {
+        let file = match std::fs::read_to_string(main_file_path) {
+            Ok(file) => file,
+            Err(_) => return Err(Error::ModuleNotFound(main_file_path.to_string())),
+        };
+
+        let value: Value = match main_ext {
+            ModuleExtension::Json => serde_json::from_str(&file).map_err(Error::LoaderErrorJson)?,
+            ModuleExtension::Yaml => serde_yaml::from_str(&file).map_err(Error::LoaderErrorYaml)?,
+            ModuleExtension::Toml => toml::from_str(&file).map_err(Error::LoaderErrorToml)?,
+        };
+
+        Ok(value)
+    }
+
+    pub fn load_module(setup: ModuleSetup, module_name: &str) -> Result<(), Error> {
+        unsafe {
+            let lib =
+                match Library::new(format!("phlow_modules/{}/module.so", module_name).as_str()) {
+                    Ok(lib) => lib,
+                    Err(err) => return Err(Error::LibLoadingError(err)),
+                };
+            let func: Symbol<unsafe extern "C" fn(ModuleSetup)> = match lib.get(b"plugin") {
+                Ok(func) => func,
+                Err(err) => {
+                    return Err(Error::LibLoadingError(err));
+                }
+            };
+
+            func(setup);
+
+            Ok(())
+        }
+    }
+
+    pub fn get_steps(&self) -> Value {
+        let steps = self.steps.clone();
+        json!({
+            "steps": steps
+        })
+    }
+}

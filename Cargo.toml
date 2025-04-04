@@ -8,7 +8,6 @@ members = [
     "modules/amqp",
     "modules/log",
     "modules/sleep",
-    "phlop",
 ]
 resolver = "2"
 

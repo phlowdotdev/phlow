@@ -1948,17 +1948,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "phlop"
-version = "0.0.1"
-dependencies = [
- "clap",
- "phlow-sdk",
- "serde_json",
- "serde_yaml",
- "toml",
-]
-
-[[package]]
 name = "phlow-engine"
 version = "0.0.1"
 dependencies = [
@@ -1981,7 +1970,6 @@ dependencies = [
  "libc",
  "libloading",
  "mimalloc",
- "phlop",
  "phlow-engine",
  "phlow-sdk",
  "regex",
