@@ -29,7 +29,7 @@ crossbeam = { workspace = true }
 futures = { workspace = true }
 mimalloc = { workspace = true }
 libc = { workspace = true }
-
+reqwest = { workspace = true }
 [[bin]]
 name = "phlow"
 path = "src/main.rs"

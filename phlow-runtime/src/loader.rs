@@ -1,4 +1,4 @@
-use std::{fmt::Display, path::Path};
+use std::{fmt::Display, fs::File, path::Path};
 
 use libloading::{Library, Symbol};
 use phlow_sdk::prelude::*;
@@ -13,6 +13,10 @@ pub enum Error {
     LoaderErrorJson(serde_json::Error),
     LoaderErrorYaml(serde_yaml::Error),
     LoaderErrorToml(toml::de::Error),
+    GetFileError(reqwest::Error),
+    FileCreateError(std::io::Error),
+    BufferError(reqwest::Error),
+    CopyError(std::io::Error),
 }
 
 impl std::fmt::Debug for Error {
@@ -25,6 +29,10 @@ impl std::fmt::Debug for Error {
             Error::LoaderErrorJson(err) => write!(f, "Json error: {:?}", err),
             Error::LoaderErrorYaml(err) => write!(f, "Yaml error: {:?}", err),
             Error::LoaderErrorToml(err) => write!(f, "Toml error: {:?}", err),
+            Error::GetFileError(err) => write!(f, "Get file error: {:?}", err),
+            Error::FileCreateError(err) => write!(f, "File create error: {:?}", err),
+            Error::BufferError(err) => write!(f, "Buffer error: {:?}", err),
+            Error::CopyError(err) => write!(f, "Copy error: {:?}", err),
         }
     }
 }
@@ -39,6 +47,10 @@ impl Display for Error {
             Error::LoaderErrorJson(err) => write!(f, "Json error: {:?}", err),
             Error::LoaderErrorYaml(err) => write!(f, "Yaml error: {:?}", err),
             Error::LoaderErrorToml(err) => write!(f, "Toml error: {:?}", err),
+            Error::GetFileError(err) => write!(f, "Get file error: {:?}", err),
+            Error::FileCreateError(err) => write!(f, "File create error: {:?}", err),
+            Error::BufferError(err) => write!(f, "Buffer error: {:?}", err),
+            Error::CopyError(err) => write!(f, "Copy error: {:?}", err),
         }
     }
 }
@@ -47,6 +59,7 @@ impl Display for Error {
 pub struct Module {
     pub version: Option<String>,
     pub repository: Option<String>,
+    pub repository_path: Option<String>,
     pub module: String,
     pub name: String,
     pub with: Value,
@@ -61,6 +74,22 @@ impl TryFrom<Value> for Module {
             None => return Err(Error::ModuleLoaderError),
         };
         let repository = value.get("repository").map(|v| v.to_string());
+
+        let repository_path = if repository.is_none() {
+            let mut repository = String::new();
+
+            for char in module.chars() {
+                repository += &char.to_string();
+                repository += "/";
+            }
+
+            repository.pop();
+            repository += module.as_str();
+
+            Some(repository)
+        } else {
+            None
+        };
 
         let version = value.get("version").map(|v| v.to_string());
 
@@ -79,6 +108,7 @@ impl TryFrom<Value> for Module {
             version,
             name,
             with,
+            repository_path,
         })
     }
 }
@@ -149,7 +179,7 @@ impl Loader {
         })
     }
 
-    pub fn load_main(main_file_path: &str, main_ext: &ModuleExtension) -> Result<Value, Error> {
+    fn load_main(main_file_path: &str, main_ext: &ModuleExtension) -> Result<Value, Error> {
         let file = match std::fs::read_to_string(main_file_path) {
             Ok(file) => file,
             Err(_) => return Err(Error::ModuleNotFound(main_file_path.to_string())),
@@ -195,5 +225,45 @@ impl Loader {
         json!({
             "steps": steps
         })
+    }
+
+    pub async fn download(&self, default_package_repository_url: &str) -> Result<(), Error> {
+        // If phlow_modules directory does not exist, create it
+        if !std::path::Path::new("phlow_modules").exists() {
+            std::fs::create_dir("phlow_modules").map_err(|_| Error::ModuleLoaderError)?;
+        }
+
+        for module in &self.modules {
+            let url = match &module.repository {
+                Some(repository) => repository.clone(),
+                None => {
+                    format!(
+                        "{}/refs/heads/main/packages/{}",
+                        default_package_repository_url,
+                        module
+                            .repository_path
+                            .clone()
+                            .expect("Repository path not found")
+                    )
+                }
+            };
+
+            Self::download_file(&url, &module.module, "phlow.yaml").await?;
+            Self::download_file(&url, &module.module, "module.so").await?;
+        }
+
+        Ok(())
+    }
+
+    async fn download_file(url: &str, module: &str, target: &str) -> Result<(), Error> {
+        let response = reqwest::get(url).await.map_err(Error::GetFileError)?;
+
+        let mut file = File::create(format!("phlow_modules/{}/{}", module, target))
+            .map_err(Error::FileCreateError)?;
+
+        let content = response.bytes().await.map_err(Error::BufferError)?;
+
+        std::io::copy(&mut content.as_ref(), &mut file).map_err(Error::CopyError)?;
+        Ok(())
     }
 }

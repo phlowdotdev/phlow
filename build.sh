@@ -32,14 +32,14 @@ for file in "${so_files[@]}"; do
 
     # Copia e renomeia a .so como module.so
     cp "$file" "$module_dest_dir/module.so"
-    echo "Copiado: $file -> $module_dest_dir/module.so"
+    echo "Copy: $file -> $module_dest_dir/module.so"
 
-    # Procura props.{yaml,yml,json} no diretório correspondente em modules/
+    # Procura phlow.{yaml,yml,json} no diretório correspondente em modules/
     for ext in yaml yml json; do
-        props_file="$MODULES_DIR/$modulename_no_ext/props.$ext"
+        props_file="$MODULES_DIR/$modulename_no_ext/phlow.$ext"
         if [ -f "$props_file" ]; then
-            cp "$props_file" "$module_dest_dir/props.$ext"
-            echo "Copiado: $props_file -> $module_dest_dir/props.$ext"
+            cp "$props_file" "$module_dest_dir/phlow.$ext"
+            echo "Copy: $props_file -> $module_dest_dir/phlow.$ext"
             break
         fi
     done
