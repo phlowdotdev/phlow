@@ -8,5 +8,5 @@ phlow-sdk = { workspace = true }
 reqwest = { version = "0.12.15", features = ["blocking"] }
 
 [lib]
-name = "echo"
+name = "http_request"
 crate-type = ["cdylib"]

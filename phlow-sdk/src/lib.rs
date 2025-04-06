@@ -80,26 +80,19 @@ impl Package {
 #[macro_export]
 macro_rules! listen {
     ($rx:expr, $resolve:expr) => {{
-        let mut resolves = Vec::new();
-
         for package in $rx {
-            resolves.push($resolve(package));
-        }
-
-        for resolve in resolves {
-            resolve.await;
+            $crate::tokio::spawn(async move {
+                $resolve(package).await;
+            });
         }
     }};
-    // add arguments
-    ($rx:expr, $resolve:expr, $($args:tt)*) => {{
-        let mut resolves = Vec::new();
-
+    ($rx:expr, $resolve:expr, $( $arg:ident ),+ $(,)? ) => {{
         for package in $rx {
-            resolves.push($resolve(package, $($args)*));
-        }
+            $( let $arg = $arg.clone(); )+
 
-        for resolve in resolves {
-            resolve.await;
+            $crate::tokio::spawn(async move {
+                $resolve(package, $( $arg ),+ ).await;
+            });
         }
     }};
 }
@@ -119,90 +112,6 @@ macro_rules! sender_safe {
             $crate::tracing::debug!("Error sending data: {:?}", err);
         }
     };
-}
-
-#[macro_export]
-macro_rules! otlp_start {
-    () => {
-        let _ = match phlow_sdk::otel::init_tracing_subscriber_plugin() {
-            Ok(guard) => guard,
-            Err(e) => {
-                $crate::tracing::error!("Error creating tracing subscriber: {:?}", e);
-                return;
-            }
-        };
-    };
-}
-
-#[macro_export]
-macro_rules! plugin {
-    ($handler:ident) => {
-        #[no_mangle]
-        pub extern "C" fn plugin(setup: ModuleSetup) {
-            match $handler(setup) {
-                Ok(_) => {}
-                Err(e) => {
-                    $crate::tracing::error!("Error in plugin: {:?}", e);
-                }
-            }
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! plugin_async {
-    ($handler:ident) => {
-        #[no_mangle]
-        pub extern "C" fn plugin(setup: ModuleSetup) {
-            if let Ok(rt) = tokio::runtime::Runtime::new() {
-                if let Err(e) = rt.block_on($handler(setup)) {
-                    phlow_sdk::tracing::error!("Error in plugin: {:?}", e);
-                }
-            } else {
-                phlow_sdk::tracing::error!("Error creating runtime");
-                return;
-            };
-        }
-    };
-}
-#[macro_export]
-macro_rules! main_plugin_async {
-    ($handler:ident) => {
-        #[no_mangle]
-        pub extern "C" fn plugin(setup: ModuleSetup) {
-            let dispatch = setup.dispatch.clone();
-            phlow_sdk::tracing::dispatcher::with_default(&dispatch, || {
-                let _guard = phlow_sdk::otel::init_tracing_subscriber();
-
-                if let Ok(rt) = phlow_sdk::tokio::runtime::Runtime::new() {
-                    rt.block_on(start_server(setup)).unwrap_or_else(|e| {
-                        phlow_sdk::tracing::error!("Error in plugin: {:?}", e);
-                    });
-                    println!("Plugin loaded");
-                } else {
-                    phlow_sdk::tracing::error!("Error creating runtime");
-                    println!("Plugin loaded");
-
-                    return;
-                };
-
-                println!("Plugin loaded");
-            });
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! sender_without_response {
-    ($id:expr, $sender:expr, $data:expr) => {{
-        let package = Package {
-            send: None,
-            request_data: $data,
-            origin: $id,
-        };
-
-        sender_safe!($sender, package);
-    }};
 }
 
 #[macro_export]
@@ -239,8 +148,50 @@ macro_rules! sender {
     }};
 }
 
+#[macro_export]
+macro_rules! create_step {
+    ($handler:ident) => {
+        #[no_mangle]
+        pub extern "C" fn plugin(setup: ModuleSetup) {
+            if let Ok(rt) = $crate::tokio::runtime::Runtime::new() {
+                if let Err(e) = rt.block_on($handler(setup)) {
+                    $crate::tracing::error!("Error in plugin: {:?}", e);
+                }
+            } else {
+                $crate::tracing::error!("Error creating runtime");
+                return;
+            };
+        }
+    };
+}
+#[macro_export]
+macro_rules! create_main {
+    ($handler:ident) => {
+        #[no_mangle]
+        pub extern "C" fn plugin(setup: ModuleSetup) {
+            let dispatch = setup.dispatch.clone();
+            phlow_sdk::tracing::dispatcher::with_default(&dispatch, || {
+                let _guard = phlow_sdk::otel::init_tracing_subscriber();
+
+                if let Ok(rt) = phlow_sdk::tokio::runtime::Runtime::new() {
+                    rt.block_on(start_server(setup)).unwrap_or_else(|e| {
+                        phlow_sdk::tracing::error!("Error in plugin: {:?}", e);
+                    });
+                    println!("Plugin loaded");
+                } else {
+                    phlow_sdk::tracing::error!("Error creating runtime");
+                    println!("Plugin loaded");
+
+                    return;
+                };
+
+                println!("Plugin loaded");
+            });
+        }
+    };
+}
+
 pub mod prelude {
-    pub use crate::plugin;
     pub use crate::*;
     pub use valu3::json;
     pub use valu3::prelude::*;

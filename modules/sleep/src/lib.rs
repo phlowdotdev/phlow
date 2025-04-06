@@ -1,6 +1,6 @@
 use phlow_sdk::{crossbeam::channel, modules::ModulePackage, prelude::*, tracing::debug};
 
-plugin!(sleep);
+create_step!(sleep);
 
 struct Sleep {
     time: u64,
@@ -24,7 +24,7 @@ impl From<&Value> for Sleep {
     }
 }
 
-pub fn sleep(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn sleep(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let (tx, rx) = channel::unbounded::<ModulePackage>();
 
     match setup.setup_sender.send(Some(tx)) {

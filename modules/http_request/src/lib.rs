@@ -4,7 +4,7 @@ use input::Input;
 use phlow_sdk::{crossbeam::channel, modules::ModulePackage, prelude::*};
 use std::collections::HashMap;
 
-plugin_async!(http_request);
+create_step!(http_request);
 
 pub async fn http_request(
     setup: ModuleSetup,
@@ -29,12 +29,12 @@ pub async fn http_request(
 
     sender_safe!(setup.setup_sender, Some(tx));
 
-    listen!(rx, resolve, &default_user_agent);
+    listen!(rx, resolve, default_user_agent);
 
     Ok(())
 }
 
-pub async fn resolve(package: ModulePackage, default_user_agent: &Option<String>) {
+pub async fn resolve(package: ModulePackage, default_user_agent: Option<String>) {
     let response = match package.context.input {
         Some(value) => {
             let input = Input::new(value, &default_user_agent);

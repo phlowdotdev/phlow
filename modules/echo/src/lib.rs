@@ -1,6 +1,6 @@
 use phlow_sdk::{crossbeam::channel, modules::ModulePackage, prelude::*};
 
-plugin_async!(echo);
+create_step!(echo);
 
 pub async fn echo(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let (tx, rx) = channel::unbounded::<ModulePackage>();
@@ -13,6 +13,7 @@ pub async fn echo(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + 
 }
 
 async fn resolve(package: ModulePackage) {
+    println!("Received package");
     match package.sender.send(match package.context.input {
         Some(value) => value,
         _ => Value::Null,

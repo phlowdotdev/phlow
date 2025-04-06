@@ -7,5 +7,5 @@
     body: !eval main.body
 - return: 
     status_code: !eval steps.proxy.response.status_code
-    body: !eval steps.proxy.response.
+    body: !eval steps.proxy.response.body
     headers: !eval steps.proxy.response.headers

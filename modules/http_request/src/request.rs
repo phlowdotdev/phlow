@@ -53,19 +53,17 @@ pub fn request(input: Input) -> Result<Value, Error> {
 
     let status_code = response.status().as_u16();
 
-    let mut headers_map = HashMap::new();
+    let mut headers_map: HashMap<String, String> = HashMap::new();
 
     for (key, value) in response.headers().iter() {
         headers_map.insert(key.to_string(), value.to_str().unwrap_or("").to_string());
     }
 
-    let headers_value = headers_map.to_value();
-
     let body = response.text().map_err(Error::RequestError)?;
     let body_value = Value::json_to_value(&body).map_err(Error::ValueError)?;
 
     let response = HashMap::from([
-        ("headers", headers_value),
+        ("headers", headers_map.to_value()),
         ("body", body_value),
         ("status_code", status_code.to_value()),
     ])

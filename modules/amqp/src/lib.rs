@@ -8,7 +8,7 @@ use phlow_sdk::tracing::{debug, info};
 use produce::producer;
 use setup::Config;
 
-plugin_async!(start_server);
+create_step!(start_server);
 
 pub async fn start_server(
     setup: ModuleSetup,

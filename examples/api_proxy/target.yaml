@@ -1,10 +1,12 @@
 main: http_server
 modules:
   - module: http_server
+    with:
+      port: 4000
 steps:
   - return:
       status_code: 200
       body: 
-        message: "ping"
+        message: !eval main.uri
       headers:
         Content-Type: application/json

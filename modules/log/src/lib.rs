@@ -5,7 +5,7 @@ use phlow_sdk::{
     tracing::{debug, error, info, warn},
 };
 
-plugin!(log);
+create_step!(log);
 
 enum LogLevel {
     Info,
@@ -38,7 +38,7 @@ impl From<&Value> for Log {
     }
 }
 
-pub fn log(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn log(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let (tx, rx) = channel::unbounded::<ModulePackage>();
 
     match setup.setup_sender.send(Some(tx)) {
