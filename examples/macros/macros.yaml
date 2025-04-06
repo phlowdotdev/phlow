@@ -1,0 +1,21 @@
+- name: router
+  with:
+    id: {{id}}
+    payload:
+      url: {{proxy_url}}
+    condition:
+      left: !eval main.path
+      operator: starts_with
+      right: {{path}}
+    then:
+      - id: proxy
+        use: http_request
+        input:
+          method: !eval main.method
+          url: !eval steps.{{id}}.url
+          headers: !eval main.headers
+          body: !eval main.body
+      - return: 
+          status_code: !eval steps.proxy.response.status_code
+          body: !eval steps.proxy.response.
+          headers: !eval steps.proxy.response.headers

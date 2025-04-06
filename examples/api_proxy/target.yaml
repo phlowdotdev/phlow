@@ -1,0 +1,10 @@
+main: http_server
+modules:
+  - module: http_server
+steps:
+  - return:
+      status_code: 200
+      body: 
+        message: "ping"
+      headers:
+        Content-Type: application/json

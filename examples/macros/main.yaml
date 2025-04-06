@@ -1,0 +1,31 @@
+main: http_server
+modules: 
+  - module: http_server
+  - module: http_request
+macros: !include macros.yaml
+steps:
+  - macro: router
+    input:
+      id: login
+      path: "/login"
+      proxy_url: http://localhost:3002/v1/${main.full_path}
+  - macro: router
+    input:
+      id: public
+      path: "/public"
+      proxy_url: http://localhost:3001/v1/${main.full_path}
+  - !include authorizer.yaml
+  - condition:
+      assert: !eval steps.auth == true
+    then:
+      macro: router
+      input:
+        id: private
+        path: "/public"
+        proxy_url: http://localhost:3001/v1/${main.full_path}
+    else:
+      return:
+        status_code: 401
+        body: {
+          message: Unauthorized
+        }

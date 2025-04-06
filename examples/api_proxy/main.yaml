@@ -1,0 +1,34 @@
+main: http_server
+modules: 
+  - module: http_server
+  - module: http_request
+steps:
+  - id: router
+    payload:
+      url: http://localhost:3001/login
+    condition:
+      left: !eval main.path
+      operator: starts_with
+      right: /login
+    then: !include proxy.yaml
+  - id: router
+    payload:
+      url: http://localhost:3002/public
+    condition:
+      left: !eval main.path
+      operator: starts_with
+      right: /public
+    then: !include proxy.yaml
+  - !include authorizer.yaml
+  - id: router
+    payload:
+      url: http://localhost:3002/private/${main.full_path}
+    condition:
+      assert: !eval steps.auth == true
+    then: !include proxy.yaml
+    else:
+      return:
+        status_code: 401
+        body: {
+          message: Unauthorized
+        }
