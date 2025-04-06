@@ -131,7 +131,7 @@ macro_rules! create_step {
 
 #[macro_export]
 macro_rules! create_main {
-    ($handler:ident) => {
+    ($handler:ident(setup)) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: $crate::structs::ModuleSetup) {
             let dispatch = setup.dispatch.clone();
