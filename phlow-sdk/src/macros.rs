@@ -38,9 +38,9 @@ macro_rules! sender_safe {
 #[macro_export]
 macro_rules! sender {
     ($id:expr, $sender:expr, $data:expr) => {{
-        let (tx, rx) = $crate::tokio::sync::oneshot::channel::<valu3::value::Value>();
+        let (tx, rx) = $crate::tokio::sync::oneshot::channel::<$crate::valu3::value::Value>();
 
-        let package = Package {
+        let package = $crate::structs::Package {
             send: Some(tx),
             request_data: $data,
             origin: $id,
@@ -53,9 +53,9 @@ macro_rules! sender {
         rx
     }};
     ($span:expr, $dispatch:expr, $id:expr, $sender:expr, $data:expr) => {{
-        let (tx, rx) = $crate::tokio::sync::oneshot::channel::<valu3::value::Value>();
+        let (tx, rx) = $crate::tokio::sync::oneshot::channel::<$crate::valu3::value::Value>();
 
-        let package = Package {
+        let package = $crate::structs::Package {
             send: Some(tx),
             request_data: $data,
             origin: $id,
@@ -73,7 +73,7 @@ macro_rules! sender {
 macro_rules! create_step {
     ($handler:ident) => {
         #[no_mangle]
-        pub extern "C" fn plugin(setup: ModuleSetup) {
+        pub extern "C" fn plugin(setup: $crate::structs::ModuleSetup) {
             if let Ok(rt) = $crate::tokio::runtime::Runtime::new() {
                 if let Err(e) = rt.block_on($handler(setup)) {
                     $crate::tracing::error!("Error in plugin: {:?}", e);
@@ -85,11 +85,12 @@ macro_rules! create_step {
         }
     };
 }
+
 #[macro_export]
 macro_rules! create_main {
     ($handler:ident) => {
         #[no_mangle]
-        pub extern "C" fn plugin(setup: ModuleSetup) {
+        pub extern "C" fn plugin(setup: $crate::structs::ModuleSetup) {
             let dispatch = setup.dispatch.clone();
             $crate::tracing::dispatcher::with_default(&dispatch, || {
                 let _guard = $crate::otel::init_tracing_subscriber();

@@ -2071,13 +2071,10 @@ dependencies = [
 name = "phlow-engine"
 version = "0.0.1"
 dependencies = [
- "crossbeam",
  "phlow-sdk",
  "regex",
  "rhai",
  "serde",
- "tokio",
- "valu3",
 ]
 
 [[package]]

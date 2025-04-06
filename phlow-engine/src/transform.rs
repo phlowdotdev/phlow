@@ -1,11 +1,10 @@
-use phlow_sdk::tracing::error;
+use phlow_sdk::{prelude::*, valu3};
 use rhai::Engine;
 use std::{collections::HashMap, sync::Arc};
-use valu3::{prelude::*, traits::ToValueBehavior, value::Value};
+use valu3::{traits::ToValueBehavior, value::Value};
 
 use crate::{
     collector::ContextSender,
-    modules::Modules,
     phlow::PipelineMap,
     pipeline::Pipeline,
     step_worker::{StepWorker, StepWorkerError},

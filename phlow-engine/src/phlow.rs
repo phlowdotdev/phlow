@@ -2,13 +2,12 @@ use crate::{
     build_engine_async,
     collector::ContextSender,
     context::Context,
-    modules::Modules,
     pipeline::{Pipeline, PipelineError},
     step_worker::NextStep,
     transform::{value_to_pipelines, TransformError},
 };
+use phlow_sdk::prelude::*;
 use std::{collections::HashMap, sync::Arc};
-use valu3::prelude::*;
 
 #[derive(Debug)]
 pub enum PhlowError {
@@ -81,6 +80,7 @@ impl Phlow {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use phlow_sdk::valu3;
     use valu3::json;
 
     fn get_original() -> Value {

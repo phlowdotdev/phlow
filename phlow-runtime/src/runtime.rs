@@ -3,10 +3,7 @@ use crate::memory::force_memory_release;
 use crate::settings::Settings;
 use crossbeam::channel;
 use futures::future::join_all;
-use phlow_engine::{
-    modules::{ModulePackage, Modules},
-    Context, Phlow,
-};
+use phlow_engine::{Context, Phlow};
 use phlow_sdk::tracing::{debug, dispatcher, error, info, warn};
 use phlow_sdk::{otel::init_tracing_subscriber, prelude::*};
 use std::{sync::Arc, thread};

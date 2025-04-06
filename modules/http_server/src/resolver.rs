@@ -4,6 +4,7 @@ use bytes::Bytes;
 use http_body_util::{BodyExt, Full};
 use hyper::body::Body;
 use hyper::{HeaderMap, Request, Response};
+use phlow_sdk::span_enter;
 use phlow_sdk::tracing::debug;
 use phlow_sdk::{prelude::*, tracing::Span};
 use std::{collections::HashMap, convert::Infallible};

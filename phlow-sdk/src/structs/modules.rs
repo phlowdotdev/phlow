@@ -1,9 +1,8 @@
+use crate::context::Context;
 use crossbeam::channel;
 use std::collections::HashMap;
 use tokio::sync::oneshot;
 use valu3::value::Value;
-
-use crate::Context;
 
 #[derive(Debug, Clone)]
 pub enum ModulesError {

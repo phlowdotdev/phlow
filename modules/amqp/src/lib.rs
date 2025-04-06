@@ -3,8 +3,7 @@ mod produce;
 mod setup;
 use lapin::ExchangeKind;
 use lapin::{options::*, types::FieldTable, Connection, ConnectionProperties};
-use phlow_sdk::prelude::*;
-use phlow_sdk::tracing::{debug, info};
+use phlow_sdk::{create_step, prelude::*};
 use produce::producer;
 use setup::Config;
 

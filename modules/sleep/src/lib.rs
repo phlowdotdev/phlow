@@ -1,4 +1,4 @@
-use phlow_sdk::{crossbeam::channel, modules::ModulePackage, prelude::*, tracing::debug};
+use phlow_sdk::prelude::*;
 
 create_step!(sleep);
 

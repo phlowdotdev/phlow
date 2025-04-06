@@ -1,7 +1,7 @@
 mod input;
 mod request;
 use input::Input;
-use phlow_sdk::{crossbeam::channel, modules::ModulePackage, prelude::*};
+use phlow_sdk::{create_step, listen, prelude::*, sender_safe};
 use std::collections::HashMap;
 
 create_step!(http_request);
