@@ -201,8 +201,8 @@ impl StepWorker {
         let span = tracing::info_span!(
             "step",
             otel.name = field::Empty,
+            main = field::Empty,
             params = field::Empty,
-            id = field::Empty,
             payload = field::Empty,
             input = field::Empty,
         );
@@ -211,6 +211,10 @@ impl StepWorker {
         {
             let step_name = self.label.clone().unwrap_or(self.id.to_string());
             span.record("otel.name", format!("step {}", step_name));
+            span.record("step.main", context.main.is_some());
+            span.record("step.params", context.params.is_some());
+            span.record("step.payload", context.payload.is_some());
+            span.record("step.input", context.input.is_some());
         }
 
         if let Some(output) = self.evaluate_return(context)? {
