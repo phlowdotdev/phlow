@@ -98,6 +98,20 @@ macro_rules! create_step {
         }
     };
 
+    ($handler:ident(setup)) => {
+        #[no_mangle]
+        pub extern "C" fn plugin(setup: $crate::structs::ModuleSetup) {
+            if let Ok(rt) = $crate::tokio::runtime::Runtime::new() {
+                if let Err(e) = rt.block_on($handler(setup)) {
+                    $crate::tracing::error!("Error in plugin: {:?}", e);
+                }
+            } else {
+                $crate::tracing::error!("Error creating runtime");
+                return;
+            };
+        }
+    };
+
     ($handler:ident(rx)) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: $crate::structs::ModuleSetup) {
@@ -117,7 +131,33 @@ macro_rules! create_step {
 
 #[macro_export]
 macro_rules! create_main {
-    ($handler:ident) => {
+    // Caso com dois argumentos: rx e setup
+    ($handler:ident(rx, setup)) => {
+        #[no_mangle]
+        pub extern "C" fn plugin(setup: $crate::structs::ModuleSetup) {
+            let dispatch = setup.dispatch.clone();
+            $crate::tracing::dispatcher::with_default(&dispatch, || {
+                let _guard = $crate::otel::init_tracing_subscriber();
+
+                if let Ok(rt) = $crate::tokio::runtime::Runtime::new() {
+                    let rx = module_channel!(setup);
+
+                    rt.block_on($handler(rx, setup)).unwrap_or_else(|e| {
+                        $crate::tracing::error!("Error in plugin: {:?}", e);
+                    });
+                    println!("Plugin loaded");
+                } else {
+                    $crate::tracing::error!("Error creating runtime");
+                    println!("Plugin loaded");
+                    return;
+                }
+
+                println!("Plugin loaded");
+            });
+        }
+    };
+
+    ($handler:ident( setup)) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: $crate::structs::ModuleSetup) {
             let dispatch = setup.dispatch.clone();
@@ -132,9 +172,34 @@ macro_rules! create_main {
                 } else {
                     $crate::tracing::error!("Error creating runtime");
                     println!("Plugin loaded");
-
                     return;
-                };
+                }
+
+                println!("Plugin loaded");
+            });
+        }
+    };
+
+    // Caso com apenas um argumento: rx
+    ($handler:ident(rx)) => {
+        #[no_mangle]
+        pub extern "C" fn plugin(setup: $crate::structs::ModuleSetup) {
+            let dispatch = setup.dispatch.clone();
+            $crate::tracing::dispatcher::with_default(&dispatch, || {
+                let _guard = $crate::otel::init_tracing_subscriber();
+
+                if let Ok(rt) = $crate::tokio::runtime::Runtime::new() {
+                    let rx = module_channel!(setup);
+
+                    rt.block_on($handler(rx)).unwrap_or_else(|e| {
+                        $crate::tracing::error!("Error in plugin: {:?}", e);
+                    });
+                    println!("Plugin loaded");
+                } else {
+                    $crate::tracing::error!("Error creating runtime");
+                    println!("Plugin loaded");
+                    return;
+                }
 
                 println!("Plugin loaded");
             });

@@ -12,7 +12,7 @@ use settings::Settings;
 use setup::Config;
 use std::{net::SocketAddr, sync::Arc};
 
-create_main!(start_server);
+create_main!(start_server(setup));
 
 pub async fn start_server(
     setup: ModuleSetup,

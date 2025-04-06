@@ -7,7 +7,7 @@ use phlow_sdk::prelude::*;
 use produce::producer;
 use setup::Config;
 
-create_main!(start_server);
+create_main!(start_server(setup));
 
 pub async fn start_server(
     setup: ModuleSetup,
