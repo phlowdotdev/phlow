@@ -198,7 +198,14 @@ impl StepWorker {
     }
 
     pub async fn execute(&self, context: &Context) -> Result<StepOutput, StepWorkerError> {
-        let span = tracing::info_span!("step", otel.name = field::Empty);
+        let span = tracing::info_span!(
+            "step",
+            otel.name = field::Empty,
+            params = field::Empty,
+            id = field::Empty,
+            payload = field::Empty,
+            input = field::Empty,
+        );
         let _guard = span.enter();
 
         {
