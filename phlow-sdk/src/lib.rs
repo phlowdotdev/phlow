@@ -78,6 +78,33 @@ impl Package {
 }
 
 #[macro_export]
+macro_rules! listen {
+    ($rx:expr, $resolve:expr) => {{
+        let mut resolves = Vec::new();
+
+        for package in $rx {
+            resolves.push($resolve(package));
+        }
+
+        for resolve in resolves {
+            resolve.await;
+        }
+    }};
+    // add arguments
+    ($rx:expr, $resolve:expr, $($args:tt)*) => {{
+        let mut resolves = Vec::new();
+
+        for package in $rx {
+            resolves.push($resolve(package, $($args)*));
+        }
+
+        for resolve in resolves {
+            resolve.await;
+        }
+    }};
+}
+
+#[macro_export]
 macro_rules! span_enter {
     ($span:expr) => {
         let span_enter_clone = $span.clone();
