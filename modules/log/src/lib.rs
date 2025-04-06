@@ -1,6 +1,6 @@
 use phlow_sdk::prelude::*;
 
-create_step!(log);
+create_step!(log(rx));
 
 enum LogLevel {
     Info,
@@ -33,24 +33,10 @@ impl From<&Value> for Log {
     }
 }
 
-pub async fn log(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let (tx, rx) = channel::unbounded::<ModulePackage>();
-
-    match setup.setup_sender.send(Some(tx)) {
-        Ok(_) => {}
-        Err(e) => {
-            return Err(format!("{:?}", e).into());
-        }
-    };
-
-    for package in rx {
-        let log = match package.context.input {
-            Some(value) => Log::from(&value),
-            _ => Log {
-                level: LogLevel::Info,
-                message: "".to_string(),
-            },
-        };
+pub async fn log(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    listen!(rx, move |package: ModulePackage| async {
+        let value = package.context.input.unwrap_or(Value::Null);
+        let log = Log::from(&value);
 
         match log.level {
             LogLevel::Info => info!("{}", log.message),
@@ -60,7 +46,7 @@ pub async fn log(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + S
         }
 
         sender_safe!(package.sender, Value::Null);
-    }
+    });
 
     Ok(())
 }

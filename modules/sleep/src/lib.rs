@@ -1,6 +1,6 @@
 use phlow_sdk::prelude::*;
 
-create_step!(sleep);
+create_step!(sleep(rx));
 
 struct Sleep {
     time: u64,
@@ -24,17 +24,8 @@ impl From<&Value> for Sleep {
     }
 }
 
-pub async fn sleep(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let (tx, rx) = channel::unbounded::<ModulePackage>();
-
-    match setup.setup_sender.send(Some(tx)) {
-        Ok(_) => {}
-        Err(e) => {
-            return Err(format!("{:?}", e).into());
-        }
-    };
-
-    for package in rx {
+pub async fn sleep(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    listen!(rx, move |package: ModulePackage| async {
         let sleep = match package.context.input {
             Some(value) => Sleep::from(&value),
             _ => Sleep { time: 0 },
@@ -48,7 +39,7 @@ pub async fn sleep(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error +
         }
 
         sender_safe!(package.sender, Value::Null);
-    }
+    });
 
     Ok(())
 }

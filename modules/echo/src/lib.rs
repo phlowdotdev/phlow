@@ -1,26 +1,11 @@
 use phlow_sdk::prelude::*;
 
-create_step!(echo);
+create_step!(echo(rx));
 
-pub async fn echo(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let (tx, rx) = channel::unbounded::<ModulePackage>();
-
-    sender_safe!(setup.setup_sender, Some(tx));
-
-    listen!(rx, resolve);
+pub async fn echo(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    listen!(rx, move |package: ModulePackage| async {
+        package.context.input.unwrap_or(Value::Null)
+    });
 
     Ok(())
-}
-
-async fn resolve(package: ModulePackage) {
-    println!("Received package");
-    match package.sender.send(match package.context.input {
-        Some(value) => value,
-        _ => Value::Null,
-    }) {
-        Ok(_) => {}
-        Err(e) => {
-            tracing::error!("Error sending package: {:?}", e);
-        }
-    }
 }

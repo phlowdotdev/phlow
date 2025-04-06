@@ -1,16 +1,14 @@
 mod input;
 mod request;
 use input::Input;
-use phlow_sdk::{create_step, listen, prelude::*, sender_safe};
+use phlow_sdk::{listen, prelude::*, sender_safe};
 use std::collections::HashMap;
 
-create_step!(http_request);
+create_main!(http_request);
 
 pub async fn http_request(
     setup: ModuleSetup,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let (tx, rx) = channel::unbounded::<ModulePackage>();
-
     let default_user_agent = {
         let string_bool = std::env::var("PHLOW_HTTP_REQUEST_USER_AGENT_DISABLE")
             .unwrap_or_else(|_| "false".to_string());
@@ -27,7 +25,7 @@ pub async fn http_request(
         }
     };
 
-    sender_safe!(setup.setup_sender, Some(tx));
+    let rx = module_channel!(setup);
 
     listen!(rx, resolve, default_user_agent);
 

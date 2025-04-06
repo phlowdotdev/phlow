@@ -1,6 +1,6 @@
 pub mod modules;
 use crate::sender_safe;
-use crossbeam::channel;
+use crossbeam::channel::{self, Receiver};
 pub use modules::*;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
@@ -9,6 +9,8 @@ use valu3::{traits::ToValueBehavior, value::Value};
 pub type ModuleId = usize;
 pub type MainRuntimeSender = channel::Sender<Package>;
 pub type ModuleSetupSender = oneshot::Sender<Option<channel::Sender<ModulePackage>>>;
+
+pub type ModuleReceiver = Receiver<ModulePackage>;
 
 #[derive(Debug)]
 pub struct ModuleSetup {

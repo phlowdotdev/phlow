@@ -1,5 +1,7 @@
 pub use crate::structs::*;
-pub use crate::{create_main, create_step, listen, sender, sender_safe, span_enter};
+pub use crate::{
+    create_main, create_step, listen, module_channel, sender, sender_safe, span_enter,
+};
 pub use crossbeam::channel;
 pub use tokio;
 pub use tracing::{self, debug, error, field, info, trace, warn, Dispatch, Level};

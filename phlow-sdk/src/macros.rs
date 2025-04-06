@@ -70,12 +70,41 @@ macro_rules! sender {
 }
 
 #[macro_export]
+macro_rules! module_channel {
+    ($setup:expr) => {{
+        let (tx, rx) = $crate::crossbeam::channel::unbounded::<ModulePackage>();
+
+        sender_safe!($setup.setup_sender, Some(tx));
+
+        rx
+    }};
+}
+
+#[macro_export]
 macro_rules! create_step {
-    ($handler:ident) => {
+    ($handler:ident(rx, setup)) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: $crate::structs::ModuleSetup) {
             if let Ok(rt) = $crate::tokio::runtime::Runtime::new() {
-                if let Err(e) = rt.block_on($handler(setup)) {
+                let rx = module_channel!(setup);
+
+                if let Err(e) = rt.block_on($handler(rx, setup)) {
+                    $crate::tracing::error!("Error in plugin: {:?}", e);
+                }
+            } else {
+                $crate::tracing::error!("Error creating runtime");
+                return;
+            };
+        }
+    };
+
+    ($handler:ident(rx)) => {
+        #[no_mangle]
+        pub extern "C" fn plugin(setup: $crate::structs::ModuleSetup) {
+            if let Ok(rt) = $crate::tokio::runtime::Runtime::new() {
+                let rx = module_channel!(setup);
+
+                if let Err(e) = rt.block_on($handler(rx)) {
                     $crate::tracing::error!("Error in plugin: {:?}", e);
                 }
             } else {
@@ -96,7 +125,7 @@ macro_rules! create_main {
                 let _guard = $crate::otel::init_tracing_subscriber();
 
                 if let Ok(rt) = $crate::tokio::runtime::Runtime::new() {
-                    rt.block_on(start_server(setup)).unwrap_or_else(|e| {
+                    rt.block_on($handler(setup)).unwrap_or_else(|e| {
                         $crate::tracing::error!("Error in plugin: {:?}", e);
                     });
                     println!("Plugin loaded");
