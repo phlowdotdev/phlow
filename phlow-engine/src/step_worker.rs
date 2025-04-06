@@ -197,8 +197,15 @@ impl StepWorker {
         }
     }
 
-    #[tracing::instrument(skip(context))]
     pub async fn execute(&self, context: &Context) -> Result<StepOutput, StepWorkerError> {
+        let span = tracing::info_span!("step", otel.name = field::Empty);
+        let _guard = span.enter();
+
+        {
+            let step_name = self.label.clone().unwrap_or(self.id.to_string());
+            span.record("otel.name", format!("step {}", step_name));
+        }
+
         if let Some(output) = self.evaluate_return(context)? {
             if let Some(sender) = &self.trace_sender {
                 sender_safe!(

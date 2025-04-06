@@ -62,7 +62,7 @@ impl Display for ID {
                     None => "unknown",
                 }
             } else {
-                ""
+                "unknown"
             }
         )
     }
