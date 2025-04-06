@@ -4,7 +4,7 @@ use input::Input;
 use phlow_sdk::{listen, prelude::*, sender_safe};
 use std::collections::HashMap;
 
-create_main!(http_request(rx));
+create_step!(http_request(rx));
 
 pub async fn http_request(
     rx: ModuleReceiver,
