@@ -7,6 +7,6 @@ steps:
   - return:
       status_code: 200
       body: 
-        message: !eval main.uri
+        message: !eval main
       headers:
         Content-Type: application/json

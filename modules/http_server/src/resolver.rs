@@ -70,8 +70,8 @@ pub async fn proxy(
         ("path", path.to_value()),
         ("query_string", query.to_value()),
         ("query_params", query_params),
-        ("body", body),
         ("uri", uri.to_value()),
+        ("body", body),
         ("body_size", body_size.to_value()),
     ])
     .to_value();
@@ -138,7 +138,7 @@ async fn resolve_body(req: Request<hyper::body::Incoming>) -> Value {
         }
         Err(e) => {
             debug!("Error parsing request body: {:?}", e);
-            "".to_string().to_value()
+            Value::Undefined
         }
     };
 
