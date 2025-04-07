@@ -1,15 +1,13 @@
 use crate::{
-    collector::{ContextSender, Step},
     condition::{Condition, ConditionError},
     context::Context,
     id::ID,
     script::{Script, ScriptError},
 };
-use phlow_sdk::{prelude::*, valu3};
+use phlow_sdk::prelude::*;
 use rhai::Engine;
 use serde::Serialize;
 use std::sync::Arc;
-use valu3::prelude::*;
 
 #[derive(Debug)]
 pub enum StepWorkerError {
@@ -44,14 +42,12 @@ pub struct StepWorker {
     pub(crate) else_case: Option<usize>,
     pub(crate) modules: Arc<Modules>,
     pub(crate) return_case: Option<Script>,
-    pub(crate) trace_sender: Option<ContextSender>,
 }
 
 impl StepWorker {
     pub fn try_from_value(
         engine: Arc<Engine>,
         modules: Arc<Modules>,
-        trace_sender: Option<ContextSender>,
         value: &Value,
     ) -> Result<Self, StepWorkerError> {
         let id = match value.get("id") {
@@ -123,7 +119,6 @@ impl StepWorker {
             else_case,
             modules,
             return_case,
-            trace_sender,
         })
     }
 
@@ -204,7 +199,12 @@ impl StepWorker {
             context.params = field::Empty,
             context.payload = field::Empty,
             context.input = field::Empty,
-            step = field::Empty,
+            step.id = field::Empty,
+            step.label = field::Empty,
+            step.module = field::Empty,
+            step.condition = field::Empty,
+            step.payload = field::Empty,
+            step.return = field::Empty,
         );
         let _guard = span.enter();
 
@@ -227,22 +227,17 @@ impl StepWorker {
             if let Some(ref main) = context.main {
                 span.record("context.main", main.to_string());
             }
+
+            span.record("step.id", self.id.to_string());
+
+            if let Some(ref label) = self.label {
+                span.record("step.label", label.to_string());
+            }
         }
 
         if let Some(output) = self.evaluate_return(context)? {
-            if let Some(sender) = &self.trace_sender {
-                sender_safe!(
-                    sender,
-                    Step {
-                        id: self.id.clone(),
-                        label: self.label.clone(),
-                        input: None,
-                        module: None,
-                        condition: None,
-                        payload: None,
-                        return_case: Some(output.clone()),
-                    }
-                );
+            {
+                span.record("step.return", output.to_string());
             }
 
             return Ok(StepOutput {
@@ -252,19 +247,12 @@ impl StepWorker {
         }
 
         if let Ok(Some((module, output, context))) = self.evaluate_module(context).await {
-            if let Some(sender) = &self.trace_sender {
-                sender_safe!(
-                    sender,
-                    Step {
-                        id: self.id.clone(),
-                        label: self.label.clone(),
-                        input: context.input.clone(),
-                        module,
-                        condition: None,
-                        payload: output.clone(),
-                        return_case: None,
-                    }
-                );
+            {
+                span.record("step.module", module.clone());
+
+                if let Some(ref output) = output {
+                    span.record("context.payload", output.to_string());
+                }
             }
 
             let context = if let Some(output) = output.clone() {
@@ -301,19 +289,12 @@ impl StepWorker {
                 (next_step, None)
             };
 
-            if let Some(sender) = &self.trace_sender {
-                sender_safe!(
-                    sender,
-                    Step {
-                        id: self.id.clone(),
-                        label: self.label.clone(),
-                        module: None,
-                        input: None,
-                        condition: Some(condition.raw.clone()),
-                        payload: output.clone(),
-                        return_case: None,
-                    }
-                );
+            {
+                span.record("step.condition", condition.raw.to_string());
+
+                if let Some(ref output) = output {
+                    span.record("context.payload", output.to_string());
+                }
             }
 
             return Ok(StepOutput { next_step, output });
@@ -321,19 +302,10 @@ impl StepWorker {
 
         let output = self.evaluate_payload(context, None)?;
 
-        if let Some(sender) = &self.trace_sender {
-            sender_safe!(
-                sender,
-                Step {
-                    id: self.id.clone(),
-                    label: self.label.clone(),
-                    module: None,
-                    input: None,
-                    condition: None,
-                    payload: output.clone(),
-                    return_case: None,
-                }
-            );
+        {
+            if let Some(ref output) = output {
+                span.record("context.payload", output.to_string());
+            }
         }
 
         return Ok(StepOutput {
@@ -348,6 +320,7 @@ mod test {
     use crate::engine::build_engine_async;
 
     use super::*;
+    use phlow_sdk::valu3;
     use valu3::prelude::ToValueBehavior;
     use valu3::value::Value;
 

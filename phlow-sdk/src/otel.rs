@@ -18,6 +18,25 @@ use tracing_subscriber::prelude::*;
 use tracing_subscriber::Registry;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+// otel active
+static PHLOW_OTEL_ACTIVE: once_cell::sync::Lazy<bool> =
+    once_cell::sync::Lazy::new(|| match std::env::var("PHLOW_OTEL") {
+        Ok(active) => active.parse::<bool>().unwrap_or(true),
+        Err(_) => true,
+    });
+
+static PHLOW_SPAN_ACTIVE: once_cell::sync::Lazy<Level> =
+    once_cell::sync::Lazy::new(|| match std::env::var("PHLOW_SPAN") {
+        Ok(level) => level.parse::<Level>().unwrap_or(Level::INFO),
+        Err(_) => Level::INFO,
+    });
+
+static PHLOW_LOG: once_cell::sync::Lazy<Level> =
+    once_cell::sync::Lazy::new(|| match std::env::var("PHLOW_LOG") {
+        Ok(level) => level.parse::<Level>().unwrap_or(Level::INFO),
+        Err(_) => Level::INFO,
+    });
+
 fn resource() -> Resource {
     Resource::builder().build()
 }
@@ -68,24 +87,15 @@ fn init_tracer_provider() -> Result<SdkTracerProvider, ExporterBuildError> {
 }
 
 pub fn get_log_level() -> Level {
-    match std::env::var("PHLOW_LOG") {
-        Ok(level) => level.parse::<Level>().unwrap_or(Level::INFO),
-        Err(_) => Level::INFO,
-    }
+    *PHLOW_LOG
 }
 
 fn get_span_level() -> Level {
-    match std::env::var("PHLOW_SPAN") {
-        Ok(level) => level.parse::<Level>().unwrap_or(Level::INFO),
-        Err(_) => Level::INFO,
-    }
+    *PHLOW_SPAN_ACTIVE
 }
 
-fn get_otel_active() -> bool {
-    match std::env::var("PHLOW_OTEL") {
-        Ok(active) => active.parse::<bool>().unwrap_or(true),
-        Err(_) => true,
-    }
+pub fn get_otel_active() -> bool {
+    *PHLOW_OTEL_ACTIVE
 }
 
 pub fn init_tracing_subscriber() -> OtelGuard {

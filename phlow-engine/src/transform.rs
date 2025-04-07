@@ -4,7 +4,6 @@ use std::{collections::HashMap, sync::Arc};
 use valu3::{traits::ToValueBehavior, value::Value};
 
 use crate::{
-    collector::ContextSender,
     phlow::PipelineMap,
     pipeline::Pipeline,
     step_worker::{StepWorker, StepWorkerError},
@@ -19,13 +18,12 @@ pub enum TransformError {
 pub(crate) fn value_to_pipelines(
     engine: Arc<Engine>,
     modules: Arc<Modules>,
-    trace_sender: Option<ContextSender>,
     input: &Value,
 ) -> Result<PipelineMap, TransformError> {
     let mut map = Vec::new();
 
     process_raw_steps(input, &mut map);
-    value_to_structs(engine, modules, &trace_sender, &map)
+    value_to_structs(engine, modules, &map)
 }
 
 pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
@@ -106,7 +104,7 @@ pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
 fn value_to_structs(
     engine: Arc<Engine>,
     modules: Arc<Modules>,
-    trace_sender: &Option<ContextSender>,
+
     map: &Vec<Value>,
 ) -> Result<PipelineMap, TransformError> {
     let mut pipelines = HashMap::new();
@@ -116,13 +114,8 @@ fn value_to_structs(
             let mut steps = Vec::new();
 
             for step in arr.into_iter() {
-                let step_worker = StepWorker::try_from_value(
-                    engine.clone(),
-                    modules.clone(),
-                    trace_sender.clone(),
-                    step,
-                )
-                .map_err(TransformError::InnerStepError)?;
+                let step_worker = StepWorker::try_from_value(engine.clone(), modules.clone(), step)
+                    .map_err(TransformError::InnerStepError)?;
                 steps.push(step_worker);
             }
 

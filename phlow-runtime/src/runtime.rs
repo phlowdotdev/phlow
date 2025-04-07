@@ -93,7 +93,7 @@ impl Runtime {
         // Create the flow
         // -------------------------
         let flow = Arc::new({
-            match Phlow::try_from_value(&steps, Some(Arc::new(modules)), None) {
+            match Phlow::try_from_value(&steps, Some(Arc::new(modules))) {
                 Ok(flow) => flow,
                 Err(err) => {
                     error!("Runtime Error To Value: {:?}", err);
