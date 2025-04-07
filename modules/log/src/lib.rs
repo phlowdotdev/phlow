@@ -1,7 +1,16 @@
-use phlow_sdk::prelude::*;
+use phlow_sdk::tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
+use phlow_sdk::tracing_subscriber::util::SubscriberInitExt;
+use phlow_sdk::tracing_subscriber::Layer;
+use phlow_sdk::{
+    otel::get_log_level,
+    prelude::*,
+    tracing_core::LevelFilter,
+    tracing_subscriber::{fmt, Registry},
+};
 
 create_step!(log(rx));
 
+#[derive(Debug)]
 enum LogLevel {
     Info,
     Debug,
@@ -9,6 +18,7 @@ enum LogLevel {
     Error,
 }
 
+#[derive(Debug)]
 struct Log {
     level: LogLevel,
     message: String,
@@ -34,9 +44,16 @@ impl From<&Value> for Log {
 }
 
 pub async fn log(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    Registry::default()
+        .with(fmt::layer().with_filter(LevelFilter::from_level(get_log_level())))
+        .init();
+
+    debug!("PHLOW_OTEL is set to false, using default subscriber");
+
     listen!(rx, move |package: ModulePackage| async {
         let value = package.context.input.unwrap_or(Value::Null);
         let log = Log::from(&value);
+        println!("Received log package: {:?}", log);
 
         match log.level {
             LogLevel::Info => info!("{}", log.message),

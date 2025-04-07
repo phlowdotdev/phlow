@@ -67,7 +67,7 @@ fn init_tracer_provider() -> Result<SdkTracerProvider, ExporterBuildError> {
         .build())
 }
 
-fn get_log_level() -> Level {
+pub fn get_log_level() -> Level {
     match std::env::var("PHLOW_LOG") {
         Ok(level) => level.parse::<Level>().unwrap_or(Level::INFO),
         Err(_) => Level::INFO,

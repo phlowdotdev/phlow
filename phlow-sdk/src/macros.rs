@@ -85,6 +85,8 @@ macro_rules! create_step {
     ($handler:ident(rx, setup)) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: $crate::structs::ModuleSetup) {
+            let _guard = $crate::otel::init_tracing_subscriber();
+
             if let Ok(rt) = $crate::tokio::runtime::Runtime::new() {
                 let rx = module_channel!(setup);
 

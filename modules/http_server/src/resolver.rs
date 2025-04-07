@@ -149,9 +149,13 @@ fn resolve_authorization(authorization: &str, mode: &AuthorizationSpanMode) -> S
     match mode {
         AuthorizationSpanMode::None => "".to_string(),
         AuthorizationSpanMode::Hidden => "x".repeat(authorization.len()),
-        AuthorizationSpanMode::Prefix => format!("{}...", &authorization[0..12]),
+        AuthorizationSpanMode::Prefix => {
+            let prefix_len = 12.min(authorization.len());
+            format!("{}...", &authorization[..prefix_len])
+        }
         AuthorizationSpanMode::Suffix => {
-            format!("...{}", &authorization[authorization.len() - 6..])
+            let suffix_len = 6.min(authorization.len());
+            format!("...{}", &authorization[authorization.len() - suffix_len..])
         }
         AuthorizationSpanMode::All => authorization.to_string(),
     }

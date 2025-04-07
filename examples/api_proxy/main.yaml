@@ -13,7 +13,7 @@ steps:
         use: http_request
         input:
           method: !eval main.method
-          url: !eval `http://localhost:4000/auth/${main.uri}`  
+          url: !eval `http://localhost:4000/auth/${main.uri}` 
           headers: !eval main.headers
           body: !eval main.body
       - return: 
@@ -28,23 +28,30 @@ steps:
       operator: starts_with
       right: /public
     then: !include proxy.yaml
-  # - use: http_request
-  #   input:
-  #     method: POST
-  #     url: http://localhost:4001
-  #     body:
-  #       token: main.headers.authorization
-  # - id: auth
-  #   payload: !eval main.status_code == 200
-  # - id: router
-  #   payload:
-  #     url: http://localhost:3002/private/${main.uri}
-  #   condition:
-  #     assert: !eval steps.auth == true
-  #   then: !include proxy.yaml
-  #   else:
-  #     return:
-  #       status_code: 401
-  #       body: {
-  #         message: Unauthorized
-  #       }
+  - id: auth
+    use: http_request
+    input:
+      method: POST
+      url: http://localhost:4001
+      body:
+        token: !eval main.headers.authorization
+  - condition:
+      assert: !eval steps.auth.response.status_code == 200
+    then:
+      - id: proxy
+        use: http_request
+        input:
+          method: !eval main.method
+          url: !eval `http://localhost:4000/private/${main.uri}` 
+          headers: !eval main.headers
+          body: !eval main.body
+      - return: 
+          status_code: !eval steps.proxy.response.status_code
+          body: !eval steps.proxy.response.body
+          headers: !eval steps.proxy.response.headers
+    else:
+      return:
+        status_code: 401
+        body: {
+          message: Unauthorized
+        }
