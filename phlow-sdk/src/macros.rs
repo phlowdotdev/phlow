@@ -138,7 +138,7 @@ macro_rules! create_main {
         pub extern "C" fn plugin(setup: $crate::structs::ModuleSetup) {
             let dispatch = setup.dispatch.clone();
             $crate::tracing::dispatcher::with_default(&dispatch, || {
-                let _guard = $crate::otel::init_tracing_subscriber();
+                let _guard = $crate::otel::init_tracing_subscriber(setup.app_data.clone());
 
                 if let Ok(rt) = $crate::tokio::runtime::Runtime::new() {
                     rt.block_on($handler(setup)).unwrap_or_else(|e| {

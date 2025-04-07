@@ -13,7 +13,7 @@ pub struct Runtime {}
 
 impl Runtime {
     pub async fn run(loader: Loader, settings: Settings) {
-        let guard = init_tracing_subscriber();
+        let guard = init_tracing_subscriber(loader.app_data.clone());
 
         let steps: Value = loader.get_steps();
         let mut modules = Modules::default();
@@ -42,6 +42,7 @@ impl Runtime {
                 main_sender,
                 with: module.with.clone(),
                 dispatch: guard.dispatch.clone(),
+                app_data: loader.app_data.clone(),
             };
 
             let module_target = module.module.clone();

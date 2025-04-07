@@ -118,6 +118,7 @@ pub struct Loader {
     pub main: i32,
     pub modules: Vec<Module>,
     pub steps: Value,
+    pub app_data: ApplicationData,
 }
 
 impl Loader {
@@ -166,10 +167,31 @@ impl Loader {
             None => return Err(Error::StepsNotDefined),
         };
 
+        let name = value.get("name").map(|v| v.to_string());
+        let version = value.get("version").map(|v| v.to_string());
+        let environment = value.get("environment").map(|v| v.to_string());
+        let author = value.get("author").map(|v| v.to_string());
+        let description = value.get("description").map(|v| v.to_string());
+        let license = value.get("license").map(|v| v.to_string());
+        let repository = value.get("repository").map(|v| v.to_string());
+        let homepage = value.get("homepage").map(|v| v.to_string());
+
+        let app_data = ApplicationData {
+            name,
+            version,
+            environment,
+            author,
+            description,
+            license,
+            repository,
+            homepage,
+        };
+
         Ok(Self {
             main,
             modules,
             steps,
+            app_data,
         })
     }
 

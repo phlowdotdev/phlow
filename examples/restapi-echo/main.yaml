@@ -1,3 +1,6 @@
+name: echo
+description: A simple REST API echo service
+version: 1.0
 main: http_server
 modules: !include modules.yaml
 steps:

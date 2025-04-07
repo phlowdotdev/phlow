@@ -12,6 +12,18 @@ pub type ModuleSetupSender = oneshot::Sender<Option<channel::Sender<ModulePackag
 
 pub type ModuleReceiver = Receiver<ModulePackage>;
 
+#[derive(Debug, Clone)]
+pub struct ApplicationData {
+    pub name: Option<String>,
+    pub version: Option<String>,
+    pub environment: Option<String>,
+    pub description: Option<String>,
+    pub author: Option<String>,
+    pub license: Option<String>,
+    pub repository: Option<String>,
+    pub homepage: Option<String>,
+}
+
 #[derive(Debug)]
 pub struct ModuleSetup {
     pub id: ModuleId,
@@ -19,6 +31,7 @@ pub struct ModuleSetup {
     pub main_sender: Option<MainRuntimeSender>,
     pub with: Value,
     pub dispatch: tracing::Dispatch,
+    pub app_data: ApplicationData,
 }
 
 impl ModuleSetup {
