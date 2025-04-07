@@ -35,7 +35,8 @@ steps:
       url: http://localhost:4001
       body:
         token: !eval main.headers.authorization
-  - condition:
+  - label: auth response
+    condition:
       assert: !eval steps.auth.response.status_code == 200
     then:
       - id: proxy
@@ -45,11 +46,13 @@ steps:
           url: !eval `http://localhost:4000/private/${main.uri}` 
           headers: !eval main.headers
           body: !eval main.body
-      - return: 
+      - label: response
+        return:
           status_code: !eval steps.proxy.response.status_code
           body: !eval steps.proxy.response.body
           headers: !eval steps.proxy.response.headers
     else:
+      label: response
       return:
         status_code: 401
         body: {

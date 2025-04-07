@@ -9,8 +9,7 @@ use phlow_sdk::{prelude::*, valu3};
 use rhai::Engine;
 use serde::Serialize;
 use std::sync::Arc;
-use valu3::prelude::NumberBehavior;
-use valu3::{prelude::StringBehavior, value::Value};
+use valu3::prelude::*;
 
 #[derive(Debug)]
 pub enum StepWorkerError {
@@ -205,12 +204,29 @@ impl StepWorker {
             context.params = field::Empty,
             context.payload = field::Empty,
             context.input = field::Empty,
+            step = field::Empty,
         );
         let _guard = span.enter();
 
         {
             let step_name = self.label.clone().unwrap_or(self.id.to_string());
             span.record("otel.name", format!("step {}", step_name));
+
+            if let Some(ref input) = context.input {
+                span.record("context.input", input.to_string());
+            }
+
+            if let Some(ref payload) = context.payload {
+                span.record("context.payload", payload.to_string());
+            }
+
+            if let Some(ref params) = context.params {
+                span.record("context.params", params.to_string());
+            }
+
+            if let Some(ref main) = context.main {
+                span.record("context.main", main.to_string());
+            }
         }
 
         if let Some(output) = self.evaluate_return(context)? {
