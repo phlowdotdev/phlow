@@ -29,7 +29,7 @@ steps:
       left: !eval main.path
       operator: starts_with
       right: /public
-    then: !include proxy.yaml
+    then: !include assets/proxy.yaml
   - id: auth
     use: http_request
     input:
