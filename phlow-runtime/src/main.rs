@@ -21,6 +21,8 @@ async fn main() {
     let cli = Cli::load().expect("Error loading CLI");
 
     if let Some(publish_path) = cli.publish_path {
+        init_tracing();
+
         match Publish::try_from(publish_path) {
             Ok(publish) => {
                 if let Err(err) = publish.run() {
