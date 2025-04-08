@@ -7,24 +7,23 @@ modules:
   - module: http_request
     version: latest
 steps:
-  - id: router
+  - payload: router
     condition:
       left: !eval main.path
       operator: starts_with
       right: /login
     then:
-      - id: proxy
-        use: http_request
+      - use: http_request
         input:
           method: !eval main.method
           url: !eval `http://localhost:4000/auth/${main.uri}` 
           headers: !eval main.headers
           body: !eval main.body
       - return: 
-          status_code: !eval steps.proxy.response.status_code
-          body: !eval steps.proxy.response.body
-          headers: !eval steps.proxy.response.headers
-  - id: router
+          status_code: !eval payload.response.status_code
+          body: !eval payload.response.body
+          headers: !eval payload.response.headers
+  - label: router
     payload:
       url: http://localhost:4000/external/${main.uri}
     condition:
@@ -32,7 +31,7 @@ steps:
       operator: starts_with
       right: /public
     then: !include assets/proxy.yaml
-  - id: auth
+  - label: auth
     use: http_request
     input:
       method: POST
@@ -41,10 +40,9 @@ steps:
         token: !eval main.headers.authorization
   - label: auth response
     condition:
-      assert: !eval steps.auth.response.status_code == 200
+      assert: !eval payload.response.status_code == 200
     then:
-      - id: proxy
-        use: http_request
+      - use: http_request
         input:
           method: !eval main.method
           url: !eval `http://localhost:4000/private/${main.uri}` 
@@ -52,9 +50,9 @@ steps:
           body: !eval main.body
       - label: response
         return:
-          status_code: !eval steps.proxy.response.status_code
-          body: !eval steps.proxy.response.body
-          headers: !eval steps.proxy.response.headers
+          status_code: !eval payload.response.status_code
+          body: !eval payload.response.body
+          headers: !eval payload.response.headers
     else:
       label: response
       return:

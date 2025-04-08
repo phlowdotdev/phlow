@@ -53,8 +53,12 @@ impl Context {
         }
     }
 
-    pub fn add_step_output(&mut self, id: ID, output: Value) {
-        self.steps.insert(id, output);
+    pub fn add_step_payload(&mut self, output: Option<Value>) {
+        self.payload = output;
+    }
+
+    pub fn add_step_id_output(&mut self, id: ID, output: Value) {
+        self.steps.insert(id, output.clone());
     }
 
     pub fn get_step_output(&self, id: &ID) -> Option<&Value> {

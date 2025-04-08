@@ -21,9 +21,11 @@ impl Pipeline {
         for step in self.steps.iter() {
             match step.execute(&context).await {
                 Ok(step_output) => {
+                    context.add_step_payload(step_output.output.clone());
+
                     if step.get_id().is_some() {
                         if let Some(payload) = &step_output.output {
-                            context.add_step_output(step.get_id().clone(), payload.clone());
+                            context.add_step_id_output(step.get_id().clone(), payload.clone());
                         }
                     }
 

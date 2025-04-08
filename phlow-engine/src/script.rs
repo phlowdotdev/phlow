@@ -287,7 +287,7 @@ mod test {
         };
 
         let mut context = Context::new(None);
-        context.add_step_output(step.get_id().clone(), {
+        context.add_step_id_output(step.get_id().clone(), {
             let mut map = HashMap::new();
             map.insert("a".to_string(), Value::from(10i64));
             map.insert("b".to_string(), Value::from(20i64));
