@@ -1,6 +1,8 @@
-use deadpool_postgres::{Config as PoolConfig, ManagerConfig, Pool, RecyclingMethod, Runtime};
-use phlow_sdk::{prelude::*, tokio};
-use tokio_postgres::{Client, Error, NoTls};
+use deadpool_postgres::{
+    Manager, ManagerConfig, Pool, PoolBuilder, RecyclingMethod, Runtime, Timeouts,
+};
+use phlow_sdk::{crossbeam::queue, prelude::*, tokio};
+use tokio_postgres::{config::SslMode, Client, Error, NoTls};
 
 #[derive(Clone, Debug)]
 pub struct Config {
@@ -33,19 +35,27 @@ impl Config {
     }
 
     pub fn create_pool(&self) -> Result<Pool, Box<dyn std::error::Error + Send + Sync>> {
-        let mut cfg = PoolConfig::new();
+        let pg_config = tokio_postgres::Config::new()
+            .host(&self.host)
+            .port(self.port)
+            .user(&self.user)
+            .password(&self.password)
+            .dbname(&self.dbname)
+            .ssl_mode(SslMode::Prefer)
+            .to_owned();
+        let tls = NoTls;
 
-        cfg.host = Some(self.host.clone());
-        cfg.port = Some(self.port);
-        cfg.user = Some(self.user.clone());
-        cfg.password = Some(self.password.clone());
-        cfg.dbname = Some(self.dbname.clone());
+        let mgr = Manager::new(pg_config, tls);
 
-        cfg.manager = Some(ManagerConfig {
-            recycling_method: RecyclingMethod::Fast,
-        });
-
-        let pool = cfg.create_pool(Some(Runtime::Tokio1), NoTls)?;
+        let pool = Pool::builder(mgr)
+            .max_size(16)
+            .timeouts(Timeouts {
+                wait: Some(std::time::Duration::from_secs(30)),
+                create: Some(std::time::Duration::from_secs(30)),
+                recycle: Some(std::time::Duration::from_secs(30)),
+            })
+            .runtime(Runtime::Tokio1)
+            .build()?;
         Ok(pool)
     }
 }
