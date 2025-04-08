@@ -6,6 +6,7 @@ pub mod macros;
 pub mod otel;
 pub mod prelude;
 pub mod structs;
+pub mod timer;
 
 pub use crossbeam;
 pub use opentelemetry;

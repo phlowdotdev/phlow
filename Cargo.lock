@@ -1174,6 +1174,7 @@ dependencies = [
 name = "http_request"
 version = "0.1.0"
 dependencies = [
+ "lazy_static",
  "phlow-sdk",
  "reqwest",
 ]

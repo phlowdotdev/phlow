@@ -7,8 +7,6 @@ pub struct Input {
     pub url: String,
     pub headers: HeaderMap,
     pub body: Option<String>,
-    pub timeout: u64,
-    pub verify_ssl: bool,
 }
 impl Input {
     pub fn new(value: Value, default_user_agent: &Option<String>) -> Self {
@@ -58,21 +56,12 @@ impl Input {
         }
 
         let body = value.get("body").map(|v| v.to_string());
-        // deafault to 29 seconds
-        let timeout = value.get("timeout").and_then(|v| v.to_u64()).unwrap_or(29);
-
-        let verify_ssl = *value
-            .get("verify_ssl")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(&true);
 
         Input {
             method,
             url,
             headers,
             body,
-            timeout,
-            verify_ssl,
         }
     }
 }

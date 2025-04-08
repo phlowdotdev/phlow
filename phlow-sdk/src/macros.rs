@@ -82,24 +82,6 @@ macro_rules! module_channel {
 
 #[macro_export]
 macro_rules! create_step {
-    ($handler:ident(rx, setup)) => {
-        #[no_mangle]
-        pub extern "C" fn plugin(setup: $crate::structs::ModuleSetup) {
-            let _guard = $crate::otel::init_tracing_subscriber();
-
-            if let Ok(rt) = $crate::tokio::runtime::Runtime::new() {
-                let rx = module_channel!(setup);
-
-                if let Err(e) = rt.block_on($handler(rx, setup)) {
-                    $crate::tracing::error!("Error in plugin: {:?}", e);
-                }
-            } else {
-                $crate::tracing::error!("Error creating runtime");
-                return;
-            };
-        }
-    };
-
     ($handler:ident(setup)) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: $crate::structs::ModuleSetup) {

@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 phlow-sdk = { workspace = true }
 reqwest = { version = "0.12.15", features = ["blocking"] }
+lazy_static = "1.5.0"
 
 [lib]
 name = "http_request"

@@ -1,4 +1,5 @@
 pub use crate::structs::*;
+pub use crate::timer::Timer;
 pub use crate::{
     create_main, create_step, listen, module_channel, sender, sender_safe, span_enter,
 };

@@ -1,6 +1,6 @@
 use crate::input::Input;
-use phlow_sdk::valu3::prelude::*;
-use reqwest::{header, Method};
+use phlow_sdk::{timer::Timer, valu3::prelude::*};
+use reqwest::{header, Client, Method};
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -30,13 +30,7 @@ impl From<Error> for Value {
     }
 }
 
-pub fn request(input: Input) -> Result<Value, Error> {
-    let client = reqwest::blocking::Client::builder()
-        .danger_accept_invalid_certs(!input.verify_ssl)
-        .timeout(std::time::Duration::from_secs(input.timeout))
-        .build()
-        .map_err(Error::RequestError)?;
-
+pub async fn request(input: Input, client: Client) -> Result<Value, Error> {
     let request_builder = match input.method {
         Method::GET => client.get(&input.url),
         Method::POST => client.post(&input.url),
@@ -46,10 +40,9 @@ pub fn request(input: Input) -> Result<Value, Error> {
         _ => client.get(&input.url),
     }
     .headers(input.headers)
-    .body(input.body.unwrap_or_default())
-    .timeout(std::time::Duration::from_millis(input.timeout));
+    .body(input.body.unwrap_or_default());
 
-    let response = request_builder.send().map_err(Error::RequestError)?;
+    let response = request_builder.send().await.map_err(Error::RequestError)?;
 
     let status_code = response.status().as_u16();
 
@@ -59,7 +52,7 @@ pub fn request(input: Input) -> Result<Value, Error> {
         headers_map.insert(key.to_string(), value.to_str().unwrap_or("").to_string());
     }
 
-    let body = response.text().map_err(Error::RequestError)?;
+    let body = response.text().await.map_err(Error::RequestError)?;
     let body_value = Value::json_to_value(&body).map_err(Error::ValueError)?;
 
     let response = HashMap::from([
