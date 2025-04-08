@@ -54,7 +54,32 @@ pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Erro
                     }
                 };
 
-                match client.query(query.as_str(), &[]).await {
+                let params = match package.context.input {
+                    Some(input) => match input.get("params") {
+                        Some(params) => {
+                            if params.is_array() {
+                                params
+                                    .as_array()
+                                    .iter()
+                                    .map(|v| v.to_string())
+                                    .collect::<Vec<String>>()
+                            } else {
+                                let response = Response {
+                                    status: "error".to_string(),
+                                    message: "Invalid parameters format".to_string(),
+                                    data: Value::Undefined,
+                                }
+                                .to_value();
+
+                                sender_safe!(package.sender, response);
+                            }
+                        }
+                        None => Vec::new(),
+                    },
+                    None => Vec::new(),
+                };
+
+                match client.query(query.as_str(), &params).await {
                     Ok(rows) => {
                         let result = QueryResult::from(rows);
                         let response = Response {
