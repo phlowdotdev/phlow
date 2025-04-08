@@ -8,7 +8,7 @@ members = [
     "modules/amqp",
     "modules/log",
     "modules/sleep",
-    "modules/http_request",
+    "modules/http_request", "modules/postgres",
 ]
 resolver = "2"
 

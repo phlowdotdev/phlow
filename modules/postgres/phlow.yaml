@@ -1,0 +1,38 @@
+
+name: postgres
+description: PostgreSQL database operations.
+version: 0.0.1
+author: Philippe Assis <codephilippe@gmail.com>
+repository: https://github.com/lowcarboncode/phlow
+license: MIT
+tags:
+  - log
+  - echo
+  - print
+inputs:
+  query:
+    type: string
+    description: The SQL query to execute.
+    required: true
+output:
+  result:
+    type: object
+    description: The result of the SQL query.
+    required: true
+    properties:
+      - name: rows
+        type: array
+        description: The rows returned by the query.
+        required: true
+      - name: count
+        type: integer
+        description: The number of rows returned by the query.
+        required: true
+  message:
+    type: string
+    description: A message indicating the result of the operation.
+    required: false
+  status:
+    type: string
+    description: The status of the operation (success or failure).
+    required: true
