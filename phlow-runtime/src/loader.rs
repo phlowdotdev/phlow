@@ -255,7 +255,18 @@ impl Loader {
 
         let client = Client::new();
 
+        let mut downloads = Vec::new();
+
         for module in &self.modules {
+            let module_so_path = format!("phlow_modules/{}/module.so", module.module);
+            if Path::new(&module_so_path).exists() {
+                info!(
+                    "Module {} already exists at {}, skipping download",
+                    module.name, module_so_path
+                );
+                continue;
+            }
+
             let base_url = match &module.repository {
                 Some(repo) => repo.clone(),
                 None => format!(
@@ -294,7 +305,20 @@ impl Loader {
                 module.version.clone()
             };
 
-            Self::download_and_extract_tarball(&base_url, &module.module, &version).await?;
+            let handler = Self::download_and_extract_tarball(
+                base_url.clone(),
+                module.module.clone(),
+                version.clone(),
+            );
+
+            downloads.push(handler);
+        }
+
+        let results = futures::future::join_all(downloads).await;
+        for result in results {
+            if let Err(err) = result {
+                return Err(err);
+            }
         }
 
         info!("All modules downloaded and extracted successfully");
@@ -302,9 +326,9 @@ impl Loader {
     }
 
     async fn download_and_extract_tarball(
-        base_url: &str,
-        module: &str,
-        version: &str,
+        base_url: String,
+        module: String,
+        version: String,
     ) -> Result<(), Error> {
         use flate2::read::GzDecoder;
         use tar::Archive;
@@ -314,7 +338,7 @@ impl Loader {
         let target_path = format!("phlow_modules/{}/{}", module, tarball_name);
 
         if Path::new(&format!("phlow_modules/{}/module.so", module)).exists() {
-            return Ok(()); // já extraído
+            return Ok(());
         }
 
         info!(
