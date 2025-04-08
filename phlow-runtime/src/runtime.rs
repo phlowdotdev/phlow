@@ -13,7 +13,7 @@ pub struct Runtime {}
 
 impl Runtime {
     pub async fn run(loader: Loader, settings: Settings) {
-        let guard = init_tracing_subscriber(loader.app_data.clone());
+        let guard: phlow_sdk::otel::OtelGuard = init_tracing_subscriber(loader.app_data.clone());
 
         let steps: Value = loader.get_steps();
         let mut modules = Modules::default();

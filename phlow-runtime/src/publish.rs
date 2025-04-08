@@ -138,7 +138,9 @@ impl Publish {
 
         info!("Creating archive: {}", archive_name);
         let status = Command::new("tar")
-            .args(["-czf", &archive_name, "-C", ".tmp", &metadata.name])
+            .args(["-czf", &archive_name, "-C"])
+            .arg(temp_dir.to_str().unwrap()) // entra direto na pasta criada, ex: .tmp/nome
+            .arg(".") // empacota apenas o conteúdo, sem incluir a pasta
             .status()
             .context("Failed to create archive")?;
 
