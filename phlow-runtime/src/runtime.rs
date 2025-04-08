@@ -4,17 +4,15 @@ use crate::settings::Settings;
 use crossbeam::channel;
 use futures::future::join_all;
 use phlow_engine::{Context, Phlow};
+use phlow_sdk::prelude::*;
 use phlow_sdk::tracing::{debug, dispatcher, error, info, warn};
-use phlow_sdk::{otel::init_tracing_subscriber, prelude::*};
 use std::{sync::Arc, thread};
 use tokio::sync::oneshot;
 
 pub struct Runtime {}
 
 impl Runtime {
-    pub async fn run(loader: Loader, settings: Settings) {
-        let guard: phlow_sdk::otel::OtelGuard = init_tracing_subscriber(loader.app_data.clone());
-
+    pub async fn run(loader: Loader, dispatch: Dispatch, settings: Settings) {
         let steps: Value = loader.get_steps();
         let mut modules = Modules::default();
 
@@ -41,7 +39,7 @@ impl Runtime {
                 setup_sender,
                 main_sender,
                 with: module.with.clone(),
-                dispatch: guard.dispatch.clone(),
+                dispatch: dispatch.clone(),
                 app_data: loader.app_data.clone(),
             };
 

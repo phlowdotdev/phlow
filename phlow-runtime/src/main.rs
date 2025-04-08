@@ -9,6 +9,7 @@ mod yaml;
 use cli::Cli;
 use loader::Loader;
 use log::init_tracing;
+use phlow_sdk::otel::init_tracing_subscriber;
 use phlow_sdk::prelude::*;
 use phlow_sdk::tracing::error;
 use publish::Publish;
@@ -46,6 +47,8 @@ async fn main() {
             }
         };
 
+        let guard = init_tracing_subscriber(loader.app_data.clone());
+
         loader
             .download(&settings.default_package_repository_url)
             .await
@@ -55,6 +58,6 @@ async fn main() {
             return;
         }
 
-        Runtime::run(loader, settings).await;
+        Runtime::run(loader, guard.dispatch.clone(), settings).await;
     }
 }
