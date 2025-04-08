@@ -77,11 +77,21 @@ impl TryFrom<Value> for Module {
         let repository = value.get("repository").map(|v| v.to_string());
 
         let repository_path = if repository.is_none() {
-            let padded = format!("{:0<4}", module); // garante ao menos 4 caracteres
-            let prefix = &padded[0..2];
-            let middle = format!("_{}", &padded[2..3]);
+            let mut padded = module.to_string();
+            while padded.len() < 4 {
+                padded.push('_');
+            }
 
-            let repository = format!("{}/{}/{}", prefix, middle, module);
+            let first_two = &padded[0..2];
+            let third = &padded[2..3];
+
+            let middle = if third == "_" || module.len() < 4 {
+                format!("_{}", third)
+            } else {
+                format!("{}_", third)
+            };
+
+            let repository = format!("{}/{}/{}", first_two, middle, module);
             Some(repository)
         } else {
             None
