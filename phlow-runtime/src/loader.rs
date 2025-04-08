@@ -247,7 +247,7 @@ impl Loader {
             std::fs::create_dir("phlow_modules").map_err(Error::FileCreateError)?;
         }
 
-        println!("Downloading modules...");
+        info!("Downloading modules...");
 
         let client = Client::new();
 
@@ -264,7 +264,7 @@ impl Loader {
                 ),
             };
 
-            println!("Base URL: {}", base_url);
+            info!("Base URL: {}", base_url);
 
             let version = if module.version == "latest" {
                 let metadata_url = format!("{}/metadata.json", base_url);

@@ -1,3 +1,4 @@
+use phlow_sdk::tracing::Dispatch;
 use phlow_sdk::tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 use phlow_sdk::tracing_subscriber::util::SubscriberInitExt;
 use phlow_sdk::tracing_subscriber::Layer;
@@ -14,5 +15,5 @@ fn get_log_level() -> Level {
 pub fn init_tracing() {
     Registry::default()
         .with(fmt::layer().with_filter(LevelFilter::from_level(get_log_level())))
-        .init();
+        .init()
 }
