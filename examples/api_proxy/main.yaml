@@ -7,7 +7,7 @@ modules:
   - module: http_request
     version: latest
 steps:
-  - payload: router
+  - label: router
     condition:
       left: !eval main.path
       operator: starts_with
