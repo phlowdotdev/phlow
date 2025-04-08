@@ -58,7 +58,7 @@ impl Display for Error {
 
 #[derive(ToValue, FromValue, Clone, Debug)]
 pub struct Module {
-    pub version: Option<String>,
+    pub version: String,
     pub repository: Option<String>,
     pub repository_path: Option<String>,
     pub module: String,
@@ -91,7 +91,10 @@ impl TryFrom<Value> for Module {
             None
         };
 
-        let version = value.get("version").map(|v| v.to_string());
+        let version = match value.get("version") {
+            Some(version) => version.to_string(),
+            None => return Err(Error::ModuleLoaderError),
+        };
 
         let name = match value.get("name") {
             Some(name) => name.to_string(),
@@ -244,43 +247,74 @@ impl Loader {
     }
 
     pub async fn download(&self, default_package_repository_url: &str) -> Result<(), Error> {
-        // If phlow_modules directory does not exist, create it
-        if !std::path::Path::new("phlow_modules").exists() {
-            std::fs::create_dir("phlow_modules").map_err(|_| Error::ModuleLoaderError)?;
+        if !Path::new("phlow_modules").exists() {
+            std::fs::create_dir("phlow_modules").map_err(Error::FileCreateError)?;
         }
 
         for module in &self.modules {
-            let url = match &module.repository {
-                Some(repository) => repository.clone(),
-                None => {
-                    format!(
-                        "{}/refs/heads/main/packages/{}",
-                        default_package_repository_url,
-                        module
-                            .repository_path
-                            .clone()
-                            .expect("Repository path not found")
-                    )
-                }
+            let base_url = match &module.repository {
+                Some(repo) => repo.clone(),
+                None => format!(
+                    "{}/refs/heads/main/packages/{}",
+                    default_package_repository_url,
+                    module
+                        .repository_path
+                        .clone()
+                        .ok_or_else(|| Error::ModuleNotFound(module.name.clone()))?
+                ),
             };
 
-            Self::download_file(&url, &module.module, "phlow.yaml").await?;
-            Self::download_file(&url, &module.module, "module.so").await?;
+            let version = if module.version == "latest" {
+                let metadata_url = format!("{}/metadata.json", base_url);
+                let client = Client::new();
+                let res = client
+                    .get(&metadata_url)
+                    .send()
+                    .await
+                    .map_err(Error::GetFileError)?;
+                let metadata = {
+                    let content = res.text().await.map_err(Error::BufferError)?;
+                    serde_json::from_str::<serde_json::Value>(&content)
+                        .map_err(Error::LoaderErrorJson)?
+                };
+                match metadata.get("version") {
+                    Some(version) => version
+                        .as_str()
+                        .ok_or(Error::ModuleLoaderError)?
+                        .to_string(),
+                    None => return Err(Error::ModuleLoaderError),
+                }
+            } else {
+                module.version.clone()
+            };
+
+            Self::download_and_extract_tarball(&base_url, &module.module, &version).await?;
         }
 
-        info!("All modules downloaded successfully");
+        info!("All modules downloaded and extracted successfully");
         Ok(())
     }
 
-    async fn download_file(url: &str, module: &str, target: &str) -> Result<(), Error> {
-        let target_path = format!("phlow_modules/{}/{}", module, target);
-        let target_url = format!("{}/{}", url.trim_end_matches('/'), target);
+    async fn download_and_extract_tarball(
+        base_url: &str,
+        module: &str,
+        version: &str,
+    ) -> Result<(), Error> {
+        use flate2::read::GzDecoder;
+        use tar::Archive;
 
-        if Path::new(&target_path).exists() {
-            return Ok(());
+        let tarball_name = format!("{}-{}.tar.gz", module, version);
+        let target_url = format!("{}/{}", base_url.trim_end_matches('/'), tarball_name);
+        let target_path = format!("phlow_modules/{}/{}", module, tarball_name);
+
+        if Path::new(&format!("phlow_modules/{}/module.so", module)).exists() {
+            return Ok(()); // já extraído
         }
 
-        info!("Downloading module {} from {}", target, target_url);
+        info!(
+            "Downloading module tarball {} from {}",
+            tarball_name, target_url
+        );
 
         if let Some(parent) = Path::new(&target_path).parent() {
             std::fs::create_dir_all(parent).map_err(Error::FileCreateError)?;
@@ -292,12 +326,22 @@ impl Loader {
             .send()
             .await
             .map_err(Error::GetFileError)?;
-
         let content = response.bytes().await.map_err(Error::BufferError)?;
+
+        // Salva o tarball temporariamente
         let mut file = File::create(&target_path).map_err(Error::FileCreateError)?;
         file.write_all(&content).map_err(Error::CopyError)?;
 
-        info!("Module {} downloaded to {}", target, target_path);
+        // Extrai o conteúdo
+        let tar_gz = File::open(&target_path).map_err(Error::FileCreateError)?;
+        let decompressor = GzDecoder::new(tar_gz);
+        let mut archive = Archive::new(decompressor);
+        archive
+            .unpack(format!("phlow_modules/{}", module))
+            .map_err(Error::CopyError)?;
+
+        info!("Module extracted to phlow_modules/{}", module);
+
         Ok(())
     }
 }
