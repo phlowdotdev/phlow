@@ -272,7 +272,7 @@ impl Loader {
         Ok(())
     }
 
-    pub async fn download_file(url: &str, module: &str, target: &str) -> Result<(), Error> {
+    async fn download_file(url: &str, module: &str, target: &str) -> Result<(), Error> {
         let target_path = format!("phlow_modules/{}/{}", module, target);
         let target_url = format!("{}/{}", url.trim_end_matches('/'), target);
 

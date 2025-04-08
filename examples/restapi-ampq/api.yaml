@@ -1,6 +1,7 @@
 main: http_server
 modules: 
   - module: http_server
+    version: latest
   - !include config/amqp.yaml
 steps:
   - condition:

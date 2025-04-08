@@ -2,6 +2,7 @@ main: rabbitmq
 modules: 
   - !include config/amqp.yaml
   - module: log
+    version: latest
 steps:
   - use: log
     input:

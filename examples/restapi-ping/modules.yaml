@@ -1,1 +1,2 @@
 - module: http_server
+  version: latest

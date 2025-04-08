@@ -1,2 +1,4 @@
 - module: http_server
+  version: latest
 - module: echo
+  version: latest

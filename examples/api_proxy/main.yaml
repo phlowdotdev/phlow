@@ -3,7 +3,9 @@ version: 0.1
 main: http_server
 modules: 
   - module: http_server
+    version: latest
   - module: http_request
+    version: latest
 steps:
   - id: router
     condition:

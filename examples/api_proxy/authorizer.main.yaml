@@ -3,6 +3,7 @@ version: 0.1
 main: http_server
 modules:
   - module: http_server
+    version: latest
     with:
       port: 4001
   - module: log

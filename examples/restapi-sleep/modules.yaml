@@ -1,3 +1,6 @@
 - module: http_server
+  version: latest
 - module: echo
+  version: latest
 - module: sleep
+  version: latest
