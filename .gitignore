@@ -3,3 +3,5 @@ phlow_modules
 phlow_packages
 packages
 indexs
+*.tar.gz
+.tmp/*

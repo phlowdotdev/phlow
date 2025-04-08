@@ -77,15 +77,11 @@ impl TryFrom<Value> for Module {
         let repository = value.get("repository").map(|v| v.to_string());
 
         let repository_path = if repository.is_none() {
-            let mut repository = String::new();
+            let padded = format!("{:0<4}", module); // garante ao menos 4 caracteres
+            let prefix = &padded[0..2];
+            let middle = format!("_{}", &padded[2..3]);
 
-            for char in module.chars() {
-                repository += &char.to_string();
-                repository += "/";
-            }
-
-            repository += module.as_str();
-
+            let repository = format!("{}/{}/{}", prefix, middle, module);
             Some(repository)
         } else {
             None
@@ -251,6 +247,10 @@ impl Loader {
             std::fs::create_dir("phlow_modules").map_err(Error::FileCreateError)?;
         }
 
+        println!("Downloading modules...");
+
+        let client = Client::new();
+
         for module in &self.modules {
             let base_url = match &module.repository {
                 Some(repo) => repo.clone(),
@@ -264,9 +264,11 @@ impl Loader {
                 ),
             };
 
+            println!("Base URL: {}", base_url);
+
             let version = if module.version == "latest" {
                 let metadata_url = format!("{}/metadata.json", base_url);
-                let client = Client::new();
+
                 let res = client
                     .get(&metadata_url)
                     .send()
@@ -277,7 +279,7 @@ impl Loader {
                     serde_json::from_str::<serde_json::Value>(&content)
                         .map_err(Error::LoaderErrorJson)?
                 };
-                match metadata.get("version") {
+                match metadata.get("latest") {
                     Some(version) => version
                         .as_str()
                         .ok_or(Error::ModuleLoaderError)?
@@ -339,6 +341,9 @@ impl Loader {
         archive
             .unpack(format!("phlow_modules/{}", module))
             .map_err(Error::CopyError)?;
+
+        // Remove o tar.gz após extração
+        std::fs::remove_file(&target_path).map_err(Error::FileCreateError)?;
 
         info!("Module extracted to phlow_modules/{}", module);
 

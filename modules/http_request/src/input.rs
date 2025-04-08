@@ -28,6 +28,7 @@ impl Input {
 
         let url = value.get("url").unwrap_or(&Value::Null).to_string();
         let mut headers: HeaderMap = HeaderMap::default();
+
         if let Some(Value::Object(header_map)) = value.get("headers") {
             for (key, value) in header_map.iter() {
                 let key = key.to_string();
@@ -56,6 +57,19 @@ impl Input {
         }
 
         let body = value.get("body").map(|v| v.to_string());
+
+        if let Some(body) = &body {
+            if body.starts_with('{')
+                && body.ends_with('}')
+                && headers.get("Content-Type").is_none()
+                && headers.get("content-type").is_none()
+            {
+                headers.insert(
+                    "content-type",
+                    header::HeaderValue::from_static("application/json"),
+                );
+            }
+        }
 
         Input {
             method,
