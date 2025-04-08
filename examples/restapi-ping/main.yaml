@@ -2,6 +2,8 @@ main: http_server
 modules: 
   - module: http_server
     version: latest
+  - module: log
+    version: latest
 steps:
   - return:
       status_code: 200
