@@ -1,7 +1,5 @@
-use deadpool_postgres::{
-    Manager, ManagerConfig, Pool, PoolBuilder, RecyclingMethod, Runtime, Timeouts,
-};
-use phlow_sdk::{crossbeam::queue, prelude::*, tokio};
+use deadpool_postgres::{Manager, Pool, Runtime, Timeouts};
+use phlow_sdk::{prelude::*, tokio};
 use tokio_postgres::{config::SslMode, Client, Error, NoTls};
 
 #[derive(Clone, Debug)]
