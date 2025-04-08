@@ -35,6 +35,15 @@ pub struct Settings {
      * Default: 60
      */
     pub garbage_collection_interval: u64,
+
+    /**
+     * Default package repository URL
+     *
+     * This is the URL of the default package repository that will be used to fetch packages.
+     * Environment variable: PHLOW_DEFAULT_PACKAGE_REPOSITORY_URL
+     * Default: https://raw.githubusercontent.com/lowcarboncode/phlow-packages
+     */
+    pub default_package_repository_url: String,
 }
 
 impl Settings {
@@ -59,6 +68,12 @@ impl Settings {
             .and_then(|v| v.parse::<u64>().ok())
             .unwrap_or(60);
 
+        let default_package_repository_url = match env::var("PHLOW_DEFAULT_PACKAGE_REPOSITORY_URL")
+        {
+            Ok(repo) => repo,
+            Err(_) => "https://raw.githubusercontent.com/lowcarboncode/phlow-packages".to_string(),
+        };
+
         debug!("PHLOW_PACKAGE_CONSUMERS_COUNT = {}", package_consumer_count);
         debug!("PHLOW_MIN_ALLOCATED_MEMORY_MB = {}", min_allocated_memory);
         debug!("PHLOW_GARBAGE_COLLECTION_ENABLED = {}", garbage_collection);
@@ -66,12 +81,17 @@ impl Settings {
             "PHLOW_GARBAGE_COLLECTION_INTERVAL_SECONDS = {}",
             garbage_collection_interval
         );
+        debug!(
+            "PHLOW_DEFAULT_PACKAGE_REPOSITORY_URL = {}",
+            default_package_repository_url
+        );
 
         Self {
             package_consumer_count,
             min_allocated_memory,
             garbage_collection,
             garbage_collection_interval,
+            default_package_repository_url,
         }
     }
 }

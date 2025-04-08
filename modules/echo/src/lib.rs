@@ -1,28 +1,11 @@
-use phlow_sdk::{crossbeam::channel, modules::ModulePackage, prelude::*};
+use phlow_sdk::prelude::*;
 
-plugin_async!(echo);
+create_step!(echo(rx));
 
-pub async fn echo(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let (tx, rx) = channel::unbounded::<ModulePackage>();
-
-    match setup.setup_sender.send(Some(tx)) {
-        Ok(_) => {}
-        Err(e) => {
-            return Err(format!("{:?}", e).into());
-        }
-    };
-
-    for package in rx {
-        match package.sender.send(match package.context.input {
-            Some(value) => value,
-            _ => Value::Null,
-        }) {
-            Ok(_) => {}
-            Err(e) => {
-                tracing::error!("Error sending package: {:?}", e);
-            }
-        }
-    }
+pub async fn echo(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    listen!(rx, move |package: ModulePackage| async {
+        package.context.input.unwrap_or(Value::Null)
+    });
 
     Ok(())
 }

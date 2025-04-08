@@ -1,12 +1,16 @@
+use phlow_sdk::tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
+use phlow_sdk::tracing_subscriber::util::SubscriberInitExt;
+use phlow_sdk::tracing_subscriber::Layer;
 use phlow_sdk::{
-    crossbeam::channel,
-    modules::ModulePackage,
+    otel::get_log_level,
     prelude::*,
-    tracing::{debug, error, info, warn},
+    tracing_core::LevelFilter,
+    tracing_subscriber::{fmt, Registry},
 };
 
-plugin!(log);
+create_step!(log(rx));
 
+#[derive(Debug)]
 enum LogLevel {
     Info,
     Debug,
@@ -14,6 +18,7 @@ enum LogLevel {
     Error,
 }
 
+#[derive(Debug)]
 struct Log {
     level: LogLevel,
     message: String,
@@ -38,24 +43,17 @@ impl From<&Value> for Log {
     }
 }
 
-pub fn log(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let (tx, rx) = channel::unbounded::<ModulePackage>();
+pub async fn log(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    Registry::default()
+        .with(fmt::layer().with_filter(LevelFilter::from_level(get_log_level())))
+        .init();
 
-    match setup.setup_sender.send(Some(tx)) {
-        Ok(_) => {}
-        Err(e) => {
-            return Err(format!("{:?}", e).into());
-        }
-    };
+    debug!("PHLOW_OTEL is set to false, using default subscriber");
 
-    for package in rx {
-        let log = match package.context.input {
-            Some(value) => Log::from(&value),
-            _ => Log {
-                level: LogLevel::Info,
-                message: "".to_string(),
-            },
-        };
+    listen!(rx, move |package: ModulePackage| async {
+        let value = package.context.input.unwrap_or(Value::Null);
+        let log = Log::from(&value);
+        println!("Received log package: {:?}", log);
 
         match log.level {
             LogLevel::Info => info!("{}", log.message),
@@ -65,7 +63,7 @@ pub fn log(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + 
         }
 
         sender_safe!(package.sender, Value::Null);
-    }
+    });
 
     Ok(())
 }

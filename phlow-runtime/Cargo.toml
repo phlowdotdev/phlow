@@ -29,6 +29,9 @@ crossbeam = { workspace = true }
 futures = { workspace = true }
 mimalloc = { workspace = true }
 libc = { workspace = true }
+reqwest = { workspace = true }
+futures-util = "0.3.31"
+anyhow = "1.0.97"
 
 [[bin]]
 name = "phlow"

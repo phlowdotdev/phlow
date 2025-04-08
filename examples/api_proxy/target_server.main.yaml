@@ -1,0 +1,14 @@
+name: target_service
+version: 0.1
+main: http_server
+modules:
+  - module: http_server
+    with:
+      port: 4000
+steps:
+  - return:
+      status_code: 200
+      body: 
+        message: !eval main
+      headers:
+        Content-Type: application/json

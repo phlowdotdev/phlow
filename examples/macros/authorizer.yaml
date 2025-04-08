@@ -1,0 +1,8 @@
+- use: http_request
+  input:
+    method: POST
+    url: http://authorization.local
+    body:
+      token: main.headers.authorization
+- id: auth
+  payload: !eval main.status_code == 200

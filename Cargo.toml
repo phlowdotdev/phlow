@@ -3,12 +3,12 @@ members = [
     "phlow-engine",
     "phlow-runtime",
     "phlow-sdk",
-    "modules/http_rest_api",
+    "modules/http_server",
     "modules/echo",
     "modules/amqp",
     "modules/log",
     "modules/sleep",
-    "phlop",
+    "modules/http_request",
 ]
 resolver = "2"
 
@@ -21,12 +21,10 @@ license = "MIT"
 repository = "https://github.com/lowcarboncode/phlow"
 
 [workspace.dependencies]
+# internal
 phlow-engine = { path = "phlow-engine", version = "0.0.1" }
 phlow-sdk = { path = "phlow-sdk", version = "0.0.1" }
-valu3 = "0.8"
-tokio = { version = "1.44.1", features = ["full", "tracing"] }
-serde = { version = "1.0", features = ["derive"] }
-crossbeam = "0.8"
+phlop = { path = "phlop", version = "0.0.1" }
 
 #phlow
 libloading = "0.8"
@@ -38,6 +36,11 @@ regex = "1.11.1"
 futures = "0.3"
 mimalloc = { version = "0.1", features = ["secure"] }
 libc = "0.2"
+valu3 = "0.8"
+tokio = { version = "1.44.1", features = ["full", "tracing"] }
+serde = { version = "1.0", features = ["derive"] }
+crossbeam = "0.8"
+reqwest = { version = "0.12.15", features = ["blocking"] }
 
 #Engine
 rhai = { version = "1.21.0", features = ["serde", "sync"] }

@@ -1,0 +1,11 @@
+- id: proxy
+  use: http_request
+  input:
+    method: !eval main.method
+    url: !eval steps.router.url
+    headers: !eval main.headers
+    body: !eval main.body
+- return: 
+    status_code: !eval steps.proxy.response.status_code
+    body: !eval steps.proxy.response.body
+    headers: !eval steps.proxy.response.headers

@@ -4,16 +4,15 @@ mod setup;
 use lapin::ExchangeKind;
 use lapin::{options::*, types::FieldTable, Connection, ConnectionProperties};
 use phlow_sdk::prelude::*;
-use phlow_sdk::tracing::{debug, info};
 use produce::producer;
 use setup::Config;
 
-plugin_async!(start_server);
+create_main!(start_server(setup));
 
 pub async fn start_server(
     setup: ModuleSetup,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let config: Config = Config::try_from(&setup.with).map_err(|e| format!("{:?}", e))?;
+    let config = Config::try_from(&setup.with).map_err(|e| format!("{:?}", e))?;
 
     let conn = Connection::connect(
         &config.to_connection_string(),

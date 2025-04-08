@@ -1,0 +1,62 @@
+name: api_proxy
+version: 0.1
+main: http_server
+modules: 
+  - module: http_server
+  - module: http_request
+steps:
+  - id: router
+    condition:
+      left: !eval main.path
+      operator: starts_with
+      right: /login
+    then:
+      - id: proxy
+        use: http_request
+        input:
+          method: !eval main.method
+          url: !eval `http://localhost:4000/auth/${main.uri}` 
+          headers: !eval main.headers
+          body: !eval main.body
+      - return: 
+          status_code: !eval steps.proxy.response.status_code
+          body: !eval steps.proxy.response.body
+          headers: !eval steps.proxy.response.headers
+  - id: router
+    payload:
+      url: http://localhost:4000/external/${main.uri}
+    condition:
+      left: !eval main.path
+      operator: starts_with
+      right: /public
+    then: !include assets/proxy.yaml
+  - id: auth
+    use: http_request
+    input:
+      method: POST
+      url: http://localhost:4001
+      body:
+        token: !eval main.headers.authorization
+  - label: auth response
+    condition:
+      assert: !eval steps.auth.response.status_code == 200
+    then:
+      - id: proxy
+        use: http_request
+        input:
+          method: !eval main.method
+          url: !eval `http://localhost:4000/private/${main.uri}` 
+          headers: !eval main.headers
+          body: !eval main.body
+      - label: response
+        return:
+          status_code: !eval steps.proxy.response.status_code
+          body: !eval steps.proxy.response.body
+          headers: !eval steps.proxy.response.headers
+    else:
+      label: response
+      return:
+        status_code: 401
+        body: {
+          message: Unauthorized
+        }

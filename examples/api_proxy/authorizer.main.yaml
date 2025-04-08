@@ -1,0 +1,29 @@
+name: authorizer
+version: 0.1
+main: http_server
+modules:
+  - module: http_server
+    with:
+      port: 4001
+  - module: log
+steps:
+  - use: log
+    id: log
+    input:
+      message: !eval main
+  - condition:
+      assert: !eval main.method == "POST" && main.body.token == "123456"
+    then:
+      return:
+        status_code: 200
+        body: 
+          authorized: true
+        headers:
+          Content-Type: application/json
+    else:
+      return:
+        status_code: 401
+        body: {
+          authorized: false,
+          message: "Unauthorized"
+        }

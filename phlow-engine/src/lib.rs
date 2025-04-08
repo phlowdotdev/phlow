@@ -135,7 +135,6 @@ pub mod condition;
 pub mod context;
 pub mod engine;
 pub mod id;
-pub mod modules;
 pub mod phlow;
 pub mod pipeline;
 pub mod repositories;
