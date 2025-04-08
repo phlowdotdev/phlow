@@ -83,9 +83,9 @@ impl TryFrom<Value> for Module {
             }
 
             let prefix = &padded[0..2];
-            let suffix = &padded[padded.len() - 2..];
+            let middle = &padded[2..4];
 
-            let repository = format!("{}/{}/{}", prefix, suffix, module);
+            let repository = format!("{}/{}/{}", prefix, middle, module);
             Some(repository)
         } else {
             None
