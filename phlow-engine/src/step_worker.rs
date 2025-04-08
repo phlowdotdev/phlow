@@ -220,10 +220,6 @@ impl StepWorker {
                 span.record("context.payload", payload.to_string());
             }
 
-            if let Some(ref params) = context.params {
-                span.record("context.params", params.to_string());
-            }
-
             if let Some(ref main) = context.main {
                 span.record("context.main", main.to_string());
             }
@@ -343,7 +339,7 @@ mod test {
             ..Default::default()
         };
 
-        let context = Context::new(None);
+        let context = Context::new();
 
         let result = step.execute(&context).await.unwrap();
 
@@ -369,7 +365,7 @@ mod test {
             ..Default::default()
         };
 
-        let context = Context::new(None);
+        let context = Context::new();
 
         let result = step.execute(&context).await.unwrap();
 
@@ -396,7 +392,7 @@ mod test {
             ..Default::default()
         };
 
-        let context = Context::new(None);
+        let context = Context::new();
 
         let result = step.execute(&context).await.unwrap();
 
@@ -423,7 +419,7 @@ mod test {
             ..Default::default()
         };
 
-        let context = Context::new(None);
+        let context = Context::new();
 
         let result = step.execute(&context).await.unwrap();
 
@@ -440,7 +436,7 @@ mod test {
             ..Default::default()
         };
 
-        let context = Context::new(None);
+        let context = Context::new();
 
         let result = step.execute(&context).await.unwrap();
 
@@ -458,7 +454,7 @@ mod test {
             ..Default::default()
         };
 
-        let context = Context::new(None);
+        let context = Context::new();
 
         let result = step.execute(&context).await.unwrap();
 
@@ -484,7 +480,7 @@ mod test {
             ..Default::default()
         };
 
-        let context = Context::new(None);
+        let context = Context::new();
 
         let result = step.execute(&context).await.unwrap();
 
@@ -511,7 +507,7 @@ mod test {
             ..Default::default()
         };
 
-        let context = Context::new(None);
+        let context = Context::new();
         let output = step.execute(&context).await.unwrap();
 
         assert_eq!(output.next_step, NextStep::Stop);
@@ -537,7 +533,7 @@ mod test {
             ..Default::default()
         };
 
-        let context = Context::new(None);
+        let context = Context::new();
         let result = step.execute(&context).await.unwrap();
 
         assert_eq!(result.next_step, NextStep::Stop);

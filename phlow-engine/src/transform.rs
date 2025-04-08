@@ -138,18 +138,18 @@ mod test {
           "steps": [
             {
               "condition": {
-                "left": "params.requested",
-                "right": "params.pre-approved",
+                "left": "payload.requested",
+                "right": "payload.pre-approved",
                 "operator": "less_than"
               },
               "then": {
-                "payload": "params.requested"
+                "payload": "payload.requested"
               },
               "else": {
                 "steps": [
                   {
                     "condition": {
-                      "left": "params.score",
+                      "left": "payload.score",
                       "right": 0.5,
                       "operator": "greater_than"
                     }
@@ -157,17 +157,17 @@ mod test {
                   {
                     "id": "approved",
                     "payload": {
-                      "total": "(params.requested * 0.3) + params.pre-approved"
+                      "total": "(payload.requested * 0.3) + payload.pre-approved"
                     }
                   },
                   {
                     "condition": {
                       "left": "steps.approved.total",
-                      "right": "params.requested",
+                      "right": "payload.requested",
                       "operator": "greater_than"
                     },
                     "then": {
-                      "return": "params.requested"
+                      "return": "payload.requested"
                     },
                     "else": {
                       "return": "steps.approved.total"
@@ -178,7 +178,7 @@ mod test {
             }
           ]
         });
-        let target = json!([[{"payload": "params.requested"}],[{"return": "params.requested"}],[{"return": "steps.approved.total"}],[{"condition": {"left": "params.score","operator": "greater_than","right": 0.5}},{"id": "approved","payload": {"total": "(params.requested * 0.3) + params.pre-approved"}},{"else": 2,"condition": {"operator": "greater_than","right": "params.requested","left": "steps.approved.total"},"then": 1}],[{"condition": {"right": "params.pre-approved","left": "params.requested","operator": "less_than"},"else": 3,"then": 0}]]);
+        let target = json!([[{"payload": "payload.requested"}],[{"return": "payload.requested"}],[{"return": "steps.approved.total"}],[{"condition": {"left": "payload.score","operator": "greater_than","right": 0.5}},{"id": "approved","payload": {"total": "(payload.requested * 0.3) + payload.pre-approved"}},{"else": 2,"condition": {"operator": "greater_than","right": "payload.requested","left": "steps.approved.total"},"then": 1}],[{"condition": {"right": "payload.pre-approved","left": "payload.requested","operator": "less_than"},"else": 3,"then": 0}]]);
 
         process_raw_steps(&original, &mut map);
 
@@ -192,17 +192,17 @@ mod test {
           "steps": [
             {
               "condition": {
-                "left": "params.requested",
-                "right": "params.pre-approved",
+                "left": "payload.requested",
+                "right": "payload.pre-approved",
                 "operator": "less_than"
               },
               "then": {
-                "payload": "params.requested"
+                "payload": "payload.requested"
               },
               "else": [
                 {
                   "condition": {
-                    "left": "params.score",
+                    "left": "payload.score",
                     "right": 0.5,
                     "operator": "greater_than"
                   }
@@ -210,17 +210,17 @@ mod test {
                 {
                   "id": "approved",
                   "payload": {
-                    "total": "(params.requested * 0.3) + params.pre-approved"
+                    "total": "(payload.requested * 0.3) + payload.pre-approved"
                   }
                 },
                 {
                   "condition": {
                     "left": "steps.approved.total",
-                    "right": "params.requested",
+                    "right": "payload.requested",
                     "operator": "greater_than"
                   },
                   "then": {
-                    "return": "params.requested"
+                    "return": "payload.requested"
                   },
                   "else": {
                     "return": "steps.approved.total"
@@ -230,7 +230,7 @@ mod test {
             }
           ]
         });
-        let target = json!([[{"payload": "params.requested"}],[{"return": "params.requested"}],[{"return": "steps.approved.total"}],[{"condition": {"left": "params.score","operator": "greater_than","right": 0.5}},{"id": "approved","payload": {"total": "(params.requested * 0.3) + params.pre-approved"}},{"else": 2,"condition": {"operator": "greater_than","right": "params.requested","left": "steps.approved.total"},"then": 1}],[{"condition": {"right": "params.pre-approved","left": "params.requested","operator": "less_than"},"else": 3,"then": 0}]]);
+        let target = json!([[{"payload": "payload.requested"}],[{"return": "payload.requested"}],[{"return": "steps.approved.total"}],[{"condition": {"left": "payload.score","operator": "greater_than","right": 0.5}},{"id": "approved","payload": {"total": "(payload.requested * 0.3) + payload.pre-approved"}},{"else": 2,"condition": {"operator": "greater_than","right": "payload.requested","left": "steps.approved.total"},"then": 1}],[{"condition": {"right": "payload.pre-approved","left": "payload.requested","operator": "less_than"},"else": 3,"then": 0}]]);
 
         process_raw_steps(&original, &mut map);
 

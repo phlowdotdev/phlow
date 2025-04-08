@@ -246,7 +246,7 @@ mod test {
         )
         .unwrap();
 
-        let context = Context::new(None);
+        let context = Context::new();
 
         let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, false);
@@ -263,7 +263,7 @@ mod test {
         )
         .unwrap();
 
-        let context = Context::new(None);
+        let context = Context::new();
 
         let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, true);
@@ -280,7 +280,7 @@ mod test {
         )
         .unwrap();
 
-        let context = Context::new(None);
+        let context = Context::new();
 
         let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, false);
@@ -297,7 +297,7 @@ mod test {
         )
         .unwrap();
 
-        let context = Context::new(None);
+        let context = Context::new();
 
         let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, true);
@@ -314,7 +314,7 @@ mod test {
         )
         .unwrap();
 
-        let context = Context::new(None);
+        let context = Context::new();
 
         let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, true);
@@ -331,7 +331,7 @@ mod test {
         )
         .unwrap();
 
-        let context = Context::new(None);
+        let context = Context::new();
 
         let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, false);
@@ -348,7 +348,7 @@ mod test {
         )
         .unwrap();
 
-        let context = Context::new(None);
+        let context = Context::new();
 
         let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, true);
@@ -365,7 +365,7 @@ mod test {
         )
         .unwrap();
 
-        let context = Context::new(None);
+        let context = Context::new();
 
         let result = condition.evaluate(&context).unwrap();
         assert_eq!(result, true);

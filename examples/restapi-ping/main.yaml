@@ -1,7 +1,5 @@
 main: http_server
-modules:
-  - module: http_server
-    version: latest
+modules: !include modules.yaml
 steps:
   - return:
       status_code: 200

@@ -1,0 +1,21 @@
+main: http_server
+modules:
+  - module: http_server
+    version: latest
+  - module: postgres
+    with:
+      host: localhost
+      port: 5432
+      user: postgres
+      password: postgres
+      database: postgres
+      sslmode: disable
+steps:
+  - use: postgres
+    query: |
+      `Select user from pg_user where id = '${main.body.id}'`  
+  - return:
+      status_code: 200
+      body: payload.result
+      headers:
+        Content-Type: application/json

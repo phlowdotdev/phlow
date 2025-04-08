@@ -5,7 +5,6 @@ use valu3::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Default)]
 pub struct Context {
-    pub params: Option<Value>,
     pub steps: HashMap<ID, Value>,
     pub main: Option<Value>,
     pub payload: Option<Value>,
@@ -13,9 +12,8 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn new(params: Option<Value>) -> Self {
+    pub fn new() -> Self {
         Self {
-            params,
             main: None,
             steps: HashMap::new(),
             payload: None,
@@ -23,9 +21,17 @@ impl Context {
         }
     }
 
+    pub fn from_payload(payload: Value) -> Self {
+        Self {
+            main: None,
+            steps: HashMap::new(),
+            payload: Some(payload),
+            input: None,
+        }
+    }
+
     pub fn from_main(main: Value) -> Self {
         Self {
-            params: None,
             main: Some(main),
             steps: HashMap::new(),
             payload: None,
@@ -35,7 +41,6 @@ impl Context {
 
     pub fn add_module_input(&self, output: Value) -> Self {
         Self {
-            params: self.params.clone(),
             main: self.main.clone(),
             steps: self.steps.clone(),
             payload: self.payload.clone(),
@@ -45,7 +50,6 @@ impl Context {
 
     pub fn add_module_output(&self, output: Value) -> Self {
         Self {
-            params: self.params.clone(),
             main: self.main.clone(),
             steps: self.steps.clone(),
             payload: Some(output),

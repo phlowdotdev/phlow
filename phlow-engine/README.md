@@ -26,7 +26,7 @@ fn main() {
       "steps": [
         {
           "condition": {
-            "left": "params.age",
+            "left": "payload.age",
             "right": 18,
             "operator": "greater_than_or_equal"
           },
@@ -34,7 +34,7 @@ fn main() {
             "steps": [
               {
                 "condition": {
-                  "left": "params.income",
+                  "left": "payload.income",
                   "right": 5000.0,
                   "operator": "greater_than_or_equal"
                 },
@@ -57,7 +57,7 @@ fn main() {
     let engine = Engine::new();
     let phlow = phlow::try_from_value(&engine, &decision_tree, None, None).unwrap();
 
-    let mut context = Context::new(Some(json!({ "age": 20, "income": 6000.0 })));
+    let mut context = Context::from_payload(json!({ "age": 20, "income": 6000.0 }));
     let result = phlow.execute_context(&mut context).unwrap();
 
     println!("Decision: {:?}", result);

@@ -86,18 +86,18 @@ mod tests {
           "steps": [
             {
               "condition": {
-                "left": "{{params.requested}}",
-                "right": "{{params.pre_approved}}",
+                "left": "{{payload.requested}}",
+                "right": "{{payload.pre_approved}}",
                 "operator": "less_than_or_equal"
               },
               "then": {
-                "return": "{{params.requested}}"
+                "return": "{{payload.requested}}"
               },
               "else": {
                 "steps": [
                   {
                     "condition": {
-                      "left": "{{params.score}}",
+                      "left": "{{payload.score}}",
                       "right": 0.5,
                       "operator": "greater_than_or_equal"
                     },
@@ -105,22 +105,22 @@ mod tests {
                         {
                             "id": "approved",
                             "payload": {
-                                "total": "{{(params.requested * 0.3) + params.pre_approved}}"
+                                "total": "{{(payload.requested * 0.3) + payload.pre_approved}}"
                             }
                             },
                             {
                             "condition": {
                                 "left": "{{steps.approved.total}}",
-                                "right": "{{params.requested}}",
+                                "right": "{{payload.requested}}",
                                 "operator": "greater_than_or_equal"
                             },
                             "then": {
-                                "return": "{{params.requested}}"
+                                "return": "{{payload.requested}}"
                             },
                             "else": {
                                 "return": "{{steps.approved.total}}"
                             }
-                            }
+                        }
                     ]
                   }
                 ]
@@ -134,11 +134,11 @@ mod tests {
     async fn test_phlow_original_1() {
         let original = get_original();
         let phlow = Phlow::try_from_value(&original, None).unwrap();
-        let mut context = Context::new(Some(json!({
+        let mut context = Context::from_payload(json!({
             "requested": 10000.00,
             "pre_approved": 10000.00,
             "score": 0.6
-        })));
+        }));
 
         let result = phlow.execute(&mut context).await.unwrap();
 
@@ -149,11 +149,11 @@ mod tests {
     async fn test_phlow_original_2() {
         let original = get_original();
         let phlow = Phlow::try_from_value(&original, None).unwrap();
-        let mut context = Context::new(Some(json!({
+        let mut context = Context::from_payload(json!({
             "requested": 10000.00,
             "pre_approved": 500.00,
             "score": 0.6
-        })));
+        }));
 
         let result = phlow.execute(&mut context).await.unwrap();
 
@@ -164,11 +164,11 @@ mod tests {
     async fn test_phlow_original_3() {
         let original = get_original();
         let phlow = Phlow::try_from_value(&original, None).unwrap();
-        let mut context = Context::new(Some(json!({
+        let mut context = Context::from_payload(json!({
             "requested": 10000.00,
             "pre_approved": 500.00,
             "score": 0.2
-        })));
+        }));
 
         let result = phlow.execute(&mut context).await.unwrap();
 
@@ -179,11 +179,11 @@ mod tests {
     async fn test_phlow_original_4() {
         let original = get_original();
         let phlow = Phlow::try_from_value(&original, None).unwrap();
-        let mut context = Context::new(Some(json!({
+        let mut context = Context::from_payload(json!({
             "requested": 10000.00,
             "pre_approved": 9999.00,
             "score": 0.6
-        })));
+        }));
 
         let result = phlow.execute(&mut context).await.unwrap();
 

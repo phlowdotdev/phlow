@@ -58,14 +58,12 @@ impl Script {
         let mut scope = Scope::new();
 
         let steps: Dynamic = to_dynamic(context.steps.clone()).map_err(ScriptError::EvalError)?;
-        let params: Dynamic = to_dynamic(context.params.clone()).map_err(ScriptError::EvalError)?;
         let main: Dynamic = to_dynamic(context.main.clone()).map_err(ScriptError::EvalError)?;
         let payload: Dynamic =
             to_dynamic(context.payload.clone()).map_err(ScriptError::EvalError)?;
         let input: Dynamic = to_dynamic(context.input.clone()).map_err(ScriptError::EvalError)?;
 
         scope.push_constant("steps", steps);
-        scope.push_constant("params", params);
         scope.push_constant("main", main);
         scope.push_constant("payload", payload);
         scope.push_constant("input", input);
@@ -183,7 +181,7 @@ mod test {
             a + b
         }}"#;
 
-        let context = Context::new(None);
+        let context = Context::new();
         let engine = build_engine_async(None);
         let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
@@ -205,7 +203,7 @@ mod test {
             }
         }}"#;
 
-        let context = Context::new(None);
+        let context = Context::new();
         let engine = build_engine_async(None);
         let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
@@ -225,7 +223,7 @@ mod test {
     fn test_payload_execute_variable() {
         let script = "hello world";
 
-        let context = Context::new(None);
+        let context = Context::new();
         let engine = build_engine_async(None);
         let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
@@ -236,17 +234,17 @@ mod test {
     #[test]
     fn test_payload_execute_variable_context() {
         let script = r#"{{
-            let a = params.a;
-            let b = params.b;
+            let a = payload.a;
+            let b = payload.b;
             a + b
         }}"#;
 
-        let context = Context::new(Some(Value::from({
+        let context = Context::from_payload(Value::from({
             let mut map = HashMap::new();
             map.insert("a".to_string(), Value::from(10i64));
             map.insert("b".to_string(), Value::from(20i64));
             map
-        })));
+        }));
 
         let engine = build_engine_async(None);
         let payload = Script::try_build(engine, &script.to_value()).unwrap();
@@ -257,14 +255,14 @@ mod test {
 
     #[test]
     fn test_payload_execute_variable_context_params() {
-        let script = r#"{{params.a}}"#;
+        let script = r#"{{payload.a}}"#;
 
-        let context = Context::new(Some(Value::from({
+        let context = Context::from_payload(Value::from({
             let mut map = HashMap::new();
             map.insert("a".to_string(), Value::from(10i64));
             map.insert("b".to_string(), Value::from(20i64));
             map
-        })));
+        }));
 
         let engine = build_engine_async(None);
         let payload = Script::try_build(engine, &script.to_value()).unwrap();
@@ -286,7 +284,7 @@ mod test {
             ..Default::default()
         };
 
-        let mut context = Context::new(None);
+        let mut context = Context::new();
         context.add_step_id_output(step.get_id().clone(), {
             let mut map = HashMap::new();
             map.insert("a".to_string(), Value::from(10i64));
