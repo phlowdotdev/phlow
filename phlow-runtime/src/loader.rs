@@ -82,16 +82,10 @@ impl TryFrom<Value> for Module {
                 padded.push('_');
             }
 
-            let first_two = &padded[0..2];
-            let third = &padded[2..3];
+            let prefix = &padded[0..2];
+            let suffix = &padded[padded.len() - 2..];
 
-            let middle = if third == "_" || module.len() < 4 {
-                format!("_{}", third)
-            } else {
-                format!("{}_", third)
-            };
-
-            let repository = format!("{}/{}/{}", first_two, middle, module);
+            let repository = format!("{}/{}/{}", prefix, suffix, module);
             Some(repository)
         } else {
             None
