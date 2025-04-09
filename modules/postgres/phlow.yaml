@@ -6,9 +6,10 @@ author: Philippe Assis <codephilippe@gmail.com>
 repository: https://github.com/lowcarboncode/phlow
 license: MIT
 tags:
-  - log
-  - echo
-  - print
+  - postgres
+  - database
+  - sql
+  - query
 inputs:
   query:
     type: string

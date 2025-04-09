@@ -6,8 +6,19 @@ use phlow_sdk::{prelude::*, tracing::info};
 use reqwest::Client;
 use std::io::Write;
 
+pub struct ModuleError {
+    pub module: String,
+}
+
+impl Display for ModuleError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Module: {}", self.module)
+    }
+}
+
 pub enum Error {
-    ModuleLoaderError,
+    VersionNotFound(ModuleError),
+    ModuleLoaderError(String),
     ModuleNotFound(String),
     StepsNotDefined,
     LibLoadingError(libloading::Error),
@@ -23,7 +34,8 @@ pub enum Error {
 impl std::fmt::Debug for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::ModuleLoaderError => write!(f, "Module loader error"),
+            Error::VersionNotFound(err) => write!(f, "Version not found: {}", err),
+            Error::ModuleLoaderError(err) => write!(f, "Module loader error: {}", err),
             Error::StepsNotDefined => write!(f, "Steps not defined"),
             Error::ModuleNotFound(name) => write!(f, "Module not found: {}", name),
             Error::LibLoadingError(err) => write!(f, "Lib loading error: {:?}", err),
@@ -41,7 +53,8 @@ impl std::fmt::Debug for Error {
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::ModuleLoaderError => write!(f, "Module loader error"),
+            Error::VersionNotFound(err) => write!(f, "Version not found: {}", err),
+            Error::ModuleLoaderError(err) => write!(f, "Module loader error: {}", err),
             Error::StepsNotDefined => write!(f, "Steps not defined"),
             Error::ModuleNotFound(name) => write!(f, "Module not found: {}", name),
             Error::LibLoadingError(err) => write!(f, "Lib loading error: {:?}", err),
@@ -72,7 +85,7 @@ impl TryFrom<Value> for Module {
     fn try_from(value: Value) -> Result<Self, Error> {
         let module = match value.get("module") {
             Some(module) => module.to_string(),
-            None => return Err(Error::ModuleLoaderError),
+            None => return Err(Error::ModuleLoaderError("Module not found".to_string())),
         };
         let repository = value.get("repository").map(|v| v.to_string());
 
@@ -93,7 +106,7 @@ impl TryFrom<Value> for Module {
 
         let version = match value.get("version") {
             Some(version) => version.to_string(),
-            None => return Err(Error::ModuleLoaderError),
+            None => return Err(Error::VersionNotFound(ModuleError { module })),
         };
 
         let name = match value.get("name") {
@@ -131,7 +144,7 @@ impl Loader {
         let (main, modules) = match value.get("modules") {
             Some(modules) => {
                 if !modules.is_array() {
-                    return Err(Error::ModuleLoaderError);
+                    return Err(Error::ModuleLoaderError("Modules not an array".to_string()));
                 }
 
                 let main_name = match value.get("main") {
@@ -142,16 +155,9 @@ impl Loader {
                 let mut main = -1;
 
                 let mut modules_vec = Vec::new();
-                let modules_array = match modules.as_array() {
-                    Some(modules) => modules,
-                    None => return Err(Error::ModuleLoaderError),
-                };
-
+                let modules_array = modules.as_array().unwrap();
                 for module in modules_array {
-                    let module = match Module::try_from(module.clone()) {
-                        Ok(module) => module,
-                        Err(_) => return Err(Error::ModuleLoaderError),
-                    };
+                    let module = Module::try_from(module.clone())?;
 
                     if Some(module.name.clone()) == main_name {
                         main = modules_vec.len() as i32;
@@ -295,11 +301,12 @@ impl Loader {
                         .map_err(Error::LoaderErrorJson)?
                 };
                 match metadata.get("latest") {
-                    Some(version) => version
-                        .as_str()
-                        .ok_or(Error::ModuleLoaderError)?
-                        .to_string(),
-                    None => return Err(Error::ModuleLoaderError),
+                    Some(version) => version.to_string(),
+                    None => {
+                        return Err(Error::VersionNotFound(ModuleError {
+                            module: module.name.clone(),
+                        }))
+                    }
                 }
             } else {
                 module.version.clone()

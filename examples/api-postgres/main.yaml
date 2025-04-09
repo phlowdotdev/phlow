@@ -3,6 +3,7 @@ modules:
   - module: http_server
     version: latest
   - module: postgres
+    version: latest
     with:
       host: localhost
       port: 5432
@@ -13,9 +14,9 @@ modules:
 steps:
   - use: postgres
     query: |
-      `Select user from pg_user where id = '${main.body.id}'`  
+      `SELECT 1 + $1"`  
   - return:
       status_code: 200
-      body: payload.result
+      body: !eval payload
       headers:
         Content-Type: application/json

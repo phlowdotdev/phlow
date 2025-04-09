@@ -11,3 +11,7 @@ repository.workspace = true
 phlow-sdk = { workspace = true }
 tokio-postgres = "0.7"
 deadpool-postgres = "0.14"
+
+[lib]
+name = "postgres"
+crate-type = ["cdylib"]

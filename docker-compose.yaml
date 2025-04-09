@@ -16,6 +16,18 @@ services:
       - ./target/debug/test_otlp:/app/test_otlp
       - ./target/debug/libtracer.so:/app/target/debug/libtracer.so
 
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: phlow
+    ports:
+      - "5432:5432"
+    networks:
+      - monitoring
+
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: jaeger
