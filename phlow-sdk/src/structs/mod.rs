@@ -42,7 +42,7 @@ impl ModuleSetup {
 
 #[derive(Default)]
 pub struct Package {
-    pub send: Option<oneshot::Sender<Value>>,
+    pub response: Option<oneshot::Sender<Value>>,
     pub request_data: Option<Value>,
     pub origin: ModuleId,
     pub span: Option<tracing::Span>,
@@ -73,7 +73,7 @@ impl Package {
     }
 
     pub fn send(&mut self, response_data: Value) {
-        if let Some(send) = self.send.take() {
+        if let Some(send) = self.response.take() {
             sender_safe!(send, response_data);
         }
     }

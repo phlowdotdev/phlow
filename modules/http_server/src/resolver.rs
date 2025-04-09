@@ -76,7 +76,7 @@ pub async fn proxy(
     ])
     .to_value();
 
-    let response_value = sender!(
+    let response_value = sender_package!(
         context.span.clone(),
         context.dispatch.clone(),
         context.id,

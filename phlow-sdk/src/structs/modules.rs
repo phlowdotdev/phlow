@@ -10,10 +10,37 @@ pub enum ModulesError {
     ModuleNotLoaded(String),
 }
 
+pub struct ModuleResponse {
+    pub error: Option<String>,
+    pub data: Value,
+}
+
+impl ModuleResponse {
+    pub fn from_error(error: String) -> Self {
+        Self {
+            error: Some(error),
+            data: Value::Null,
+        }
+    }
+
+    pub fn from_success(value: Value) -> Self {
+        Self {
+            error: None,
+            data: value,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct ModulePackage {
     pub context: Context,
     pub sender: oneshot::Sender<Value>,
+}
+
+impl ModulePackage {
+    pub fn input(&self) -> Option<Value> {
+        self.context.input.clone()
+    }
 }
 
 #[derive(Debug, Default, Clone)]

@@ -49,7 +49,7 @@ pub async fn http_request(
 }
 
 pub async fn resolve(package: ModulePackage, default_user_agent: Option<String>, client: Client) {
-    let response = match package.context.input {
+    let response = match package.input() {
         Some(value) => {
             let input = Input::new(value, &default_user_agent);
             match request::request(input, client).await {

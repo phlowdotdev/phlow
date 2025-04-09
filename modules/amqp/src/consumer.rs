@@ -50,7 +50,9 @@ pub async fn consumer(
 
             debug!("Received message: {:?}", data);
 
-            let response_value = sender!(id, sender, Some(data)).await.unwrap_or(Value::Null);
+            let response_value = sender_package!(id, sender, Some(data))
+                .await
+                .unwrap_or(Value::Null);
 
             debug!("Response: {:?}", response_value);
 

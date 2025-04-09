@@ -36,12 +36,12 @@ macro_rules! sender_safe {
 }
 
 #[macro_export]
-macro_rules! sender {
+macro_rules! sender_package {
     ($id:expr, $sender:expr, $data:expr) => {{
         let (tx, rx) = $crate::tokio::sync::oneshot::channel::<$crate::valu3::value::Value>();
 
         let package = $crate::structs::Package {
-            send: Some(tx),
+            response: Some(tx),
             request_data: $data,
             origin: $id,
             span: None,
@@ -56,7 +56,7 @@ macro_rules! sender {
         let (tx, rx) = $crate::tokio::sync::oneshot::channel::<$crate::valu3::value::Value>();
 
         let package = $crate::structs::Package {
-            send: Some(tx),
+            response: Some(tx),
             request_data: $data,
             origin: $id,
             span: Some($span),
