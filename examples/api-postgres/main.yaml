@@ -2,6 +2,8 @@ main: http_server
 modules:
   - module: http_server
     version: latest
+  - module: log
+    version: latest
   - module: postgres
     version: latest
     with:
@@ -18,7 +20,12 @@ steps:
   - use: postgres
     input:
       query: |
-        INSERT INTO Student (name, email, birthdate, data) VALUES ('John', 'john@mail.com', '1990-01-01');
+        INSERT INTO Student (name,  birthdate) VALUES ($1, '1990-01-01');
+      params:
+        - Boo
+  - use: log
+    input:
+      message: !eval payload
   - use: postgres
     input:
       query: SELECT * FROM Student;
