@@ -1,9 +1,9 @@
-use deadpool_postgres::{Manager, Pool, Runtime, Timeouts};
+use deadpool_postgres::{Pool, Runtime};
 use phlow_sdk::{prelude::*, tokio};
-use tokio_postgres::{config::SslMode, Client, Error, NoTls};
+use tokio_postgres::{Client, Error, NoTls};
 
 #[derive(Clone, Debug)]
-pub struct Config {
+pub struct PostgresConfig {
     pub host: String,
     pub port: u16,
     pub user: String,
@@ -11,7 +11,7 @@ pub struct Config {
     pub dbname: String,
 }
 
-impl Config {
+impl PostgresConfig {
     pub async fn connect(&self) -> Result<Client, Error> {
         let conn_str = self.to_conn_string();
         let (client, connection) = tokio_postgres::connect(&conn_str, NoTls).await?;
@@ -32,33 +32,21 @@ impl Config {
         )
     }
 
-    pub fn create_pool(&self) -> Result<Pool, Box<dyn std::error::Error + Send + Sync>> {
-        let pg_config = tokio_postgres::Config::new()
-            .host(&self.host)
-            .port(self.port)
-            .user(&self.user)
-            .password(&self.password)
-            .dbname(&self.dbname)
-            .ssl_mode(SslMode::Prefer)
-            .to_owned();
-        let tls = NoTls;
+    pub fn create_pool(&self) -> Result<Pool, deadpool_postgres::CreatePoolError> {
+        let mut cfg = deadpool_postgres::Config::new();
 
-        let mgr = Manager::new(pg_config, tls);
+        cfg.host = Some(self.host.clone());
+        cfg.port = Some(self.port);
+        cfg.user = Some(self.user.clone());
+        cfg.password = Some(self.password.clone());
+        cfg.dbname = Some(self.dbname.clone());
+        cfg.ssl_mode = Some(deadpool_postgres::SslMode::Prefer);
 
-        let pool = Pool::builder(mgr)
-            .max_size(16)
-            .timeouts(Timeouts {
-                wait: Some(std::time::Duration::from_secs(30)),
-                create: Some(std::time::Duration::from_secs(30)),
-                recycle: Some(std::time::Duration::from_secs(30)),
-            })
-            .runtime(Runtime::Tokio1)
-            .build()?;
-        Ok(pool)
+        cfg.create_pool(Some(Runtime::Tokio1), NoTls)
     }
 }
 
-impl TryFrom<Value> for Config {
+impl TryFrom<Value> for PostgresConfig {
     type Error = String;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
@@ -80,7 +68,7 @@ impl TryFrom<Value> for Config {
             .map(Value::to_string)
             .unwrap_or_else(|| "postgres".to_string());
 
-        Ok(Config {
+        Ok(PostgresConfig {
             host,
             port,
             user,
