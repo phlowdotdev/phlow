@@ -13,8 +13,15 @@ modules:
       sslmode: disable
 steps:
   - use: postgres
-    query: |
-      `SELECT 1 + $1"`  
+    input:
+      query: !import ./create_table.sql
+  - use: postgres
+    input:
+      query: |
+        INSERT INTO Student (name, email, birthdate, data) VALUES ('John', 'john@mail.com', '1990-01-01');
+  - use: postgres
+    input:
+      query: SELECT * FROM Student;
   - return:
       status_code: 200
       body: !eval payload

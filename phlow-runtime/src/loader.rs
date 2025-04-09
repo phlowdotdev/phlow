@@ -216,7 +216,14 @@ impl Loader {
                 let yaml_path = Path::new(&main_file_path)
                     .parent()
                     .unwrap_or_else(|| Path::new("."));
-                let yaml = yaml_helpers_transform(&file, yaml_path);
+                let yaml: String = yaml_helpers_transform(&file, yaml_path);
+
+                if let Ok(yaml_show) = std::env::var("PHLOW_YAML_SHOW") {
+                    if yaml_show == "true" {
+                        println!("YAML: {}", yaml);
+                    }
+                }
+
                 serde_yaml::from_str(&yaml).map_err(Error::LoaderErrorYaml)?
             }
             ModuleExtension::Toml => toml::from_str(&file).map_err(Error::LoaderErrorToml)?,

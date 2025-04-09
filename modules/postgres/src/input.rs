@@ -28,7 +28,11 @@ impl TryFrom<Option<Value>> for Input {
                 arr.into_iter()
                     .map(|v| {
                         if let Some(n) = v.to_i64() {
-                            Ok::<_, String>(Box::new(n) as Box<dyn ToSql + Sync + Send>)
+                            if n >= i32::MIN as i64 && n <= i32::MAX as i64 {
+                                Ok::<_, String>(Box::new(n as i32) as Box<dyn ToSql + Sync + Send>)
+                            } else {
+                                Ok::<_, String>(Box::new(n) as Box<dyn ToSql + Sync + Send>)
+                            }
                         } else if let Some(f) = v.to_f64() {
                             Ok::<_, String>(Box::new(f) as Box<dyn ToSql + Sync + Send>)
                         } else if let Some(b) = v.as_bool() {

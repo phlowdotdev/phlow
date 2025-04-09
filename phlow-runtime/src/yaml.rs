@@ -52,6 +52,11 @@ fn yaml_helpers_include(yaml: &str, base_path: &Path) -> String {
         .replace_all(&with_inline_includes, |caps: &regex::Captures| {
             let rel_path = &caps[1];
             let full_path = base_path.join(rel_path);
+            let extension = full_path
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("")
+                .to_lowercase();
             match fs::read_to_string(&full_path) {
                 Ok(contents) => {
                     let one_line = contents
@@ -60,7 +65,12 @@ fn yaml_helpers_include(yaml: &str, base_path: &Path) -> String {
                         .collect::<Vec<_>>()
                         .join(" ")
                         .replace('"', "\\\"");
-                    format!(r#""{{{{ {} }}}}""#, one_line)
+
+                    if extension == "phs" || extension == "rhai" {
+                        format!(r#""{{{{ {} }}}}""#, one_line)
+                    } else {
+                        format!(r#""{}""#, one_line)
+                    }
                 }
                 Err(_) => format!("<!-- Error importing file: {} -->", rel_path),
             }
