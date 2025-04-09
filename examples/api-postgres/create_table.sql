@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS Student (
     birthdate DATE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     score INT CHECK (score >= 0 AND score <= 100),
-    data JSONB NOT NULL DEFAULT '{}'::JSONB,
+    -- data JSONB NOT NULL DEFAULT '{}'::JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
