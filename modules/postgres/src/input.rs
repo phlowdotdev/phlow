@@ -57,7 +57,7 @@ impl TryFrom<(Option<Value>, &PostgresConfig)> for Input {
         let cache_query = *value
             .get("cache_query")
             .and_then(Value::as_bool)
-            .unwrap_or(&true);
+            .unwrap_or(&config.cache_query);
 
         Ok(Input {
             query,

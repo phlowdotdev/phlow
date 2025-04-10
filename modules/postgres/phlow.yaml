@@ -15,6 +15,27 @@ inputs:
     type: string
     description: The SQL query to execute.
     required: true
+  params:
+    type: array
+    description: The parameters to bind to the query.
+    required: false
+  prepared_statements:
+    type: boolean
+    description: Whether to use prepared statements.
+    required: false
+  cache_query:
+    type: boolean
+    description: Whether to cache the query result.
+    required: false
+  ssl_mode:
+    type: string
+    description: The SSL mode to use for the connection. Use 'disable' for no SSL, 'prefer' for SSL, or 'require' for SSL with certificate verification.
+    required: false
+    default: prefer
+    enum:
+      - disable
+      - prefer
+      - require
 output:
   result:
     type: object
