@@ -9,6 +9,7 @@ pub struct PostgresConfig {
     pub user: String,
     pub password: String,
     pub dbname: String,
+    pub prepare_statements: bool,
 }
 
 impl PostgresConfig {
@@ -48,12 +49,18 @@ impl TryFrom<Value> for PostgresConfig {
             .map(Value::to_string)
             .unwrap_or_else(|| "postgres".to_string());
 
+        let prepare_statements = *value
+            .get("prepare_statements")
+            .and_then(Value::as_bool)
+            .unwrap_or(&true);
+
         Ok(PostgresConfig {
             host,
             port,
             user,
             password,
             dbname,
+            prepare_statements,
         })
     }
 }

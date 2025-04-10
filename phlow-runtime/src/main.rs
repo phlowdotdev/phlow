@@ -42,7 +42,7 @@ async fn main() {
         let loader = match Loader::load(&main.path, &main.ext) {
             Ok(main) => main,
             Err(err) => {
-                println!("Runtime Error Main File: {:?}", err);
+                eprintln!("Runtime Error Main File: {:?}", err);
                 return;
             }
         };

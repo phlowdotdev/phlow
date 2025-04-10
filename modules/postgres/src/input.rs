@@ -1,16 +1,19 @@
 use phlow_sdk::prelude::*;
 use tokio_postgres::types::ToSql;
 
-// input.rs
+use crate::postgres::PostgresConfig;
+
+#[derive(Debug)]
 pub struct Input {
     pub query: String,
-    pub params: Vec<Box<dyn ToSql + Sync + Send>>, // <- adicione o `Send` aqui
+    pub params: Vec<Box<dyn ToSql + Sync + Send>>,
+    pub prepare_statements: bool,
 }
 
-impl TryFrom<Option<Value>> for Input {
+impl TryFrom<(Option<Value>, &PostgresConfig)> for Input {
     type Error = String;
 
-    fn try_from(value: Option<Value>) -> Result<Self, Self::Error> {
+    fn try_from((value, config): (Option<Value>, &PostgresConfig)) -> Result<Self, Self::Error> {
         let value = value.ok_or_else(|| "Input value is None".to_string())?;
 
         let query = value
@@ -45,6 +48,15 @@ impl TryFrom<Option<Value>> for Input {
             })
             .unwrap_or_else(|| Ok(vec![]))?;
 
-        Ok(Input { query, params })
+        let prepare_statements = *value
+            .get("prepared_statements")
+            .and_then(Value::as_bool)
+            .unwrap_or(&config.prepare_statements);
+
+        Ok(Input {
+            query,
+            params,
+            prepare_statements,
+        })
     }
 }

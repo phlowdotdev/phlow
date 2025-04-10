@@ -28,5 +28,5 @@ BEFORE UPDATE ON Student
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
--- INSERT INTO Student (name, birthdate, email, score)
---     VALUES ('Foo', '05-05-1989', 'foo@mail.com', 10);
+INSERT INTO Student (name, birthdate, email, score)
+    VALUES ('Foo', '05-05-1989', 'foo@mail.com', 10);

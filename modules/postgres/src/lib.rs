@@ -18,9 +18,10 @@ pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Erro
 
     for package in rx {
         let pool = pool.clone();
+        let config = config.clone();
 
         tokio::spawn(async move {
-            let input = match Input::try_from(package.context.input) {
+            let input = match Input::try_from((package.context.input, &config)) {
                 Ok(input) => input,
                 Err(e) => {
                     let response =
@@ -44,37 +45,53 @@ pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Erro
                 }
             };
 
-            let stmt = match client.prepare_cached(input.query.as_str()).await {
-                Ok(stmt) => stmt,
-                Err(e) => {
-                    let response =
-                        ModuleResponse::from_error(format!("Failed to prepare statement: {}", e));
+            if input.prepare_statements {
+                let stmt = match client.prepare_cached(input.query.as_str()).await {
+                    Ok(stmt) => stmt,
+                    Err(e) => {
+                        let response = ModuleResponse::from_error(format!(
+                            "Failed to prepare statement: {}",
+                            e
+                        ));
 
-                    sender_safe!(package.sender, response.into());
-                    return;
+                        sender_safe!(package.sender, response.into());
+                        return;
+                    }
+                };
+
+                let param_refs: Vec<&(dyn ToSql + Sync)> = input
+                    .params
+                    .iter()
+                    .map(|p| p.as_ref() as &(dyn ToSql + Sync))
+                    .collect();
+
+                match client.query(&stmt, &param_refs[..]).await {
+                    Ok(rows) => {
+                        let result = QueryResult::from(rows);
+
+                        sender_safe!(package.sender, result.to_value().into());
+                    }
+                    Err(e) => {
+                        let response =
+                            ModuleResponse::from_error(format!("Query execution failed: {}", e));
+
+                        sender_safe!(package.sender, response.into());
+                        return;
+                    }
+                };
+            } else {
+                match client.batch_execute(&input.query).await {
+                    Ok(_) => {
+                        let response = "OK".to_value().into();
+                        sender_safe!(package.sender, response);
+                    }
+                    Err(e) => {
+                        let response =
+                            ModuleResponse::from_error(format!("Batch execution failed: {}", e));
+                        sender_safe!(package.sender, response.into());
+                    }
                 }
-            };
-
-            let param_refs: Vec<&(dyn ToSql + Sync)> = input
-                .params
-                .iter()
-                .map(|p| p.as_ref() as &(dyn ToSql + Sync))
-                .collect();
-
-            match client.query(&stmt, &param_refs[..]).await {
-                Ok(rows) => {
-                    let result = QueryResult::from(rows);
-
-                    sender_safe!(package.sender, result.to_value().into());
-                }
-                Err(e) => {
-                    let response =
-                        ModuleResponse::from_error(format!("Query execution failed: {}", e));
-
-                    sender_safe!(package.sender, response.into());
-                    return;
-                }
-            };
+            }
         });
     }
 

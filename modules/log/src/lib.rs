@@ -53,7 +53,6 @@ pub async fn log(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + S
     listen!(rx, move |package: ModulePackage| async {
         let value = package.context.input.unwrap_or(Value::Null);
         let log = Log::from(&value);
-        println!("Received log package: {:?}", log);
 
         match log.level {
             LogLevel::Info => info!("{}", log.message),

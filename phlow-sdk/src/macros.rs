@@ -126,14 +126,10 @@ macro_rules! create_main {
                     rt.block_on($handler(setup)).unwrap_or_else(|e| {
                         $crate::tracing::error!("Error in plugin: {:?}", e);
                     });
-                    println!("Plugin loaded");
                 } else {
                     $crate::tracing::error!("Error creating runtime");
-                    println!("Plugin loaded");
                     return;
                 }
-
-                println!("Plugin loaded");
             });
         }
     };

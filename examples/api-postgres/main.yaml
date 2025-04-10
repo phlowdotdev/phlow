@@ -17,6 +17,7 @@ steps:
   - use: postgres
     input:
       query: !import ./create_table.sql
+      prepared_statements: false
   - use: postgres
     input:
       query: |
