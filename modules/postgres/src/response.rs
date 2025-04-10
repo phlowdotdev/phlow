@@ -49,10 +49,3 @@ impl From<Vec<Row>> for QueryResult {
         result
     }
 }
-
-#[derive(Debug, Clone, ToValue)]
-pub struct Response {
-    pub status: String,
-    pub message: String,
-    pub data: Value,
-}

@@ -6,7 +6,7 @@ use std::sync::Arc;
 use input::Input;
 use phlow_sdk::prelude::*;
 use postgres::PostgresConfig;
-use response::{QueryResult, Response};
+use response::QueryResult;
 use tokio_postgres::types::ToSql;
 
 create_step!(postgres(setup));
@@ -23,12 +23,8 @@ pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Erro
             let input = match Input::try_from(package.context.input) {
                 Ok(input) => input,
                 Err(e) => {
-                    let response = Response {
-                        status: "error".to_string(),
-                        message: format!("Failed to parse input: {}", e),
-                        data: Value::Undefined,
-                    }
-                    .to_value();
+                    let response =
+                        ModuleResponse::from_error(format!("Failed to parse input: {}", e));
 
                     sender_safe!(package.sender, response.into());
                     return;
@@ -38,12 +34,10 @@ pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Erro
             let client = match pool.get().await {
                 Ok(client) => client,
                 Err(e) => {
-                    let response = Response {
-                        status: "error".to_string(),
-                        message: format!("Failed to get client from pool: {}", e),
-                        data: Value::Undefined,
-                    }
-                    .to_value();
+                    let response = ModuleResponse::from_error(format!(
+                        "Failed to get client from pool: {}",
+                        e
+                    ));
 
                     sender_safe!(package.sender, response.into());
                     return;
@@ -53,12 +47,8 @@ pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Erro
             let stmt = match client.prepare_cached(input.query.as_str()).await {
                 Ok(stmt) => stmt,
                 Err(e) => {
-                    let response = Response {
-                        status: "error".to_string(),
-                        message: format!("Failed to prepare statement: {}", e),
-                        data: Value::Undefined,
-                    }
-                    .to_value();
+                    let response =
+                        ModuleResponse::from_error(format!("Failed to prepare statement: {}", e));
 
                     sender_safe!(package.sender, response.into());
                     return;
@@ -74,22 +64,12 @@ pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Erro
             match client.query(&stmt, &param_refs[..]).await {
                 Ok(rows) => {
                     let result = QueryResult::from(rows);
-                    let response = Response {
-                        status: "success".to_string(),
-                        message: "Query executed successfully".to_string(),
-                        data: result.to_value(),
-                    }
-                    .to_value();
 
-                    sender_safe!(package.sender, response.into());
+                    sender_safe!(package.sender, result.to_value().into());
                 }
                 Err(e) => {
-                    let response = Response {
-                        status: "error".to_string(),
-                        message: format!("Query execution failed: {}", e),
-                        data: Value::Undefined,
-                    }
-                    .to_value();
+                    let response =
+                        ModuleResponse::from_error(format!("Query execution failed: {}", e));
 
                     sender_safe!(package.sender, response.into());
                     return;
