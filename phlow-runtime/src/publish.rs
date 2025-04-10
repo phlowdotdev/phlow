@@ -149,6 +149,15 @@ impl Publish {
         }
 
         info!("Success! Package created: {} 🎉", archive_name);
+
+        info!("Cleaning up temporary directory: {}", temp_dir.display());
+        fs::remove_dir_all(&temp_dir).with_context(|| {
+            format!(
+                "Failed to remove temporary directory: {}",
+                temp_dir.display()
+            )
+        })?;
+
         Ok(())
     }
 }
