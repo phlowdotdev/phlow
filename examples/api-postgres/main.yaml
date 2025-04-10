@@ -18,6 +18,9 @@ steps:
     input:
       query: !import ./create_table.sql
       prepared_statements: false
+  - use: log
+    input:
+      message: !eval payload
   - use: postgres
     input:
       query: |

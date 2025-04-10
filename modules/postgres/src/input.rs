@@ -8,6 +8,7 @@ pub struct Input {
     pub query: String,
     pub params: Vec<Box<dyn ToSql + Sync + Send>>,
     pub prepare_statements: bool,
+    pub cache_query: bool,
 }
 
 impl TryFrom<(Option<Value>, &PostgresConfig)> for Input {
@@ -53,10 +54,16 @@ impl TryFrom<(Option<Value>, &PostgresConfig)> for Input {
             .and_then(Value::as_bool)
             .unwrap_or(&config.prepare_statements);
 
+        let cache_query = *value
+            .get("cache_query")
+            .and_then(Value::as_bool)
+            .unwrap_or(&true);
+
         Ok(Input {
             query,
             params,
             prepare_statements,
+            cache_query,
         })
     }
 }

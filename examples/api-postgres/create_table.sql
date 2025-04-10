@@ -1,8 +1,3 @@
-
-DROP TRIGGER IF EXISTS set_updated_at ON Student;
-DROP FUNCTION IF EXISTS update_updated_at_column();
-DROP TABLE IF EXISTS Student;
-
 CREATE TABLE IF NOT EXISTS Student (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -27,6 +22,3 @@ CREATE TRIGGER set_updated_at
 BEFORE UPDATE ON Student
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
-
-INSERT INTO Student (name, birthdate, email, score)
-    VALUES ('Foo', '05-05-1989', 'foo@mail.com', 10);

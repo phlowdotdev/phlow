@@ -10,6 +10,7 @@ pub struct PostgresConfig {
     pub password: String,
     pub dbname: String,
     pub prepare_statements: bool,
+    pub cache_query: bool,
 }
 
 impl PostgresConfig {
@@ -54,6 +55,11 @@ impl TryFrom<Value> for PostgresConfig {
             .and_then(Value::as_bool)
             .unwrap_or(&true);
 
+        let cache_query = *value
+            .get("cache_query")
+            .and_then(Value::as_bool)
+            .unwrap_or(&true);
+
         Ok(PostgresConfig {
             host,
             port,
@@ -61,6 +67,7 @@ impl TryFrom<Value> for PostgresConfig {
             password,
             dbname,
             prepare_statements,
+            cache_query,
         })
     }
 }

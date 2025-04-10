@@ -46,16 +46,31 @@ pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Erro
             };
 
             if input.prepare_statements {
-                let stmt = match client.prepare_cached(input.query.as_str()).await {
-                    Ok(stmt) => stmt,
-                    Err(e) => {
-                        let response = ModuleResponse::from_error(format!(
-                            "Failed to prepare statement: {}",
-                            e
-                        ));
+                let stmt = if input.cache_query {
+                    match client.prepare_cached(input.query.as_str()).await {
+                        Ok(stmt) => stmt,
+                        Err(e) => {
+                            let response = ModuleResponse::from_error(format!(
+                                "Failed to prepare statement: {}",
+                                e
+                            ));
 
-                        sender_safe!(package.sender, response.into());
-                        return;
+                            sender_safe!(package.sender, response.into());
+                            return;
+                        }
+                    }
+                } else {
+                    match client.prepare(input.query.as_str()).await {
+                        Ok(stmt) => stmt,
+                        Err(e) => {
+                            let response = ModuleResponse::from_error(format!(
+                                "Failed to prepare statement: {}",
+                                e
+                            ));
+
+                            sender_safe!(package.sender, response.into());
+                            return;
+                        }
                     }
                 };
 
