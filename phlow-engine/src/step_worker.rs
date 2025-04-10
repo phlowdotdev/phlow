@@ -169,6 +169,15 @@ impl StepWorker {
         }
     }
 
+    // Se a string tiver mais de 100 caracteres, corta ela
+    fn truncate_string(&self, string: &str) -> String {
+        if string.len() > 100 {
+            format!("{}...", &string[..100])
+        } else {
+            string.to_string()
+        }
+    }
+
     async fn evaluate_module(
         &self,
         context: &Context,
@@ -225,7 +234,9 @@ impl StepWorker {
             }
 
             if let Some(ref payload) = context.payload {
-                span.record("context.payload", payload.to_string());
+                let payload_string = payload.to_string();
+                payload_string.to_string().truncate(100);
+                span.record("context.payload", payload_string);
             }
 
             if let Some(ref main) = context.main {

@@ -3,7 +3,7 @@ modules: !include modules.yaml
 steps:
   - use: sleep
     input:
-      milliseconds: 15
+      milliseconds: 100
       # seconds: 1
       # minutes: 1
       # hours: 1
