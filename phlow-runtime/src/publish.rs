@@ -5,9 +5,11 @@ use std::{
 };
 
 use anyhow::{anyhow, bail, Context, Result};
+use chrono::Utc;
 use phlow_sdk::tracing::info;
 use regex::Regex;
 use serde::Deserialize;
+use std::env;
 
 #[derive(Debug)]
 pub struct Publish {
@@ -24,7 +26,7 @@ struct ModuleMetadata {
 }
 
 impl Publish {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, default_package_repository_url: &str) -> Result<()> {
         let release_dir = PathBuf::from("target/release");
 
         info!(
@@ -157,6 +159,78 @@ impl Publish {
                 temp_dir.display()
             )
         })?;
+
+        Self::push_git(default_package_repository_url, &archive_name, &metadata)
+            .with_context(|| format!("Failed to push to git: {}", archive_name))?;
+
+        Ok(())
+    }
+
+    fn push_git(
+        default_package_repository_url: &str,
+        archive_name: &str,
+        metadata: &ModuleMetadata,
+    ) -> Result<()> {
+        let repo_dir = PathBuf::from("releases"); // diretório local do repositório de destino
+        if !repo_dir.exists() {
+            bail!(
+                "Local repository directory not found: {}",
+                repo_dir.display()
+            );
+        }
+
+        let timestamp = Utc::now().format("%Y%m%d%H%M%S");
+        let branch_name = format!("publish-{}-{}", metadata.name, timestamp);
+
+        info!("Creating new branch: {}", branch_name);
+        let current_dir = env::current_dir()?;
+        env::set_current_dir(&repo_dir)?;
+
+        Command::new("git")
+            .args(["checkout", "-b", &branch_name])
+            .status()
+            .context("Failed to create new git branch")?
+            .success()
+            .then_some(())
+            .context("Git branch creation failed")?;
+
+        let archive_path = current_dir.join(archive_name);
+        fs::copy(&archive_path, &repo_dir.join(archive_name))
+            .context("Failed to copy archive to local repo")?;
+
+        Command::new("git")
+            .args(["add", archive_name])
+            .status()
+            .context("Git add failed")?;
+
+        Command::new("git")
+            .args(["commit", "-m", &format!("Publish {}", archive_name)])
+            .status()
+            .context("Git commit failed")?;
+
+        Command::new("git")
+            .args(["push", "--set-upstream", "origin", &branch_name])
+            .status()
+            .context("Git push failed")?;
+
+        Command::new("gh")
+            .args([
+                "pr",
+                "create",
+                "--base",
+                "publish",
+                "--head",
+                &branch_name,
+                "--title",
+                &format!("Publish {}", archive_name),
+                "--body",
+                "This PR was automatically generated to publish a new module package.",
+            ])
+            .status()
+            .context("Failed to create pull request via GitHub CLI")?;
+
+        // volta para a pasta anterior
+        env::set_current_dir(&current_dir)?;
 
         Ok(())
     }

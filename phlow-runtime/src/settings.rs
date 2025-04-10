@@ -41,7 +41,7 @@ pub struct Settings {
      *
      * This is the URL of the default package repository that will be used to fetch packages.
      * Environment variable: PHLOW_DEFAULT_PACKAGE_REPOSITORY_URL
-     * Default: https://raw.githubusercontent.com/lowcarboncode/phlow-packages
+     * Default: lowcarboncode/phlow-packages
      */
     pub default_package_repository_url: String,
 }
@@ -71,7 +71,7 @@ impl Settings {
         let default_package_repository_url = match env::var("PHLOW_DEFAULT_PACKAGE_REPOSITORY_URL")
         {
             Ok(repo) => repo,
-            Err(_) => "https://raw.githubusercontent.com/lowcarboncode/phlow-packages".to_string(),
+            Err(_) => "lowcarboncode/phlow-packages".to_string(),
         };
 
         debug!("PHLOW_PACKAGE_CONSUMERS_COUNT = {}", package_consumer_count);

@@ -34,6 +34,7 @@ futures-util = "0.3.31"
 anyhow = "1.0.97"
 flate2 = "1.1.1"
 tar = "0.4.44"
+chrono = { version = "0.4", features = ["serde"] }
 
 [[bin]]
 name = "phlow"

@@ -499,6 +499,7 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
+ "serde",
  "wasm-bindgen",
  "windows-link",
 ]
@@ -2218,6 +2219,7 @@ name = "phlow-runtime"
 version = "0.0.1"
 dependencies = [
  "anyhow",
+ "chrono",
  "clap",
  "crossbeam",
  "flate2",

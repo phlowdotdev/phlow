@@ -26,7 +26,7 @@ async fn main() {
 
         match Publish::try_from(publish_path) {
             Ok(publish) => {
-                if let Err(err) = publish.run() {
+                if let Err(err) = publish.run(&settings.default_package_repository_url) {
                     error!("Error publishing module: {:?}", err);
                     return;
                 }

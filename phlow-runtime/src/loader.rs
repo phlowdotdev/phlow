@@ -284,7 +284,14 @@ impl Loader {
                 Some(repo) => repo.clone(),
                 None => format!(
                     "{}/refs/heads/main/packages/{}",
-                    default_package_repository_url,
+                    if regex::Regex::new(r"^(https?://|\.git|.*@.*)")
+                        .unwrap()
+                        .is_match(default_package_repository_url)
+                    {
+                        default_package_repository_url.to_string()
+                    } else {
+                        format!("https://github.com/{}", default_package_repository_url)
+                    },
                     module
                         .repository_path
                         .clone()
