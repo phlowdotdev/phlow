@@ -9,6 +9,15 @@ use rhai::Engine;
 use serde::Serialize;
 use std::sync::Arc;
 
+// get env
+use once_cell::sync::Lazy;
+
+static PHLOW_OTEL_TRUNCATE_SPAN_VALUE: Lazy<usize> =
+    Lazy::new(|| match std::env::var("PHLOW_OTEL_TRUNCATE_SPAN_VALUE") {
+        Ok(value) => value.parse::<usize>().unwrap_or(100),
+        Err(_) => 100,
+    });
+
 #[derive(Debug)]
 pub enum StepWorkerError {
     ConditionError(ConditionError),
@@ -169,15 +178,6 @@ impl StepWorker {
         }
     }
 
-    // Se a string tiver mais de 100 caracteres, corta ela
-    fn truncate_string(&self, string: &str) -> String {
-        if string.len() > 100 {
-            format!("{}...", &string[..100])
-        } else {
-            string.to_string()
-        }
-    }
-
     async fn evaluate_module(
         &self,
         context: &Context,
@@ -234,13 +234,11 @@ impl StepWorker {
             }
 
             if let Some(ref payload) = context.payload {
-                let payload_string = payload.to_string();
-                payload_string.to_string().truncate(100);
-                span.record("context.payload", payload_string);
+                span.record("context.payload", truncate_string(&payload));
             }
 
             if let Some(ref main) = context.main {
-                span.record("context.main", main.to_string());
+                span.record("context.main", truncate_string(&main));
             }
 
             span.record("step.id", self.id.to_string());
@@ -266,7 +264,7 @@ impl StepWorker {
                 span.record("step.module", module.clone());
 
                 if let Some(ref output) = output {
-                    span.record("context.payload", output.to_string());
+                    span.record("context.payload", truncate_string(output));
                 }
             }
 
@@ -308,7 +306,7 @@ impl StepWorker {
                 span.record("step.condition", condition.raw.to_string());
 
                 if let Some(ref output) = output {
-                    span.record("context.payload", output.to_string());
+                    span.record("context.payload", truncate_string(output));
                 }
             }
 
@@ -319,7 +317,7 @@ impl StepWorker {
 
         {
             if let Some(ref output) = output {
-                span.record("context.payload", output.to_string());
+                span.record("context.payload", truncate_string(output));
             }
         }
 
@@ -327,6 +325,16 @@ impl StepWorker {
             next_step: NextStep::Next,
             output,
         });
+    }
+}
+
+fn truncate_string(string: &Value) -> String {
+    let limit = *PHLOW_OTEL_TRUNCATE_SPAN_VALUE;
+    let string = string.to_string();
+    if string.len() > limit {
+        format!("{}...", &string[..limit])
+    } else {
+        string.to_string()
     }
 }
 

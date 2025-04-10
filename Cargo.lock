@@ -2206,6 +2206,7 @@ dependencies = [
 name = "phlow-engine"
 version = "0.0.1"
 dependencies = [
+ "once_cell",
  "phlow-sdk",
  "regex",
  "rhai",
