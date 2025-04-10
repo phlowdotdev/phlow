@@ -38,7 +38,7 @@ pub async fn sleep(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error +
             debug!("No sleep time provided, skipping sleep");
         }
 
-        sender_safe!(package.sender, Value::Null);
+        sender_safe!(package.sender, Value::Null.into());
     });
 
     Ok(())

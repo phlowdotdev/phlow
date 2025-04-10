@@ -79,5 +79,5 @@ pub async fn resolve(package: ModulePackage, default_user_agent: Option<String>,
     }
     .to_value();
 
-    sender_safe!(package.sender, response);
+    sender_safe!(package.sender, response.into());
 }

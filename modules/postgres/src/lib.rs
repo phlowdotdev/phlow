@@ -30,7 +30,7 @@ pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Erro
                     }
                     .to_value();
 
-                    sender_safe!(package.sender, response);
+                    sender_safe!(package.sender, response.into());
                     return;
                 }
             };
@@ -45,7 +45,7 @@ pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Erro
                     }
                     .to_value();
 
-                    sender_safe!(package.sender, response);
+                    sender_safe!(package.sender, response.into());
                     return;
                 }
             };
@@ -60,7 +60,7 @@ pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Erro
                     }
                     .to_value();
 
-                    sender_safe!(package.sender, response);
+                    sender_safe!(package.sender, response.into());
                     return;
                 }
             };
@@ -81,7 +81,7 @@ pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Erro
                     }
                     .to_value();
 
-                    sender_safe!(package.sender, response);
+                    sender_safe!(package.sender, response.into());
                 }
                 Err(e) => {
                     let response = Response {
@@ -91,7 +91,7 @@ pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Erro
                     }
                     .to_value();
 
-                    sender_safe!(package.sender, response);
+                    sender_safe!(package.sender, response.into());
                     return;
                 }
             };

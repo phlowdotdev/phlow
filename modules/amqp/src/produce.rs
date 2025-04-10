@@ -43,7 +43,7 @@ pub async fn producer(
                 Some(input) => input,
                 None => {
                     let response = ProducerResponse::from_error("No input provided");
-                    match package.sender.send(response.to_value()) {
+                    match package.sender.send(response.to_value().into()) {
                         Ok(_) => {}
                         Err(e) => {
                             return Err(format!("{:?}", e).into());
@@ -93,7 +93,8 @@ pub async fn producer(
                 success,
                 error_message,
             }
-            .to_value(),
+            .to_value()
+            .into(),
         ) {
             Ok(_) => {}
             Err(e) => {

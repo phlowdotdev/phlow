@@ -183,7 +183,15 @@ impl StepWorker {
             };
 
             match self.modules.execute(module, &context).await {
-                Ok(value) => Ok(Some((Some(module.clone()), Some(value), context))),
+                Ok(response) => {
+                    if let Some(err) = response.error {
+                        return Err(StepWorkerError::ModulesError(ModulesError::ModuleError(
+                            err,
+                        )));
+                    }
+
+                    Ok(Some((Some(module.clone()), Some(response.data), context)))
+                }
                 Err(err) => Err(StepWorkerError::ModulesError(err)),
             }
         } else {
@@ -242,7 +250,7 @@ impl StepWorker {
             });
         }
 
-        if let Ok(Some((module, output, context))) = self.evaluate_module(context).await {
+        if let Some((module, output, context)) = self.evaluate_module(context).await? {
             {
                 span.record("step.module", module.clone());
 

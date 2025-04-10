@@ -62,7 +62,7 @@ pub async fn log(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + S
             LogLevel::Error => error!("{}", log.message),
         }
 
-        sender_safe!(package.sender, Value::Null);
+        sender_safe!(package.sender, Value::Null.into());
     });
 
     Ok(())

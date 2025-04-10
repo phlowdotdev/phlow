@@ -8,11 +8,22 @@ use valu3::value::Value;
 pub enum ModulesError {
     ModuleNotFound(String),
     ModuleNotLoaded(String),
+    ModuleError(String),
 }
 
+#[derive(Debug, Clone)]
 pub struct ModuleResponse {
     pub error: Option<String>,
     pub data: Value,
+}
+
+impl Into<ModuleResponse> for Value {
+    fn into(self) -> ModuleResponse {
+        ModuleResponse {
+            error: None,
+            data: self,
+        }
+    }
 }
 
 impl ModuleResponse {
@@ -34,7 +45,7 @@ impl ModuleResponse {
 #[derive(Debug)]
 pub struct ModulePackage {
     pub context: Context,
-    pub sender: oneshot::Sender<Value>,
+    pub sender: oneshot::Sender<ModuleResponse>,
 }
 
 impl ModulePackage {
@@ -59,7 +70,11 @@ impl Modules {
         self.modules.insert(name.to_string(), sender);
     }
 
-    pub async fn execute(&self, name: &str, context: &Context) -> Result<Value, ModulesError> {
+    pub async fn execute(
+        &self,
+        name: &str,
+        context: &Context,
+    ) -> Result<ModuleResponse, ModulesError> {
         if let Some(module_sender) = self.modules.get(name) {
             let (package_sender, package_receiver) = oneshot::channel();
             let package = ModulePackage {
@@ -69,7 +84,9 @@ impl Modules {
 
             let _ = module_sender.send(package);
 
-            let value = package_receiver.await.unwrap_or(Value::Null);
+            let value = package_receiver.await.unwrap_or(ModuleResponse::from_error(
+                "Module response channel closed".to_string(),
+            ));
 
             Ok(value)
         } else {
