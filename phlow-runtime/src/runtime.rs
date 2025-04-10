@@ -131,7 +131,7 @@ impl Runtime {
                                             package.send(result.unwrap_or(Value::Null));
                                         }
                                         Err(err) => {
-                                            warn!("Runtime Error Execute Steps: {:?}", err);
+                                            error!("Runtime Error Execute Steps: {:?}", err);
                                         }
                                     }
                                 }
