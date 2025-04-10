@@ -12,8 +12,8 @@ use std::sync::Arc;
 // get env
 use once_cell::sync::Lazy;
 
-static PHLOW_OTEL_TRUNCATE_SPAN_VALUE: Lazy<usize> =
-    Lazy::new(|| match std::env::var("PHLOW_OTEL_TRUNCATE_SPAN_VALUE") {
+static PHLOW_TRUNCATE_SPAN_VALUE: Lazy<usize> =
+    Lazy::new(|| match std::env::var("PHLOW_TRUNCATE_SPAN_VALUE") {
         Ok(value) => value.parse::<usize>().unwrap_or(100),
         Err(_) => 100,
     });
@@ -329,7 +329,7 @@ impl StepWorker {
 }
 
 fn truncate_string(string: &Value) -> String {
-    let limit = *PHLOW_OTEL_TRUNCATE_SPAN_VALUE;
+    let limit = *PHLOW_TRUNCATE_SPAN_VALUE;
     let string = string.to_string();
     if string.len() > limit {
         format!("{}...", &string[..limit])
