@@ -45,7 +45,7 @@ pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Erro
                 }
             };
 
-            if input.prepare_statements {
+            if input.multiple_query {
                 let stmt = if input.cache_query {
                     match client.prepare_cached(input.query.as_str()).await {
                         Ok(stmt) => stmt,

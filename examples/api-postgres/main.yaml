@@ -12,25 +12,21 @@ modules:
       user: postgres
       password: postgres
       database: postgres
-      sslmode: disable
 steps:
-  - use: postgres
+  - label: Create table
+    use: postgres
     input:
       query: !import ./create_table.sql
       prepared_statements: false
-  - use: log
-    input:
-      message: !eval payload
-  - use: postgres
+  - label: Insert data
+    use: postgres
     input:
       query: |
         INSERT INTO Student (name,  birthdate) VALUES ($1, '1990-01-01');
       params:
         - Boo
-  - use: log
-    input:
-      message: !eval payload
-  - use: postgres
+  - label: Get all students
+    use: postgres
     input:
       query: SELECT * FROM Student;
   - return:

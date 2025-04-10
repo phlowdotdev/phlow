@@ -27,7 +27,7 @@ pub struct PostgresConfig {
     pub password: String,
     pub dbname: String,
     pub ssl_mode: String,
-    pub prepare_statements: bool,
+    pub multiple_query: bool,
     pub cache_query: bool,
 }
 
@@ -78,7 +78,7 @@ impl TryFrom<Value> for PostgresConfig {
             .unwrap_or_else(|| "postgres".to_string());
 
         let prepare_statements = *value
-            .get("prepare_statements")
+            .get("multiple_query")
             .and_then(Value::as_bool)
             .unwrap_or(&true);
 
@@ -102,7 +102,7 @@ impl TryFrom<Value> for PostgresConfig {
             user,
             password,
             dbname,
-            prepare_statements,
+            multiple_query: prepare_statements,
             cache_query,
             ssl_mode,
         })
