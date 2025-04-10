@@ -16,11 +16,13 @@ pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Erro
     let config = PostgresConfig::try_from(setup.with.clone())?;
     let pool = Arc::new(config.create_pool()?);
 
+    let mut handles = Vec::new();
+
     for package in rx {
         let pool = pool.clone();
         let config = config.clone();
 
-        tokio::spawn(async move {
+        let handle = tokio::spawn(async move {
             let input = match Input::try_from((package.context.input, &config)) {
                 Ok(input) => input,
                 Err(e) => {
@@ -45,7 +47,7 @@ pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Erro
                 }
             };
 
-            if input.multiple_query {
+            if input.batch {
                 let stmt = if input.cache_query {
                     match client.prepare_cached(input.query.as_str()).await {
                         Ok(stmt) => stmt,
@@ -108,6 +110,14 @@ pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Erro
                 }
             }
         });
+
+        handles.push(handle);
+    }
+
+    for handle in handles {
+        if let Err(e) = handle.await {
+            eprintln!("Error in task: {:?}", e);
+        }
     }
 
     Ok(())

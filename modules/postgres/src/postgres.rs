@@ -25,10 +25,11 @@ pub struct PostgresConfig {
     pub port: u16,
     pub user: String,
     pub password: String,
-    pub dbname: String,
+    pub database: String,
     pub ssl_mode: String,
-    pub multiple_query: bool,
+    pub batch: bool,
     pub cache_query: bool,
+    pub max_size: usize,
 }
 
 impl PostgresConfig {
@@ -39,7 +40,11 @@ impl PostgresConfig {
         cfg.port = Some(self.port);
         cfg.user = Some(self.user.clone());
         cfg.password = Some(self.password.clone());
-        cfg.dbname = Some(self.dbname.clone());
+        cfg.dbname = Some(self.database.clone());
+        cfg.pool = Some(deadpool_postgres::PoolConfig {
+            max_size: self.max_size,
+            ..Default::default()
+        });
 
         let ssl_mode = match self.ssl_mode.as_str() {
             "prefer" => deadpool_postgres::SslMode::Prefer,
@@ -72,15 +77,12 @@ impl TryFrom<Value> for PostgresConfig {
             .get("password")
             .map(Value::to_string)
             .unwrap_or_else(|| "postgres".to_string());
-        let dbname = value
-            .get("dbname")
+        let database = value
+            .get("database")
             .map(Value::to_string)
             .unwrap_or_else(|| "postgres".to_string());
 
-        let prepare_statements = *value
-            .get("multiple_query")
-            .and_then(Value::as_bool)
-            .unwrap_or(&true);
+        let prepare_statements = *value.get("batch").and_then(Value::as_bool).unwrap_or(&true);
 
         let cache_query = *value
             .get("cache_query")
@@ -96,15 +98,21 @@ impl TryFrom<Value> for PostgresConfig {
             return Err("Invalid SSL mode. Use 'disable', 'prefer' or 'require'.".to_string());
         }
 
+        let max_size = value
+            .get("max_pool_size")
+            .and_then(Value::to_i64)
+            .unwrap_or(10) as usize;
+
         Ok(PostgresConfig {
             host,
             port,
             user,
             password,
-            dbname,
-            multiple_query: prepare_statements,
+            database,
+            batch: prepare_statements,
             cache_query,
             ssl_mode,
+            max_size,
         })
     }
 }

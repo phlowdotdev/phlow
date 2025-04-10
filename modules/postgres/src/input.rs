@@ -7,7 +7,7 @@ use crate::postgres::PostgresConfig;
 pub struct Input {
     pub query: String,
     pub params: Vec<Box<dyn ToSql + Sync + Send>>,
-    pub multiple_query: bool,
+    pub batch: bool,
     pub cache_query: bool,
 }
 
@@ -50,9 +50,9 @@ impl TryFrom<(Option<Value>, &PostgresConfig)> for Input {
             .unwrap_or_else(|| Ok(vec![]))?;
 
         let prepare_statements = *value
-            .get("multiple_query")
+            .get("batch")
             .and_then(Value::as_bool)
-            .unwrap_or(&config.multiple_query);
+            .unwrap_or(&config.batch);
 
         let cache_query = *value
             .get("cache_query")
@@ -62,7 +62,7 @@ impl TryFrom<(Option<Value>, &PostgresConfig)> for Input {
         Ok(Input {
             query,
             params,
-            multiple_query: prepare_statements,
+            batch: prepare_statements,
             cache_query,
         })
     }
