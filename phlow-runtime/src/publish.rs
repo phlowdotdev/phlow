@@ -1,6 +1,6 @@
 use std::{
     fs::{self, File},
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::Command,
 };
 
@@ -9,6 +9,7 @@ use chrono::Utc;
 use phlow_sdk::tracing::info;
 use regex::Regex;
 use serde::Deserialize;
+use serde_json::json;
 use std::env;
 
 #[derive(Debug)]
@@ -27,6 +28,18 @@ struct ModuleMetadata {
 
 impl Publish {
     pub fn run(&self, default_package_repository_url: &str) -> Result<()> {
+        let archive_name = self.create_package().with_context(|| {
+            format!("Failed to create package in {}", self.module_dir.display())
+        })?;
+        let archive_path = PathBuf::from(archive_name);
+
+        self.organize_package(archive_path.as_path())
+            .with_context(|| format!("Failed to organize package: {}", archive_path.display()))?;
+
+        Ok(())
+    }
+
+    pub fn create_package(&self) -> Result<String> {
         let release_dir = PathBuf::from("target/release");
 
         info!(
@@ -159,6 +172,69 @@ impl Publish {
                 temp_dir.display()
             )
         })?;
+
+        Ok(archive_name)
+    }
+
+    pub fn organize_package(&self, archive_path: &Path) -> Result<()> {
+        let filename = archive_path
+            .file_name()
+            .and_then(|f| f.to_str())
+            .ok_or_else(|| anyhow::anyhow!("Invalid archive file name"))?;
+
+        let base_name = filename.trim_end_matches(".tar.gz");
+        let parts: Vec<&str> = base_name.rsplitn(2, '-').collect();
+        if parts.len() != 2 {
+            anyhow::bail!("Filename does not follow expected format: name-version.tar.gz");
+        }
+
+        let version = parts[0];
+        let package_name = parts[1];
+        let padded = format!("{:<4}", package_name).replace(' ', "_");
+
+        let prefix = &padded[0..2];
+        let middle = &padded[2..4];
+        let final_path = PathBuf::from(format!(
+            ".publish-{}_{}/packages/{}/{}/{}",
+            package_name,
+            { middle },
+            prefix,
+            middle,
+            package_name
+        ));
+        fs::create_dir_all(&final_path)?;
+
+        // Atualiza index.json
+        let index_file = final_path.join("index.json");
+        let new_entry = json!({
+            "name": package_name,
+            "version": version,
+            "repository": "https://github.com/lowcarboncode/phlow-packages"
+        });
+
+        if index_file.exists() {
+            let mut entries: Vec<serde_json::Value> =
+                serde_json::from_reader(File::open(&index_file)?)?;
+            entries.push(new_entry);
+            fs::write(&index_file, serde_json::to_vec_pretty(&entries)?)?;
+        } else {
+            let entries = vec![new_entry];
+            fs::write(&index_file, serde_json::to_vec_pretty(&entries)?)?;
+        }
+
+        // Cria metadata.json
+        let metadata_file = final_path.join("metadata.json");
+        let metadata = json!({
+            "name": package_name,
+            "author": "Philippe Assis <codephilippe@gmail.com>",
+            "homepage": "phlow.dev",
+            "latest": version
+        });
+        fs::write(&metadata_file, serde_json::to_vec_pretty(&metadata)?)?;
+
+        // Caminho de destino em packages
+        let package_dest = final_path.join(filename);
+        fs::rename(archive_path, &package_dest)?;
 
         Ok(())
     }
