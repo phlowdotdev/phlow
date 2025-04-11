@@ -5,12 +5,10 @@ use std::{
 };
 
 use anyhow::{anyhow, bail, Context, Result};
-use chrono::Utc;
 use phlow_sdk::tracing::info;
 use regex::Regex;
 use serde::Deserialize;
 use serde_json::json;
-use std::env;
 
 #[derive(Debug)]
 pub struct Publish {
@@ -221,16 +219,6 @@ impl Publish {
             let entries = vec![new_entry];
             fs::write(&index_file, serde_json::to_vec_pretty(&entries)?)?;
         }
-
-        // Cria metadata.json
-        let metadata_file = final_path.join("metadata.json");
-        let metadata = json!({
-            "name": package_name,
-            "author": "Philippe Assis <codephilippe@gmail.com>",
-            "homepage": "phlow.dev",
-            "latest": version
-        });
-        fs::write(&metadata_file, serde_json::to_vec_pretty(&metadata)?)?;
 
         // Caminho de destino em packages
         let package_dest = final_path.join(filename);
