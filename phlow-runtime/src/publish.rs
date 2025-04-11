@@ -7,7 +7,7 @@ use std::{
 use anyhow::{anyhow, bail, Context, Result};
 use phlow_sdk::tracing::info;
 use regex::Regex;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 #[derive(Debug)]
@@ -15,7 +15,7 @@ pub struct Publish {
     pub module_dir: PathBuf,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct ModuleMetadata {
     name: String,
     version: String,
@@ -26,18 +26,18 @@ struct ModuleMetadata {
 
 impl Publish {
     pub fn run(&self, default_package_repository_url: &str) -> Result<()> {
-        let archive_name = self.create_package().with_context(|| {
+        let (metedata, archive_name) = self.create_package().with_context(|| {
             format!("Failed to create package in {}", self.module_dir.display())
         })?;
         let archive_path = PathBuf::from(archive_name);
 
-        self.organize_package(archive_path.as_path())
+        self.organize_package(metedata, archive_path.as_path())
             .with_context(|| format!("Failed to organize package: {}", archive_path.display()))?;
 
         Ok(())
     }
 
-    pub fn create_package(&self) -> Result<String> {
+    fn create_package(&self) -> Result<(ModuleMetadata, String)> {
         let release_dir = PathBuf::from("target/release");
 
         info!(
@@ -171,10 +171,10 @@ impl Publish {
             )
         })?;
 
-        Ok(archive_name)
+        Ok((metadata, archive_name))
     }
 
-    pub fn organize_package(&self, archive_path: &Path) -> Result<()> {
+    fn organize_package(&self, metadata: ModuleMetadata, archive_path: &Path) -> Result<()> {
         let filename = archive_path
             .file_name()
             .and_then(|f| f.to_str())
@@ -186,28 +186,26 @@ impl Publish {
             anyhow::bail!("Filename does not follow expected format: name-version.tar.gz");
         }
 
-        let version = parts[0];
-        let package_name = parts[1];
-        let padded = format!("{:<4}", package_name).replace(' ', "_");
+        let padded = if metadata.name.len() < 4 {
+            format!("{:_<4}", metadata.name)
+        } else {
+            metadata.name.clone()
+        };
 
         let prefix = &padded[0..2];
         let middle = &padded[2..4];
         let final_path = PathBuf::from(format!(
-            ".publish-{}_{}/packages/{}/{}/{}",
-            package_name,
-            { middle },
-            prefix,
-            middle,
-            package_name
+            ".publish_{}_{}/packages/{}/{}/{}",
+            metadata.name, metadata.version, prefix, middle, metadata.name
         ));
         fs::create_dir_all(&final_path)?;
 
         // Atualiza index.json
         let index_file = final_path.join("index.json");
         let new_entry = json!({
-            "name": package_name,
-            "version": version,
-            "repository": "https://github.com/lowcarboncode/phlow-packages"
+            "name": metadata.name,
+            "version": metadata.version,
+            "repository": metadata.repository,
         });
 
         if index_file.exists() {
@@ -219,6 +217,10 @@ impl Publish {
             let entries = vec![new_entry];
             fs::write(&index_file, serde_json::to_vec_pretty(&entries)?)?;
         }
+
+        // Cria metadata.json
+        let metadata_file = final_path.join("metadata.json");
+        fs::write(&metadata_file, serde_json::to_vec_pretty(&metadata)?)?;
 
         // Caminho de destino em packages
         let package_dest = final_path.join(filename);
