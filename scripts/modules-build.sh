@@ -6,8 +6,8 @@ cargo build --release
 
 # Define os diretórios
 RELEASE_DIR="target/release"
-DEST_DIR="../phlow_packages"
-MODULES_DIR="../modules"
+DEST_DIR="./phlow_packages"
+MODULES_DIR="./modules"
 
 # Cria o diretório de destino se não existir
 mkdir -p "$DEST_DIR"

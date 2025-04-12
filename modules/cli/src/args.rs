@@ -36,7 +36,7 @@ impl Args {
     pub fn run_help(&self) {
         let raw_args: Vec<String> = env::args().skip(1).collect();
 
-        if raw_args.contains(&"--help".to_string()) || raw_args.contains(&"-h".to_string()) {
+        if raw_args.contains(&"--help".to_string()) || raw_args.contains(&"-H".to_string()) {
             println!("Usage:");
             for arg in &self.schema {
                 let long = arg.long.as_deref().unwrap_or("");

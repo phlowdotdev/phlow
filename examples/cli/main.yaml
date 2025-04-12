@@ -2,6 +2,25 @@ main: cli
 modules: 
   - module: cli
     version: latest
+    with:
+      version: 1.0.0
+      args:
+        - index: 0
+          required: true
+          help: The name of the person to greet.
+          type: string
+        - long: age
+          short: a
+          help: The age of the person to greet.
+          type: number
+        - long: verbose
+          short: v
+          help: Whether to print verbose output.
+          type: boolean
+        - long: email
+          short: e
+          help: The email of the person to greet.
+          type: string
 steps:
   - return:
       status_code: 200
