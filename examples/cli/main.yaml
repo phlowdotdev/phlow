@@ -7,6 +7,7 @@ modules:
       - name: item
         index: 1
         type: string
+        required: true
       - name: arg
         long: arg
         short: a
@@ -16,8 +17,4 @@ modules:
         short: f
         type: boolean
 steps:
-  - return:
-      status_code: 200
-      body: !eval main
-      headers:
-        Content-Type: application/json
+  - return: !eval main

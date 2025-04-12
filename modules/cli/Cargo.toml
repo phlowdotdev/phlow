@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 phlow-sdk = { workspace = true }
+colored = "3.0.0"
 
 [lib]
 name = "cli"

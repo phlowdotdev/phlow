@@ -11,7 +11,7 @@ create_main!(cli(setup));
 pub async fn cli(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     sender_safe!(setup.setup_sender, None);
 
-    let _ = phlow_sdk::tracing::dispatcher::with_default(&setup.dispatch.clone(), || async {
+    let _ = phlow_sdk::tracing::dispatcher::with_default(&setup.dispatch.clone(), || async move {
         let span = tracing::span!(
             Level::INFO,
             "cli_command",
@@ -30,17 +30,20 @@ pub async fn cli(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + S
 
         span_enter!(span);
 
-        let args = match Args::try_from(setup.with).map_err(|e| format!("{:?}", e)) {
-            Ok(args) => args,
-            Err(e) => {
-                span.record("error.type", &e);
-                span.record("process.exit.code", 1);
-                eprintln!("Error: {}", e);
-                return Ok::<(), Box<dyn std::error::Error + Send + Sync>>(());
-            }
-        };
+        let args = Args::new(setup.with.clone(), setup.app_data.clone());
 
-        args.run_help();
+        if args.is_error() {
+            span.record("error.type", "invalid_input");
+            span.record("process.exit.code", 1);
+            args.print_error_with_help();
+            return Ok::<(), Box<dyn std::error::Error + Send + Sync>>(());
+        }
+
+        if args.is_help() {
+            span.record("process.exit.code", 0);
+            args.print_help(None);
+            return Ok::<(), Box<dyn std::error::Error + Send + Sync>>(());
+        }
 
         let context = resolve::RequestContext {
             args: args.clone(),
@@ -62,7 +65,7 @@ pub async fn cli(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + S
             println!("{}", value);
         }
 
-        Ok(())
+        Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
     })
     .await;
 

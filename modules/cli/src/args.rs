@@ -1,10 +1,9 @@
+use colored::*;
 use phlow_sdk::prelude::*;
-use std::{collections::HashMap, env};
-
-#[derive(Debug)]
-pub enum Error {
-    InvalidInput,
-}
+use std::{
+    collections::{HashMap, HashSet},
+    env,
+};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum InputType {
@@ -29,55 +28,51 @@ pub struct Arg {
 pub struct Args {
     pub args: HashMap<String, Value>,
     pub schema: Vec<Arg>,
+    pub app_data: ApplicationData,
+    pub error: Vec<String>,
 }
 
 impl Args {
-    pub fn run_help(&self) {
-        let raw_args: Vec<String> = env::args().skip(1).collect();
-
-        if raw_args.contains(&"--help".to_string()) || raw_args.contains(&"-H".to_string()) {
-            println!("Usage:");
-            for arg in &self.schema {
-                let long = arg.long.as_deref().unwrap_or("");
-                let short = arg.short.as_deref().unwrap_or("");
-                let name = &arg.name;
-                let help = &arg.help;
-                let required = if arg.required {
-                    "[required]"
-                } else {
-                    "[optional]"
-                };
-                let default = arg.default.as_deref().unwrap_or("");
-
-                println!(
-                    "  -{} --{} <{}> \t {} {} (default: {})",
-                    short, long, name, help, required, default
-                );
-            }
-            std::process::exit(0);
-        }
-    }
-}
-
-impl TryFrom<Value> for Args {
-    type Error = Error;
-
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
+    pub fn new(value: Value, app_data: ApplicationData) -> Self {
         let mut arg_defs: Vec<Arg> = Vec::new();
+        let mut error = Vec::new();
 
         if value.is_null() {
-            return Ok(Args {
+            return Self {
                 args: HashMap::new(),
                 schema: Vec::new(),
-            });
+                app_data,
+                error,
+            };
         }
 
-        for item in value.as_array().ok_or(Error::InvalidInput)? {
+        let array = match value.as_array() {
+            Some(arr) => arr.clone(),
+            None => {
+                error.push("Invalid input: schema must be an array.".to_string());
+                return Self {
+                    args: HashMap::new(),
+                    schema: Vec::new(),
+                    app_data,
+                    error,
+                };
+            }
+        };
+
+        for item in array {
+            let name = match item.get("name").map(Value::to_string) {
+                Some(n) => n,
+                None => {
+                    error.push("Missing required 'name' field in schema.".to_string());
+                    continue;
+                }
+            };
+
             let long = item.get("long").map(Value::to_string);
             let short = item.get("short").map(Value::to_string);
             let help = item.get("help").map(Value::to_string).unwrap_or_default();
             let default = item.get("default").map(Value::to_string).map(String::from);
-            let required = *item
+            let required_flag = *item
                 .get("required")
                 .and_then(Value::as_bool)
                 .unwrap_or(&false);
@@ -90,10 +85,6 @@ impl TryFrom<Value> for Args {
                 Some(ref t) if t == "boolean" => InputType::Boolean,
                 _ => InputType::String,
             };
-            let name = item
-                .get("name")
-                .map(Value::to_string)
-                .ok_or(Error::InvalidInput)?;
 
             arg_defs.push(Arg {
                 name,
@@ -101,7 +92,7 @@ impl TryFrom<Value> for Args {
                 short,
                 help,
                 default,
-                required,
+                required: required_flag,
                 index,
                 input_type,
             });
@@ -109,6 +100,31 @@ impl TryFrom<Value> for Args {
 
         let raw_args: Vec<String> = env::args().skip(1).collect();
         let mut parsed_args: HashMap<String, Value> = HashMap::new();
+
+        // 🔍 Construir conjunto de flags válidas
+        let mut valid_flags: HashSet<String> = HashSet::new();
+        for arg in &arg_defs {
+            if let Some(l) = &arg.long {
+                valid_flags.insert(format!("--{}", l));
+            }
+            if let Some(s) = &arg.short {
+                valid_flags.insert(format!("-{}", s));
+            }
+        }
+
+        let mut error = Vec::new();
+        for (_, raw) in raw_args.iter().enumerate() {
+            if raw.starts_with('-') {
+                // Se for "--flag=valor", considera apenas a flag
+                let flag = raw.split('=').next().unwrap_or(raw);
+                if !valid_flags.contains(flag) && flag != "--help" && flag != "-H" && flag != "-h" {
+                    error.push(format!(
+                        "Unknown flag: {}. Use --help to see the available flags.",
+                        flag
+                    ));
+                }
+            }
+        }
 
         for arg_def in &arg_defs {
             let mut found: Option<String> = None;
@@ -160,22 +176,33 @@ impl TryFrom<Value> for Args {
             }
 
             if found.is_none() && arg_def.required {
-                return Err(Error::InvalidInput);
+                error.push(format!("Missing required argument: {}", arg_def.name));
             }
 
             if let Some(value_str) = found {
                 let value = match arg_def.input_type {
                     InputType::String => Value::from(value_str),
-                    InputType::Number => value_str
-                        .parse::<f64>()
-                        .map(Value::from)
-                        .map_err(|_| Error::InvalidInput)?,
+                    InputType::Number => match value_str.parse::<f64>().map(Value::from) {
+                        Ok(v) => v,
+                        Err(_) => {
+                            error
+                                .push(format!("Invalid value for {}: {}", arg_def.name, value_str));
+
+                            Value::Null
+                        }
+                    },
                     InputType::Boolean => {
                         let v = match value_str.as_str() {
-                            "" => Value::Boolean(true), // sinalizador sem valor
+                            "" => Value::Boolean(true),
                             "true" | "1" => Value::Boolean(true),
                             "false" | "0" => Value::Boolean(false),
-                            _ => return Err(Error::InvalidInput),
+                            _ => {
+                                error.push(format!(
+                                    "Invalid value for {}: {}",
+                                    arg_def.name, value_str
+                                ));
+                                Value::Null
+                            }
                         };
                         v
                     }
@@ -184,9 +211,129 @@ impl TryFrom<Value> for Args {
             }
         }
 
-        Ok(Args {
+        Self {
             args: parsed_args,
             schema: arg_defs,
-        })
+            app_data,
+            error,
+        }
+    }
+
+    pub fn is_help(&self) -> bool {
+        let raw_args: Vec<String> = env::args().skip(1).collect();
+
+        raw_args.contains(&"--help".to_string())
+            || raw_args.contains(&"-h".to_string())
+            || raw_args.contains(&"-H".to_string())
+    }
+
+    pub fn print_help(self, extra: Option<String>) {
+        println!(
+            "{}: {}",
+            "Usage".bold().underline(),
+            self.app_data
+                .name
+                .unwrap_or("Phlow Cli".to_string())
+                .bold()
+                .blue()
+        );
+
+        if let Some(version) = self.app_data.version {
+            println!("       {}: {}", "Version", version);
+        }
+
+        if let Some(description) = self.app_data.description {
+            println!("       {}: {}", "Description", description);
+        }
+
+        if let Some(license) = self.app_data.license {
+            println!("       {}: {}", "License", license);
+        }
+
+        if let Some(author) = self.app_data.author {
+            println!("       {}: {}", "Author", author);
+        }
+
+        if let Some(homepage) = self.app_data.homepage {
+            println!("       {}: {}", "Homepage", homepage);
+        }
+
+        if let Some(repository) = self.app_data.repository {
+            println!("       {}: {}", "Repository", repository);
+        }
+
+        println!("");
+
+        if let Some(extra) = extra {
+            println!("{}", extra);
+        }
+
+        let mut arguments = Vec::new();
+        let mut options = Vec::new();
+
+        for arg in &self.schema {
+            let long = arg.long.as_deref().unwrap_or("");
+            let short = arg.short.as_deref().unwrap_or("");
+            let name = &arg.name;
+            let help = &arg.help;
+            let required = if arg.required {
+                format!("{}", "[required]".yellow().bold())
+            } else {
+                "[optional]".to_string()
+            };
+            let default = arg.default.as_deref().unwrap_or("");
+
+            if arg.index.is_some() {
+                arguments.push(format!("{} {} {} {}", name.bold(), required, default, help));
+            } else {
+                let mut option = String::new();
+
+                if !long.is_empty() {
+                    option.push_str(&format!("--{}", long));
+                }
+
+                if !short.is_empty() {
+                    option.push_str(&format!(", -{}", short));
+                }
+
+                option.push_str(format!(" {} {} {}", name.bold(), required, default).as_str());
+                options.push(format!("{} {}", option, help));
+            }
+        }
+
+        if !arguments.is_empty() {
+            println!("{}:", "Arguments".bold().underline());
+            for arg in arguments {
+                println!("  {}", arg);
+            }
+            println!();
+        }
+
+        if !options.is_empty() {
+            println!("{}:", "Options".bold().underline());
+            for opt in options {
+                println!("  {}", opt);
+            }
+            println!();
+        }
+
+        std::process::exit(0);
+    }
+
+    pub fn is_error(&self) -> bool {
+        !self.error.is_empty()
+    }
+
+    pub fn print_error_with_help(self) {
+        let errors = self
+            .error
+            .iter()
+            .map(|err| format!("{}", err.bold().red().underline()))
+            .collect::<Vec<_>>()
+            .join("\n       ");
+
+        let err = format!("{}\n       {}\n", "Error:".red().bold(), errors);
+
+        self.print_help(Some(err));
     }
 }

@@ -1,3 +1,5 @@
+use std::env;
+
 use clap::{Arg, Command};
 
 #[derive(Debug)]
@@ -21,9 +23,7 @@ pub struct Cli {
 
 impl Cli {
     pub fn load() -> Result<Cli, Error> {
-        let matches = Command::new("Phlow Runtime")
-            .trailing_var_arg(true)
-            .allow_external_subcommands(true)
+        let command = Command::new("Phlow Runtime")
             .version("0.1.0")
             .arg(
                 Arg::new("main_path")
@@ -35,7 +35,7 @@ impl Cli {
                 Arg::new("install")
                     .long("install")
                     .short('i')
-                    .value_parser(clap::builder::BoolishValueParser::new()) // permite "true"/"false"
+                    .value_parser(clap::builder::BoolishValueParser::new())
                     .help("Install dependencies")
                     .default_value("false"),
             )
@@ -44,16 +44,24 @@ impl Cli {
                     .long("download")
                     .short('d')
                     .help("Enable download modules before running")
-                    .value_parser(clap::builder::BoolishValueParser::new()) // permite "true"/"false"
+                    .value_parser(clap::builder::BoolishValueParser::new())
                     .default_value("true"),
             )
             .arg(
                 Arg::new("package")
                     .long("package")
                     .help("Path to the package file"),
-            )
-            .get_matches();
+            );
 
+        let args: Vec<String> = env::args().collect();
+        if args.contains(&"--help".to_string()) || args.contains(&"-h".to_string()) {
+            let _ = command.clone().print_help();
+        }
+
+        let matches = command
+            .trailing_var_arg(true)
+            .allow_external_subcommands(true)
+            .get_matches();
         let main = match matches.get_one::<String>("main_path") {
             Some(file) => {
                 let (path, ext) = get_main_file(file)?;
@@ -66,7 +74,6 @@ impl Cli {
         };
 
         let install = *matches.get_one::<bool>("install").unwrap_or(&false);
-
         let package_path = matches.get_one::<String>("package").map(|s| s.to_string());
 
         Ok(Cli {
