@@ -35,7 +35,6 @@ impl Cli {
                     .short('i')
                     .value_parser(clap::builder::BoolishValueParser::new()) // permite "true"/"false"
                     .help("Install dependencies")
-                    .action(clap::ArgAction::SetTrue)
                     .default_value("false"),
             )
             .arg(

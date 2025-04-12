@@ -1,0 +1,11 @@
+[package]
+name = "cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+phlow-sdk = { workspace = true }
+
+[lib]
+name = "cli"
+crate-type = ["cdylib"]

@@ -21,7 +21,7 @@ with:
     description: The timeout for the request in seconds.
     default: 29
     required: false
-inputs:
+input:
   method:
     type: string
     description: The HTTP method to use (GET, POST, PUT, DELETE, etc.).
@@ -38,7 +38,7 @@ inputs:
     type: string
     description: The body of the request.
     required: false
-outputs:
+output:
   response:
     type: object
     description: The response from the HTTP request.
