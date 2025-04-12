@@ -1,6 +1,5 @@
-use std::{collections::HashMap, env};
-
 use phlow_sdk::prelude::*;
+use std::{collections::HashMap, env};
 
 #[derive(Debug)]
 pub enum Error {
@@ -66,7 +65,14 @@ impl TryFrom<Value> for Args {
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         let mut arg_defs: Vec<Arg> = Vec::new();
 
-        for item in value.as_array().ok_or(Error::InvalidInput)?.into_iter() {
+        if value.is_null() {
+            return Ok(Args {
+                args: HashMap::new(),
+                schema: Vec::new(),
+            });
+        }
+
+        for item in value.as_array().ok_or(Error::InvalidInput)? {
             let long = item.get("long").map(Value::to_string);
             let short = item.get("short").map(Value::to_string);
             let help = item.get("help").map(Value::to_string).unwrap_or_default();
@@ -101,7 +107,7 @@ impl TryFrom<Value> for Args {
             });
         }
 
-        let raw_args: Vec<String> = env::args().skip(1).collect(); // Ignora o nome do binário
+        let raw_args: Vec<String> = env::args().skip(1).collect();
         let mut parsed_args: HashMap<String, Value> = HashMap::new();
 
         for arg_def in &arg_defs {
@@ -110,7 +116,16 @@ impl TryFrom<Value> for Args {
             if let Some(long_flag) = &arg_def.long {
                 let flag = format!("--{}", long_flag);
                 if let Some(pos) = raw_args.iter().position(|a| a == &flag) {
-                    found = raw_args.get(pos + 1).cloned();
+                    if arg_def.input_type == InputType::Boolean {
+                        let next = raw_args.get(pos + 1);
+                        if next.is_none() || next.unwrap().starts_with('-') {
+                            found = Some("".to_string());
+                        } else {
+                            found = Some(next.unwrap().to_string());
+                        }
+                    } else {
+                        found = raw_args.get(pos + 1).cloned();
+                    }
                 }
             }
 
@@ -118,7 +133,16 @@ impl TryFrom<Value> for Args {
                 if let Some(short_flag) = &arg_def.short {
                     let flag = format!("-{}", short_flag);
                     if let Some(pos) = raw_args.iter().position(|a| a == &flag) {
-                        found = raw_args.get(pos + 1).cloned();
+                        if arg_def.input_type == InputType::Boolean {
+                            let next = raw_args.get(pos + 1);
+                            if next.is_none() || next.unwrap().starts_with('-') {
+                                found = Some("".to_string());
+                            } else {
+                                found = Some(next.unwrap().to_string());
+                            }
+                        } else {
+                            found = raw_args.get(pos + 1).cloned();
+                        }
                     }
                 }
             }
@@ -146,10 +170,15 @@ impl TryFrom<Value> for Args {
                         .parse::<f64>()
                         .map(Value::from)
                         .map_err(|_| Error::InvalidInput)?,
-                    InputType::Boolean => value_str
-                        .parse::<bool>()
-                        .map(Value::from)
-                        .map_err(|_| Error::InvalidInput)?,
+                    InputType::Boolean => {
+                        let v = match value_str.as_str() {
+                            "" => Value::Boolean(true), // sinalizador sem valor
+                            "true" | "1" => Value::Boolean(true),
+                            "false" | "0" => Value::Boolean(false),
+                            _ => return Err(Error::InvalidInput),
+                        };
+                        v
+                    }
                 };
                 parsed_args.insert(arg_def.name.clone(), value);
             }

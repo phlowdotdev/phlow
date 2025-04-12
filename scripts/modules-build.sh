@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 
 # Compila o projeto em modo release
 cargo build --release

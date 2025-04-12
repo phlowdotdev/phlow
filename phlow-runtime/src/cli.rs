@@ -22,6 +22,8 @@ pub struct Cli {
 impl Cli {
     pub fn load() -> Result<Cli, Error> {
         let matches = Command::new("Phlow Runtime")
+            .trailing_var_arg(true)
+            .allow_external_subcommands(true)
             .version("0.1.0")
             .arg(
                 Arg::new("main_path")

@@ -3,11 +3,21 @@ version: 1.0.0
 modules: 
   - module: cli
     version: latest
-      
+    with:
+      - name: item
+        index: 1
+        type: string
+      - name: arg
+        long: arg
+        short: a
+        type: number
+      - name: flag
+        long: flag
+        short: f
+        type: boolean
 steps:
   - return:
       status_code: 200
-      body: 
-        message: "ping"
+      body: !eval main
       headers:
         Content-Type: application/json
