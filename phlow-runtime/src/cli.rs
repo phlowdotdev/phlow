@@ -47,9 +47,9 @@ impl Cli {
                     .default_value("true"),
             )
             .arg(
-                Arg::new("publish")
-                    .long("publish")
-                    .help("Publish module on phlow.dev"),
+                Arg::new("package")
+                    .long("package")
+                    .help("Path to the package file"),
             )
             .get_matches();
 
