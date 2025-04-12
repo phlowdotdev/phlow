@@ -166,7 +166,15 @@ impl Args {
             if found.is_none() {
                 if let Some(idx) = arg_def.index {
                     if raw_args.len() > idx {
-                        found = Some(raw_args[idx].clone());
+                        let value = raw_args[idx].clone();
+                        if value.starts_with('-') {
+                            error.push(format!(
+                                "Invalid value for positional argument {}: cannot start with '-' or '--'. Found '{}'",
+                                arg_def.name, value
+                            ));
+                        } else {
+                            found = Some(value);
+                        }
                     }
                 }
             }

@@ -8,6 +8,10 @@ modules:
         index: 1
         type: string
         required: true
+      - name: item2
+        index: 2
+        type: string
+        required: true
       - name: arg
         long: arg
         short: a
@@ -16,5 +20,18 @@ modules:
         long: flag
         short: f
         type: boolean
+        default: false
 steps:
-  - return: !eval main
+  - label: assert
+    condition:
+      assert: !eval main.flag
+    then:
+      label: returns
+      return: 
+        message: OK
+        data: !eval main
+    else:
+      label: returns
+      return: 
+        message: Fail
+        data: !eval main
