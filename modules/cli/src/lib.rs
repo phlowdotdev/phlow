@@ -1,8 +1,8 @@
-mod input;
+mod args;
 mod resolve;
 use std::env;
 
-use input::Args;
+use args::Args;
 use phlow_sdk::prelude::*;
 use resolve::resolve;
 
@@ -39,6 +39,8 @@ pub async fn cli(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + S
                 return Ok::<(), Box<dyn std::error::Error + Send + Sync>>(());
             }
         };
+
+        args.run_help();
 
         let context = resolve::RequestContext {
             args: args.clone(),

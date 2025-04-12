@@ -29,6 +29,35 @@ pub struct Arg {
 #[derive(Debug, Clone)]
 pub struct Args {
     pub args: HashMap<String, Value>,
+    pub schema: Vec<Arg>,
+}
+
+impl Args {
+    pub fn run_help(&self) {
+        let raw_args: Vec<String> = env::args().skip(1).collect();
+
+        if raw_args.contains(&"--help".to_string()) || raw_args.contains(&"-h".to_string()) {
+            println!("Usage:");
+            for arg in &self.schema {
+                let long = arg.long.as_deref().unwrap_or("");
+                let short = arg.short.as_deref().unwrap_or("");
+                let name = &arg.name;
+                let help = &arg.help;
+                let required = if arg.required {
+                    "[required]"
+                } else {
+                    "[optional]"
+                };
+                let default = arg.default.as_deref().unwrap_or("");
+
+                println!(
+                    "  -{} --{} <{}> \t {} {} (default: {})",
+                    short, long, name, help, required, default
+                );
+            }
+            std::process::exit(0);
+        }
+    }
 }
 
 impl TryFrom<Value> for Args {
@@ -126,6 +155,9 @@ impl TryFrom<Value> for Args {
             }
         }
 
-        Ok(Args { args: parsed_args })
+        Ok(Args {
+            args: parsed_args,
+            schema: arg_defs,
+        })
     }
 }

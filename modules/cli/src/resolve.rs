@@ -1,4 +1,4 @@
-use crate::input::Args;
+use crate::args::Args;
 use phlow_sdk::{
     prelude::*,
     structs::{MainRuntimeSender, ModuleId},
