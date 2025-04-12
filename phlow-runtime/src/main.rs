@@ -2,17 +2,17 @@ mod cli;
 mod loader;
 mod log;
 mod memory;
-mod publish;
+mod package;
 mod runtime;
 mod settings;
 mod yaml;
 use cli::Cli;
 use loader::Loader;
 use log::init_tracing;
+use package::Package;
 use phlow_sdk::otel::init_tracing_subscriber;
 use phlow_sdk::prelude::*;
 use phlow_sdk::tracing::error;
-use publish::Publish;
 use runtime::Runtime;
 use settings::Settings;
 
@@ -21,12 +21,12 @@ async fn main() {
     let settings = Settings::load();
     let cli = Cli::load().expect("Error loading CLI");
 
-    if let Some(publish_path) = cli.publish_path {
+    if let Some(publish_path) = cli.package_path {
         init_tracing();
 
-        match Publish::try_from(publish_path) {
+        match Package::try_from(publish_path) {
             Ok(publish) => {
-                if let Err(err) = publish.run(&settings.default_package_repository_url) {
+                if let Err(err) = publish.run() {
                     error!("Error publishing module: {:?}", err);
                     return;
                 }

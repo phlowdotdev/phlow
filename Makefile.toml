@@ -1,0 +1,4 @@
+[tasks.mbuild]
+workspace = false
+description = "Executa o script build.sh"
+script = ["chmod +x ./scripts/modules-build.sh", "./scripts/modules-build.sh"]

@@ -16,7 +16,7 @@ pub struct MainArgs {
 pub struct Cli {
     pub main: Option<MainArgs>,
     pub only_download_modules: bool,
-    pub publish_path: Option<String>,
+    pub package_path: Option<String>,
 }
 
 impl Cli {
@@ -66,12 +66,12 @@ impl Cli {
 
         let install = *matches.get_one::<bool>("install").unwrap_or(&false);
 
-        let publish_path = matches.get_one::<String>("publish").map(|s| s.to_string());
+        let package_path = matches.get_one::<String>("package").map(|s| s.to_string());
 
         Ok(Cli {
             main,
             only_download_modules: install,
-            publish_path,
+            package_path,
         })
     }
 }

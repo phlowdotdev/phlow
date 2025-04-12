@@ -6,7 +6,7 @@ cargo build --release --locked
 
 # Define os diretórios
 RELEASE_DIR="target/release"
-DEST_DIR="phlow_modules"
+DEST_DIR="phlow_packages"
 MODULES_DIR="modules"
 PACKAGE_DIR="phlow_packages"
 

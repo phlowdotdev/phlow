@@ -271,7 +271,7 @@ you_project/
 │   └── body.yaml
 ├── scripts/
 │   └── resolve_url.phs
-├── phlow_modules/
+├── phlow_packages/
 │   ├── restapi/
 │   │   └── module.so
 │   ├── request/
@@ -279,7 +279,7 @@ you_project/
 │   └── log/
 │       └── module.so
 ```
-All compiled `.so` modules **must be placed inside the `phlow_modules/` directory**.
+All compiled `.so` modules **must be placed inside the `phlow_packages/` directory**.
 
 To build all modules at once, this project includes a utility script:
 ---

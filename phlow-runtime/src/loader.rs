@@ -235,7 +235,7 @@ impl Loader {
     pub fn load_module(setup: ModuleSetup, module_name: &str) -> Result<(), Error> {
         unsafe {
             let lib =
-                match Library::new(format!("phlow_modules/{}/module.so", module_name).as_str()) {
+                match Library::new(format!("phlow_packages/{}/module.so", module_name).as_str()) {
                     Ok(lib) => lib,
                     Err(err) => return Err(Error::LibLoadingError(err)),
                 };
@@ -260,8 +260,8 @@ impl Loader {
     }
 
     pub async fn download(&self, default_package_repository_url: &str) -> Result<(), Error> {
-        if !Path::new("phlow_modules").exists() {
-            std::fs::create_dir("phlow_modules").map_err(Error::FileCreateError)?;
+        if !Path::new("phlow_packages").exists() {
+            std::fs::create_dir("phlow_packages").map_err(Error::FileCreateError)?;
         }
 
         info!("Downloading modules...");
@@ -271,7 +271,7 @@ impl Loader {
         let mut downloads = Vec::new();
 
         for module in &self.modules {
-            let module_so_path = format!("phlow_modules/{}/module.so", module.module);
+            let module_so_path = format!("phlow_packages/{}/module.so", module.module);
             if Path::new(&module_so_path).exists() {
                 info!(
                     "Module {} already exists at {}, skipping download",
@@ -356,9 +356,9 @@ impl Loader {
 
         let tarball_name = format!("{}-{}.tar.gz", module, version);
         let target_url = format!("{}/{}", base_url.trim_end_matches('/'), tarball_name);
-        let target_path = format!("phlow_modules/{}/{}", module, tarball_name);
+        let target_path = format!("phlow_packages/{}/{}", module, tarball_name);
 
-        if Path::new(&format!("phlow_modules/{}/module.so", module)).exists() {
+        if Path::new(&format!("phlow_packages/{}/module.so", module)).exists() {
             return Ok(());
         }
 
@@ -388,13 +388,13 @@ impl Loader {
         let decompressor = GzDecoder::new(tar_gz);
         let mut archive = Archive::new(decompressor);
         archive
-            .unpack(format!("phlow_modules/{}", module))
+            .unpack(format!("phlow_packages/{}", module))
             .map_err(Error::CopyError)?;
 
         // Remove o tar.gz após extração
         std::fs::remove_file(&target_path).map_err(Error::FileCreateError)?;
 
-        info!("Module extracted to phlow_modules/{}", module);
+        info!("Module extracted to phlow_packages/{}", module);
 
         Ok(())
     }
