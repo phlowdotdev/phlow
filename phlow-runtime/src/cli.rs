@@ -1,6 +1,5 @@
+use clap::{Arg, ArgAction, Command};
 use std::env;
-
-use clap::{Arg, Command};
 
 #[derive(Debug)]
 pub enum Error {
@@ -19,6 +18,8 @@ pub struct Cli {
     pub main: Option<MainArgs>,
     pub only_download_modules: bool,
     pub package_path: Option<String>,
+    pub show_steps: bool,
+    pub no_run: bool,
 }
 
 impl Cli {
@@ -35,6 +36,7 @@ impl Cli {
                 Arg::new("install")
                     .long("install")
                     .short('i')
+                    .action(ArgAction::SetTrue)
                     .value_parser(clap::builder::BoolishValueParser::new())
                     .help("Install dependencies")
                     .default_value("false"),
@@ -44,6 +46,7 @@ impl Cli {
                     .long("download")
                     .short('d')
                     .help("Enable download modules before running")
+                    .action(ArgAction::SetTrue)
                     .value_parser(clap::builder::BoolishValueParser::new())
                     .default_value("true"),
             )
@@ -51,6 +54,23 @@ impl Cli {
                 Arg::new("package")
                     .long("package")
                     .help("Path to the package file"),
+            )
+            .arg(
+                Arg::new("steps")
+                    .long("show-steps")
+                    .help("Show steps")
+                    .value_parser(clap::builder::BoolishValueParser::new())
+                    .action(ArgAction::SetTrue)
+                    .default_value("false"),
+            )
+            .arg(
+                Arg::new("no_run")
+                    .long("no-run")
+                    .short('n')
+                    .help("Do not run the main file")
+                    .value_parser(clap::builder::BoolishValueParser::new())
+                    .action(ArgAction::SetTrue)
+                    .default_value("false"),
             );
 
         let args: Vec<String> = env::args().collect();
@@ -76,10 +96,16 @@ impl Cli {
         let install = *matches.get_one::<bool>("install").unwrap_or(&false);
         let package_path = matches.get_one::<String>("package").map(|s| s.to_string());
 
+        let show_steps = *matches.get_one::<bool>("steps").unwrap_or(&false);
+
+        let no_run = *matches.get_one::<bool>("no_run").unwrap_or(&false);
+
         Ok(Cli {
             main,
             only_download_modules: install,
             package_path,
+            show_steps,
+            no_run,
         })
     }
 }

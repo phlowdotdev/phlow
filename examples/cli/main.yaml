@@ -26,12 +26,12 @@ steps:
     condition:
       assert: !eval main.flag
     then:
-      label: returns
-      return: 
+      payload: 
         message: OK
-        data: !eval main
     else:
-      label: returns
-      return: 
+      payload:
         message: Fail
-        data: !eval main
+  - label: returns
+    return: 
+      message: Fail
+      data: !eval main

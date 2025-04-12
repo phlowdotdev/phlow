@@ -47,6 +47,14 @@ async fn main() {
             }
         };
 
+        if cli.show_steps {
+            let _ = loader.print_step_yaml();
+        }
+
+        if cli.no_run {
+            return;
+        }
+
         let guard = init_tracing_subscriber(loader.app_data.clone());
 
         loader

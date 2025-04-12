@@ -259,6 +259,13 @@ impl Loader {
         })
     }
 
+    pub fn print_step_yaml(&self) -> Result<(), Error> {
+        let steps = self.get_steps();
+        let yaml = serde_yaml::to_string(&steps).map_err(Error::LoaderErrorYaml)?;
+        println!("{}", yaml);
+        Ok(())
+    }
+
     pub async fn download(&self, default_package_repository_url: &str) -> Result<(), Error> {
         if !Path::new("phlow_packages").exists() {
             std::fs::create_dir("phlow_packages").map_err(Error::FileCreateError)?;
