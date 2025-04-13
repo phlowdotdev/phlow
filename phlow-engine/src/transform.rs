@@ -23,7 +23,7 @@ pub(crate) fn value_to_pipelines(
     let mut map = Vec::new();
 
     process_raw_steps(input, &mut map);
-    println!("map: {}", map.to_value().to_json(JsonMode::Indented));
+    debug!("map steps: {}", map.to_value().to_json(JsonMode::Indented));
     value_to_structs(engine, modules, &map)
 }
 
