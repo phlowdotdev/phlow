@@ -1,6 +1,6 @@
 
 name: amqp
-description: This module provides a simple interface to send and receive messages using AMQP (Advanced Message Queuing Protocol).
+description: This module provides a simple interface to send and receive messages using AMQP 0.9.1 (Advanced Message Queuing Protocol).
 version: 0.0.1
 author: Philippe Assis <codephilippe@gmail.com>
 repository: https://github.com/lowcarboncode/phlow
