@@ -8,9 +8,10 @@ license: MIT
 tags:
   - cli
 wirh:
-  version:
-    type: string
-    description: The version of the command to run.
+  additional_args:
+    type: boolean
+    description: If enabled, does not validate unmapped arguments.
+    default: false
     required: false
   args:
     type: array

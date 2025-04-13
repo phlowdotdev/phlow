@@ -33,7 +33,7 @@ pub struct Args {
 }
 
 impl Args {
-    pub fn new(value: Value, app_data: ApplicationData) -> Self {
+    pub fn new(value: Value, app_data: ApplicationData, additional_args: bool) -> Self {
         let mut arg_defs: Vec<Arg> = Vec::new();
         let mut error = Vec::new();
 
@@ -113,15 +113,21 @@ impl Args {
         }
 
         let mut error = Vec::new();
-        for (_, raw) in raw_args.iter().enumerate() {
-            if raw.starts_with('-') {
-                // Se for "--flag=valor", considera apenas a flag
-                let flag = raw.split('=').next().unwrap_or(raw);
-                if !valid_flags.contains(flag) && flag != "--help" && flag != "-H" && flag != "-h" {
-                    error.push(format!(
-                        "Unknown flag: {}. Use --help to see the available flags.",
-                        flag
-                    ));
+        if !additional_args {
+            for (_, raw) in raw_args.iter().enumerate() {
+                if raw.starts_with('-') {
+                    // Se for "--flag=valor", considera apenas a flag
+                    let flag = raw.split('=').next().unwrap_or(raw);
+                    if !valid_flags.contains(flag)
+                        && flag != "--help"
+                        && flag != "-H"
+                        && flag != "-h"
+                    {
+                        error.push(format!(
+                            "Unknown flag: {}. Use --help to see the available flags.",
+                            flag
+                        ));
+                    }
                 }
             }
         }

@@ -30,7 +30,16 @@ pub async fn cli(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + S
 
         span_enter!(span);
 
-        let args = Args::new(setup.with.clone(), setup.app_data.clone());
+        let with_args = setup.with.get("args").cloned().unwrap_or(Value::Null);
+        let additional_args = *setup
+            .with
+            .get("additional_args")
+            .cloned()
+            .unwrap_or(Value::Boolean(false))
+            .as_bool()
+            .unwrap_or(&false);
+
+        let args = Args::new(with_args, setup.app_data.clone(), additional_args);
 
         if args.is_error() {
             span.record("error.type", "invalid_input");

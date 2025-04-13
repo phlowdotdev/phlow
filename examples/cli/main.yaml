@@ -1,26 +1,31 @@
 main: cli
 version: 1.0.0
+description: Example CLI module
+author: Your Name
+
 modules: 
   - module: cli
     version: latest
     with:
-      - name: item
-        index: 1
-        type: string
-        required: true
-      - name: item2
-        index: 2
-        type: string
-        required: true
-      - name: arg
-        long: arg
-        short: a
-        type: number
-      - name: flag
-        long: flag
-        short: f
-        type: boolean
-        default: false
+      additional_args: true
+      args: 
+        - name: item
+          index: 1
+          type: string
+          required: true
+        - name: item2
+          index: 2
+          type: string
+          required: true
+        - name: arg
+          long: arg
+          short: a
+          type: number
+        - name: flag
+          long: flag
+          short: f
+          type: boolean
+          default: false
 steps:
   - label: assert
     condition:
