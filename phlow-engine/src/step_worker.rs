@@ -51,6 +51,7 @@ pub struct StepWorker {
     pub(crate) else_case: Option<usize>,
     pub(crate) modules: Arc<Modules>,
     pub(crate) return_case: Option<Script>,
+    pub(crate) parent: Option<usize>,
 }
 
 impl StepWorker {
@@ -116,6 +117,13 @@ impl StepWorker {
             Some(module) => Some(module.to_string()),
             None => None,
         };
+        let parent = match value.get("parent") {
+            Some(parent) => match parent.to_u64() {
+                Some(parent) => Some(parent as usize),
+                None => None,
+            },
+            None => None,
+        };
 
         Ok(Self {
             id,
@@ -128,6 +136,7 @@ impl StepWorker {
             else_case,
             modules,
             return_case,
+            parent,
         })
     }
 
@@ -320,6 +329,14 @@ impl StepWorker {
                 span.record("context.payload", truncate_string(output));
             }
         }
+
+        // if let Some(parent) = self.parent {
+        //     // println!("parent: {}", parent);
+        //     return Ok(StepOutput {
+        //         next_step: NextStep::Pipeline(parent),
+        //         output,
+        //     });
+        // }
 
         return Ok(StepOutput {
             next_step: NextStep::Next,

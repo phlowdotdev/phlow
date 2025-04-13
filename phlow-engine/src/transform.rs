@@ -23,35 +23,82 @@ pub(crate) fn value_to_pipelines(
     let mut map = Vec::new();
 
     process_raw_steps(input, &mut map);
-    // println!("map: {}", map.to_value().to_json(JsonMode::Indented));
+    add_parents_to_map(&mut map);
+
+    println!("map: {}", map.to_value().to_json(JsonMode::Indented));
     value_to_structs(engine, modules, &map)
 }
-pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
-    process_raw_steps_with_parent(input, map, None)
+
+pub fn add_parents_to_map(map: &mut Vec<Value>) {
+    let mut relations: Vec<(usize, Vec<usize>)> = Vec::new();
+
+    fn collect_relations(
+        map: &Vec<Value>,
+        map_index: usize,
+        current_path: Vec<usize>,
+        relations: &mut Vec<(usize, Vec<usize>)>,
+    ) {
+        if let Some(Value::Array(steps)) = map.get(map_index) {
+            for (i, step) in steps.into_iter().enumerate() {
+                if let Value::Object(step_obj) = step {
+                    let mut caller_path = current_path.clone();
+                    caller_path.push(i); // adiciona o índice local
+
+                    for key in ["then", "else"] {
+                        if let Some(Value::Number(child_idx)) = step_obj.get(key) {
+                            if let Some(child_index) = child_idx.to_u64() {
+                                relations.push((child_index as usize, caller_path.clone()));
+                                collect_relations(
+                                    map,
+                                    child_index as usize,
+                                    caller_path.clone(),
+                                    relations,
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // inicia para todos os pipelines no nível mais alto (por segurança)
+    for i in 0..map.len() {
+        collect_relations(map, i, vec![i], &mut relations);
+    }
+
+    // aplica os paths como Value::Array
+    for (child_index, parent_path) in relations {
+        if let Some(Value::Array(child_steps)) = map.get_mut(child_index) {
+            for step in child_steps {
+                if let Value::Object(step_obj) = step {
+                    let array = parent_path
+                        .iter()
+                        .map(|i| (*i).to_value())
+                        .collect::<Vec<_>>();
+                    step_obj.insert("parent".to_string(), array.to_value());
+                }
+            }
+        }
+    }
 }
 
-fn process_raw_steps_with_parent(
-    input: &Value,
-    map: &mut Vec<Value>,
-    parent_index: Option<usize>,
-) -> Value {
+pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
     if let Value::Object(pipeline) = input {
         let mut new_pipeline = pipeline.clone();
 
         new_pipeline.remove(&"steps");
 
+        // Tratamento para THEN
         if let Some(then) = pipeline.get("then") {
-            let then_value = process_raw_steps_with_parent(then, map, Some(map.len()));
+            let then_value = process_raw_steps(then, map);
             new_pipeline.insert("then".to_string(), then_value);
         }
 
+        // Tratamento para ELSE
         if let Some(els) = pipeline.get("else") {
-            let else_value = process_raw_steps_with_parent(els, map, Some(map.len()));
+            let else_value = process_raw_steps(els, map);
             new_pipeline.insert("else".to_string(), else_value);
-        }
-
-        if let Some(index) = parent_index {
-            new_pipeline.insert("parent".to_string(), index.to_value());
         }
 
         let mut new_steps = if new_pipeline.is_empty() {
@@ -66,21 +113,11 @@ fn process_raw_steps_with_parent(
                     let mut new_step = step.clone();
 
                     if let Some(then) = step.get("then") {
-                        new_step.insert(
-                            "then".to_string(),
-                            process_raw_steps_with_parent(then, map, Some(map.len())),
-                        );
+                        new_step.insert("then".to_string(), process_raw_steps(then, map));
                     }
 
                     if let Some(els) = step.get("else") {
-                        new_step.insert(
-                            "else".to_string(),
-                            process_raw_steps_with_parent(els, map, Some(map.len())),
-                        );
-                    }
-
-                    if let Some(index) = parent_index {
-                        new_step.insert("parent".to_string(), index.to_value());
+                        new_step.insert("else".to_string(), process_raw_steps(els, map));
                     }
 
                     new_steps.push(new_step);
@@ -97,21 +134,11 @@ fn process_raw_steps_with_parent(
                 let mut new_step = step.clone();
 
                 if let Some(then) = step.get("then") {
-                    new_step.insert(
-                        "then".to_string(),
-                        process_raw_steps_with_parent(then, map, Some(map.len())),
-                    );
+                    new_step.insert("then".to_string(), process_raw_steps(then, map));
                 }
 
                 if let Some(els) = step.get("else") {
-                    new_step.insert(
-                        "else".to_string(),
-                        process_raw_steps_with_parent(els, map, Some(map.len())),
-                    );
-                }
-
-                if let Some(index) = parent_index {
-                    new_step.insert("parent".to_string(), index.to_value());
+                    new_step.insert("else".to_string(), process_raw_steps(els, map));
                 }
 
                 new_steps.push(new_step);
