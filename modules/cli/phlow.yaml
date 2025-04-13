@@ -7,7 +7,7 @@ repository: https://github.com/lowcarboncode/phlow
 license: MIT
 tags:
   - cli
-wirh:
+with:
   additional_args:
     type: boolean
     description: If enabled, does not validate unmapped arguments.
