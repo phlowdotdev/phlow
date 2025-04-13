@@ -1,4 +1,3 @@
-mod cli;
 mod loader;
 mod log;
 mod memory;
@@ -6,7 +5,6 @@ mod package;
 mod runtime;
 mod settings;
 mod yaml;
-use cli::Cli;
 use loader::Loader;
 use log::init_tracing;
 use package::Package;
@@ -18,10 +16,9 @@ use settings::Settings;
 
 #[tokio::main]
 async fn main() {
-    let settings = Settings::load();
-    let cli = Cli::load().expect("Error loading CLI");
+    let settings = Settings::try_load().expect("Error loading settings");
 
-    if let Some(publish_path) = cli.package_path {
+    if let Some(publish_path) = settings.package_path.clone() {
         init_tracing();
 
         match Package::try_from(publish_path) {
@@ -38,7 +35,7 @@ async fn main() {
         }
     }
 
-    if let Some(main) = &cli.main {
+    if let Some(main) = &settings.main {
         let loader = match Loader::load(&main.path, &main.ext) {
             Ok(main) => main,
             Err(err) => {
@@ -47,11 +44,7 @@ async fn main() {
             }
         };
 
-        if cli.show_steps {
-            let _ = loader.print_step_yaml();
-        }
-
-        if cli.no_run {
+        if settings.no_run {
             return;
         }
 
@@ -62,7 +55,7 @@ async fn main() {
             .await
             .expect("Error downloading modules");
 
-        if cli.only_download_modules {
+        if settings.only_download_modules {
             return;
         }
 

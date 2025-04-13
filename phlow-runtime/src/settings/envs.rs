@@ -2,7 +2,7 @@ use std::env;
 
 use phlow_sdk::tracing::debug;
 
-pub struct Settings {
+pub struct Envs {
     /**
      * Number of package consumers
      *
@@ -46,7 +46,7 @@ pub struct Settings {
     pub default_package_repository_url: String,
 }
 
-impl Settings {
+impl Envs {
     pub fn load() -> Self {
         let package_consumer_count = env::var("PHLOW_PACKAGE_CONSUMERS_COUNT")
             .ok()

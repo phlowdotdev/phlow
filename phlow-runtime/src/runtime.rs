@@ -13,8 +13,8 @@ pub struct Runtime {}
 
 impl Runtime {
     pub async fn run(loader: Loader, dispatch: Dispatch, settings: Settings) {
-        let steps: Value = loader.get_steps();
         let mut modules = Modules::default();
+        let steps: Value = loader.get_steps();
 
         // -------------------------
         // Create the channels
@@ -100,6 +100,8 @@ impl Runtime {
                 }
             }
         });
+
+        drop(steps);
 
         let mut handles = Vec::new();
 

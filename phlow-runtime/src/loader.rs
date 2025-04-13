@@ -1,6 +1,6 @@
 use std::{fmt::Display, fs::File, path::Path};
 
-use crate::{cli::ModuleExtension, yaml::yaml_helpers_transform};
+use crate::{settings::cli::ModuleExtension, yaml::yaml_helpers_transform};
 use libloading::{Library, Symbol};
 use phlow_sdk::{prelude::*, tracing::info};
 use reqwest::Client;

@@ -1,8 +1,8 @@
 main: cli
+name: Example Cli
 version: 1.0.0
 description: Example CLI module
 author: Your Name
-
 modules: 
   - module: cli
     version: latest
@@ -31,9 +31,11 @@ steps:
     condition:
       assert: !eval main.flag
     then:
+      label: then
       payload: 
         message: OK
     else:
+      label: else
       payload:
         message: Fail
   - label: returns
