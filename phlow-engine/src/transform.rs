@@ -23,26 +23,35 @@ pub(crate) fn value_to_pipelines(
     let mut map = Vec::new();
 
     process_raw_steps(input, &mut map);
-    debug!("map steps: {}", map.to_value().to_json(JsonMode::Indented));
+    // println!("map: {}", map.to_value().to_json(JsonMode::Indented));
     value_to_structs(engine, modules, &map)
 }
-
 pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
+    process_raw_steps_with_parent(input, map, None)
+}
+
+fn process_raw_steps_with_parent(
+    input: &Value,
+    map: &mut Vec<Value>,
+    parent_index: Option<usize>,
+) -> Value {
     if let Value::Object(pipeline) = input {
         let mut new_pipeline = pipeline.clone();
 
         new_pipeline.remove(&"steps");
 
-        // Tratamento para THEN
         if let Some(then) = pipeline.get("then") {
-            let then_value = process_raw_steps(then, map);
+            let then_value = process_raw_steps_with_parent(then, map, Some(map.len()));
             new_pipeline.insert("then".to_string(), then_value);
         }
 
-        // Tratamento para ELSE
         if let Some(els) = pipeline.get("else") {
-            let else_value = process_raw_steps(els, map);
+            let else_value = process_raw_steps_with_parent(els, map, Some(map.len()));
             new_pipeline.insert("else".to_string(), else_value);
+        }
+
+        if let Some(index) = parent_index {
+            new_pipeline.insert("parent".to_string(), index.to_value());
         }
 
         let mut new_steps = if new_pipeline.is_empty() {
@@ -57,11 +66,21 @@ pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
                     let mut new_step = step.clone();
 
                     if let Some(then) = step.get("then") {
-                        new_step.insert("then".to_string(), process_raw_steps(then, map));
+                        new_step.insert(
+                            "then".to_string(),
+                            process_raw_steps_with_parent(then, map, Some(map.len())),
+                        );
                     }
 
                     if let Some(els) = step.get("else") {
-                        new_step.insert("else".to_string(), process_raw_steps(els, map));
+                        new_step.insert(
+                            "else".to_string(),
+                            process_raw_steps_with_parent(els, map, Some(map.len())),
+                        );
+                    }
+
+                    if let Some(index) = parent_index {
+                        new_step.insert("parent".to_string(), index.to_value());
                     }
 
                     new_steps.push(new_step);
@@ -78,11 +97,21 @@ pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
                 let mut new_step = step.clone();
 
                 if let Some(then) = step.get("then") {
-                    new_step.insert("then".to_string(), process_raw_steps(then, map));
+                    new_step.insert(
+                        "then".to_string(),
+                        process_raw_steps_with_parent(then, map, Some(map.len())),
+                    );
                 }
 
                 if let Some(els) = step.get("else") {
-                    new_step.insert("else".to_string(), process_raw_steps(els, map));
+                    new_step.insert(
+                        "else".to_string(),
+                        process_raw_steps_with_parent(els, map, Some(map.len())),
+                    );
+                }
+
+                if let Some(index) = parent_index {
+                    new_step.insert("parent".to_string(), index.to_value());
                 }
 
                 new_steps.push(new_step);

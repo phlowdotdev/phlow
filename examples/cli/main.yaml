@@ -9,36 +9,45 @@ modules:
     with:
       additional_args: true
       args: 
-        - name: item
+        - name: name
+          description: Name of the user
           index: 1
           type: string
           required: true
-        - name: item2
+        - name: age
+          description: Age of the user
           index: 2
-          type: string
-          required: true
-        - name: arg
-          long: arg
-          short: a
           type: number
-        - name: flag
-          long: flag
-          short: f
+          required: true
+        - name: active
+          long: active
+          description: Is the user active
+          short: a
           type: boolean
           default: false
 steps:
   - label: assert
     condition:
-      assert: !eval main.flag
+      assert: !eval main.active
     then:
-      label: then
+      id: active
+      label: is active
       payload: 
         message: OK
     else:
-      label: else
-      payload:
-        message: Fail
+      label: 18+
+      condition:
+        assert: !eval main.age >= 18
+      then:
+        id: maior
+        label: "> 18"
+        payload: 
+          message: OK
+      else:
+        id: menor
+        label: "< 18"
+        payload: 
+          message: Fail
+      
   - label: returns
-    return: 
-      message: Fail
-      data: !eval main
+    return: !eval steps
