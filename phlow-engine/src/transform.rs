@@ -24,50 +24,7 @@ pub(crate) fn value_to_pipelines(
     let mut map = Vec::new();
 
     process_raw_steps(input, &mut map);
-    add_parents_to_map(&mut map);
-
-    println!("map: {}", map.to_value().to_json(JsonMode::Indented));
     value_to_structs(engine, modules, &map)
-}
-
-pub fn add_parents_to_map(map: &mut Vec<Value>) {
-    // child_index -> list of [step_position_in_pipeline, caller_index]
-    let mut parent_map: HashMap<usize, Vec<[usize; 2]>> = HashMap::new();
-
-    for (caller_index, step_group) in map.iter().enumerate() {
-        if let Value::Array(steps) = step_group {
-            for (step_pos, step) in steps.into_iter().enumerate() {
-                if let Value::Object(step_obj) = step {
-                    for key in ["then", "else"] {
-                        if let Some(Value::Number(child_idx)) = step_obj.get(key) {
-                            if let Some(child_index) = child_idx.to_u64() {
-                                parent_map
-                                    .entry(child_index as usize)
-                                    .or_default()
-                                    .push([step_pos, caller_index]);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    for (target_index, parent_list) in parent_map {
-        if let Some(Value::Array(steps)) = map.get_mut(target_index) {
-            for step in steps {
-                if let Value::Object(step_obj) = step {
-                    let array = parent_list
-                        .iter()
-                        .flat_map(|pair| pair.iter())
-                        .map(|x| (*x).to_value())
-                        .collect::<Vec<_>>()
-                        .to_value();
-                    step_obj.insert("parent".to_string(), array);
-                }
-            }
-        }
-    }
 }
 
 pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
