@@ -5,6 +5,7 @@ use std::sync::Arc;
 use valu3::{traits::ToValueBehavior, value::Value};
 
 use crate::{
+    collector::Step,
     phlow::PipelineMap,
     pipeline::Pipeline,
     step_worker::{StepReference, StepWorker, StepWorkerError},
@@ -105,27 +106,7 @@ fn value_to_structs(
     modules: Arc<Modules>,
     pipelines_raw: &Vec<Value>,
 ) -> Result<PipelineMap, TransformError> {
-    let mut go_to_step_id = HashMap::new();
-
-    for (pipeline_index, steps) in pipelines_raw.iter().enumerate() {
-        if let Value::Array(arr) = steps {
-            for (step_index, step) in arr.into_iter().enumerate() {
-                if let Value::Object(step) = step {
-                    if let Some(id) = step.get("id") {
-                        go_to_step_id.insert(
-                            id.to_string(),
-                            StepReference {
-                                pipeline: pipeline_index,
-                                step: step_index,
-                            },
-                        );
-                    }
-                }
-            }
-        }
-    }
-
-    let parents = map_parents(&pipelines_raw);
+    let (parents, go_to_step_id) = map_parents(pipelines_raw);
     let mut pipelines = HashMap::new();
 
     for (pipeline_index, pipeline_value) in pipelines_raw.iter().enumerate() {
@@ -193,21 +174,42 @@ fn get_next_step(pipelines: &Vec<Value>, target: &StepReference) -> StepReferenc
 
 /// Function to map parents
 /// This function takes a vector of pipelines and builds a parent map.
-fn map_parents(pipelines: &Vec<Value>) -> HashMap<StepReference, StepReference> {
-    let parents = build_parent_map(pipelines);
-    resolve_final_parents(parents)
+fn map_parents(
+    pipelines: &Vec<Value>,
+) -> (
+    HashMap<StepReference, StepReference>,
+    HashMap<String, StepReference>,
+) {
+    let (parents, go_to_step_references) = build_parent_map(pipelines);
+    (resolve_final_parents(parents), go_to_step_references)
 }
 
 /// Function to build the parent map
 /// This function takes a vector of pipelines and builds a parent map.
 /// It uses a hashmap to store the step references.
-fn build_parent_map(pipelines: &Vec<Value>) -> HashMap<StepReference, StepReference> {
+fn build_parent_map(
+    pipelines: &Vec<Value>,
+) -> (
+    HashMap<StepReference, StepReference>,
+    HashMap<String, StepReference>,
+) {
     let mut parents = HashMap::new();
+    let mut go_to_step_id = HashMap::new();
 
     for (pipeline_index, steps) in pipelines.iter().enumerate() {
         if let Value::Array(arr) = steps {
             for (step_index, step) in arr.into_iter().enumerate() {
                 if let Value::Object(step) = step {
+                    if let Some(id) = step.get("id") {
+                        go_to_step_id.insert(
+                            id.to_string(),
+                            StepReference {
+                                pipeline: pipeline_index,
+                                step: step_index,
+                            },
+                        );
+                    }
+
                     // Adiciona relações de "then" e "else" ao mapa de pais
                     if let Some(then_value) = step.get("then").and_then(|v| v.to_u64()) {
                         parents.insert(
@@ -239,7 +241,7 @@ fn build_parent_map(pipelines: &Vec<Value>) -> HashMap<StepReference, StepRefere
         }
     }
 
-    parents
+    (parents, go_to_step_id)
 }
 
 /// Function to resolve final parents
