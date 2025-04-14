@@ -44,12 +44,12 @@ steps:
         id: maior
         label: "> 18"
         payload: 
-          message: OK
+          message: "> 18"
       else:
         id: menor
         label: "< 18"
         payload: 
-          message: Fail
+          message: "< 18"
   - payload: 
       steps: !eval steps
       payload: !eval payload
