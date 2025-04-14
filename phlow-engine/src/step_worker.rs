@@ -27,13 +27,13 @@ pub enum StepWorkerError {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum NextStep {
     Pipeline(usize),
-    GoToStep(GoToStep),
+    GoToStep(StepReference),
     Stop,
     Next,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, ToValue)]
-pub struct GoToStep {
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToValue)]
+pub struct StepReference {
     pub pipeline: usize,
     pub step: usize,
 }
@@ -56,7 +56,7 @@ pub struct StepWorker {
     pub(crate) else_case: Option<usize>,
     pub(crate) modules: Arc<Modules>,
     pub(crate) return_case: Option<Script>,
-    pub(crate) to: Option<GoToStep>,
+    pub(crate) to: Option<StepReference>,
 }
 
 impl StepWorker {
@@ -130,7 +130,7 @@ impl StepWorker {
                     let step = to_step.get("step").and_then(|v| v.to_u64());
 
                     if pipeline.is_some() && step.is_some() {
-                        Some(GoToStep {
+                        Some(StepReference {
                             pipeline: pipeline.unwrap() as usize,
                             step: step.unwrap() as usize,
                         })

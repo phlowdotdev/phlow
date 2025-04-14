@@ -7,7 +7,7 @@ use valu3::{traits::ToValueBehavior, value::Value};
 use crate::{
     phlow::PipelineMap,
     pipeline::Pipeline,
-    step_worker::{GoToStep, StepWorker, StepWorkerError},
+    step_worker::{StepReference, StepWorker, StepWorkerError},
 };
 
 #[derive(Debug)]
@@ -105,7 +105,7 @@ fn resolve_go_to_step(pipelines_raw: &Vec<Value>) -> Vec<Value> {
                     if let Some(id) = step.get("id") {
                         go_to_step_id.insert(
                             id.to_string(),
-                            GoToStep {
+                            StepReference {
                                 pipeline: pipeline_index,
                                 step: step_index,
                             },
@@ -116,19 +116,29 @@ fn resolve_go_to_step(pipelines_raw: &Vec<Value>) -> Vec<Value> {
         }
     }
 
+    let parents = map_parents(&pipelines_raw);
+
     let mut pipelines = Vec::new();
 
-    for pipeline in pipelines_raw.iter() {
-        if let Value::Array(arr) = pipeline {
+    for (pipeline_index, pipeline_value) in pipelines_raw.iter().enumerate() {
+        if let Value::Array(arr) = pipeline_value {
             let mut new_steps = Vec::new();
 
-            for step in arr.into_iter() {
-                if let Value::Object(step) = step {
+            for (step_index, step_value) in arr.into_iter().enumerate() {
+                if let Value::Object(step) = step_value {
                     let mut new_step = step.clone();
 
                     if let Some(to) = step.get("to") {
                         if let Some(go_to_step) = go_to_step_id.get(to.to_string().as_str()) {
                             new_step.insert("to".to_string(), go_to_step.to_value());
+                        }
+                    } else {
+                        if let Some(target) = parents.get(&StepReference {
+                            pipeline: pipeline_index,
+                            step: step_index,
+                        }) {
+                            let next_step = get_next_step(&pipelines_raw, target);
+                            new_step.insert("to".to_string(), next_step.to_value());
                         }
                     }
 
@@ -143,12 +153,95 @@ fn resolve_go_to_step(pipelines_raw: &Vec<Value>) -> Vec<Value> {
     pipelines
 }
 
+fn get_next_step(pipelines: &Vec<Value>, target: &StepReference) -> StepReference {
+    if let Value::Array(arr) = &pipelines[target.pipeline] {
+        let next_step_index = target.step + 1;
+        if arr.get(next_step_index).is_some() {
+            return StepReference {
+                pipeline: target.pipeline,
+                step: next_step_index,
+            };
+        }
+    }
+
+    return StepReference {
+        pipeline: target.pipeline,
+        step: target.step,
+    };
+}
+
+fn map_parents(pipelines: &Vec<Value>) -> HashMap<StepReference, StepReference> {
+    let mut parents = HashMap::new();
+
+    for (pipeline_index, steps) in pipelines.iter().enumerate() {
+        if let Value::Array(arr) = steps {
+            for (step_index, step) in arr.into_iter().enumerate() {
+                if let Value::Object(step) = step {
+                    let to = if let Some(to) = step.get("to") {
+                        let to_pipeline = to
+                            .get("pipeline")
+                            .expect("pipeline not found")
+                            .to_u64()
+                            .unwrap() as usize;
+                        let to_step =
+                            to.get("step").expect("step not found").to_u64().unwrap() as usize;
+                        Some(StepReference {
+                            pipeline: to_pipeline,
+                            step: to_step,
+                        })
+                    } else {
+                        None
+                    };
+
+                    if let Some(then_case) = step.get("then") {
+                        let then_value =
+                            then_case.to_u64().expect("then value should be u64") as usize;
+                        parents.insert(
+                            StepReference {
+                                pipeline: then_value,
+                                step: 0,
+                            },
+                            to.clone().unwrap_or(StepReference {
+                                pipeline: pipeline_index,
+                                step: step_index,
+                            }),
+                        );
+                    }
+
+                    if let Some(else_case) = step.get("else") {
+                        let else_value =
+                            else_case.to_u64().expect("else value should be u64") as usize;
+
+                        parents.insert(
+                            StepReference {
+                                pipeline: else_value,
+                                step: 0,
+                            },
+                            to.unwrap_or(StepReference {
+                                pipeline: pipeline_index,
+                                step: step_index,
+                            }),
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    parents
+}
+
 fn value_to_structs(
     engine: Arc<Engine>,
     modules: Arc<Modules>,
     pipelines_raw: &Vec<Value>,
 ) -> Result<PipelineMap, TransformError> {
     let pipelines_with_to = resolve_go_to_step(pipelines_raw);
+
+    println!(
+        "pipelines_with_to: {}",
+        pipelines_with_to.to_value().to_json(JsonMode::Indented)
+    );
 
     let mut pipelines = HashMap::new();
 
