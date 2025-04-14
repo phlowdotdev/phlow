@@ -121,14 +121,6 @@ fn resolve_go_to_step(pipelines_raw: &Vec<Value>) -> Vec<Value> {
     }
 
     let parents = map_parents(&pipelines_raw);
-
-    parents.iter().for_each(|(key, value)| {
-        println!(
-            "({}, {}): ({}, {})",
-            key.pipeline, key.step, value.pipeline, value.step
-        );
-    });
-
     let mut pipelines = Vec::new();
 
     for (pipeline_index, pipeline_value) in pipelines_raw.iter().enumerate() {
@@ -266,11 +258,6 @@ fn value_to_structs(
     pipelines_raw: &Vec<Value>,
 ) -> Result<PipelineMap, TransformError> {
     let pipelines_with_to = resolve_go_to_step(pipelines_raw);
-
-    println!(
-        "pipelines_with_to: {}",
-        pipelines_with_to.to_value().to_json(JsonMode::Indented)
-    );
 
     let mut pipelines = HashMap::new();
 
