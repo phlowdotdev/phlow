@@ -29,7 +29,7 @@ steps:
   - to: start
   - id: jump_me
     return: 
-      message: Jump me
+      message: Jump me baby
       main: !eval main
   - id: start
     payload: OK
@@ -46,16 +46,18 @@ steps:
       condition:
         assert: !eval main.age >= 18
       then:
-        id: maior
         label: "> 18"
         payload: 
           message: "> 18"
       else:
-        id: menor
-        label: "< 18"
-        payload: 
-          message: "< 18"
-        to: jump_me
+        condition:
+          assert: !eval main.age <= 3
+        then:
+          to: jump_me
+        else:
+          label: "3-18"
+          payload: 
+            message: "3-18"
   - payload: 
       steps: !eval steps
       payload: !eval payload
