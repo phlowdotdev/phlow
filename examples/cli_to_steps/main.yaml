@@ -28,7 +28,7 @@ modules:
 steps:
   - to: assert
   - id: jump_me
-    return: 
+    return:
       message: Jump me baby
       main: !eval main
   - id: assert
