@@ -50,14 +50,10 @@ impl Phlow {
         let mut current_step = 0;
 
         loop {
-            println!("current_pipeline: {}", current_pipeline);
-            println!("current_step: {}", current_step);
             let pipeline = self
                 .pipelines
                 .get(&current_pipeline)
                 .ok_or(PhlowError::PipelineNotFound)?;
-
-            current_step = 0;
 
             match pipeline.execute(context, current_step).await {
                 Ok(step_output) => match step_output {
@@ -67,21 +63,11 @@ impl Phlow {
                         }
                         NextStep::Pipeline(id) => {
                             current_pipeline = id;
+                            current_step = 0;
                         }
-                        NextStep::GoTo(parents) => {
-                            current_pipeline = match parents.get(1) {
-                                Some(pipeline) => *pipeline,
-                                None => {
-                                    return Err(PhlowError::PipelineNotFound);
-                                }
-                            };
-
-                            current_step = match parents.get(0) {
-                                Some(step) => *step,
-                                None => {
-                                    return Err(PhlowError::ParentError);
-                                }
-                            }
+                        NextStep::GoToStep(to) => {
+                            current_pipeline = to.pipeline;
+                            current_step = to.step;
                         }
                     },
                     None => {

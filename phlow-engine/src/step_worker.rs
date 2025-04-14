@@ -27,9 +27,15 @@ pub enum StepWorkerError {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum NextStep {
     Pipeline(usize),
-    GoTo(Vec<usize>),
+    GoToStep(GoToStep),
     Stop,
     Next,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct GoToStep {
+    pub pipeline: usize,
+    pub step: usize,
 }
 
 #[derive(Debug)]
@@ -50,7 +56,7 @@ pub struct StepWorker {
     pub(crate) else_case: Option<usize>,
     pub(crate) modules: Arc<Modules>,
     pub(crate) return_case: Option<Script>,
-    pub(crate) parent: Option<Vec<usize>>,
+    pub(crate) to: Option<GoToStep>,
 }
 
 impl StepWorker {
@@ -116,16 +122,20 @@ impl StepWorker {
             Some(module) => Some(module.to_string()),
             None => None,
         };
-        let parent = match value.get("parent") {
-            Some(parent) => match parent.as_array() {
-                Some(parent) => {
-                    let mut parent_ids = Vec::new();
-                    for id in parent {
-                        if let Some(id) = id.to_u64() {
-                            parent_ids.push(id as usize);
-                        }
+        let to = match value.get("to") {
+            Some(to_step) => match to_step.as_object() {
+                Some(to_step) => {
+                    let pipeline = to_step.get("pipeline").and_then(|v| v.to_u64());
+                    let step = to_step.get("step").and_then(|v| v.to_u64());
+
+                    if pipeline.is_some() && step.is_some() {
+                        Some(GoToStep {
+                            pipeline: pipeline.unwrap() as usize,
+                            step: step.unwrap() as usize,
+                        })
+                    } else {
+                        None
                     }
-                    Some(parent_ids)
                 }
                 None => None,
             },
@@ -143,7 +153,7 @@ impl StepWorker {
             else_case,
             modules,
             return_case,
-            parent,
+            to,
         })
     }
 
@@ -337,9 +347,9 @@ impl StepWorker {
             }
         }
 
-        if let Some(parent) = &self.parent {
+        if let Some(to) = &self.to {
             return Ok(StepOutput {
-                next_step: NextStep::GoTo(parent.clone()),
+                next_step: NextStep::GoToStep(to.clone()),
                 output,
             });
         }

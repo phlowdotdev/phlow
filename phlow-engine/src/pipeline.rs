@@ -36,6 +36,13 @@ impl Pipeline {
                     if let NextStep::Pipeline(_) | NextStep::Stop = step_output.next_step {
                         return Ok(Some(step_output));
                     }
+
+                    if let NextStep::GoToStep(to) = step_output.next_step {
+                        return Ok(Some(StepOutput {
+                            output: step_output.output,
+                            next_step: NextStep::GoToStep(to),
+                        }));
+                    }
                 }
                 Err(err) => {
                     return Err(PipelineError::StepWorkerError(err));
