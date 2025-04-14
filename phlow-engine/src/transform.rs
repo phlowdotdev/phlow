@@ -150,11 +150,6 @@ fn value_to_structs(
 ) -> Result<PipelineMap, TransformError> {
     let pipelines_with_to = resolve_go_to_step(pipelines_raw);
 
-    println!(
-        "pipelines_with_to: {}",
-        pipelines_with_to.to_value().to_json(JsonMode::Indented)
-    );
-
     let mut pipelines = HashMap::new();
 
     for (pipeline_id, steps) in pipelines_with_to.iter().enumerate() {

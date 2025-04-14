@@ -19,10 +19,7 @@ impl Pipeline {
         context: &mut Context,
         skip: usize,
     ) -> Result<Option<StepOutput>, PipelineError> {
-        for step in self.steps.iter().skip(skip) {
-            println!("step: {:?}", step.label);
-            println!("");
-
+        for (i, step) in self.steps.iter().enumerate().skip(skip) {
             match step.execute(&context).await {
                 Ok(step_output) => {
                     context.add_step_payload(step_output.output.clone());
@@ -33,15 +30,19 @@ impl Pipeline {
                         }
                     }
 
-                    if let NextStep::Pipeline(_) | NextStep::Stop = step_output.next_step {
-                        return Ok(Some(step_output));
-                    }
-
-                    if let NextStep::GoToStep(to) = step_output.next_step {
-                        return Ok(Some(StepOutput {
-                            output: step_output.output,
-                            next_step: NextStep::GoToStep(to),
-                        }));
+                    match step_output.next_step {
+                        NextStep::Pipeline(_) | NextStep::Stop => return Ok(Some(step_output)),
+                        NextStep::GoToStep(to) => {
+                            return Ok(Some(StepOutput {
+                                output: step_output.output,
+                                next_step: NextStep::GoToStep(to),
+                            }));
+                        }
+                        NextStep::Next => {
+                            if i == self.steps.len() - 1 {
+                                return Ok(Some(step_output));
+                            }
+                        }
                     }
                 }
                 Err(err) => {
