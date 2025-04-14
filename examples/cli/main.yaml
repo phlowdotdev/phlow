@@ -32,10 +32,10 @@ steps:
     condition:
       assert: !eval main.active
     then:
-      id: active
       label: is active
       payload: 
-        message: OK
+        message: is active
+        main: !eval main
     else:
       label: 18+
       condition:
@@ -52,7 +52,6 @@ steps:
         payload: 
           message: Fail
         to: return
-      
   - id: return
     payload: 
       steps: !eval steps
