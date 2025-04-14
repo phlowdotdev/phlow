@@ -1,6 +1,7 @@
 use phlow_sdk::{prelude::*, valu3};
 use rhai::Engine;
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
+use std::sync::Arc;
 use valu3::{traits::ToValueBehavior, value::Value};
 
 use crate::{
@@ -30,30 +31,20 @@ pub(crate) fn value_to_pipelines(
 }
 
 pub fn add_parents_to_map(map: &mut Vec<Value>) {
-    let mut relations: Vec<(usize, Vec<usize>)> = Vec::new();
+    // child_index -> list of [step_position_in_pipeline, caller_index]
+    let mut parent_map: HashMap<usize, Vec<[usize; 2]>> = HashMap::new();
 
-    fn collect_relations(
-        map: &Vec<Value>,
-        map_index: usize,
-        current_path: Vec<usize>,
-        relations: &mut Vec<(usize, Vec<usize>)>,
-    ) {
-        if let Some(Value::Array(steps)) = map.get(map_index) {
-            for (i, step) in steps.into_iter().enumerate() {
+    for (caller_index, step_group) in map.iter().enumerate() {
+        if let Value::Array(steps) = step_group {
+            for (step_pos, step) in steps.into_iter().enumerate() {
                 if let Value::Object(step_obj) = step {
-                    let mut caller_path = current_path.clone();
-                    caller_path.push(i); // adiciona o índice local
-
                     for key in ["then", "else"] {
                         if let Some(Value::Number(child_idx)) = step_obj.get(key) {
                             if let Some(child_index) = child_idx.to_u64() {
-                                relations.push((child_index as usize, caller_path.clone()));
-                                collect_relations(
-                                    map,
-                                    child_index as usize,
-                                    caller_path.clone(),
-                                    relations,
-                                );
+                                parent_map
+                                    .entry(child_index as usize)
+                                    .or_default()
+                                    .push([step_pos, caller_index]);
                             }
                         }
                     }
@@ -62,21 +53,17 @@ pub fn add_parents_to_map(map: &mut Vec<Value>) {
         }
     }
 
-    // inicia para todos os pipelines no nível mais alto (por segurança)
-    for i in 0..map.len() {
-        collect_relations(map, i, vec![i], &mut relations);
-    }
-
-    // aplica os paths como Value::Array
-    for (child_index, parent_path) in relations {
-        if let Some(Value::Array(child_steps)) = map.get_mut(child_index) {
-            for step in child_steps {
+    for (target_index, parent_list) in parent_map {
+        if let Some(Value::Array(steps)) = map.get_mut(target_index) {
+            for step in steps {
                 if let Value::Object(step_obj) = step {
-                    let array = parent_path
+                    let array = parent_list
                         .iter()
-                        .map(|i| (*i).to_value())
-                        .collect::<Vec<_>>();
-                    step_obj.insert("parent".to_string(), array.to_value());
+                        .flat_map(|pair| pair.iter())
+                        .map(|x| (*x).to_value())
+                        .collect::<Vec<_>>()
+                        .to_value();
+                    step_obj.insert("parent".to_string(), array);
                 }
             }
         }

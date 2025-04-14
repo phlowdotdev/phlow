@@ -29,6 +29,7 @@ pub enum StepWorkerError {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum NextStep {
     Pipeline(usize),
+    GoTo(Vec<usize>),
     Stop,
     Next,
 }
@@ -51,7 +52,7 @@ pub struct StepWorker {
     pub(crate) else_case: Option<usize>,
     pub(crate) modules: Arc<Modules>,
     pub(crate) return_case: Option<Script>,
-    pub(crate) parent: Option<usize>,
+    pub(crate) parent: Option<Vec<usize>>,
 }
 
 impl StepWorker {
@@ -118,8 +119,16 @@ impl StepWorker {
             None => None,
         };
         let parent = match value.get("parent") {
-            Some(parent) => match parent.to_u64() {
-                Some(parent) => Some(parent as usize),
+            Some(parent) => match parent.as_array() {
+                Some(parent) => {
+                    let mut parent_ids = Vec::new();
+                    for id in parent {
+                        if let Some(id) = id.to_u64() {
+                            parent_ids.push(id as usize);
+                        }
+                    }
+                    Some(parent_ids)
+                }
                 None => None,
             },
             None => None,
@@ -330,13 +339,12 @@ impl StepWorker {
             }
         }
 
-        // if let Some(parent) = self.parent {
-        //     // println!("parent: {}", parent);
-        //     return Ok(StepOutput {
-        //         next_step: NextStep::Pipeline(parent),
-        //         output,
-        //     });
-        // }
+        if let Some(parent) = &self.parent {
+            return Ok(StepOutput {
+                next_step: NextStep::GoTo(parent.clone()),
+                output,
+            });
+        }
 
         return Ok(StepOutput {
             next_step: NextStep::Next,

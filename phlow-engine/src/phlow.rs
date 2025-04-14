@@ -62,6 +62,13 @@ impl Phlow {
                         NextStep::Pipeline(id) => {
                             current = id;
                         }
+                        NextStep::GoTo(parents) => {
+                            if let Some(parent) = parents.get(0) {
+                                current = *parent;
+                            } else {
+                                return Ok(None);
+                            }
+                        }
                     },
                     None => {
                         return Ok(None);
