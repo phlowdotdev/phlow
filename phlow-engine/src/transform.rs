@@ -183,57 +183,41 @@ fn get_next_step(pipelines: &Vec<Value>, target: &StepReference) -> StepReferenc
 }
 
 fn map_parents(pipelines: &Vec<Value>) -> HashMap<StepReference, StepReference> {
+    let parents = build_parent_map(pipelines);
+    resolve_final_parents(parents)
+}
+
+fn build_parent_map(pipelines: &Vec<Value>) -> HashMap<StepReference, StepReference> {
     let mut parents = HashMap::new();
 
     for (pipeline_index, steps) in pipelines.iter().enumerate() {
         if let Value::Array(arr) = steps {
             for (step_index, step) in arr.into_iter().enumerate() {
                 if let Value::Object(step) = step {
-                    let to: Option<StepReference> = if let Some(to) = step.get("to") {
-                        let to_pipeline = to
-                            .get("pipeline")
-                            .expect("pipeline not found")
-                            .to_u64()
-                            .unwrap() as usize;
-                        let to_step =
-                            to.get("step").expect("step not found").to_u64().unwrap() as usize;
-                        Some(StepReference {
-                            pipeline: to_pipeline,
-                            step: to_step,
-                        })
-                    } else {
-                        None
-                    };
-
-                    if let Some(then_case) = step.get("then") {
-                        let then_value =
-                            then_case.to_u64().expect("then value should be u64") as usize;
-
+                    // Adiciona relações de "then" e "else" ao mapa de pais
+                    if let Some(then_value) = step.get("then").and_then(|v| v.to_u64()) {
                         parents.insert(
                             StepReference {
-                                pipeline: then_value,
+                                pipeline: then_value as usize,
                                 step: 0,
                             },
-                            to.clone().unwrap_or(StepReference {
+                            StepReference {
                                 pipeline: pipeline_index,
                                 step: step_index,
-                            }),
+                            },
                         );
                     }
 
-                    if let Some(else_case) = step.get("else") {
-                        let else_value =
-                            else_case.to_u64().expect("else value should be u64") as usize;
-
+                    if let Some(else_value) = step.get("else").and_then(|v| v.to_u64()) {
                         parents.insert(
                             StepReference {
-                                pipeline: else_value,
+                                pipeline: else_value as usize,
                                 step: 0,
                             },
-                            to.unwrap_or(StepReference {
+                            StepReference {
                                 pipeline: pipeline_index,
                                 step: step_index,
-                            }),
+                            },
                         );
                     }
                 }
@@ -241,9 +225,16 @@ fn map_parents(pipelines: &Vec<Value>) -> HashMap<StepReference, StepReference> 
         }
     }
 
+    parents
+}
+
+fn resolve_final_parents(
+    parents: HashMap<StepReference, StepReference>,
+) -> HashMap<StepReference, StepReference> {
     let mut final_parents = HashMap::new();
 
     for (child, mut parent) in parents.iter() {
+        // Resolve o pai final seguindo a cadeia de ancestrais
         while let Some(grandparent) = parents.get(parent) {
             parent = grandparent;
         }
@@ -252,7 +243,6 @@ fn map_parents(pipelines: &Vec<Value>) -> HashMap<StepReference, StepReference> 
 
     final_parents
 }
-
 fn value_to_structs(
     engine: Arc<Engine>,
     modules: Arc<Modules>,
