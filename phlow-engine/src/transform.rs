@@ -95,6 +95,10 @@ pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
     (map.len() - 1).to_value()
 }
 
+/// Function to resolve the "go to" step
+/// This function takes a vector of pipelines and resolves the "go to" step.
+/// It uses a hashmap to store the step references.
+/// The function returns a vector of pipelines with the "go to" step resolved.
 fn resolve_go_to_step(pipelines_raw: &Vec<Value>) -> Vec<Value> {
     let mut go_to_step_id = HashMap::new();
 
@@ -165,6 +169,8 @@ fn resolve_go_to_step(pipelines_raw: &Vec<Value>) -> Vec<Value> {
     pipelines
 }
 
+/// Function to get the next step
+/// This function takes a vector of pipelines and a target step reference.
 fn get_next_step(pipelines: &Vec<Value>, target: &StepReference) -> StepReference {
     if let Value::Array(arr) = &pipelines[target.pipeline] {
         let next_step_index = target.step + 1;
@@ -182,11 +188,16 @@ fn get_next_step(pipelines: &Vec<Value>, target: &StepReference) -> StepReferenc
     };
 }
 
+/// Function to map parents
+/// This function takes a vector of pipelines and builds a parent map.
 fn map_parents(pipelines: &Vec<Value>) -> HashMap<StepReference, StepReference> {
     let parents = build_parent_map(pipelines);
     resolve_final_parents(parents)
 }
 
+/// Function to build the parent map
+/// This function takes a vector of pipelines and builds a parent map.
+/// It uses a hashmap to store the step references.
 fn build_parent_map(pipelines: &Vec<Value>) -> HashMap<StepReference, StepReference> {
     let mut parents = HashMap::new();
 
@@ -243,6 +254,12 @@ fn resolve_final_parents(
 
     final_parents
 }
+
+/// Function to transform a value into a pipeline map
+/// This function takes a value and transforms it into a pipeline map.
+/// It uses the `value_to_structs` function to convert the value into a pipeline map.
+/// It also uses the `resolve_go_to_step` function to resolve the "go to" step.
+/// The function returns a `Result` with the pipeline map or an error.
 fn value_to_structs(
     engine: Arc<Engine>,
     modules: Arc<Modules>,

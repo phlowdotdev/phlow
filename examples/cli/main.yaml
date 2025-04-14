@@ -26,7 +26,12 @@ modules:
           type: boolean
           default: false
 steps:
-  - label: start
+  - to: start
+  - id: jump_me
+    return: 
+      message: Jump me
+      main: !eval main
+  - id: start
     payload: OK
   - label: assert
     condition:
@@ -50,6 +55,7 @@ steps:
         label: "< 18"
         payload: 
           message: "< 18"
+        to: jump_me
   - payload: 
       steps: !eval steps
       payload: !eval payload
