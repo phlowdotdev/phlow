@@ -95,6 +95,36 @@ pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
     (map.len() - 1).to_value()
 }
 
+/// Function to transform a value into a pipeline map
+/// This function takes a value and transforms it into a pipeline map.
+/// It uses the `value_to_structs` function to convert the value into a pipeline map.
+/// It also uses the `resolve_go_to_step` function to resolve the "go to" step.
+/// The function returns a `Result` with the pipeline map or an error.
+fn value_to_structs(
+    engine: Arc<Engine>,
+    modules: Arc<Modules>,
+    pipelines_raw: &Vec<Value>,
+) -> Result<PipelineMap, TransformError> {
+    let pipelines_with_to = resolve_go_to_step(pipelines_raw);
+    let mut pipelines = HashMap::new();
+
+    for (pipeline_id, steps) in pipelines_with_to.iter().enumerate() {
+        if let Value::Array(arr) = steps {
+            let mut steps = Vec::new();
+
+            for step in arr.into_iter() {
+                let step_worker = StepWorker::try_from_value(engine.clone(), modules.clone(), step)
+                    .map_err(TransformError::InnerStepError)?;
+                steps.push(step_worker);
+            }
+
+            pipelines.insert(pipeline_id, Pipeline { steps });
+        }
+    }
+
+    Ok(pipelines)
+}
+
 /// Function to resolve the "go to" step
 /// This function takes a vector of pipelines and resolves the "go to" step.
 /// It uses a hashmap to store the step references.
@@ -231,6 +261,8 @@ fn build_parent_map(pipelines: &Vec<Value>) -> HashMap<StepReference, StepRefere
     parents
 }
 
+/// Function to resolve final parents
+/// This function takes a parent map and resolves the final parents.
 fn resolve_final_parents(
     parents: HashMap<StepReference, StepReference>,
 ) -> HashMap<StepReference, StepReference> {
@@ -245,37 +277,6 @@ fn resolve_final_parents(
     }
 
     final_parents
-}
-
-/// Function to transform a value into a pipeline map
-/// This function takes a value and transforms it into a pipeline map.
-/// It uses the `value_to_structs` function to convert the value into a pipeline map.
-/// It also uses the `resolve_go_to_step` function to resolve the "go to" step.
-/// The function returns a `Result` with the pipeline map or an error.
-fn value_to_structs(
-    engine: Arc<Engine>,
-    modules: Arc<Modules>,
-    pipelines_raw: &Vec<Value>,
-) -> Result<PipelineMap, TransformError> {
-    let pipelines_with_to = resolve_go_to_step(pipelines_raw);
-
-    let mut pipelines = HashMap::new();
-
-    for (pipeline_id, steps) in pipelines_with_to.iter().enumerate() {
-        if let Value::Array(arr) = steps {
-            let mut steps = Vec::new();
-
-            for step in arr.into_iter() {
-                let step_worker = StepWorker::try_from_value(engine.clone(), modules.clone(), step)
-                    .map_err(TransformError::InnerStepError)?;
-                steps.push(step_worker);
-            }
-
-            pipelines.insert(pipeline_id, Pipeline { steps });
-        }
-    }
-
-    Ok(pipelines)
 }
 
 #[cfg(test)]

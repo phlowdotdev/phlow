@@ -26,14 +26,12 @@ modules:
           type: boolean
           default: false
 steps:
-  - to: start
+  - to: assert
   - id: jump_me
     return: 
       message: Jump me baby
       main: !eval main
-  - id: start
-    payload: OK
-  - label: assert
+  - id: assert
     condition:
       assert: !eval main.active
     then:
@@ -47,8 +45,7 @@ steps:
         assert: !eval main.age >= 18
       then:
         label: "> 18"
-        payload: 
-          message: "> 18"
+        payload: "> 18"
       else:
         condition:
           assert: !eval main.age <= 3
@@ -56,10 +53,9 @@ steps:
           to: jump_me
         else:
           label: "3-18"
-          payload: 
-            message: "3-18"
+          payload: "3-18"
+  - payload: !eval `result: ${payload}`
   - payload: 
-      steps: !eval steps
-      payload: !eval payload
       main: !eval main
+      payload: !eval payload
       
