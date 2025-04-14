@@ -7,7 +7,7 @@ use valu3::{traits::ToValueBehavior, value::Value};
 use crate::{
     phlow::PipelineMap,
     pipeline::Pipeline,
-    step_worker::{StepWorker, StepWorkerError},
+    step_worker::{GoToStep, StepWorker, StepWorkerError},
 };
 
 #[derive(Debug)]
@@ -102,15 +102,69 @@ pub(crate) fn process_raw_steps(input: &Value, map: &mut Vec<Value>) -> Value {
     }
 }
 
+fn resolve_go_to_step(pipelines_raw: &Vec<Value>) -> Vec<Value> {
+    let mut go_to_step_id = HashMap::new();
+
+    for (pipeline_index, steps) in pipelines_raw.iter().enumerate() {
+        if let Value::Array(arr) = steps {
+            for (step_index, step) in arr.into_iter().enumerate() {
+                if let Value::Object(step) = step {
+                    if let Some(id) = step.get("id") {
+                        go_to_step_id.insert(
+                            id.to_string(),
+                            GoToStep {
+                                pipeline: pipeline_index,
+                                step: step_index,
+                            },
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    let mut pipelines = Vec::new();
+
+    for pipeline in pipelines_raw.iter() {
+        if let Value::Array(arr) = pipeline {
+            let mut new_steps = Vec::new();
+
+            for step in arr.into_iter() {
+                if let Value::Object(step) = step {
+                    let mut new_step = step.clone();
+
+                    if let Some(to) = step.get("to") {
+                        if let Some(go_to_step) = go_to_step_id.get(to.to_string().as_str()) {
+                            new_step.insert("to".to_string(), go_to_step.to_value());
+                        }
+                    }
+
+                    new_steps.push(new_step.to_value());
+                }
+            }
+
+            pipelines.push(new_steps.to_value());
+        }
+    }
+
+    pipelines
+}
+
 fn value_to_structs(
     engine: Arc<Engine>,
     modules: Arc<Modules>,
-
-    map: &Vec<Value>,
+    pipelines_raw: &Vec<Value>,
 ) -> Result<PipelineMap, TransformError> {
+    let pipelines_with_to = resolve_go_to_step(pipelines_raw);
+
+    println!(
+        "pipelines_with_to: {}",
+        pipelines_with_to.to_value().to_json(JsonMode::Indented)
+    );
+
     let mut pipelines = HashMap::new();
 
-    for (pipeline_id, steps) in map.iter().enumerate() {
+    for (pipeline_id, steps) in pipelines_with_to.iter().enumerate() {
         if let Value::Array(arr) = steps {
             let mut steps = Vec::new();
 

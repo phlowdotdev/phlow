@@ -36,6 +36,7 @@ steps:
       label: is active
       payload: 
         message: OK
+      to: returns
     else:
       label: 18+
       condition:
@@ -45,11 +46,15 @@ steps:
         label: "> 18"
         payload: 
           message: OK
+        to: returns
       else:
         id: menor
         label: "< 18"
         payload: 
           message: Fail
+        to: returns
       
-  - label: returns
-    return: !eval steps
+  - id: returns
+    return: 
+      steps: !eval steps
+      payload: !eval payload

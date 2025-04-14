@@ -32,7 +32,7 @@ pub enum NextStep {
     Next,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, ToValue)]
 pub struct GoToStep {
     pub pipeline: usize,
     pub step: usize,
@@ -122,6 +122,7 @@ impl StepWorker {
             Some(module) => Some(module.to_string()),
             None => None,
         };
+
         let to = match value.get("to") {
             Some(to_step) => match to_step.as_object() {
                 Some(to_step) => {
