@@ -105,31 +105,6 @@ fn value_to_structs(
     modules: Arc<Modules>,
     pipelines_raw: &Vec<Value>,
 ) -> Result<PipelineMap, TransformError> {
-    let pipelines_with_to = resolve_go_to_step(pipelines_raw);
-    let mut pipelines = HashMap::new();
-
-    for (pipeline_id, steps) in pipelines_with_to.iter().enumerate() {
-        if let Value::Array(arr) = steps {
-            let mut steps = Vec::new();
-
-            for step in arr.into_iter() {
-                let step_worker = StepWorker::try_from_value(engine.clone(), modules.clone(), step)
-                    .map_err(TransformError::InnerStepError)?;
-                steps.push(step_worker);
-            }
-
-            pipelines.insert(pipeline_id, Pipeline { steps });
-        }
-    }
-
-    Ok(pipelines)
-}
-
-/// Function to resolve the "go to" step
-/// This function takes a vector of pipelines and resolves the "go to" step.
-/// It uses a hashmap to store the step references.
-/// The function returns a vector of pipelines with the "go to" step resolved.
-fn resolve_go_to_step(pipelines_raw: &Vec<Value>) -> Vec<Value> {
     let mut go_to_step_id = HashMap::new();
 
     for (pipeline_index, steps) in pipelines_raw.iter().enumerate() {
@@ -151,11 +126,11 @@ fn resolve_go_to_step(pipelines_raw: &Vec<Value>) -> Vec<Value> {
     }
 
     let parents = map_parents(&pipelines_raw);
-    let mut pipelines = Vec::new();
+    let mut pipelines = HashMap::new();
 
     for (pipeline_index, pipeline_value) in pipelines_raw.iter().enumerate() {
         if let Value::Array(arr) = pipeline_value {
-            let mut new_steps = Vec::new();
+            let mut steps = Vec::new();
 
             for (step_index, step_value) in arr.into_iter().enumerate() {
                 if let Value::Object(step) = step_value {
@@ -180,15 +155,21 @@ fn resolve_go_to_step(pipelines_raw: &Vec<Value>) -> Vec<Value> {
                         }
                     }
 
-                    new_steps.push(new_step.to_value());
+                    let step_worker = StepWorker::try_from_value(
+                        engine.clone(),
+                        modules.clone(),
+                        &new_step.to_value(),
+                    )
+                    .map_err(TransformError::InnerStepError)?;
+                    steps.push(step_worker);
                 }
             }
 
-            pipelines.push(new_steps.to_value());
+            pipelines.insert(pipeline_index, Pipeline { steps });
         }
     }
 
-    pipelines
+    Ok(pipelines)
 }
 
 /// Function to get the next step
