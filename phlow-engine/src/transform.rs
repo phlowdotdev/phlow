@@ -118,6 +118,13 @@ fn resolve_go_to_step(pipelines_raw: &Vec<Value>) -> Vec<Value> {
 
     let parents = map_parents(&pipelines_raw);
 
+    parents.iter().for_each(|(key, value)| {
+        println!(
+            "({}, {}): ({}, {})",
+            key.pipeline, key.step, value.pipeline, value.step
+        );
+    });
+
     let mut pipelines = Vec::new();
 
     for (pipeline_index, pipeline_value) in pipelines_raw.iter().enumerate() {
@@ -133,12 +140,17 @@ fn resolve_go_to_step(pipelines_raw: &Vec<Value>) -> Vec<Value> {
                             new_step.insert("to".to_string(), go_to_step.to_value());
                         }
                     } else {
-                        if let Some(target) = parents.get(&StepReference {
-                            pipeline: pipeline_index,
-                            step: step_index,
-                        }) {
-                            let next_step = get_next_step(&pipelines_raw, target);
-                            new_step.insert("to".to_string(), next_step.to_value());
+                        if step.get("then").is_none()
+                            && step.get("else").is_none()
+                            && step.get("return").is_none()
+                        {
+                            if let Some(target) = parents.get(&StepReference {
+                                pipeline: pipeline_index,
+                                step: step_index,
+                            }) {
+                                let next_step = get_next_step(&pipelines_raw, target);
+                                new_step.insert("to".to_string(), next_step.to_value());
+                            }
                         }
                     }
 
@@ -177,7 +189,7 @@ fn map_parents(pipelines: &Vec<Value>) -> HashMap<StepReference, StepReference> 
         if let Value::Array(arr) = steps {
             for (step_index, step) in arr.into_iter().enumerate() {
                 if let Value::Object(step) = step {
-                    let to = if let Some(to) = step.get("to") {
+                    let to: Option<StepReference> = if let Some(to) = step.get("to") {
                         let to_pipeline = to
                             .get("pipeline")
                             .expect("pipeline not found")
@@ -196,6 +208,7 @@ fn map_parents(pipelines: &Vec<Value>) -> HashMap<StepReference, StepReference> 
                     if let Some(then_case) = step.get("then") {
                         let then_value =
                             then_case.to_u64().expect("then value should be u64") as usize;
+
                         parents.insert(
                             StepReference {
                                 pipeline: then_value,
@@ -228,7 +241,16 @@ fn map_parents(pipelines: &Vec<Value>) -> HashMap<StepReference, StepReference> 
         }
     }
 
-    parents
+    let mut final_parents = HashMap::new();
+
+    for (child, mut parent) in parents.iter() {
+        while let Some(grandparent) = parents.get(parent) {
+            parent = grandparent;
+        }
+        final_parents.insert(child.clone(), parent.clone());
+    }
+
+    final_parents
 }
 
 fn value_to_structs(
