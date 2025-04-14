@@ -58,3 +58,4 @@ steps:
     return: 
       steps: !eval steps
       payload: !eval payload
+      main: !eval main
