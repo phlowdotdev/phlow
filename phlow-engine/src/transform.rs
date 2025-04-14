@@ -1,15 +1,13 @@
+use crate::{
+    phlow::PipelineMap,
+    pipeline::Pipeline,
+    step_worker::{StepReference, StepWorker, StepWorkerError},
+};
 use phlow_sdk::{prelude::*, valu3};
 use rhai::Engine;
 use std::collections::HashMap;
 use std::sync::Arc;
 use valu3::{traits::ToValueBehavior, value::Value};
-
-use crate::{
-    collector::Step,
-    phlow::PipelineMap,
-    pipeline::Pipeline,
-    step_worker::{StepReference, StepWorker, StepWorkerError},
-};
 
 #[derive(Debug)]
 pub enum TransformError {
