@@ -33,7 +33,7 @@ steps:
       assert: !eval main.active
     then:
       label: is active
-      payload: 
+      return: 
         message: is active
         main: !eval main
     else:
@@ -45,15 +45,12 @@ steps:
         label: "> 18"
         payload: 
           message: OK
-        to: return
       else:
         id: menor
         label: "< 18"
         payload: 
           message: Fail
-        to: return
-  - id: return
-    payload: 
+  - payload: 
       steps: !eval steps
       payload: !eval payload
       main: !eval main
