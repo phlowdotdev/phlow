@@ -13,6 +13,7 @@ pub enum PhlowError {
     TransformError(TransformError),
     PipelineError(PipelineError),
     PipelineNotFound,
+    ParentError,
 }
 
 pub type PipelineMap = HashMap<usize, Pipeline>;
@@ -45,28 +46,41 @@ impl Phlow {
             return Ok(None);
         }
 
-        let mut current = self.pipelines.len() - 1;
+        let mut current_pipeline = self.pipelines.len() - 1;
+        let mut current_step = 0;
 
         loop {
+            println!("current_pipeline: {}", current_pipeline);
+            println!("current_step: {}", current_step);
             let pipeline = self
                 .pipelines
-                .get(&current)
+                .get(&current_pipeline)
                 .ok_or(PhlowError::PipelineNotFound)?;
 
-            match pipeline.execute(context).await {
+            current_step = 0;
+
+            match pipeline.execute(context, current_step).await {
                 Ok(step_output) => match step_output {
                     Some(step_output) => match step_output.next_step {
                         NextStep::Next | NextStep::Stop => {
                             return Ok(step_output.output);
                         }
                         NextStep::Pipeline(id) => {
-                            current = id;
+                            current_pipeline = id;
                         }
                         NextStep::GoTo(parents) => {
-                            if let Some(parent) = parents.get(0) {
-                                current = *parent;
-                            } else {
-                                return Ok(None);
+                            current_pipeline = match parents.get(1) {
+                                Some(pipeline) => *pipeline,
+                                None => {
+                                    return Err(PhlowError::PipelineNotFound);
+                                }
+                            };
+
+                            current_step = match parents.get(0) {
+                                Some(step) => *step,
+                                None => {
+                                    return Err(PhlowError::ParentError);
+                                }
                             }
                         }
                     },

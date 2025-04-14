@@ -17,8 +17,12 @@ impl Pipeline {
     pub async fn execute(
         &self,
         context: &mut Context,
+        skip: usize,
     ) -> Result<Option<StepOutput>, PipelineError> {
-        for step in self.steps.iter() {
+        for step in self.steps.iter().skip(skip) {
+            println!("step: {:?}", step.label);
+            println!("");
+
             match step.execute(&context).await {
                 Ok(step_output) => {
                     context.add_step_payload(step_output.output.clone());

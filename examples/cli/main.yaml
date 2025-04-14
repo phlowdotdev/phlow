@@ -27,7 +27,7 @@ modules:
           default: false
 steps:
   - label: start
-    payload: null
+    payload: OK
   - label: assert
     condition:
       assert: !eval main.active

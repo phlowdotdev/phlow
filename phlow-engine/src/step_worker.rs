@@ -4,13 +4,11 @@ use crate::{
     id::ID,
     script::{Script, ScriptError},
 };
+use once_cell::sync::Lazy;
 use phlow_sdk::prelude::*;
 use rhai::Engine;
 use serde::Serialize;
 use std::sync::Arc;
-
-// get env
-use once_cell::sync::Lazy;
 
 static PHLOW_TRUNCATE_SPAN_VALUE: Lazy<usize> =
     Lazy::new(|| match std::env::var("PHLOW_TRUNCATE_SPAN_VALUE") {

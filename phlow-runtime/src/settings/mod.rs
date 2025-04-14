@@ -9,7 +9,6 @@ pub struct Settings {
     pub main: Option<MainArgs>,
     pub only_download_modules: bool,
     pub package_path: Option<String>,
-    pub show_steps: bool,
     pub no_run: bool,
 
     // envs
@@ -29,7 +28,6 @@ impl Settings {
             main: cli.main,
             only_download_modules: cli.only_download_modules,
             package_path: cli.package_path,
-            show_steps: cli.show_steps,
             no_run: cli.no_run,
             package_consumer_count: envs.package_consumer_count,
             min_allocated_memory: envs.min_allocated_memory,

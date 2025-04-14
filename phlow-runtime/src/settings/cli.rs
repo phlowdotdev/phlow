@@ -18,7 +18,6 @@ pub struct Cli {
     pub main: Option<MainArgs>,
     pub only_download_modules: bool,
     pub package_path: Option<String>,
-    pub show_steps: bool,
     pub no_run: bool,
 }
 
@@ -96,15 +95,12 @@ impl Cli {
         let install = *matches.get_one::<bool>("install").unwrap_or(&false);
         let package_path = matches.get_one::<String>("package").map(|s| s.to_string());
 
-        let show_steps = *matches.get_one::<bool>("steps").unwrap_or(&false);
-
         let no_run = *matches.get_one::<bool>("no_run").unwrap_or(&false);
 
         Ok(Cli {
             main,
             only_download_modules: install,
             package_path,
-            show_steps,
             no_run,
         })
     }
