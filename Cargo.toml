@@ -15,7 +15,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 rust-version = "1.83.0"
 authors = ["Philippe Assis <codephilippe@gmail.com>"]
@@ -24,9 +24,8 @@ repository = "https://github.com/lowcarboncode/phlow"
 
 [workspace.dependencies]
 # internal
-phlow-engine = { path = "phlow-engine", version = "0.0.1" }
-phlow-sdk = { path = "phlow-sdk", version = "0.0.1" }
-phlop = { path = "phlop", version = "0.0.1" }
+phlow-engine = { path = "phlow-engine", version = "0.0.2" }
+phlow-sdk = { path = "phlow-sdk", version = "0.0.2" }
 
 #phlow
 libloading = "0.8"
@@ -37,7 +36,7 @@ toml = "0.8"
 regex = "1.11.1"
 futures = "0.3"
 mimalloc = { version = "0.1.46", features = ["secure"] }
-libc = "0.2"
+libc = "0.2.172"
 valu3 = "0.8"
 tokio = { version = "1.44.2", features = ["full", "tracing"] }
 serde = { version = "1.0", features = ["derive"] }
@@ -45,11 +44,10 @@ crossbeam = "0.8"
 reqwest = { version = "0.12.15", features = ["blocking"] }
 
 futures-util = "0.3.31"
-anyhow = "1.0.97"
+anyhow = "1.0.98"
 flate2 = "1.1.1"
 tar = "0.4.44"
 chrono = { version = "0.4", features = ["serde"] }
-
 
 #Engine
 rhai = { version = "1.21.0", features = ["serde", "sync"] }
