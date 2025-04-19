@@ -175,15 +175,19 @@ Phlow modules are written in Rust and compiled as shared libraries. Here’s a r
 ### 🔧 Code (`src/lib.rs`)
 
 ```rust
+use phlow_sdk::tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
+use phlow_sdk::tracing_subscriber::util::SubscriberInitExt;
+use phlow_sdk::tracing_subscriber::Layer;
 use phlow_sdk::{
-    crossbeam::channel,
-    modules::ModulePackage,
+    otel::get_log_level,
     prelude::*,
-    tracing::{debug, error, info, warn},
+    tracing_core::LevelFilter,
+    tracing_subscriber::{fmt, Registry},
 };
 
-plugin!(log);
+create_step!(log(rx));
 
+#[derive(Debug)]
 enum LogLevel {
     Info,
     Debug,
@@ -191,6 +195,7 @@ enum LogLevel {
     Error,
 }
 
+#[derive(Debug)]
 struct Log {
     level: LogLevel,
     message: String,
@@ -215,19 +220,16 @@ impl From<&Value> for Log {
     }
 }
 
-pub fn log(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let (tx, rx) = channel::unbounded::<ModulePackage>();
+pub async fn log(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    Registry::default()
+        .with(fmt::layer().with_filter(LevelFilter::from_level(get_log_level())))
+        .init();
 
-    setup.setup_sender.send(Some(tx)).ok();
+    debug!("PHLOW_OTEL is set to false, using default subscriber");
 
-    for package in rx {
-        let log = match package.context.input {
-            Some(value) => Log::from(&value),
-            _ => Log {
-                level: LogLevel::Info,
-                message: "".to_string(),
-            },
-        };
+    listen!(rx, move |package: ModulePackage| async {
+        let value = package.context.input.unwrap_or(Value::Null);
+        let log = Log::from(&value);
 
         match log.level {
             LogLevel::Info => info!("{}", log.message),
@@ -236,8 +238,8 @@ pub fn log(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + 
             LogLevel::Error => error!("{}", log.message),
         }
 
-        sender_safe!(package.sender, Value::Null);
-    }
+        sender_safe!(package.sender, Value::Null.into());
+    });
 
     Ok(())
 }
