@@ -2,7 +2,7 @@ use std::{fmt::Display, fs::File, path::Path};
 
 use crate::{settings::cli::ModuleExtension, yaml::yaml_helpers_transform};
 use libloading::{Library, Symbol};
-use phlow_sdk::{prelude::*, tracing::info};
+use phlow_sdk::{prelude::*, tracing::info, valu3};
 use reqwest::Client;
 use std::io::Write;
 
@@ -23,6 +23,7 @@ pub enum Error {
     StepsNotDefined,
     LibLoadingError(libloading::Error),
     LoaderErrorJson(serde_json::Error),
+    LoaderErrorJsonValu3(valu3::Error),
     LoaderErrorYaml(serde_yaml::Error),
     LoaderErrorToml(toml::de::Error),
     GetFileError(reqwest::Error),
@@ -40,6 +41,7 @@ impl std::fmt::Debug for Error {
             Error::ModuleNotFound(name) => write!(f, "Module not found: {}", name),
             Error::LibLoadingError(err) => write!(f, "Lib loading error: {:?}", err),
             Error::LoaderErrorJson(err) => write!(f, "Json error: {:?}", err),
+            Error::LoaderErrorJsonValu3(err) => write!(f, "Json Valu3 error: {:?}", err),
             Error::LoaderErrorYaml(err) => write!(f, "Yaml error: {:?}", err),
             Error::LoaderErrorToml(err) => write!(f, "Toml error: {:?}", err),
             Error::GetFileError(err) => write!(f, "Get file error: {:?}", err),
@@ -59,6 +61,7 @@ impl Display for Error {
             Error::ModuleNotFound(name) => write!(f, "Module not found: {}", name),
             Error::LibLoadingError(err) => write!(f, "Lib loading error: {:?}", err),
             Error::LoaderErrorJson(err) => write!(f, "Json error: {:?}", err),
+            Error::LoaderErrorJsonValu3(err) => write!(f, "Json Valu3 error: {:?}", err),
             Error::LoaderErrorYaml(err) => write!(f, "Yaml error: {:?}", err),
             Error::LoaderErrorToml(err) => write!(f, "Toml error: {:?}", err),
             Error::GetFileError(err) => write!(f, "Get file error: {:?}", err),
@@ -74,6 +77,7 @@ pub struct Module {
     pub version: String,
     pub repository: Option<String>,
     pub repository_path: Option<String>,
+    pub repository_raw_content: Option<String>,
     pub module: String,
     pub name: String,
     pub with: Value,
@@ -104,6 +108,8 @@ impl TryFrom<Value> for Module {
             None
         };
 
+        let repository_raw_content = value.get("repository_raw_content").map(|v| v.to_string());
+
         let version = match value.get("version") {
             Some(version) => version.to_string(),
             None => return Err(Error::VersionNotFound(ModuleError { module })),
@@ -125,6 +131,7 @@ impl TryFrom<Value> for Module {
             name,
             with,
             repository_path,
+            repository_raw_content,
         })
     }
 }
@@ -290,7 +297,10 @@ impl Loader {
                     {
                         default_package_repository_url.to_string()
                     } else {
-                        format!("https://github.com/{}", default_package_repository_url)
+                        format!(
+                            "https://raw.githubusercontent.com/{}",
+                            default_package_repository_url
+                        )
                     },
                     module
                         .repository_path
@@ -303,6 +313,7 @@ impl Loader {
 
             let version = if module.version == "latest" {
                 let metadata_url = format!("{}/metadata.json", base_url);
+                info!("Metadata URL: {}", metadata_url);
 
                 let res = client
                     .get(&metadata_url)
@@ -311,9 +322,9 @@ impl Loader {
                     .map_err(Error::GetFileError)?;
                 let metadata = {
                     let content = res.text().await.map_err(Error::BufferError)?;
-                    serde_json::from_str::<serde_json::Value>(&content)
-                        .map_err(Error::LoaderErrorJson)?
+                    Value::json_to_value(&content).map_err(Error::LoaderErrorJsonValu3)?
                 };
+
                 match metadata.get("latest") {
                     Some(version) => version.to_string(),
                     None => {
