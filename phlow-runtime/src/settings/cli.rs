@@ -24,7 +24,7 @@ pub struct Cli {
 impl Cli {
     pub fn load() -> Result<Cli, Error> {
         let command = Command::new("Phlow Runtime")
-            .version("0.1.0")
+            .version(env!("CARGO_PKG_VERSION"))
             .arg(
                 Arg::new("main_path")
                     .help("Main path/file to load")
