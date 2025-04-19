@@ -15,6 +15,17 @@ If you're looking for speed, flexibility, and full insight into your backend —
 
 ---
 
+### 📦 Automatic Module Download
+
+Phlow automatically downloads the modules specified in your flow configuration.
+
+The official module repository is [phlow-packages](https://github.com/lowcarboncode/phlow-packages), which contains all official Phlow modules precompiled for Linux.
+
+When you run Phlow, it will automatically fetch and install the required modules into a local `phlow-packages/` folder at the root of your project execution.
+
+You don’t need to worry about building or installing them manually — just describe the modules in your YAML, and Phlow takes care of the rest.
+---
+
 ## 📚 Table of Contents
 
 - [🎯 Philosophy](#-philosophy)
