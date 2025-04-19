@@ -158,8 +158,8 @@ Here’s a minimal working example that uses the official `log` module:
 main: log_example
 
 modules:
-  - name: log
-    module: log
+  - module: log
+    version: latest
 
 steps:
   - module: log
