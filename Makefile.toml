@@ -9,17 +9,17 @@ description = "Empacota todos os módulos em ./modules"
 script = ["chmod +x ./scripts/packages.sh", "./scripts/packages.sh"]
 
 
-[tasks.publish-runtime]
-description = "Publica o pacote phlow-runtime"
-script = ["cargo publish -p phlow-runtime"]
+[tasks.publish-sdk]
+description = "Publica o pacote phlow-sdk"
+script = ["cargo publish -p phlow-sdk"]
 
 [tasks.publish-engine]
 description = "Publica o pacote phlow-engine"
 script = ["cargo publish -p phlow-engine"]
 
-[tasks.publish-sdk]
-description = "Publica o pacote phlow-sdk"
-script = ["cargo publish -p phlow-sdk"]
+[tasks.publish-runtime]
+description = "Publica o pacote phlow-runtime"
+script = ["cargo publish -p phlow-runtime"]
 
 [tasks.publish]
 description = "Publica todos os pacotes Phlow"
