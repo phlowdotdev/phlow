@@ -18,12 +18,12 @@ If you're looking for speed, flexibility, and full insight into your backend —
 ## 📚 Table of Contents
 
 - [🎯 Philosophy](#-philosophy)
-- [🔌 Module Types](#-module-types)
 - [🧱 Example: `main.yaml` for an HTTP Gateway](#-example-mainyaml-for-an-http-gateway)
 - [🧪 More Examples](#-more-examples)
 - [📦 Packages And Modules](#-packages-and-modules)
 - [⚡ YAML Superpowers](#-yaml-superpowers)
-- [⚙️ Install & Usage](#%EF%B8%8F-installation--usage)
+- [⚙️ ](#%EF%B8%8F-installation--usage)
+- [🔌 Module Types](#-module-types)
 - [🧠 Creating Your Own Module: `log`](#-creating-your-own-module-log)
 - [📦 Project Structure](#-project-structure)
 - [📡 Observability](#-observability)
@@ -55,15 +55,6 @@ Every module, flow, and step can be traced using `tracing` and OpenTelemetry. Yo
 
 ### 5. **Separation of Control and Behavior**
 Control lives in YAML (`steps`, `conditions`, `includes`). Behavior lives in modules and scripts. You can mix and match at will.
-
----
-
-## 🔌 Module Types
-
-| Type         | Purpose                                 |
-|--------------|------------------------------------------|
-| `main module`| Entry point. Starts the app (HTTP, CLI, AMQP, etc). |
-| `step module`| Logic executed within a flow (log, fetch, transform, etc). |
 
 ---
 
@@ -226,6 +217,15 @@ phlow -h
 # or
 phlow --help
 ```
+---
+
+## 🔌 Module Types
+
+| Type         | Purpose                                 |
+|--------------|------------------------------------------|
+| `main module`| Entry point. Starts the app (HTTP, CLI, AMQP, etc). |
+| `step module`| Logic executed within a flow (log, fetch, transform, etc). |
+
 ---
 
 ## 🧠 Creating Your Own Module: `log`
