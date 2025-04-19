@@ -20,7 +20,7 @@ If you're looking for speed, flexibility, and full insight into your backend —
 - [🎯 Philosophy](#-philosophy)
 - [🔌 Module Types](#-module-types)
 - [🧱 Example: `main.yaml` for an HTTP Gateway](#-example-mainyaml-for-an-http-gateway)
-- [🧪 More Examples](#-example-mainyaml-for-an-http-gateway)
+- [🧪 More Examples](#-more-examples)
 - [🧩 YAML Superpowers](#-yaml-superpowers)
 - [⚙️ Install & Usage](#%EF%B8%8F-installation--usage)
 - [🧠 Creating Your Own Module: `log`](#-creating-your-own-module-log)
