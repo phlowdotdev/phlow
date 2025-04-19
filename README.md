@@ -22,7 +22,7 @@ If you're looking for speed, flexibility, and full insight into your backend —
 - [🧪 More Examples](#-more-examples)
 - [📦 Packages And Modules](#-packages-and-modules)
 - [⚡ YAML Superpowers](#-yaml-superpowers)
-- [⚙️ ](#%EF%B8%8F-installation--usage)
+- [⚙️ Install & Usage](#%EF%B8%8F-installation--usage)
 - [🔌 Module Types](#-module-types)
 - [🧠 Creating Your Own Module: `log`](#-creating-your-own-module-log)
 - [📦 Project Structure](#-project-structure)
