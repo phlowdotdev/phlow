@@ -67,11 +67,13 @@ main: gateway
 modules:
     - name: gateway
         module: rest_api
+        version: latest
         with:
             host: 0.0.0.0
             port: 3000
 
     - name: request
+        version: latest
         module: http_request
         with:
             timeout: 29000 # 29s
