@@ -32,7 +32,8 @@ You don’t need to worry about building or installing them manually — just de
 - [🔌 Module Types](#-module-types)
 - [🧱 Example: `main.yaml` for an HTTP Gateway](#-example-mainyaml-for-an-http-gateway)
 - [🧪 More Examples](#-more-examples)
-- [🧩 YAML Superpowers](#-yaml-superpowers)
+- [🧩 Using Modules](#-using-modules)
+- [⚡ YAML Superpowers](#-yaml-superpowers)
 - [⚙️ Install & Usage](#%EF%B8%8F-installation--usage)
 - [🧠 Creating Your Own Module: `log`](#-creating-your-own-module-log)
 - [📦 Project Structure](#-project-structure)
@@ -144,7 +145,45 @@ You'll find ready-to-run flows for:
 
 Clone, run, and experiment — Phlow is made to get you flowing in minutes. 🚀
 
-## 🧩 YAML Superpowers
+---
+
+## 🧩 Using Modules
+
+To use a module in your flow, you only need to declare it under the `modules` section and reference it in your `steps`.
+
+Here’s a minimal working example that uses the official `log` module:
+
+```yaml
+main: log_example
+
+modules:
+  - name: log
+    module: log
+
+steps:
+  - module: log
+    input:
+      level: info
+      message: "📥 Starting process..."
+
+  - module: log
+    input:
+      level: debug
+      message: !eval "'Current time: ' + timestamp()"
+
+  - module: log
+    input:
+      level: error
+      message: "❌ Something went wrong"
+```
+
+Once declared, Phlow will automatically:
+
+- Download the `log` module from [phlow-packages](https://github.com/lowcarboncode/phlow-packages) (if not cached).
+- Place it inside the `phlow-packages/` directory.
+- Execute each step using that module.
+
+## ⚡ YAML Superpowers
 
 Phlow extends YAML with:
 
