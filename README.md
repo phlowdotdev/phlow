@@ -22,7 +22,7 @@ If you're looking for speed, flexibility, and full insight into your backend —
 - [🧪 More Examples](#-more-examples)
 - [📦 Packages And Modules](#-packages-and-modules)
 - [⚡ YAML Superpowers](#-yaml-superpowers)
-- [⚙️ Install & Usage](#%EF%B8%8F-installation--usage)
+- [⚙️ Install & Uninstall](#%EF%B8%8F-installation--usage)
 - [🔧 Running a Flow](#%EF%B8%8F-installation--usage)
 - [🔌 Module Types](#-module-types)
 - [🧠 Creating Your Own Module: `log`](#-creating-your-own-module-log)
@@ -180,7 +180,7 @@ Phlow extends YAML with:
 
 ---
 
-## ⚙️ Installation & Usage
+## ⚙️ Installation & Uninstall
 
 You can easily install or uninstall Phlow using our ready-to-use shell scripts.
 
