@@ -20,6 +20,7 @@ If you're looking for speed, flexibility, and full insight into your backend —
 - [🎯 Philosophy](#-philosophy)
 - [🔌 Module Types](#-module-types)
 - [🧱 Example: `main.yaml` for an HTTP Gateway](#-example-mainyaml-for-an-http-gateway)
+- [🧪 More Examples](#-example-mainyaml-for-an-http-gateway)
 - [🧩 YAML Superpowers](#-yaml-superpowers)
 - [⚙️ Install & Usage](#%EF%B8%8F-installation--usage)
 - [🧠 Creating Your Own Module: `log`](#-creating-your-own-module-log)
@@ -117,6 +118,20 @@ steps:
         }
 ```
 ---
+
+## 🧪 More Examples
+
+To explore additional use cases and see Phlow in action, check out the [`examples/`](./examples) folder at the root of this repository.
+
+You'll find ready-to-run flows for:
+
+- HTTP gateways
+- Task automation
+- External API integration
+- Using `phs` and `rhai` scripts
+- Full observability with spans and logs
+
+Clone, run, and experiment — Phlow is made to get you flowing in minutes. 🚀
 
 ## 🧩 YAML Superpowers
 
