@@ -23,6 +23,7 @@ If you're looking for speed, flexibility, and full insight into your backend —
 - [📦 Packages And Modules](#-packages-and-modules)
 - [⚡ YAML Superpowers](#-yaml-superpowers)
 - [⚙️ Install & Usage](#%EF%B8%8F-installation--usage)
+- [🔧 Running a Flow](#%EF%B8%8F-installation--usage)
 - [🔌 Module Types](#-module-types)
 - [🧠 Creating Your Own Module: `log`](#-creating-your-own-module-log)
 - [📦 Project Structure](#-project-structure)
@@ -181,11 +182,35 @@ Phlow extends YAML with:
 
 ## ⚙️ Installation & Usage
 
-Install Phlow globally using Cargo:
+You can easily install or uninstall Phlow using our ready-to-use shell scripts.
+
+### 🔽 Install via `curl`
 
 ```bash
-cargo install phlow-runtime
+curl -fsSL https://raw.githubusercontent.com/lowcarboncode/phlow/main/scripts/install-phlow.sh | bash
 ```
+
+### 🔽 Install via `wget`
+
+```bash
+wget -qO- https://raw.githubusercontent.com/lowcarboncode/phlow/main/scripts/install-phlow.sh | bash
+```
+---
+
+### 🧹 Uninstall via `curl`
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lowcarboncode/phlow/main/scripts/uninstall-phlow.sh | bash
+```
+
+### 🧹 Uninstall via `wget`
+
+```bash
+wget -qO- https://raw.githubusercontent.com/lowcarboncode/phlow/main/scripts/uninstall-phlow.sh | bash
+```
+---
+
+These scripts will install or remove the `phlow` binary from `/usr/local/bin`. The install script fetches the latest release and makes it globally available on your system.
 
 ### 🔧 Running a Flow
 
