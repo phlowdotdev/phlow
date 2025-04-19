@@ -1,45 +1,61 @@
-name: Create Release on Push to Main
+name: Tagging and Release
 
 on:
   push:
     branches:
       - main
 
+permissions: write-all
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
 jobs:
-  release:
-    name: Release
+  test:
+    name: Test
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          - beta
+          - nightly
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      - run: cargo build --verbose
+      - run: cargo test --verbose
 
-      - name: Set up Rust
-        uses: actions/setup-rust@v1
-        with:
-          rust-version: stable
+  tag:
+    needs: test
+    name: Tag and Build Binary
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Extract version from Cargo.toml
+      - name: Read version from phlow-runtime/Cargo.toml
         id: get_version
         run: |
           version=$(grep '^version' phlow-runtime/Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/')
           echo "VERSION=$version" >> $GITHUB_ENV
-          echo "tag=v$version" >> $GITHUB_OUTPUT
+          echo "VERSION=$version" > VERSION.txt
 
-      - name: Build Phlow binary
-        run: cargo build --release -p phlow-runtime
-
-      - name: Rename binary for release
-        run: mv ./target/release/phlow ./phlow
-
-      - name: Create Git tag
+      - name: Create tag
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git tag "v$VERSION"
           git push origin "v$VERSION"
 
-      - name: Create GitHub Release and upload binary
+      - name: Build binary
+        run: cargo build --release -p phlow-runtime
+
+      - name: Rename binary for upload
+        run: mv ./target/release/phlow ./phlow
+
+      - name: Upload release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ env.VERSION }}
