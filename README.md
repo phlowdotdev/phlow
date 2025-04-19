@@ -22,8 +22,8 @@ If you're looking for speed, flexibility, and full insight into your backend —
 - [🧪 More Examples](#-more-examples)
 - [📦 Packages And Modules](#-packages-and-modules)
 - [⚡ YAML Superpowers](#-yaml-superpowers)
-- [⚙️ Install & Uninstall](#%EF%B8%8F-installation--usage)
-- [🔧 Running a Flow](#%EF%B8%8F-installation--usage)
+- [⚙️ Install & Uninstall](#%EF%B8%8F-installation--uninstall)
+- [🚀 Running a Flow](#-running-a-flow)
 - [🔌 Module Types](#-module-types)
 - [🧠 Creating Your Own Module: `log`](#-creating-your-own-module-log)
 - [📦 Project Structure](#-project-structure)
@@ -212,7 +212,7 @@ wget -qO- https://raw.githubusercontent.com/lowcarboncode/phlow/main/scripts/uni
 
 These scripts will install or remove the `phlow` binary from `/usr/local/bin`. The install script fetches the latest release and makes it globally available on your system.
 
-### 🔧 Running a Flow
+### 🚀 Running a Flow
 
 By default, Phlow will look for a \`main.yaml\` in the current directory:
 
