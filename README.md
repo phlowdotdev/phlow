@@ -250,14 +250,13 @@ pub async fn log(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + S
 
 ```yaml
 steps:
-  - id: notify
-    module: log
-    with:
+  - module: log
+    input:
       level: info
       message: "Process started"
 
   - use: log
-    with:
+    input:
       level: error
       message: !eval "something went wrong: " + main.error
 ```
