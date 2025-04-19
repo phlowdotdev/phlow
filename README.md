@@ -21,7 +21,7 @@ If you're looking for speed, flexibility, and full insight into your backend —
 - [🔌 Module Types](#-module-types)
 - [🧱 Example: `main.yaml` for an HTTP Gateway](#-example-mainyaml-for-an-http-gateway)
 - [🧪 More Examples](#-more-examples)
-- [📦 Packages](#-packages)
+- [📦 Packages And Modules](#-packages-and-modules)
 - [⚡ YAML Superpowers](#-yaml-superpowers)
 - [⚙️ Install & Usage](#%EF%B8%8F-installation--usage)
 - [🧠 Creating Your Own Module: `log`](#-creating-your-own-module-log)
@@ -136,7 +136,7 @@ Clone, run, and experiment — Phlow is made to get you flowing in minutes. 🚀
 
 ---
 
-## 📦 Packages
+## 📦 Packages and Modules
 
 ### Automatic Module Download
 
