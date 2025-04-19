@@ -177,12 +177,6 @@ steps:
       message: "❌ Something went wrong"
 ```
 
-Once declared, Phlow will automatically:
-
-- Download the `log` module from [phlow-packages](https://github.com/lowcarboncode/phlow-packages) (if not cached).
-- Place it inside the `phlow-packages/` directory.
-- Execute each step using that module.
-
 ## ⚡ YAML Superpowers
 
 Phlow extends YAML with:
