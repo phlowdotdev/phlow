@@ -1,0 +1,49 @@
+name: Create Release on Push to Main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Rust
+        uses: actions/setup-rust@v1
+        with:
+          rust-version: stable
+
+      - name: Extract version from Cargo.toml
+        id: get_version
+        run: |
+          version=$(grep '^version' phlow-runtime/Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/')
+          echo "VERSION=$version" >> $GITHUB_ENV
+          echo "tag=v$version" >> $GITHUB_OUTPUT
+
+      - name: Build Phlow binary
+        run: cargo build --release -p phlow-runtime
+
+      - name: Rename binary for release
+        run: mv ./target/release/phlow ./phlow
+
+      - name: Create Git tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag "v$VERSION"
+          git push origin "v$VERSION"
+
+      - name: Create GitHub Release and upload binary
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: Release v${{ env.VERSION }}
+          files: ./phlow
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
