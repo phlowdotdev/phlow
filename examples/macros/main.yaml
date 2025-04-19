@@ -5,12 +5,12 @@ modules:
 macros: !include macros.yaml
 steps:
   - macro: router
-    input:
+    with:
       id: login
       path: "/login"
       proxy_url: http://localhost:3002/v1/${main.full_path}
   - macro: router
-    input:
+    with:
       id: public
       path: "/public"
       proxy_url: http://localhost:3001/v1/${main.full_path}
@@ -19,7 +19,7 @@ steps:
       assert: !eval steps.auth == true
     then:
       macro: router
-      input:
+      with:
         id: private
         path: "/public"
         proxy_url: http://localhost:3001/v1/${main.full_path}
