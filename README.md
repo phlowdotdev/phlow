@@ -15,24 +15,13 @@ If you're looking for speed, flexibility, and full insight into your backend —
 
 ---
 
-### 📦 Automatic Module Download
-
-Phlow automatically downloads the modules specified in your flow configuration.
-
-The official module repository is [phlow-packages](https://github.com/lowcarboncode/phlow-packages), which contains all official Phlow modules precompiled for Linux.
-
-When you run Phlow, it will automatically fetch and install the required modules into a local `phlow-packages/` folder at the root of your project execution.
-
-You don’t need to worry about building or installing them manually — just describe the modules in your YAML, and Phlow takes care of the rest.
----
-
 ## 📚 Table of Contents
 
 - [🎯 Philosophy](#-philosophy)
 - [🔌 Module Types](#-module-types)
 - [🧱 Example: `main.yaml` for an HTTP Gateway](#-example-mainyaml-for-an-http-gateway)
 - [🧪 More Examples](#-more-examples)
-- [🧩 Using Modules](#-using-modules)
+- [📦 Packages](#-packages)
 - [⚡ YAML Superpowers](#-yaml-superpowers)
 - [⚙️ Install & Usage](#%EF%B8%8F-installation--usage)
 - [🧠 Creating Your Own Module: `log`](#-creating-your-own-module-log)
@@ -147,7 +136,19 @@ Clone, run, and experiment — Phlow is made to get you flowing in minutes. 🚀
 
 ---
 
-## 🧩 Using Modules
+## 📦 Packages
+
+### Automatic Module Download
+
+Phlow automatically downloads the modules specified in your flow configuration.
+
+The official module repository is [phlow-packages](https://github.com/lowcarboncode/phlow-packages), which contains all official Phlow modules precompiled for Linux.
+
+When you run Phlow, it will automatically fetch and install the required modules into a local `phlow-packages/` folder at the root of your project execution.
+
+You don’t need to worry about building or installing them manually — just describe the modules in your YAML, and Phlow takes care of the rest.
+
+### Using modules
 
 To use a module in your flow, you only need to declare it under the `modules` section and reference it in your `steps`.
 
