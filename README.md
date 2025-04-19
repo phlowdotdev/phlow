@@ -5,7 +5,7 @@
 
 <h2 align="center">Modular Flow Runtime for Composable Backends</h1>
 
-**Phlow** is a **high-performance, scalable, and Low Code flow runtime** built with Rust — designed to revolutionize the way you build backends. With Phlow, you can **create APIs, automations, and event-driven systems using just YAML, JSON, or TOML**, composing logic like building blocks.
+**Phlow** is a **high-performance, scalable, and Low Code flow runtime** built with Rust — designed to revolutionize the way you build backends. With Phlow, you can **create APIs, automations, and event-driven systems using just YAML**, composing logic like building blocks.
 
 Thanks to its modular architecture and clear separation between control and behavior, Phlow lets you **orchestrate complex flows without writing code** — and when you need more power, just plug in lightweight scripts or Rust modules.
 
