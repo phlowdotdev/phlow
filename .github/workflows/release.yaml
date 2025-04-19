@@ -21,7 +21,7 @@ jobs:
       - name: Read version from phlow-runtime/Cargo.toml
         id: get_version
         run: |
-          version=$(grep '^version' phlow-runtime/Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/')
+          version=$(grep '^version' Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/')
           echo "VERSION=$version" >> $GITHUB_ENV
           echo "VERSION=$version" > VERSION.txt
 
