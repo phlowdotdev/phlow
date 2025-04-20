@@ -36,13 +36,6 @@ If you're looking for speed, flexibility, and full insight into your backend —
 
 ## 🎯 Philosophy
 
-## 🌊 The 5 Pillars of Phlow
-
-> **Core Philosophy:**  
-> *"Build systems the way you sketch ideas — simple, lightweight, and powerful."*
-
----
-
 ### 🧱 1. Radical Modularity  
 **Principle:** *Each piece must be independent, reusable, and pluggable.*
 
