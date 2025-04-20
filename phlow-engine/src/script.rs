@@ -167,9 +167,10 @@ impl Script {
 
 #[cfg(test)]
 mod test {
-    use crate::{engine::build_engine_async, id::ID, step_worker::StepWorker};
+    use crate::{id::ID, step_worker::StepWorker};
 
     use super::*;
+    use phs::build_engine;
     use std::collections::HashMap;
     use valu3::{traits::ToValueBehavior, value::Value};
 
@@ -182,7 +183,7 @@ mod test {
         }}"#;
 
         let context = Context::new();
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
         let result = payload.evaluate(&context).unwrap();
@@ -204,7 +205,7 @@ mod test {
         }}"#;
 
         let context = Context::new();
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
         let result = payload.evaluate(&context).unwrap();
@@ -224,7 +225,7 @@ mod test {
         let script = "hello world";
 
         let context = Context::new();
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
         let variable = payload.evaluate_variable(&context).unwrap();
@@ -246,7 +247,7 @@ mod test {
             map
         }));
 
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
         let variable = payload.evaluate_variable(&context).unwrap();
@@ -264,7 +265,7 @@ mod test {
             map
         }));
 
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
         let variable = payload.evaluate_variable(&context).unwrap();
@@ -292,7 +293,7 @@ mod test {
             map.to_value()
         });
 
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
         let variable = payload.evaluate_variable(&context).unwrap();

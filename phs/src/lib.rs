@@ -30,6 +30,7 @@ mod tests {
     use super::*;
     use std::collections::HashMap;
     use std::sync::Arc;
+    use valu3::traits::ToValueBehavior;
     use valu3::value::Value;
 
     #[test]
@@ -52,5 +53,52 @@ mod tests {
         let result: Value = engine.eval(r#"process("data")"#).unwrap();
 
         assert_eq!(result, Value::from("data-processed"));
+    }
+
+    #[test]
+    fn test_respository_logic() {
+        let mut repositories = HashMap::new();
+
+        let mock_function: Arc<dyn Fn(Value) -> Value + Send + Sync> = Arc::new(|value| {
+            println!("Received value: {:?}", value);
+            if let Value::Object(log) = value {
+                let level = if let Some(level) = log.get("level") {
+                    if let Value::String(level_str) = level {
+                        level_str.to_string()
+                    } else {
+                        "info".to_string()
+                    }
+                } else {
+                    "info".to_string()
+                };
+
+                let message = if let Some(message) = log.get("message") {
+                    if let Value::String(message_str) = message {
+                        message_str.to_string()
+                    } else {
+                        "No message".to_string()
+                    }
+                } else {
+                    "No message".to_string()
+                };
+
+                format!("Log Level: {}, Message: {}", level, message).to_value()
+            } else {
+                Value::Null
+            }
+        });
+
+        repositories.insert("log".to_string(), mock_function);
+
+        let repos = Repositories { repositories };
+        let engine = build_engine(Some(repos));
+
+        let result: Value = engine
+            .eval(r#"log(#{"level": "warn", "message": "data" })"#)
+            .unwrap();
+
+        let expected = "Log Level: warn, Message: data".to_value();
+
+        assert_eq!(result, expected);
     }
 }

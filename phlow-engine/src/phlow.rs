@@ -1,11 +1,11 @@
 use crate::{
-    build_engine_async,
     context::Context,
     pipeline::{Pipeline, PipelineError},
     step_worker::NextStep,
     transform::{value_to_pipelines, TransformError},
 };
 use phlow_sdk::prelude::*;
+use phs::build_engine;
 use std::{collections::HashMap, sync::Arc};
 
 #[derive(Debug)]
@@ -28,7 +28,7 @@ impl Phlow {
         value: &Value,
         modules: Option<Arc<Modules>>,
     ) -> Result<Self, PhlowError> {
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
 
         let modules = if let Some(modules) = modules {
             modules

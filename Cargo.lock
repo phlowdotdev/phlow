@@ -2225,6 +2225,7 @@ version = "0.0.4"
 dependencies = [
  "once_cell",
  "phlow-sdk",
+ "phs",
  "regex",
  "rhai",
  "serde",

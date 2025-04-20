@@ -231,13 +231,12 @@ impl Condition {
 
 #[cfg(test)]
 mod test {
-    use crate::engine::build_engine_async;
-
     use super::*;
+    use phs::build_engine;
 
     #[test]
     fn test_condition_execute_equal() {
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let condition = Condition::try_build_with_operator(
             engine,
             "10".to_string(),
@@ -254,7 +253,7 @@ mod test {
 
     #[test]
     fn test_condition_execute_not_equal() {
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let condition = Condition::try_build_with_operator(
             engine,
             "10".to_string(),
@@ -271,7 +270,7 @@ mod test {
 
     #[test]
     fn test_condition_execute_greater_than() {
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let condition = Condition::try_build_with_operator(
             engine,
             "10".to_string(),
@@ -288,7 +287,7 @@ mod test {
 
     #[test]
     fn test_condition_execute_contains() {
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let condition = Condition::try_build_with_operator(
             engine,
             "hello world".to_string(),
@@ -305,7 +304,7 @@ mod test {
 
     #[test]
     fn test_condition_execute_regex() {
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let condition = Condition::try_build_with_operator(
             engine,
             "hello".to_string(),
@@ -322,7 +321,7 @@ mod test {
 
     #[test]
     fn test_condition_execute_not_regex() {
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let condition = Condition::try_build_with_operator(
             engine,
             "hello".to_string(),
@@ -339,7 +338,7 @@ mod test {
 
     #[test]
     fn test_condition_execute_start_with() {
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let condition = Condition::try_build_with_operator(
             engine,
             "hello world".to_string(),
@@ -356,7 +355,7 @@ mod test {
 
     #[test]
     fn test_condition_execute_end_with() {
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let condition = Condition::try_build_with_operator(
             engine,
             "hello world".to_string(),

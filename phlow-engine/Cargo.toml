@@ -20,3 +20,4 @@ rhai = { workspace = true }
 regex = { workspace = true }
 phlow-sdk = { workspace = true }
 once_cell = "1.21.3"
+phs = { workspace = true }

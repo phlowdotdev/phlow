@@ -374,10 +374,9 @@ fn truncate_string(string: &Value) -> String {
 
 #[cfg(test)]
 mod test {
-    use crate::engine::build_engine_async;
-
     use super::*;
     use phlow_sdk::valu3;
+    use phs::build_engine;
     use valu3::prelude::ToValueBehavior;
     use valu3::value::Value;
 
@@ -394,7 +393,7 @@ mod test {
 
     #[tokio::test]
     async fn test_step_execute() {
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let step = StepWorker {
             payload: Some(Script::try_build(engine, &"10".to_value()).unwrap()),
             ..Default::default()
@@ -410,7 +409,7 @@ mod test {
 
     #[tokio::test]
     async fn test_step_execute_with_condition() {
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let step = StepWorker {
             id: ID::new(),
             condition: Some(
@@ -436,7 +435,7 @@ mod test {
 
     #[tokio::test]
     async fn test_step_execute_with_condition_then_case() {
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let step = StepWorker {
             id: ID::new(),
             condition: Some(
@@ -463,7 +462,7 @@ mod test {
 
     #[tokio::test]
     async fn test_step_execute_with_condition_else_case() {
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let step = StepWorker {
             id: ID::new(),
             condition: Some(
@@ -490,7 +489,7 @@ mod test {
 
     #[tokio::test]
     async fn test_step_execute_with_return_case() {
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let step = StepWorker {
             id: ID::new(),
             return_case: Some(Script::try_build(engine.clone(), &"10".to_value()).unwrap()),
@@ -507,7 +506,7 @@ mod test {
 
     #[tokio::test]
     async fn test_step_execute_with_return_case_and_payload() {
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let step = StepWorker {
             id: ID::new(),
             payload: Some(Script::try_build(engine.clone(), &"10".to_value()).unwrap()),
@@ -525,7 +524,7 @@ mod test {
 
     #[tokio::test]
     async fn test_step_execute_with_return_case_and_condition() {
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let step = StepWorker {
             id: ID::new(),
             condition: Some(
@@ -551,7 +550,7 @@ mod test {
 
     #[tokio::test]
     async fn test_step_execute_with_return_case_and_condition_then_case() {
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let step = StepWorker {
             id: ID::new(),
             condition: Some(
@@ -577,7 +576,7 @@ mod test {
 
     #[tokio::test]
     async fn test_step_execute_with_return_case_and_condition_else_case() {
-        let engine = build_engine_async(None);
+        let engine = build_engine(None);
         let step = StepWorker {
             id: ID::new(),
             condition: Some(
