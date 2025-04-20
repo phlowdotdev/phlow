@@ -3,6 +3,7 @@ members = [
     "phlow-engine",
     "phlow-runtime",
     "phlow-sdk",
+    "phs",
     "modules/http_server",
     "modules/echo",
     "modules/amqp",
@@ -26,6 +27,7 @@ repository = "https://github.com/lowcarboncode/phlow"
 # internal
 phlow-engine = { path = "phlow-engine", version = "0.0.4" }
 phlow-sdk = { path = "phlow-sdk", version = "0.0.4" }
+phs = { path = "phs", version = "0.0.4" }
 
 #phlow
 libloading = "0.8"
