@@ -79,45 +79,45 @@ main: gateway
 
 modules:
     - name: gateway
-        module: rest_api
-        version: latest
-        with:
-            host: 0.0.0.0
-            port: 3000
+      module: rest_api
+      version: latest
+      with:
+          host: 0.0.0.0
+          port: 3000
 
     - name: request
-        version: latest
-        module: http_request
-        with:
-            timeout: 29000 # 29s
+      version: latest
+      module: http_request
+      with:
+          timeout: 29000 # 29s
 
 steps:
     - condition:
-        assert: !eval main.path.start_with("/public")
-        then:
-            module: request
-            input:
-                method: !eval main.method
-                url: !eval `public-service.local${main.uri}?` 
-                headers:
-                    x-forwarded-for: !eval main.client_ip
-                    x-original-path: !eval main.path   
-                body: !eval main.body
-    - use: authorization
-        id: auth
+      assert: !eval main.path.start_with("/public")
+      then:
+        module: request
         input:
-            api_key: !eval main.header.authorization
+            method: !eval main.method
+            url: !eval `public-service.local${main.uri}?` 
+            headers:
+                x-forwarded-for: !eval main.client_ip
+                x-original-path: !eval main.path   
+            body: !eval main.body
+    - use: authorization
+      id: auth
+      input:
+        api_key: !eval main.header.authorization
     - condition:
-        assert: !eval steps.auth.authorized == true          
-        then:
-            module: request
-            with:
-                method: !eval main.method
-                url: !eval `private-service.local${main.uri}?` 
-                headers:
-                    x-forwarded-for: !eval main.client_ip
-                    x-original-path: !eval main.path   
-                body: !eval main.body
+      assert: !eval steps.auth.authorized == true          
+      then:
+          module: request
+          with:
+              method: !eval main.method
+              url: !eval `private-service.local${main.uri}?` 
+              headers:
+                  x-forwarded-for: !eval main.client_ip
+                  x-original-path: !eval main.path   
+              body: !eval main.body
     - return:
         status_code: 401
         body: {
