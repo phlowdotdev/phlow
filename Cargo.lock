@@ -2284,6 +2284,7 @@ dependencies = [
  "regex",
  "rhai",
  "serde",
+ "tokio",
  "valu3",
 ]
 

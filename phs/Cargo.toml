@@ -12,3 +12,4 @@ serde = { workspace = true }
 rhai = { workspace = true }
 regex = { workspace = true }
 valu3 = { workspace = true }
+tokio = { workspace = true }
