@@ -1,3 +1,3 @@
 log(#{
-    "message": "Hello, world!",
+    "message": `Hello, ${main.name}`,
 })
