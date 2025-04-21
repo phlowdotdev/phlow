@@ -1,7 +1,7 @@
 use crate::context::Context;
 use crossbeam::channel;
 use phs::{repositories::Repositories, wrap_async_fn};
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 use tokio::sync::oneshot;
 use valu3::value::Value;
 

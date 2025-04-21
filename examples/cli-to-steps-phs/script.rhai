@@ -1,0 +1,3 @@
+log(#{
+    "message": "Hello, world!",
+})

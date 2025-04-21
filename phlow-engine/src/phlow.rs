@@ -41,6 +41,7 @@ impl Phlow {
         } else {
             Arc::new(Modules::default())
         };
+
         let pipelines =
             value_to_pipelines(engine, modules, value).map_err(PhlowError::TransformError)?;
 
