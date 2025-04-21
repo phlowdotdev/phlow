@@ -1,5 +1,5 @@
-mod functions;
-mod repositories;
+pub mod functions;
+pub mod repositories;
 use functions::build_functions;
 use repositories::Repositories;
 use rhai::serde::from_dynamic;

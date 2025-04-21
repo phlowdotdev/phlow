@@ -39,6 +39,15 @@ impl Context {
         }
     }
 
+    pub fn from_input(input: Value) -> Self {
+        Self {
+            main: None,
+            steps: HashMap::new(),
+            payload: None,
+            input: Some(input),
+        }
+    }
+
     pub fn add_module_input(&self, output: Value) -> Self {
         Self {
             main: self.main.clone(),
