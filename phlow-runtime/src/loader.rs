@@ -72,74 +72,10 @@ impl Display for Error {
     }
 }
 
-#[derive(ToValue, FromValue, Clone, Debug)]
-pub struct Module {
-    pub version: String,
-    pub repository: Option<String>,
-    pub repository_path: Option<String>,
-    pub repository_raw_content: Option<String>,
-    pub module: String,
-    pub name: String,
-    pub with: Value,
-}
-
-impl TryFrom<Value> for Module {
-    type Error = Error;
-
-    fn try_from(value: Value) -> Result<Self, Error> {
-        let module = match value.get("module") {
-            Some(module) => module.to_string(),
-            None => return Err(Error::ModuleLoaderError("Module not found".to_string())),
-        };
-        let repository = value.get("repository").map(|v| v.to_string());
-
-        let repository_path = if repository.is_none() {
-            let mut padded = module.to_string();
-            while padded.len() < 4 {
-                padded.push('_');
-            }
-
-            let prefix = &padded[0..2];
-            let middle = &padded[2..4];
-
-            let repository = format!("{}/{}/{}", prefix, middle, module);
-            Some(repository)
-        } else {
-            None
-        };
-
-        let repository_raw_content = value.get("repository_raw_content").map(|v| v.to_string());
-
-        let version = match value.get("version") {
-            Some(version) => version.to_string(),
-            None => return Err(Error::VersionNotFound(ModuleError { module })),
-        };
-
-        let name = match value.get("name") {
-            Some(name) => name.to_string(),
-            None => module.clone(),
-        };
-
-        let with = match value.get("with") {
-            Some(with) => with.clone(),
-            None => Value::Null,
-        };
-        Ok(Module {
-            module,
-            repository,
-            version,
-            name,
-            with,
-            repository_path,
-            repository_raw_content,
-        })
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct Loader {
     pub main: i32,
-    pub modules: Vec<Module>,
+    pub modules: Vec<ModuleData>,
     pub steps: Value,
     pub app_data: ApplicationData,
 }
@@ -164,7 +100,8 @@ impl Loader {
                 let mut modules_vec = Vec::new();
                 let modules_array = modules.as_array().unwrap();
                 for module in modules_array {
-                    let module = Module::try_from(module.clone())?;
+                    let module = ModuleData::try_from(module.clone())
+                        .map_err(|_| Error::ModuleLoaderError("Module not found".to_string()))?;
 
                     if Some(module.name.clone()) == main_name {
                         main = modules_vec.len() as i32;

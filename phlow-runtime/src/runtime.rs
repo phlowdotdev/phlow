@@ -59,7 +59,8 @@ impl Runtime {
             match setup_receive.await {
                 Ok(Some(sender)) => {
                     debug!("Module {} registered", module.name);
-                    modules.register(&module.name, sender);
+
+                    modules.register(module, sender);
                 }
                 Ok(None) => {
                     debug!("Module {} did not register", module.name);
