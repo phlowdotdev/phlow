@@ -8,58 +8,60 @@ type: main
 tags:
   - cli
 with:
-  additional_args:
-    type: boolean
-    description: If enabled, does not validate unmapped arguments.
-    default: false
-    required: false
-  args:
-    type: array
-    description: The arguments to pass to the command.
-    required: true
-    items:
-      required: true
-      type: object
+  type: object
+  required: true
+  properties:
+    additional_args:
+      type: boolean
+      description: If enabled, does not validate unmapped arguments.
+      default: false
+      required: false
+    args:
+      type: array
       description: The arguments to pass to the command.
-      properties:
-        index:
-          type: integer
-          description: The index of the argument.
-          required: false
-        required:
-          type: boolean
-          description: Whether the argument is required.
-          required: false
-        long:
-          type: string
-          description: The name of the argument.
-          required: true
-        short:
-          type: string
-          description: The short name of the argument.
-          required: false
-        help:
-          type: string
-          description: The help text for the argument.
-          required: false
-        type:
-          type: string
-          description: The type of the argument.
-          required: true
-          enum:
-            - string
-            - integer
-            - boolean
-          default: string
-        default:
-          type: any
-          description: The default value of the argument.
-          required: false
+      required: true
+      items:
+        required: true
+        type: object
+        description: The arguments to pass to the command.
+        properties:
+          index:
+            type: integer
+            description: The index of the argument.
+            required: false
+          required:
+            type: boolean
+            description: Whether the argument is required.
+            required: false
+          long:
+            type: string
+            description: The name of the argument.
+            required: true
+          short:
+            type: string
+            description: The short name of the argument.
+            required: false
+          help:
+            type: string
+            description: The help text for the argument.
+            required: false
+          type:
+            type: string
+            description: The type of the argument.
+            required: true
+            enum:
+              - string
+              - integer
+              - boolean
+            default: string
+          default:
+            type: any
+            description: The default value of the argument.
+            required: false
 output:
-  !root:
-    type: object
-    description: Map arguments to the command
-    required: true
+  type: object
+  description: Map arguments to the command
+  required: true
 
       
 

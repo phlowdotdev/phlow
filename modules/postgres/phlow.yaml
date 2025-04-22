@@ -12,90 +12,99 @@ tags:
   - sql
   - query
 with:
-  host:
-    type: string
-    description: The hostname of the PostgreSQL server.
-    default: localhost
-    required: true
-  port:
-    type: integer
-    description: The port number of the PostgreSQL server.
-    default: 5432
-    required: false
-  user:
-    type: string
-    description: The username to connect to the PostgreSQL server.
-    required: true
-  password:
-    type: string
-    description: The password to connect to the PostgreSQL server.
-    required: true
-  database:
-    type: string
-    description: The name of the database to connect to.
-    required: true
-  ssl_mode:
-    type: string
-    description: The SSL mode to use for the connection. Use 'disable' for no SSL, 'prefer' for SSL, or 'require' for SSL with certificate verification.
-    required: false
-    default: prefer
-    enum:
-      - disable
-      - prefer
-      - require
-  max_pool_size:
-    type: integer
-    description: The maximum number of connections in the connection pool.
-    required: false
-    default: 10
-  cache_query:
-    type: boolean
-    description: Whether to cache the query result.
-    default: true
-    required: false
-  batch:
-    type: boolean
-    description: Whether to execute the query in batch mode. Needed for batch inserts.
-    default: false
-    required: false
+  type: object
+  required: true
+  properties:
+    host:
+      type: string
+      description: The hostname of the PostgreSQL server.
+      default: localhost
+      required: true
+    port:
+      type: integer
+      description: The port number of the PostgreSQL server.
+      default: 5432
+      required: false
+    user:
+      type: string
+      description: The username to connect to the PostgreSQL server.
+      required: true
+    password:
+      type: string
+      description: The password to connect to the PostgreSQL server.
+      required: true
+    database:
+      type: string
+      description: The name of the database to connect to.
+      required: true
+    ssl_mode:
+      type: string
+      description: The SSL mode to use for the connection. Use 'disable' for no SSL, 'prefer' for SSL, or 'require' for SSL with certificate verification.
+      required: false
+      default: prefer
+      enum:
+        - disable
+        - prefer
+        - require
+    max_pool_size:
+      type: integer
+      description: The maximum number of connections in the connection pool.
+      required: false
+      default: 10
+    cache_query:
+      type: boolean
+      description: Whether to cache the query result.
+      default: true
+      required: false
+    batch:
+      type: boolean
+      description: Whether to execute the query in batch mode. Needed for batch inserts.
+      default: false
+      required: false
 inputs:
-  query:
-    type: string
-    description: The SQL query to execute.
-    required: true
-  params:
-    type: array
-    description: The parameters to bind to the query.
-    required: false
-  batch:
-    type: boolean
-    description: Whether to execute the query in batch mode. Needed for batch inserts.
-    default: false
-    required: false
-  cache_query:
-    type: boolean
-    description: Whether to cache the query result.
-    default: true
-    required: false  
+  type: object
+  required: true
+  properties:
+    query:
+      type: string
+      description: The SQL query to execute.
+      required: true
+    params:
+      type: array
+      description: The parameters to bind to the query.
+      required: false
+    batch:
+      type: boolean
+      description: Whether to execute the query in batch mode. Needed for batch inserts.
+      default: false
+      required: false
+    cache_query:
+      type: boolean
+      description: Whether to cache the query result.
+      default: true
+      required: false  
 output:
-  result:
-    type: object
-    description: The result of the SQL query.
-    required: true
-    properties:
-      - name: rows
-        type: array
-        description: The rows returned by the query.
-        required: true
-      - name: count
-        type: integer
-        description: The number of rows returned by the query.
-        required: true
-  message:
-    type: string
-    description: A message indicating the result of the operation.
-    required: false
-  status:
-    type: string
-    description: The status of the operation (success or failure).
-    required: true
+  type: object
+  required: true
+  properties:
+    result:
+      type: object
+      description: The result of the SQL query.
+      required: true
+      properties:
+        - name: rows
+          type: array
+          description: The rows returned by the query.
+          required: true
+        - name: count
+          type: integer
+          description: The number of rows returned by the query.
+          required: true
+    message:
+      type: string
+      description: A message indicating the result of the operation.
+      required: false
+    status:
+      type: string
+      description: The status of the operation (success or failure).
+      required: true

@@ -166,6 +166,20 @@ pub struct ModuleValidator {
     pub output: Value,
 }
 
+impl ModuleValidator {
+    pub fn validate(&self, input: &Option<Value>) -> Result<Value, ModulesError> {
+        if let Some(input_value) = input {
+            if self.input != Value::Null && self.input != *input_value {
+                return Err(ModulesError::ModuleError(
+                    "Input value does not match module input".to_string(),
+                ));
+            }
+        }
+
+        Ok(Value::Null)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Module {
     pub sender: channel::Sender<ModulePackage>,
@@ -216,8 +230,8 @@ impl Modules {
         name: &str,
         input: &Option<Value>,
     ) -> Result<ModuleResponse, ModulesError> {
-        if let Some(module_sender) = self.modules.get(name) {
-            let package_receiver = module_sender.send(input.clone());
+        if let Some(module) = self.modules.get(name) {
+            let package_receiver = module.send(input.clone());
 
             let value = package_receiver.await.unwrap_or(ModuleResponse::from_error(
                 "Module response channel closed".to_string(),

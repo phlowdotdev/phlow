@@ -9,10 +9,9 @@ type: step
 tags:
   - echo
 input:
-  !root:
-    type: any
-    description: The message to echo.
-    required: true
-    default: null
+  type: any
+  required: true
+  description: The message to echo.
+  default: null
 
 
