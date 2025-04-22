@@ -3,7 +3,7 @@ pub mod repositories;
 use functions::build_functions;
 use repositories::{Repositories, RepositoryFunction};
 use rhai::serde::from_dynamic;
-use rhai::Engine;
+use rhai::{Dynamic, Engine};
 use std::collections::HashMap;
 use std::future::Future;
 use std::sync::Arc;
@@ -16,7 +16,7 @@ pub fn build_engine(repositories: Option<Repositories>) -> Arc<Engine> {
         for (key, repo) in repositories.repositories {
             let call = repo.function.clone();
             let default_args = repo.args.clone();
-            let arg_types = &[std::any::TypeId::of::<i64>()];
+            let arg_types = &[std::any::TypeId::of::<Dynamic>()];
 
             engine.register_raw_fn(&key, arg_types, move |context, args| {
                 let mut args_value = HashMap::new();
