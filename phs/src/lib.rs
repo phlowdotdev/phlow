@@ -3,24 +3,41 @@ pub mod repositories;
 use functions::build_functions;
 use repositories::{Repositories, RepositoryFunction};
 use rhai::serde::from_dynamic;
-use rhai::{Dynamic, Engine};
+use rhai::Engine;
+use std::collections::HashMap;
 use std::future::Future;
 use std::sync::Arc;
-use valu3::value::Value;
+use valu3::prelude::*;
 
 pub fn build_engine(repositories: Option<Repositories>) -> Arc<Engine> {
     let mut engine = build_functions();
 
     if let Some(repositories) = repositories {
-        for (key, call) in repositories.repositories {
-            engine.register_fn(resolve_function_name(&key), move |dynamic: Dynamic| {
-                let call = call.function.clone();
-                let value: Value = from_dynamic(&dynamic).unwrap_or(Value::Null);
+        for (key, repo) in repositories.repositories {
+            let call = repo.function.clone();
+            let default_args = repo.args.clone();
+            let arg_types = &[std::any::TypeId::of::<i64>()];
 
-                tokio::task::block_in_place(move || {
-                    let future = (call)(value);
+            engine.register_raw_fn(&key, arg_types, move |context, args| {
+                let mut args_value = HashMap::new();
+
+                for dynamic in args {
+                    let value: Value = from_dynamic(&dynamic).unwrap_or(Value::Null);
+
+                    if let Some(key) = default_args.get(args_value.len()) {
+                        args_value.insert(key.clone(), value);
+                    }
+                }
+
+                let call = call.clone();
+                let args_value = args_value.to_value();
+
+                let result = tokio::task::block_in_place(move || {
+                    let future = (call)(args_value);
                     tokio::runtime::Handle::current().block_on(future)
-                })
+                });
+
+                Ok(result)
             });
         }
     }
@@ -32,7 +49,7 @@ pub fn resolve_function_name(name: &str) -> String {
     format!("__module_{}", name)
 }
 
-pub fn args_to_abstration(name: String, args: Vec<String>) -> String {
+pub fn args_to_abstration(name: String, args: &Vec<String>) -> String {
     let args = args.join(", ");
     let target = resolve_function_name(&name);
 
@@ -50,7 +67,8 @@ where
 {
     RepositoryFunction {
         function: Arc::new(move |value| Box::pin(func(value))),
-        abstration: args_to_abstration(name, args),
+        abstration: args_to_abstration(name, &args),
+        args,
     }
 }
 

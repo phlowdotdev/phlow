@@ -10,6 +10,7 @@ pub type Function = Arc<dyn Fn(Value) -> Pin<Box<dyn Future<Output = Value> + Se
 pub struct RepositoryFunction {
     pub function: Function,
     pub abstration: String,
+    pub args: Vec<String>,
 }
 
 #[derive(Clone)]
