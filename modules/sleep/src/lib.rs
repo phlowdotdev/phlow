@@ -26,7 +26,7 @@ impl From<&Value> for Sleep {
 
 pub async fn sleep(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     listen!(rx, move |package: ModulePackage| async {
-        let sleep = match package.context.input {
+        let sleep = match package.input {
             Some(value) => Sleep::from(&value),
             _ => Sleep { time: 0 },
         };

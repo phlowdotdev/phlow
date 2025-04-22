@@ -23,7 +23,7 @@ pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Erro
         let config = config.clone();
 
         let handle = tokio::spawn(async move {
-            let input = match Input::try_from((package.context.input, &config)) {
+            let input = match Input::try_from((package.input, &config)) {
                 Ok(input) => input,
                 Err(e) => {
                     let response =

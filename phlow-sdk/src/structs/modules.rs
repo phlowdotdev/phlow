@@ -1,4 +1,3 @@
-use crate::context::Context;
 use crossbeam::channel;
 use phs::{repositories::Repositories, wrap_async_fn};
 use std::{collections::HashMap, fmt::Display};
@@ -150,13 +149,13 @@ impl ModuleResponse {
 
 #[derive(Debug)]
 pub struct ModulePackage {
-    pub context: Context,
+    pub input: Option<Value>,
     pub sender: oneshot::Sender<ModuleResponse>,
 }
 
 impl ModulePackage {
     pub fn input(&self) -> Option<Value> {
-        self.context.input.clone()
+        self.input.clone()
     }
 }
 
@@ -174,10 +173,10 @@ pub struct Module {
 }
 
 impl Module {
-    pub fn send(&self, context: Context) -> Receiver<ModuleResponse> {
+    pub fn send(&self, input: Option<Value>) -> Receiver<ModuleResponse> {
         let (package_sender, package_receiver) = oneshot::channel();
         let package = ModulePackage {
-            context,
+            input,
             sender: package_sender,
         };
 
@@ -215,10 +214,10 @@ impl Modules {
     pub async fn execute(
         &self,
         name: &str,
-        context: &Context,
+        input: &Option<Value>,
     ) -> Result<ModuleResponse, ModulesError> {
         if let Some(module_sender) = self.modules.get(name) {
-            let package_receiver = module_sender.send(context.clone());
+            let package_receiver = module_sender.send(input.clone());
 
             let value = package_receiver.await.unwrap_or(ModuleResponse::from_error(
                 "Module response channel closed".to_string(),
@@ -235,7 +234,7 @@ impl Modules {
 
         for (name, sender) in self.modules.clone() {
             let repository_function = wrap_async_fn(move |value: Value| {
-                let package_receiver = sender.send(Context::from_input(value));
+                let package_receiver = sender.send(Some(value));
 
                 async move {
                     let result = package_receiver.await.unwrap_or(ModuleResponse::from_error(

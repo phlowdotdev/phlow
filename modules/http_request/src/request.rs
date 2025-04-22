@@ -1,5 +1,5 @@
 use crate::input::Input;
-use phlow_sdk::valu3::prelude::*;
+use phlow_sdk::prelude::*;
 use reqwest::{header, Client, Method};
 use std::collections::HashMap;
 
