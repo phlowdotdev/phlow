@@ -85,15 +85,23 @@ impl TryFrom<Value> for ModuleData {
             None => Value::Null,
         };
 
-        let input = match value.get("input") {
-            Some(input) => input.clone(),
-            None => Value::Null,
+        let (input, output) = if let Some(info) = value.get("info") {
+            let input = match info.get("input") {
+                Some(input) => input.clone(),
+                None => Value::Null,
+            };
+
+            let output = match info.get("output") {
+                Some(output) => output.clone(),
+                None => Value::Null,
+            };
+
+            (input, output)
+        } else {
+            (Value::Null, Value::Null)
         };
 
-        let output = match value.get("output") {
-            Some(output) => output.clone(),
-            None => Value::Null,
-        };
+        println!("value {:?}", value.to_string());
 
         Ok(ModuleData {
             module,

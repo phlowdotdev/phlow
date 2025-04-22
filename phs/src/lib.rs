@@ -21,10 +21,12 @@ pub fn build_engine(repositories: Option<Repositories>) -> Arc<Engine> {
             > = repo.function.clone();
             let default_args = repo.args.clone();
 
+            println!("default_args {:?}", default_args);
+
             let arg_types: Vec<std::any::TypeId> =
                 vec![std::any::TypeId::of::<Dynamic>(); default_args.len()];
 
-            engine.register_raw_fn(&key, arg_types, move |context, args| {
+            engine.register_raw_fn(&key, arg_types, move |_context, args| {
                 let mut args_value = HashMap::new();
 
                 for dynamic in args {
