@@ -13,5 +13,9 @@ input:
   required: true
   description: The message to echo.
   default: null
-
+output:
+  type: any
+  required: true
+  description: The echoed message.
+  default: null
 
