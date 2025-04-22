@@ -20,6 +20,7 @@ pub fn build_engine(repositories: Option<Repositories>) -> Arc<Engine> {
                     + Sync,
             > = repo.function.clone();
             let default_args = repo.args.clone();
+
             let arg_types: Vec<std::any::TypeId> =
                 vec![std::any::TypeId::of::<Dynamic>(); default_args.len()];
 

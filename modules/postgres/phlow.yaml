@@ -61,7 +61,7 @@ with:
       description: Whether to execute the query in batch mode. Needed for batch inserts.
       default: false
       required: false
-inputs:
+input:
   type: object
   required: true
   properties:

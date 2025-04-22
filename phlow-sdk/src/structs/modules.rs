@@ -234,6 +234,7 @@ impl Modules {
 
         for (name, module) in self.modules.clone() {
             let args = {
+                println!("module.validator.input {:?}", module.validator);
                 match &module.validator.input {
                     Value::Object(obj) => {
                         let mut args = Vec::new();

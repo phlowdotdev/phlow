@@ -10,7 +10,7 @@ tags:
   - log
   - echo
   - print
-inputs: 
+input: 
   type: object
   required: true
   properties:

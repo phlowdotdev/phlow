@@ -10,7 +10,7 @@ tags:
   - sleep
   - wait
   - delay
-inputs:
+input:
   type: object
   required: false
   properties:
