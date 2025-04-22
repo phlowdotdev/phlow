@@ -14,9 +14,14 @@ pub fn build_engine(repositories: Option<Repositories>) -> Arc<Engine> {
 
     if let Some(repositories) = repositories {
         for (key, repo) in repositories.repositories {
-            let call = repo.function.clone();
+            let call: Arc<
+                dyn Fn(Value) -> std::pin::Pin<Box<dyn Future<Output = Value> + Send>>
+                    + Send
+                    + Sync,
+            > = repo.function.clone();
             let default_args = repo.args.clone();
-            let arg_types = &[std::any::TypeId::of::<Dynamic>()];
+            let arg_types: Vec<std::any::TypeId> =
+                vec![std::any::TypeId::of::<Dynamic>(); default_args.len()];
 
             engine.register_raw_fn(&key, arg_types, move |context, args| {
                 let mut args_value = HashMap::new();
