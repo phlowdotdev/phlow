@@ -87,7 +87,21 @@ impl TryFrom<Value> for ModuleData {
 
         let (input, output) = if let Some(info) = value.get("info") {
             let input = match info.get("input") {
-                Some(input) => input.clone(),
+                Some(input) => {
+                    if let Value::Object(obj) = input {
+                        if let Some(obj_type) = obj.get("type") {
+                            if obj_type.to_string() == "object" {
+                                obj.get("properties").unwrap_or(&Value::Null).clone()
+                            } else {
+                                input.clone()
+                            }
+                        } else {
+                            input.clone()
+                        }
+                    } else {
+                        input.clone()
+                    }
+                }
                 None => Value::Null,
             };
 
@@ -242,7 +256,6 @@ impl Modules {
 
         for (name, module) in self.modules.clone() {
             let args = {
-                println!("module.validator.input {:?}", module.validator);
                 match &module.validator.input {
                     Value::Object(obj) => {
                         let mut args = Vec::new();
