@@ -166,20 +166,6 @@ pub struct ModuleValidator {
     pub output: Value,
 }
 
-impl ModuleValidator {
-    pub fn validate(&self, input: &Option<Value>) -> Result<Value, ModulesError> {
-        if let Some(input_value) = input {
-            if self.input != Value::Null && self.input != *input_value {
-                return Err(ModulesError::ModuleError(
-                    "Input value does not match module input".to_string(),
-                ));
-            }
-        }
-
-        Ok(Value::Null)
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct Module {
     pub sender: channel::Sender<ModulePackage>,
