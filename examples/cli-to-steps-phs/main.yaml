@@ -17,4 +17,4 @@ modules:
   - module: log
     version: latest
 steps:
-  - payload: !import script.rhai
+  - return: !import script.rhai

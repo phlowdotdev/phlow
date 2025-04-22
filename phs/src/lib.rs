@@ -6,6 +6,7 @@ use rhai::serde::from_dynamic;
 use rhai::{Dynamic, Engine};
 use std::future::Future;
 use std::sync::Arc;
+use tokio::sync::oneshot;
 use valu3::value::Value;
 
 pub fn build_engine(repositories: Option<Repositories>) -> Arc<Engine> {
@@ -13,14 +14,14 @@ pub fn build_engine(repositories: Option<Repositories>) -> Arc<Engine> {
 
     if let Some(repositories) = repositories {
         for (key, call) in repositories.repositories {
-            let call = call.clone();
-
             engine.register_fn(key.clone(), move |dynamic: Dynamic| {
+                let call = call.clone();
                 let value: Value = from_dynamic(&dynamic).unwrap_or(Value::Null);
 
-                // Wrapper para chamar async dentro do sync
-                let rt = tokio::runtime::Runtime::new().unwrap();
-                rt.block_on((call)(value))
+                tokio::task::block_in_place(move || {
+                    let future = (call)(value);
+                    tokio::runtime::Handle::current().block_on(future)
+                })
             });
         }
     }
@@ -69,8 +70,9 @@ mod tests {
     fn test_respository_log() {
         let mut repositories = HashMap::new();
 
-        let mock_function = wrap_async_fn(|value: Value| async move {
-            println!("Received value: {:?}", value);
+        let mock_function: Arc<
+            dyn Fn(Value) -> std::pin::Pin<Box<dyn Future<Output = Value> + Send>> + Send + Sync,
+        > = wrap_async_fn(|value: Value| async move {
             if let Value::Object(log) = value {
                 let level = match log.get("level") {
                     Some(Value::String(s)) => s.to_string(),
