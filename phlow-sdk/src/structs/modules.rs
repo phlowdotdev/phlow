@@ -232,9 +232,26 @@ impl Modules {
     pub fn extract_repositories(&self) -> Repositories {
         let mut repositories = HashMap::new();
 
-        for (name, sender) in self.modules.clone() {
-            let repository_function = wrap_async_fn(move |value: Value| {
-                let package_receiver = sender.send(Some(value));
+        for (name, module) in self.modules.clone() {
+            let args = {
+                match &module.validator.input {
+                    Value::Object(obj) => {
+                        let mut args = Vec::new();
+
+                        for (key, _) in obj.iter() {
+                            args.push(key.to_string());
+                        }
+
+                        args
+                    }
+                    _ => {
+                        vec!["input".to_string()]
+                    }
+                }
+            };
+
+            let func = move |value: Value| {
+                let package_receiver = module.send(Some(value));
 
                 async move {
                     let result = package_receiver.await.unwrap_or(ModuleResponse::from_error(
@@ -247,9 +264,11 @@ impl Modules {
                         result.data
                     }
                 }
-            });
+            };
 
-            repositories.insert(name.clone(), repository_function);
+            let repository_function = wrap_async_fn(name.clone(), func, args);
+
+            repositories.insert(name, repository_function);
         }
 
         Repositories { repositories }

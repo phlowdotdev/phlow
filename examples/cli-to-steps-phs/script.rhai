@@ -1,5 +1,3 @@
-log(#{
-    "message": `Hello, ${main.name}`,
-});
+log(`Hello, ${main.name}`);
 
 "phs"
