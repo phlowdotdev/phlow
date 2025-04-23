@@ -299,6 +299,12 @@ log("warn", `Hello, ${main.name}`);
 "phs"
 ```
 
+To execute this file, just run:
+```bash
+2025-04-23T05:23:25.474573Z  WARN log: Hello, Phlow!
+phs
+```
+
 This will evaluate the imported .phs file and run the steps using the declared modules.
 
 > ℹ️ **Note:** In Phlow Script (PHS), function calls respect the **order of parameters** defined in the module's package. For example, if your `phlow.yaml` for the `log` module defines inputs like:
@@ -327,11 +333,7 @@ This will evaluate the imported .phs file and run the steps using the declared m
 >
 > because the parameter order defined in `properties` is preserved and required by the execution engine.
 
-To execute this file, just run:
-```bash
-2025-04-23T05:23:25.474573Z  WARN log: Hello, Phlow!
-phs
-```
+
 ---
 
 ## 🧠 Creating Your Own Module: `log`
