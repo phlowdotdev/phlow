@@ -55,7 +55,7 @@ You can inject modules directly into your PHS context via the `modules` section 
   - [🧯 Error Handling](#-error-handling)
   - [🪛 Debugging Tools](#-debugging-tools)
   - [🧬 Nested Access in YAML](#-nested-access-in-yaml)
-  - [📍Future Support Notes](#-future-support-notes)
+  - [📍Future Support Notes](#future-support-notes)
 
 ## 🔌 Module Injection via YAML
 
