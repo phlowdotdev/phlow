@@ -7,4 +7,4 @@ ENV PHLOW_OTEL="true"
 COPY phlow /phlow
 
 # Executa o binário
-ENTRYPOINT ["/phlow"]
+ENTRYPOINT ["./phlow"]
