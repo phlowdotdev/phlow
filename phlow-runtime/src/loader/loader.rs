@@ -111,16 +111,26 @@ async fn download_file(url: &str, inner_folder: Option<&str>) -> Result<String, 
         }
     };
 
-    let full_path = if let Some(inner_folder) = inner_folder {
+    let effective_path = if let Some(inner_folder) = inner_folder {
         remote_path.join(inner_folder)
     } else {
-        remote_path
+        // Verifica se há uma única pasta dentro do remote_path
+        let entries: Vec<_> = fs::read_dir(&remote_path)
+            .map_err(|e| Error::ModuleLoaderError(format!("Failed to read remote dir: {}", e)))?
+            .filter_map(Result::ok)
+            .collect();
+
+        if entries.len() == 1 && entries[0].path().is_dir() {
+            entries[0].path()
+        } else {
+            remote_path
+        }
     };
 
     let main_path =
-        find_default_file(&full_path).ok_or_else(|| Error::MainNotFound(url.to_string()))?;
+        find_default_file(&effective_path).ok_or_else(|| Error::MainNotFound(url.to_string()))?;
 
-    return Ok(main_path);
+    Ok(main_path)
 }
 
 async fn load_remote_main(main_target: &str) -> Result<String, Error> {
