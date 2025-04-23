@@ -34,7 +34,7 @@ jobs:
       - name: Corrige a URL do Git remoto para usar GITHUB_TOKEN
         run: |
           cd phlow-docs
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/codephi/phlow.git
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/lowcarboncode/phlow.git
 
       - name: Deploy para GitHub Pages
         working-directory: phlow-docs
