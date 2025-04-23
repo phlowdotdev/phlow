@@ -266,6 +266,44 @@ phlow --help
 | `main module`| Entry point. Starts the app (HTTP, CLI, AMQP, etc). |
 | `step module`| Logic executed within a flow (log, fetch, transform, etc). |
 
+Step modules can also be executed directly from Phlow Script (PHS), making it easy to use simple modules inside .phs or .rhai files.
+
+### 📄 Example: Step Module with Phlow Script (PHS)
+#### main.yaml
+```yaml
+main: cli
+name: Example Cli
+version: 1.0.0
+description: Example CLI module
+author: Your Name
+modules:
+  - module: cli
+    version: latest
+    with:
+      additional_args: false
+      args:
+        - name: name
+          description: Name of the user
+          index: 1
+          type: string
+          required: false
+  - module: log
+    version: latest
+steps:
+  - return: !import script.phs
+```
+
+#### script.phs
+```rust
+log("warn", `Hello, ${main.name}`);
+"phs"
+```
+
+To execute this file, just run:
+```bash
+2025-04-23T05:23:25.474573Z  WARN log: Hello, Phlow!
+phs
+```
 ---
 
 ## 🧠 Creating Your Own Module: `log`
