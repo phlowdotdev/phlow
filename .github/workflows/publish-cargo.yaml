@@ -20,11 +20,11 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Publish phs
-        run: cargo publish -p phs --token "$CARGO_REGISTRY_TOKEN" --no-verify
+    #   - name: Publish phs
+    #     run: cargo publish -p phs --token "$CARGO_REGISTRY_TOKEN" --no-verify
 
-      - name: Wait for phs
-        run: sleep 30
+    #   - name: Wait for phs
+    #     run: sleep 30
 
       - name: Publish phlow-sdk
         run: cargo publish -p phlow-sdk --token "$CARGO_REGISTRY_TOKEN" --no-verify
