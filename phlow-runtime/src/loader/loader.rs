@@ -12,7 +12,7 @@ use zip::ZipArchive;
 pub async fn load_main(main_target: &str) -> Result<Value, Error> {
     let main_file_path = match load_remote_main(main_target).await {
         Ok(path) => path,
-        Err(_) => return Err(Error::ModuleNotFound(main_target.to_string())),
+        Err(err) => return Err(err),
     };
 
     let file: String = match std::fs::read_to_string(&main_file_path) {
@@ -45,16 +45,32 @@ fn clone_git_repo(url: &str, branch: Option<&str>) -> Result<String, Error> {
 
     let remote_path = get_remote_path()?;
 
-    // Configura os callbacks para suporte a SSH
     let mut callbacks = RemoteCallbacks::new();
-    callbacks.credentials(|_url, username_from_url, _allowed_types| {
-        git2::Cred::ssh_key(
-            username_from_url.unwrap_or("git"),
-            None, // usa ~/.ssh/id_rsa.pub
-            std::path::Path::new(&format!("{}/.ssh/id_rsa", std::env::var("HOME").unwrap())),
-            None, // sem passphrase
-        )
-    });
+
+    if url.contains("@") {
+        if let Some(ssh_user) = url.split('@').next() {
+            let id_rsa_path = std::env::var("PHLOW_REMOTE_ID_RSA_PATH")
+                .unwrap_or_else(|_| format!("{}/.ssh/id_rsa", std::env::var("HOME").unwrap()));
+
+            if !Path::new(&id_rsa_path).exists() {
+                return Err(Error::ModuleLoaderError(format!(
+                    "SSH key not found at path: {}",
+                    id_rsa_path
+                )));
+            }
+
+            let id_rsa_path = id_rsa_path.clone();
+
+            callbacks.credentials(move |_url, username_from_url, _allowed_types| {
+                git2::Cred::ssh_key(
+                    username_from_url.unwrap_or(ssh_user),
+                    None, // usa ~/.ssh/id_rsa.pub
+                    std::path::Path::new(&id_rsa_path),
+                    None, // sem passphrase
+                )
+            });
+        }
+    }
 
     let mut fetch_options = FetchOptions::new();
     fetch_options.remote_callbacks(callbacks);

@@ -282,6 +282,14 @@ phlow https://github.com/lowcarboncode/phlow-mirror-request/tarball/main
 phlow git@github.com:lowcarboncode/phlow-mirror-request.git#develop
 ```
 
+### 🔐 Custom SSH Key
+By default, Phlow uses the SSH key at ~/.ssh/id_rsa to authenticate Git over SSH.
+To override this path, set the environment variable:
+
+```bash
+export PHLOW_REMOTE_ID_RSA_PATH=/path/to/your/private_key
+```
+
 ### 🗂️ Inner directory selector (ZIP/GZIP)
 If you are downloading a ZIP or GZIP archive and want to specify which folder inside the archive contains your flow, you can add `#folder_name` at the end:
 
