@@ -21,7 +21,6 @@ jobs:
         run: |
           version=$(grep '^version' Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/')
           echo "VERSION=$version" >> $GITHUB_ENV
-          echo "VERSION=$version" > VERSION.txt
 
       - name: Create tag
         run: |
@@ -33,14 +32,11 @@ jobs:
       - name: Build binary
         run: cargo build --release -p phlow-runtime
 
-      - name: Rename binary for upload
-        run: mv ./target/release/phlow ./phlow
-
       - name: Upload release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ env.VERSION }}
           name: Release v${{ env.VERSION }}
-          files: ./phlow
+          files: ./target/release/phlow
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
