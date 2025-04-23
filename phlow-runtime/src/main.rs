@@ -35,8 +35,8 @@ async fn main() {
         }
     }
 
-    if let Some(main) = &settings.main {
-        let loader = match Loader::load(&main.path, &main.ext) {
+    if let Some(main) = &settings.main_target {
+        let loader = match Loader::load(&main).await {
             Ok(main) => main,
             Err(err) => {
                 eprintln!("Runtime Error Main File: {:?}", err);

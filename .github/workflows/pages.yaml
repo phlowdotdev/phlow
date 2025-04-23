@@ -1,9 +1,7 @@
 name: Deploy Docusaurus to GitHub Pages
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
       
 permissions: write-all
 

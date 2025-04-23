@@ -285,8 +285,6 @@ impl Modules {
                 }
             };
 
-            println!("Registering module: {:?}", args);
-
             let repository_function = wrap_async_fn(name.clone(), func, args);
 
             repositories.insert(name, repository_function);

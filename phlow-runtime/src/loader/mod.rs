@@ -1,75 +1,12 @@
-use crate::{settings::cli::ModuleExtension, yaml::yaml_helpers_transform};
+mod error;
+pub mod loader;
+use error::{Error, ModuleError};
 use libloading::{Library, Symbol};
-use phlow_sdk::{prelude::*, tracing::info, valu3};
+use loader::load_main;
+use phlow_sdk::{prelude::*, tracing::info};
 use reqwest::Client;
 use std::io::Write;
-use std::{fmt::Display, fs::File, path::Path};
-
-pub struct ModuleError {
-    pub module: String,
-}
-
-impl Display for ModuleError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Module: {}", self.module)
-    }
-}
-
-pub enum Error {
-    VersionNotFound(ModuleError),
-    ModuleLoaderError(String),
-    ModuleNotFound(String),
-    StepsNotDefined,
-    LibLoadingError(libloading::Error),
-    LoaderErrorJson(serde_json::Error),
-    LoaderErrorJsonValu3(valu3::Error),
-    LoaderErrorYaml(serde_yaml::Error),
-    LoaderErrorToml(toml::de::Error),
-    GetFileError(reqwest::Error),
-    FileCreateError(std::io::Error),
-    BufferError(reqwest::Error),
-    CopyError(std::io::Error),
-}
-
-impl std::fmt::Debug for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::VersionNotFound(err) => write!(f, "Version not found: {}", err),
-            Error::ModuleLoaderError(err) => write!(f, "Module loader error: {}", err),
-            Error::StepsNotDefined => write!(f, "Steps not defined"),
-            Error::ModuleNotFound(name) => write!(f, "Module not found: {}", name),
-            Error::LibLoadingError(err) => write!(f, "Lib loading error: {:?}", err),
-            Error::LoaderErrorJson(err) => write!(f, "Json error: {:?}", err),
-            Error::LoaderErrorJsonValu3(err) => write!(f, "Json Valu3 error: {:?}", err),
-            Error::LoaderErrorYaml(err) => write!(f, "Yaml error: {:?}", err),
-            Error::LoaderErrorToml(err) => write!(f, "Toml error: {:?}", err),
-            Error::GetFileError(err) => write!(f, "Get file error: {:?}", err),
-            Error::FileCreateError(err) => write!(f, "File create error: {:?}", err),
-            Error::BufferError(err) => write!(f, "Buffer error: {:?}", err),
-            Error::CopyError(err) => write!(f, "Copy error: {:?}", err),
-        }
-    }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::VersionNotFound(err) => write!(f, "Version not found: {}", err),
-            Error::ModuleLoaderError(err) => write!(f, "Module loader error: {}", err),
-            Error::StepsNotDefined => write!(f, "Steps not defined"),
-            Error::ModuleNotFound(name) => write!(f, "Module not found: {}", name),
-            Error::LibLoadingError(err) => write!(f, "Lib loading error: {:?}", err),
-            Error::LoaderErrorJson(err) => write!(f, "Json error: {:?}", err),
-            Error::LoaderErrorJsonValu3(err) => write!(f, "Json Valu3 error: {:?}", err),
-            Error::LoaderErrorYaml(err) => write!(f, "Yaml error: {:?}", err),
-            Error::LoaderErrorToml(err) => write!(f, "Toml error: {:?}", err),
-            Error::GetFileError(err) => write!(f, "Get file error: {:?}", err),
-            Error::FileCreateError(err) => write!(f, "File create error: {:?}", err),
-            Error::BufferError(err) => write!(f, "Buffer error: {:?}", err),
-            Error::CopyError(err) => write!(f, "Copy error: {:?}", err),
-        }
-    }
-}
+use std::{fs::File, path::Path};
 
 #[derive(Debug, Clone)]
 pub struct Loader {
@@ -80,8 +17,8 @@ pub struct Loader {
 }
 
 impl Loader {
-    pub fn load(main_path: &str, main_ext: &ModuleExtension) -> Result<Self, Error> {
-        let value = Self::load_main(main_path, main_ext)?;
+    pub async fn load(main_path: &str) -> Result<Self, Error> {
+        let value = load_main(main_path).await?;
 
         let (main, modules) = match value.get("modules") {
             Some(modules) => {
@@ -145,109 +82,6 @@ impl Loader {
             steps,
             app_data,
         })
-    }
-
-    fn load_main(main_file_path: &str, main_ext: &ModuleExtension) -> Result<Value, Error> {
-        let file = match std::fs::read_to_string(main_file_path) {
-            Ok(file) => file,
-            Err(_) => return Err(Error::ModuleNotFound(main_file_path.to_string())),
-        };
-
-        let mut value: Value = match main_ext {
-            ModuleExtension::Json => serde_json::from_str(&file).map_err(Error::LoaderErrorJson)?,
-            ModuleExtension::Yaml => {
-                let yaml_path = Path::new(&main_file_path)
-                    .parent()
-                    .unwrap_or_else(|| Path::new("."));
-                let yaml: String = yaml_helpers_transform(&file, yaml_path);
-
-                if let Ok(yaml_show) = std::env::var("PHLOW_YAML_SHOW") {
-                    if yaml_show == "true" {
-                        println!("YAML: {}", yaml);
-                    }
-                }
-
-                serde_yaml::from_str(&yaml).map_err(Error::LoaderErrorYaml)?
-            }
-            ModuleExtension::Toml => toml::from_str(&file).map_err(Error::LoaderErrorToml)?,
-        };
-
-        if value.get("steps").is_none() {
-            return Err(Error::StepsNotDefined);
-        }
-
-        if let Some(modules) = value.get("modules") {
-            if !modules.is_array() {
-                return Err(Error::ModuleLoaderError("Modules not an array".to_string()));
-            }
-
-            let modules_array = modules.as_array().unwrap();
-            let mut module_list = Vec::new();
-
-            for item in modules_array {
-                let mut module = item.clone();
-
-                let module_name = module.get("module").unwrap().to_string();
-                let module_info = Self::load_external_module_info(&module_name);
-
-                module.insert("info", module_info);
-                module_list.push(module);
-            }
-
-            value.insert("modules", module_list.to_value());
-        } else {
-            return Err(Error::ModuleLoaderError("Modules not found".to_string()));
-        }
-
-        Ok(value)
-    }
-
-    fn load_external_module_info(module: &str) -> Value {
-        let module_path = format!("phlow_packages/{}/phlow.yaml", module);
-        if !Path::new(&module_path).exists() {
-            return Value::Null;
-        }
-
-        let file = match std::fs::read_to_string(&module_path) {
-            Ok(file) => file,
-            Err(_) => return Value::Null,
-        };
-
-        let mut input_order = Vec::new();
-
-        {
-            let value: serde_yaml::Value = serde_yaml::from_str::<serde_yaml::Value>(&file)
-                .map_err(Error::LoaderErrorYaml)
-                .unwrap();
-
-            if let Some(input) = value.get("input") {
-                if let serde_yaml::Value::Mapping(input) = input {
-                    if let Some(serde_yaml::Value::String(input_type)) = input.get("type") {
-                        if input_type == "object" {
-                            if let Some(serde_yaml::Value::Mapping(properties)) =
-                                input.get(&serde_yaml::Value::String("properties".to_string()))
-                            {
-                                for (key, _) in properties {
-                                    if let serde_yaml::Value::String(key) = key {
-                                        input_order.push(key.clone());
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            drop(value)
-        }
-
-        let mut value: Value = serde_yaml::from_str::<Value>(&file)
-            .map_err(Error::LoaderErrorYaml)
-            .unwrap();
-
-        value.insert("input_order".to_string(), input_order.to_value());
-
-        value
     }
 
     pub fn load_module(setup: ModuleSetup, module_name: &str) -> Result<(), Error> {

@@ -30,17 +30,11 @@ jobs:
           git tag "v$VERSION"
           git push origin "v$VERSION"
 
-      - name: Install cross
-        run: cargo install cross
-  
-      - name: Build for multiple targets
-        run: |
-          mkdir -p dist
-          for TARGET in x86_64-unknown-linux-musl aarch64-unknown-linux-gnu; do
-            cross build --release -p phlow-runtime --target $TARGET
-            BIN_NAME="phlow-${TARGET}"
-            cp target/$TARGET/release/phlow-runtime "dist/$BIN_NAME"
-          done
+      - name: Build binary
+        run: cargo build --release -p phlow-runtime
+
+      - name: Rename binary for upload
+        run: mv ./target/release/phlow ./phlow
 
       - name: Upload release
         uses: softprops/action-gh-release@v1
