@@ -6,6 +6,12 @@ rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+description = "Runtime for Phlow Script, PHS"
+keywords = ["phlow", "phs"]
+categories = ["development-tools"]
+readme = "../README.md"
+homepage = "https://github.com/lowcarboncode/phlow"
+documentation = "https://docs.rs/phlow"
 
 [dependencies]
 serde = { workspace = true }
