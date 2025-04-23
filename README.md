@@ -290,6 +290,16 @@ To override this path, set the environment variable:
 export PHLOW_REMOTE_ID_RSA_PATH=/path/to/your/private_key
 ```
 
+### 🔐 Authorization Header for ZIP/GZIP Downloads
+When downloading `.zip` or `.tar.gz` files that require authentication (e.g., from a private server), you can use the environment variable below to send an `Authorization` header in the request:
+
+```bash
+export PHLOW_REMOTE_HEADER_AUTHORIZATION="Bearer your_token_here"
+```
+
+Phlow will include this header when performing the HTTP request for ZIP or GZIP downloads.
+
+
 ### 🗂️ Inner directory selector (ZIP/GZIP)
 If you are downloading a ZIP or GZIP archive and want to specify which folder inside the archive contains your flow, you can add `#folder_name` at the end:
 

@@ -2,6 +2,7 @@ use super::Error;
 use crate::yaml::yaml_helpers_transform;
 use flate2::read::GzDecoder;
 use phlow_sdk::prelude::*;
+use reqwest::header::AUTHORIZATION;
 use reqwest::Client;
 use std::fs;
 use std::io::Cursor;
@@ -111,7 +112,14 @@ fn clone_git_repo(url: &str, branch: Option<&str>) -> Result<String, Error> {
 
 async fn download_file(url: &str, inner_folder: Option<&str>) -> Result<String, Error> {
     let client = Client::new();
-    let response = client.get(url).send().await.map_err(Error::GetFileError)?;
+
+    let mut request = client.get(url);
+
+    if let Ok(auth_header) = std::env::var("PHLOW_REMOTE_HEADER_AUTHORIZATION") {
+        request = request.header(AUTHORIZATION, auth_header);
+    }
+
+    let response = request.send().await.map_err(Error::GetFileError)?;
     let bytes = response.bytes().await.map_err(Error::BufferError)?;
 
     let remote_path = get_remote_path()?;
@@ -130,7 +138,6 @@ async fn download_file(url: &str, inner_folder: Option<&str>) -> Result<String, 
     let effective_path = if let Some(inner_folder) = inner_folder {
         remote_path.join(inner_folder)
     } else {
-        // Verifica se há uma única pasta dentro do remote_path
         let entries: Vec<_> = fs::read_dir(&remote_path)
             .map_err(|e| Error::ModuleLoaderError(format!("Failed to read remote dir: {}", e)))?
             .filter_map(Result::ok)
