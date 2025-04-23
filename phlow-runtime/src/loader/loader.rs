@@ -1,10 +1,9 @@
 use super::Error;
 use crate::yaml::yaml_helpers_transform;
 use flate2::read::GzDecoder;
-use git2::Repository;
 use phlow_sdk::prelude::*;
 use reqwest::Client;
-use std::fs::{self, File};
+use std::fs;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use tar::Archive;
@@ -25,20 +24,50 @@ pub async fn load_main(main_target: &str) -> Result<Value, Error> {
         .map_err(|_| Error::ModuleLoaderError("Module not found".to_string()))
 }
 
-fn clone_git_repo(url: &str, branch: Option<&str>) -> Result<PathBuf, Error> {
+fn get_remote_path() -> Result<PathBuf, Error> {
     let remote_path = PathBuf::from("phlow_remote");
 
-    // Check if the directory already exists, if so, remove it
     if remote_path.exists() {
+        // remove
         fs::remove_dir_all(&remote_path).map_err(|e| {
-            Error::ModuleLoaderError(format!("Failed to remove existing dir: {}", e))
+            Error::ModuleLoaderError(format!("Failed to remove remote path: {}", e))
         })?;
     }
 
     fs::create_dir_all(&remote_path)
         .map_err(|e| Error::ModuleLoaderError(format!("Failed to create remote dir: {}", e)))?;
 
-    let repo = Repository::clone(url, &remote_path)
+    Ok(remote_path)
+}
+
+fn clone_git_repo(url: &str, branch: Option<&str>) -> Result<String, Error> {
+    use git2::{build::RepoBuilder, FetchOptions, RemoteCallbacks};
+
+    let remote_path = get_remote_path()?;
+
+    // Configura os callbacks para suporte a SSH
+    let mut callbacks = RemoteCallbacks::new();
+    callbacks.credentials(|_url, username_from_url, _allowed_types| {
+        git2::Cred::ssh_key(
+            username_from_url.unwrap_or("git"),
+            None, // usa ~/.ssh/id_rsa.pub
+            std::path::Path::new(&format!("{}/.ssh/id_rsa", std::env::var("HOME").unwrap())),
+            None, // sem passphrase
+        )
+    });
+
+    let mut fetch_options = FetchOptions::new();
+    fetch_options.remote_callbacks(callbacks);
+
+    let mut builder = RepoBuilder::new();
+    builder.fetch_options(fetch_options);
+
+    if let Some(branch_name) = branch {
+        builder.branch(branch_name);
+    }
+
+    let repo = builder
+        .clone(url, &remote_path)
         .map_err(|e| Error::ModuleLoaderError(format!("Git clone failed: {}", e)))?;
 
     if let Some(branch_name) = branch {
@@ -58,61 +87,63 @@ fn clone_git_repo(url: &str, branch: Option<&str>) -> Result<PathBuf, Error> {
             .map_err(|e| Error::ModuleLoaderError(format!("Checkout failed: {}", e)))?;
     }
 
-    Ok(remote_path)
+    let file_path =
+        find_default_file(&remote_path).ok_or_else(|| Error::MainNotFound(url.to_string()))?;
+
+    Ok(file_path)
+}
+
+async fn download_file(url: &str, inner_folder: Option<&str>) -> Result<String, Error> {
+    let client = Client::new();
+    let response = client.get(url).send().await.map_err(Error::GetFileError)?;
+    let bytes = response.bytes().await.map_err(Error::BufferError)?;
+
+    let remote_path = get_remote_path()?;
+
+    if Archive::new(GzDecoder::new(Cursor::new(bytes.clone())))
+        .unpack(&remote_path)
+        .is_err()
+    {
+        if let Ok(mut archive) = ZipArchive::new(Cursor::new(bytes.clone())) {
+            archive
+                .extract(&remote_path)
+                .map_err(Error::ZipErrorError)?;
+        }
+    };
+
+    let full_path = if let Some(inner_folder) = inner_folder {
+        remote_path.join(inner_folder)
+    } else {
+        remote_path
+    };
+
+    let main_path =
+        find_default_file(&full_path).ok_or_else(|| Error::MainNotFound(url.to_string()))?;
+
+    return Ok(main_path);
 }
 
 async fn load_remote_main(main_target: &str) -> Result<String, Error> {
     let (target, branch) = if main_target.contains('#') {
-        let parts: Vec<&str> = main_target.splitn(2, '#').collect();
+        let parts: Vec<&str> = main_target.split('#').collect();
         (parts[0], Some(parts[1]))
     } else {
         (main_target, None)
     };
 
     if target.trim_end().ends_with(".git") {
-        let repo_path = clone_git_repo(target, branch)?;
-        return Ok(repo_path.join("main.yaml").to_str().unwrap().to_string());
+        return clone_git_repo(target, branch);
     }
 
     if target.starts_with("http://") || target.starts_with("https://") {
-        let client = Client::new();
-        let response = client
-            .get(target)
-            .send()
-            .await
-            .map_err(Error::GetFileError)?;
-        let bytes = response.bytes().await.map_err(Error::BufferError)?;
-
-        let remote_path = PathBuf::from("remote");
-        fs::create_dir_all(&remote_path).map_err(Error::FileCreateError)?;
-
-        if let Ok(_) = Archive::new(GzDecoder::new(Cursor::new(bytes.clone()))).unpack(&remote_path)
-        {
-            return Ok(remote_path.join("main.yaml").to_str().unwrap().to_string());
-        }
-
-        if let Ok(mut archive) = ZipArchive::new(Cursor::new(bytes.clone())) {
-            archive
-                .extract(&remote_path)
-                .map_err(Error::ZipErrorError)?;
-            return Ok(remote_path.join("main.yaml").to_str().unwrap().to_string());
-        }
-
-        let file_path = remote_path.join("main.yaml");
-        File::create(&file_path)
-            .and_then(|mut f| std::io::copy(&mut Cursor::new(bytes), &mut f))
-            .map_err(Error::CopyError)?;
-
-        return Ok(file_path.to_str().unwrap().to_string());
+        return download_file(target, branch).await;
     }
 
-    if PathBuf::from(target).is_dir() {
-        if let Some(main_path) = find_default_file(target) {
-            if PathBuf::from(&main_path).exists() {
-                return Ok(main_path);
-            }
-        }
-    } else if PathBuf::from(target).exists() {
+    let target_path = PathBuf::from(target);
+    if target_path.is_dir() {
+        return find_default_file(&target_path)
+            .ok_or_else(|| Error::MainNotFound(main_target.to_string()));
+    } else if target_path.exists() {
         return Ok(target.to_string());
     }
 
@@ -213,18 +244,20 @@ fn load_external_module_info(module: &str) -> Value {
     value
 }
 
-fn find_default_file(base: &str) -> Option<String> {
-    let files = vec!["main.yaml", "main.yml"];
+fn find_default_file(base: &PathBuf) -> Option<String> {
+    if base.is_file() {
+        return Some(base.to_str().unwrap_or_default().to_string());
+    }
 
-    for file in files {
-        let path = if base.is_empty() || base == "." {
-            file.to_string()
-        } else {
-            format!("{}/{}", base, file)
-        };
+    if base.is_dir() {
+        let files = vec!["main.yaml", "main.yml"];
 
-        if std::path::Path::new(&path).exists() {
-            return Some(path.to_string());
+        for file in files {
+            let file_path = base.join(file);
+
+            if file_path.exists() {
+                return Some(file_path.to_str().unwrap_or_default().to_string());
+            }
         }
     }
 
