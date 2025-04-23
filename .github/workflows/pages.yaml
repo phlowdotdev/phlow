@@ -16,16 +16,16 @@ jobs:
       - name: Instala Node.js
         uses: actions/setup-node@v4
 
-      - name: Go to phlow-docs
-        run: cd phlow-docs
-
       - name: Instala dependências
+        working-directory: phlow-docs
         run: npm install
 
       - name: Build do site
+        working-directory: phlow-docs
         run: npm run build
 
       - name: Deploy para GitHub Pages
+        working-directory: phlow-docs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
