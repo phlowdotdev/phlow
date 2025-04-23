@@ -1,3 +1,3 @@
-log(`Hello, ${main.name}`, "info");
+log("warn", `Hello, ${main.name}`);
 
 "phs"

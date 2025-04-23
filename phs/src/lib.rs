@@ -19,24 +19,23 @@ pub fn build_engine(repositories: Option<Repositories>) -> Arc<Engine> {
                     + Send
                     + Sync,
             > = repo.function.clone();
-            let default_args = repo.args.clone();
 
             let arg_types: Vec<std::any::TypeId> =
-                vec![std::any::TypeId::of::<Dynamic>(); default_args.len()];
+                vec![std::any::TypeId::of::<Dynamic>(); repo.args.len()];
 
             engine.register_raw_fn(&key, arg_types, move |_context, args| {
-                let mut args_value = HashMap::new();
+                let mut args_map = HashMap::new();
 
                 for dynamic in args {
                     let value: Value = from_dynamic(&dynamic).unwrap_or(Value::Null);
 
-                    if let Some(key) = default_args.get(args_value.len()) {
-                        args_value.insert(key.clone(), value);
+                    if let Some(key) = repo.args.get(args_map.len()) {
+                        args_map.insert(key.clone(), value);
                     }
                 }
 
                 let call = call.clone();
-                let args_value = args_value.to_value();
+                let args_value = args_map.to_value();
 
                 let result = tokio::task::block_in_place(move || {
                     let future = (call)(args_value);
