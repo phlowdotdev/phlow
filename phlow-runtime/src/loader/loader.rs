@@ -26,7 +26,15 @@ pub async fn load_main(main_target: &str) -> Result<Value, Error> {
 }
 
 fn clone_git_repo(url: &str, branch: Option<&str>) -> Result<PathBuf, Error> {
-    let remote_path = PathBuf::from("remote");
+    let remote_path = PathBuf::from("phlow_remote");
+
+    // Check if the directory already exists, if so, remove it
+    if remote_path.exists() {
+        fs::remove_dir_all(&remote_path).map_err(|e| {
+            Error::ModuleLoaderError(format!("Failed to remove existing dir: {}", e))
+        })?;
+    }
+
     fs::create_dir_all(&remote_path)
         .map_err(|e| Error::ModuleLoaderError(format!("Failed to create remote dir: {}", e)))?;
 
@@ -53,24 +61,23 @@ fn clone_git_repo(url: &str, branch: Option<&str>) -> Result<PathBuf, Error> {
     Ok(remote_path)
 }
 
-async fn load_remote_main(main_path: &str) -> Result<String, Error> {
-    if main_path.starts_with("git+https://") || main_path.starts_with("git+ssh://") {
-        let url = main_path.trim_start_matches("git+");
-        let (url, branch) = if url.contains('#') {
-            let parts: Vec<&str> = url.splitn(2, '#').collect();
-            (parts[0], Some(parts[1]))
-        } else {
-            (url, None)
-        };
+async fn load_remote_main(main_target: &str) -> Result<String, Error> {
+    let (target, branch) = if main_target.contains('#') {
+        let parts: Vec<&str> = main_target.splitn(2, '#').collect();
+        (parts[0], Some(parts[1]))
+    } else {
+        (main_target, None)
+    };
 
-        let repo_path = clone_git_repo(url, branch)?;
+    if target.trim_end().ends_with(".git") {
+        let repo_path = clone_git_repo(target, branch)?;
         return Ok(repo_path.join("main.yaml").to_str().unwrap().to_string());
     }
 
-    if main_path.starts_with("http://") || main_path.starts_with("https://") {
+    if target.starts_with("http://") || target.starts_with("https://") {
         let client = Client::new();
         let response = client
-            .get(main_path)
+            .get(target)
             .send()
             .await
             .map_err(Error::GetFileError)?;
@@ -79,13 +86,11 @@ async fn load_remote_main(main_path: &str) -> Result<String, Error> {
         let remote_path = PathBuf::from("remote");
         fs::create_dir_all(&remote_path).map_err(Error::FileCreateError)?;
 
-        // tenta extrair .tar.gz
         if let Ok(_) = Archive::new(GzDecoder::new(Cursor::new(bytes.clone()))).unpack(&remote_path)
         {
             return Ok(remote_path.join("main.yaml").to_str().unwrap().to_string());
         }
 
-        // tenta extrair .zip
         if let Ok(mut archive) = ZipArchive::new(Cursor::new(bytes.clone())) {
             archive
                 .extract(&remote_path)
@@ -93,7 +98,6 @@ async fn load_remote_main(main_path: &str) -> Result<String, Error> {
             return Ok(remote_path.join("main.yaml").to_str().unwrap().to_string());
         }
 
-        // fallback: salva direto
         let file_path = remote_path.join("main.yaml");
         File::create(&file_path)
             .and_then(|mut f| std::io::copy(&mut Cursor::new(bytes), &mut f))
@@ -102,17 +106,17 @@ async fn load_remote_main(main_path: &str) -> Result<String, Error> {
         return Ok(file_path.to_str().unwrap().to_string());
     }
 
-    if PathBuf::from(main_path).is_dir() {
-        if let Some(main_path) = find_default_file(main_path) {
+    if PathBuf::from(target).is_dir() {
+        if let Some(main_path) = find_default_file(target) {
             if PathBuf::from(&main_path).exists() {
                 return Ok(main_path);
             }
         }
-    } else if PathBuf::from(main_path).exists() {
-        return Ok(main_path.to_string());
+    } else if PathBuf::from(target).exists() {
+        return Ok(target.to_string());
     }
 
-    Err(Error::MainNotFound(main_path.to_string()))
+    Err(Error::MainNotFound(main_target.to_string()))
 }
 
 fn resolve_main(file: &str, main_file_path: String) -> Result<Value, Error> {
