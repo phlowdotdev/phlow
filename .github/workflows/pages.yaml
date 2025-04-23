@@ -15,8 +15,9 @@ jobs:
 
       - name: Instala Node.js
         uses: actions/setup-node@v4
-        with:
-          node-version: '18'
+
+      - name: Go to phlow-docs
+        run: cd phlow-docs
 
       - name: Instala dependências
         run: npm install
