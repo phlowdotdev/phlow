@@ -9,8 +9,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  tag-and-build:
-    name: Tag, Build and Release Binaries
+  tag:
+    name: Tag and Build Binary
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -19,11 +19,11 @@ jobs:
       - name: Read version from phlow-runtime/Cargo.toml
         id: get_version
         run: |
-          version=$(grep '^version' phlow-runtime/Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/')
+          version=$(grep '^version' Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/')
           echo "VERSION=$version" >> $GITHUB_ENV
           echo "VERSION=$version" > VERSION.txt
 
-      - name: Create Git tag
+      - name: Create tag
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
@@ -32,7 +32,7 @@ jobs:
 
       - name: Install cross
         run: cargo install cross
-
+  
       - name: Build for multiple targets
         run: |
           mkdir -p dist
@@ -42,11 +42,11 @@ jobs:
             cp target/$TARGET/release/phlow-runtime "dist/$BIN_NAME"
           done
 
-      - name: Upload binaries to GitHub Release
+      - name: Upload release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ env.VERSION }}
           name: Release v${{ env.VERSION }}
-          files: dist/*
+          files: ./phlow
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
