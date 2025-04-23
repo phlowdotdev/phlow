@@ -22,6 +22,7 @@ If you're looking for speed, flexibility, and full insight into your backend —
 - [🧪 More Examples](#-more-examples)
 - [📦 Packages And Modules](#-packages-and-modules)
 - [⚡ YAML Superpowers](#-yaml-superpowers)
+- [🧾 Phlow Script (.phs)](/phs/README.md)
 - [⚙️ Install & Uninstall](#%EF%B8%8F-installation--uninstall)
 - [🚀 Running a Flow](#-running-a-flow)
 - [🌐 Running Remote Projects](#-running-remote-projects)
