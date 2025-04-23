@@ -24,6 +24,7 @@ If you're looking for speed, flexibility, and full insight into your backend —
 - [⚡ YAML Superpowers](#-yaml-superpowers)
 - [⚙️ Install & Uninstall](#%EF%B8%8F-installation--uninstall)
 - [🚀 Running a Flow](#-running-a-flow)
+- [🌐 Running Remote Projects](#-running-remote-projects)
 - [🔌 Module Types](#-module-types)
 - [🧠 Creating Your Own Module: `log`](#-creating-your-own-module-log)
 - [📦 Project Structure](#-project-structure)
@@ -257,6 +258,42 @@ phlow -h
 # or
 phlow --help
 ```
+---
+## 🌐 Running Remote Projects
+
+Phlow supports running remote projects directly from URLs or Git repositories. You can pass a `.git`, `.zip`, or `.tar.gz` source — Phlow will automatically download, extract (if needed), and execute the flow from a `main.yaml`.
+
+```bash
+# Git via SSH
+phlow git@github.com:lowcarboncode/phlow-mirror-request.git 
+
+# Git via HTTPS
+phlow https://github.com/lowcarboncode/phlow-mirror-request.git
+
+# ZIP archive
+phlow https://github.com/lowcarboncode/phlow-mirror-request/archive/refs/heads/main.zip
+
+# Tarball (GZIP)
+phlow https://github.com/lowcarboncode/phlow-mirror-request/tarball/main
+```
+### 🪄 Git branch selector
+
+```bash
+phlow git@github.com:lowcarboncode/phlow-mirror-request.git#develop
+```
+
+### 🗂️ Inner directory selector (ZIP/GZIP)
+If you are downloading a ZIP or GZIP archive and want to specify which folder inside the archive contains your flow, you can add `#folder_name` at the end:
+
+```bash
+phlow https://github.com/lowcarboncode/phlow-mirror-request/archive/refs/heads/main.zip#phlow-mirror-request
+```
+
+### 📁 Auto-detection of inner folder
+If you don’t specify a folder name and the ZIP/GZIP file contains only one directory, Phlow will automatically treat it as the root and search for a `main.yaml` inside it.
+
+If the archive contains multiple folders or any loose files in the root and no folder is specified, Phlow will return an error.
+
 ---
 
 ## 🔌 Module Types
