@@ -16,10 +16,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install Rust 1.83.0
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: 1.83.0
+          override: true
+          profile: minimal
+
       - name: Read version from phlow-runtime/Cargo.toml
         id: get_version
         run: |
-          version=$(grep '^version' Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/')
+          version=$(grep '^version' phlow-runtime/Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/')
           echo "VERSION=$version" >> $GITHUB_ENV
 
       - name: Create tag
