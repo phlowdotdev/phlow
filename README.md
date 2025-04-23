@@ -15,7 +15,7 @@ If you're looking for speed, flexibility, and full insight into your backend —
 
 ---
 
-## 📚 Table of Contents
+## 📚 Summary
 
 - [🎯 Philosophy](#-philosophy)
 - [🧱 Example: `main.yaml` for an HTTP Gateway](#-example-mainyaml-for-an-http-gateway)
