@@ -9,14 +9,62 @@ PHS (Phlow Script) brings the power of embedded scripting to YAML-based workflow
 
 You can inject modules directly into your PHS context via the `modules` section of your `.yaml` configuration. Each module declared becomes globally accessible in the `.phs` script, making it easy to mix scripting with orchestrated steps.
 
+## 📑 Summary
+
+- [✨ Overview](#-overview)
+- [🔌 Module Injection via YAML](#-module-injection-via-yaml)
+- [🧪 Example](#-example)
+  - [main.yaml](#mainyaml)
+  - [script.phs](#scriptphs)
+  - [💡Output](#output)
+- [📁 File Extensions](#-file-extensions)
+- [🔐 Modules Supported in PHS](#-modules-supported-in-phs)
+- [🧠 Variables in PHS](#-variables-in-phs)
+  - [🔤 Declaring Variables](#-declaring-variables)
+  - [✍️ Reassigning Values](#️-reassigning-values)
+  - [🔄 Using Function Results](#-using-function-results)
+- [🧱 Arrays and Objects (Maps)](#-arrays-and-objects-maps)
+  - [📚 Arrays](#-arrays)
+  - [🔄 Looping Through Arrays](#-looping-through-arrays)
+  - [🧳 Objects (Maps)](#-objects-maps)
+  - [📦 Nesting](#-nesting)
+- [🧭 Conditionals in PHS](#-conditionals-in-phs)
+  - [✅ Basic If](#-basic-if)
+  - [🔁 If...Else](#-ifelse)
+  - [🔀 Else If](#-else-if)
+  - [🔗 Nested Conditions](#-nested-conditions)
+- [🔁 Loops in PHS](#-loops-in-phs)
+  - [📚 Looping Through an Array](#-looping-through-an-array)
+  - [🔢 Looping with a Range](#-looping-with-a-range)
+  - [🔄 Nested Loops](#-nested-loops)
+  - [🛑 Breaking a Loop (not supported yet)](#-breaking-a-loop-not-supported-yet)
+- [🧩 Functions in PHS](#-functions-in-phs)
+  - [🛠 Defining a Function](#-defining-a-function)
+  - [▶️ Calling a Function](#️-calling-a-function)
+  - [↩️ Returning Values](#️-returning-values)
+  - [🧠 Functions with Logic](#-functions-with-logic)
+  - [⚠️ Scope](#️-scope)
+- [🧬 PHS Syntax and Language Features](#-phs-syntax-and-language-features)
+  - [📐 Data Types in PHS](#-data-types-in-phs)
+  - [➕ Operators](#-operators)
+  - [🌐 Global Scope](#-global-scope)
+  - [🧪 Expressions & Statements](#-expressions--statements)
+  - [🔀 Ternary Expressions](#-ternary-expressions)
+  - [🔎 Type Conversion Helpers](#-type-conversion-helpers)
+  - [🛠 Working with Maps & Arrays](#-working-with-maps--arrays)
+  - [🧯 Error Handling](#-error-handling)
+  - [🪛 Debugging Tools](#-debugging-tools)
+  - [🧬 Nested Access in YAML](#-nested-access-in-yaml)
+  - [📍Future Support Notes](#-future-support-notes)
+
 ## 🔌 Module Injection via YAML
 
 All modules declared in the YAML under `modules:` are automatically available inside your `.phs` script. For example, when you load the `log` module, its functions can be used directly in the script.
 
 ## 🧪 Example
+#### main.yaml
 
 ```yaml
-# main.yaml
 main: cli
 name: Example Cli
 version: 1.0.0
@@ -41,6 +89,7 @@ steps:
   - return: !import script.phs
 ```
 
+#### script.phs
 ```rust
 log("warn", `Hello, ${main.name}`);
 ```
@@ -96,7 +145,7 @@ let msg = "Something happened";
 
 log(status, msg);
 ```
-## 🧱 A
+## 🧱 Arrays and objects (maps)
 PHS allows you to work with arrays and objects (maps) natively. These are useful when handling lists of items, grouping values, or building dynamic data structures.
 
 ### 📚 Arrays
