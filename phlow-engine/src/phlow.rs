@@ -5,7 +5,7 @@ use crate::{
     transform::{value_to_pipelines, TransformError},
 };
 use phlow_sdk::prelude::*;
-use phs::{build_engine, repositories};
+use phs::{build_engine, Repositories};
 use std::{collections::HashMap, sync::Arc};
 
 #[derive(Debug)]
@@ -30,7 +30,7 @@ impl Phlow {
     ) -> Result<Self, PhlowError> {
         let engine = match &modules {
             Some(modules) => {
-                let repositories: repositories::Repositories = modules.extract_repositories();
+                let repositories: Repositories = modules.extract_repositories();
                 build_engine(Some(repositories))
             }
             None => build_engine(None),

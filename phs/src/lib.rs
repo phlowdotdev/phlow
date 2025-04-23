@@ -1,7 +1,7 @@
 pub mod functions;
-pub mod repositories;
+mod repositories;
 use functions::build_functions;
-use repositories::{Repositories, RepositoryFunction};
+pub use repositories::{Repositories, RepositoryFunction};
 use rhai::serde::from_dynamic;
 use rhai::{Dynamic, Engine};
 use std::collections::HashMap;
@@ -20,8 +20,6 @@ pub fn build_engine(repositories: Option<Repositories>) -> Arc<Engine> {
                     + Sync,
             > = repo.function.clone();
             let default_args = repo.args.clone();
-
-            println!("default_args {:?}", default_args);
 
             let arg_types: Vec<std::any::TypeId> =
                 vec![std::any::TypeId::of::<Dynamic>(); default_args.len()];

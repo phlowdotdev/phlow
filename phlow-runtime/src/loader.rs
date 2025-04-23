@@ -1,10 +1,9 @@
-use std::{fmt::Display, fs::File, path::Path};
-
 use crate::{settings::cli::ModuleExtension, yaml::yaml_helpers_transform};
 use libloading::{Library, Symbol};
 use phlow_sdk::{prelude::*, tracing::info, valu3};
 use reqwest::Client;
 use std::io::Write;
+use std::{fmt::Display, fs::File, path::Path};
 
 pub struct ModuleError {
     pub module: String,
@@ -214,9 +213,39 @@ impl Loader {
             Err(_) => return Value::Null,
         };
 
-        let value: Value = serde_yaml::from_str(&file)
+        let mut input_order = Vec::new();
+
+        {
+            let value: serde_yaml::Value = serde_yaml::from_str(&file)
+                .map_err(Error::LoaderErrorYaml)
+                .unwrap();
+
+            if let Some(input) = value.get("input") {
+                if let serde_yaml::Value::Mapping(input) = input {
+                    if let Some(serde_yaml::Value::String(input_type)) = input.get("type") {
+                        if input_type == "object" {
+                            if let Some(serde_yaml::Value::Mapping(properties)) =
+                                input.get(&serde_yaml::Value::String("properties".to_string()))
+                            {
+                                for (key, _) in properties {
+                                    if let serde_yaml::Value::String(key) = key {
+                                        input_order.push(key.clone());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            drop(value)
+        }
+
+        let mut value: Value = serde_yaml::from_str(&file)
             .map_err(Error::LoaderErrorYaml)
             .unwrap();
+
+        value.insert("input_order".to_string(), input_order.to_value());
 
         value
     }

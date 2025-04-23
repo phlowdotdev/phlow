@@ -1,5 +1,5 @@
 use crossbeam::channel;
-use phs::{repositories::Repositories, wrap_async_fn};
+use phs::{wrap_async_fn, Repositories};
 use std::{collections::HashMap, fmt::Display};
 use tokio::sync::oneshot::{self, Receiver};
 use valu3::{prelude::*, value::Value};
@@ -41,6 +41,7 @@ pub struct ModuleData {
     pub with: Value,
     pub input: Value,
     pub output: Value,
+    pub input_order: Value,
 }
 
 impl TryFrom<Value> for ModuleData {
@@ -85,7 +86,7 @@ impl TryFrom<Value> for ModuleData {
             None => Value::Null,
         };
 
-        let (input, output) = if let Some(info) = value.get("info") {
+        let (input, output, input_order) = if let Some(info) = value.get("info") {
             let input = match info.get("input") {
                 Some(input) => {
                     if let Value::Object(obj) = input {
@@ -110,12 +111,15 @@ impl TryFrom<Value> for ModuleData {
                 None => Value::Null,
             };
 
-            (input, output)
-        } else {
-            (Value::Null, Value::Null)
-        };
+            let input_order = match info.get("input_order") {
+                Some(input_order) => input_order.clone(),
+                None => Value::Null,
+            };
 
-        println!("value {:?}", value.to_string());
+            (input, output, input_order)
+        } else {
+            (Value::Null, Value::Null, Value::Null)
+        };
 
         Ok(ModuleData {
             module,
@@ -127,6 +131,7 @@ impl TryFrom<Value> for ModuleData {
             output,
             repository_path,
             repository_raw_content,
+            input_order,
         })
     }
 }
@@ -182,16 +187,17 @@ impl ModulePackage {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct ModuleValidator {
+pub struct ModuleParams {
     pub with: Value,
     pub input: Value,
     pub output: Value,
+    pub input_order: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Module {
     pub sender: channel::Sender<ModulePackage>,
-    pub validator: ModuleValidator,
+    pub params: ModuleParams,
 }
 
 impl Module {
@@ -221,12 +227,18 @@ impl Modules {
     }
 
     pub fn register(&mut self, module_data: ModuleData, sender: channel::Sender<ModulePackage>) {
+        let input_order = if let Value::Array(arr) = module_data.input_order {
+            arr.into_iter().map(|s| s.to_string()).collect()
+        } else {
+            Vec::new()
+        };
         let module = Module {
             sender,
-            validator: ModuleValidator {
+            params: ModuleParams {
                 with: module_data.with,
                 input: module_data.input,
                 output: module_data.output,
+                input_order,
             },
         };
 
@@ -255,23 +267,7 @@ impl Modules {
         let mut repositories = HashMap::new();
 
         for (name, module) in self.modules.clone() {
-            let args = {
-                match &module.validator.input {
-                    Value::Object(obj) => {
-                        let mut args = Vec::new();
-
-                        for (key, _) in obj.iter() {
-                            args.push(key.to_string());
-                        }
-
-                        args
-                    }
-                    _ => {
-                        vec!["input".to_string()]
-                    }
-                }
-            };
-
+            let args = module.params.input_order.clone();
             let func = move |value: Value| {
                 let package_receiver = module.send(Some(value));
 
@@ -287,6 +283,8 @@ impl Modules {
                     }
                 }
             };
+
+            println!("Registering module: {:?}", args);
 
             let repository_function = wrap_async_fn(name.clone(), func, args);
 
