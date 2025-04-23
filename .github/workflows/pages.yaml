@@ -33,15 +33,11 @@ jobs:
           git config --global user.name "${{ github.actor }}"
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
-      - name: Corrige a URL do Git remoto para usar GITHUB_TOKEN
-        run: |
-          cd phlow-docs
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/lowcarboncode/phlow.git
-
       - name: Deploy para GitHub Pages
         working-directory: phlow-docs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_USER: github-actions
         run: |
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/lowcarboncode/phlow.git
           npx docusaurus deploy
