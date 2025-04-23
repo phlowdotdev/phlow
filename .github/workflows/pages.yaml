@@ -31,9 +31,9 @@ jobs:
           git config --global user.name "${{ github.actor }}"
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
-      - name: Corrige URL remota para usar GITHUB_TOKEN
-        working-directory: phlow-docs
+      - name: Corrige a URL do Git remoto para usar GITHUB_TOKEN
         run: |
+          cd phlow-docs
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/codephi/phlow.git
 
       - name: Deploy para GitHub Pages
