@@ -1,3 +1,5 @@
+#![allow(ambiguous_glob_reexports)]
+
 pub use crate::structs::*;
 pub use crate::timer::Timer;
 pub use crate::{

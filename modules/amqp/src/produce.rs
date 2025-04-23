@@ -39,7 +39,7 @@ pub async fn producer(
         debug!("Received package");
 
         let payload = {
-            let input = match package.context.input {
+            let input = match package.input {
                 Some(input) => input,
                 None => {
                     let response = ProducerResponse::from_error("No input provided");

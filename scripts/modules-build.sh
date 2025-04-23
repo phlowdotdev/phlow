@@ -33,19 +33,12 @@ for file in "${so_files[@]}"; do
     cp "$file" "$module_dest_dir/module.so"
     echo "Copiado: $file -> $module_dest_dir/module.so"
 
-    # Procura props.{yaml,yml,json} no diretório correspondente em modules/
-    for ext in yaml yml json; do
-        props_file="$MODULES_DIR/$modulename_no_ext/props.$ext"
-        if [ -f "$props_file" ]; then
-            cp "$props_file" "$module_dest_dir/props.$ext"
-            echo "Copiado: $props_file -> $module_dest_dir/props.$ext"
-            break
-        fi
-    done
-
-    # Copia o phlow.yaml para o diretório do módulo
-    if [ -f "phlow.yaml" ]; then
-        cp "phlow.yaml" "$module_dest_dir/phlow.yaml"
-        echo "Copiado: phlow.yaml -> $module_dest_dir/phlow.yaml"
+    # Copia o phlow.yaml correspondente
+    props_file="$MODULES_DIR/$modulename_no_ext/phlow.yaml"
+    if [ -f "$props_file" ]; then
+        cp "$props_file" "$module_dest_dir/phlow.yaml"
+        echo "Copiado: $props_file -> $module_dest_dir/phlow.yaml"
+    else
+        echo "Aviso: $props_file não encontrado"
     fi
 done

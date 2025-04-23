@@ -12,60 +12,69 @@ tags:
   - request
   - api
 with:
-  verify_ssl:
-    type: boolean
-    description: Whether to verify SSL certificates.
-    default: true
-    required: false
-  timeout:
-    type: number
-    description: The timeout for the request in seconds.
-    default: 29
-    required: false
+  type: object
+  required: false
+  properties:
+    verify_ssl:
+      type: boolean
+      description: Whether to verify SSL certificates.
+      default: true
+      required: false
+    timeout:
+      type: number
+      description: The timeout for the request in seconds.
+      default: 29
+      required: false
 input:
-  method:
-    type: string
-    description: The HTTP method to use (GET, POST, PUT, DELETE, etc.).
-    required: true
-  url:
-    type: string
-    description: The URL to send the request to.
-    required: true
-  headers:
-    type: object
-    description: The headers to include in the request.
-    required: false
-  body:
-    type: string
-    description: The body of the request.
-    required: false
+  type: object
+  required: true
+  properties:
+    method:
+      type: string
+      description: The HTTP method to use (GET, POST, PUT, DELETE, etc.).
+      required: true
+    url:
+      type: string
+      description: The URL to send the request to.
+      required: true
+    headers:
+      type: object
+      description: The headers to include in the request.
+      required: false
+    body:
+      type: string
+      description: The body of the request.
+      required: false
 output:
-  response:
-    type: object
-    description: The response from the HTTP request.
-    required: true
-    properties:
-      status_code:
-        type: number
-        description: The HTTP status code of the response.
-        required: true
-      headers:
-        type: object
-        description: The headers returned in the response.
-        required: true
-      body:
-        type: string
-        description: The body of the response.
-        required: true
-  is_success:
-    type: boolean
-    description: Whether the request was successful (status code 200-299).
-    required: true
-  is_error:
-    type: boolean
-    description: Whether the request resulted in an error (status code 400-599).
-    required: true
-  message:
-    type: string
-    description: The error message if the request failed.
-    required: false
+  type: object
+  required: true
+  properties:
+    response:
+      type: object
+      description: The response from the HTTP request.
+      required: true
+      properties:
+        status_code:
+          type: number
+          description: The HTTP status code of the response.
+          required: true
+        headers:
+          type: object
+          description: The headers returned in the response.
+          required: true
+        body:
+          type: string
+          description: The body of the response.
+          required: true
+    is_success:
+      type: boolean
+      description: Whether the request was successful (status code 200-299).
+      required: true
+    is_error:
+      type: boolean
+      description: Whether the request resulted in an error (status code 400-599).
+      required: true
+    message:
+      type: string
+      description: The error message if the request failed.
+      required: false

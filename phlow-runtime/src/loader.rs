@@ -1,10 +1,9 @@
-use std::{fmt::Display, fs::File, path::Path};
-
 use crate::{settings::cli::ModuleExtension, yaml::yaml_helpers_transform};
 use libloading::{Library, Symbol};
 use phlow_sdk::{prelude::*, tracing::info, valu3};
 use reqwest::Client;
 use std::io::Write;
+use std::{fmt::Display, fs::File, path::Path};
 
 pub struct ModuleError {
     pub module: String,
@@ -72,74 +71,10 @@ impl Display for Error {
     }
 }
 
-#[derive(ToValue, FromValue, Clone, Debug)]
-pub struct Module {
-    pub version: String,
-    pub repository: Option<String>,
-    pub repository_path: Option<String>,
-    pub repository_raw_content: Option<String>,
-    pub module: String,
-    pub name: String,
-    pub with: Value,
-}
-
-impl TryFrom<Value> for Module {
-    type Error = Error;
-
-    fn try_from(value: Value) -> Result<Self, Error> {
-        let module = match value.get("module") {
-            Some(module) => module.to_string(),
-            None => return Err(Error::ModuleLoaderError("Module not found".to_string())),
-        };
-        let repository = value.get("repository").map(|v| v.to_string());
-
-        let repository_path = if repository.is_none() {
-            let mut padded = module.to_string();
-            while padded.len() < 4 {
-                padded.push('_');
-            }
-
-            let prefix = &padded[0..2];
-            let middle = &padded[2..4];
-
-            let repository = format!("{}/{}/{}", prefix, middle, module);
-            Some(repository)
-        } else {
-            None
-        };
-
-        let repository_raw_content = value.get("repository_raw_content").map(|v| v.to_string());
-
-        let version = match value.get("version") {
-            Some(version) => version.to_string(),
-            None => return Err(Error::VersionNotFound(ModuleError { module })),
-        };
-
-        let name = match value.get("name") {
-            Some(name) => name.to_string(),
-            None => module.clone(),
-        };
-
-        let with = match value.get("with") {
-            Some(with) => with.clone(),
-            None => Value::Null,
-        };
-        Ok(Module {
-            module,
-            repository,
-            version,
-            name,
-            with,
-            repository_path,
-            repository_raw_content,
-        })
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct Loader {
     pub main: i32,
-    pub modules: Vec<Module>,
+    pub modules: Vec<ModuleData>,
     pub steps: Value,
     pub app_data: ApplicationData,
 }
@@ -164,7 +99,8 @@ impl Loader {
                 let mut modules_vec = Vec::new();
                 let modules_array = modules.as_array().unwrap();
                 for module in modules_array {
-                    let module = Module::try_from(module.clone())?;
+                    let module = ModuleData::try_from(module.clone())
+                        .map_err(|_| Error::ModuleLoaderError("Module not found".to_string()))?;
 
                     if Some(module.name.clone()) == main_name {
                         main = modules_vec.len() as i32;
@@ -217,7 +153,7 @@ impl Loader {
             Err(_) => return Err(Error::ModuleNotFound(main_file_path.to_string())),
         };
 
-        let value: Value = match main_ext {
+        let mut value: Value = match main_ext {
             ModuleExtension::Json => serde_json::from_str(&file).map_err(Error::LoaderErrorJson)?,
             ModuleExtension::Yaml => {
                 let yaml_path = Path::new(&main_file_path)
@@ -236,7 +172,82 @@ impl Loader {
             ModuleExtension::Toml => toml::from_str(&file).map_err(Error::LoaderErrorToml)?,
         };
 
+        if value.get("steps").is_none() {
+            return Err(Error::StepsNotDefined);
+        }
+
+        if let Some(modules) = value.get("modules") {
+            if !modules.is_array() {
+                return Err(Error::ModuleLoaderError("Modules not an array".to_string()));
+            }
+
+            let modules_array = modules.as_array().unwrap();
+            let mut module_list = Vec::new();
+
+            for item in modules_array {
+                let mut module = item.clone();
+
+                let module_name = module.get("module").unwrap().to_string();
+                let module_info = Self::load_external_module_info(&module_name);
+
+                module.insert("info", module_info);
+                module_list.push(module);
+            }
+
+            value.insert("modules", module_list.to_value());
+        } else {
+            return Err(Error::ModuleLoaderError("Modules not found".to_string()));
+        }
+
         Ok(value)
+    }
+
+    fn load_external_module_info(module: &str) -> Value {
+        let module_path = format!("phlow_packages/{}/phlow.yaml", module);
+        if !Path::new(&module_path).exists() {
+            return Value::Null;
+        }
+
+        let file = match std::fs::read_to_string(&module_path) {
+            Ok(file) => file,
+            Err(_) => return Value::Null,
+        };
+
+        let mut input_order = Vec::new();
+
+        {
+            let value: serde_yaml::Value = serde_yaml::from_str::<serde_yaml::Value>(&file)
+                .map_err(Error::LoaderErrorYaml)
+                .unwrap();
+
+            if let Some(input) = value.get("input") {
+                if let serde_yaml::Value::Mapping(input) = input {
+                    if let Some(serde_yaml::Value::String(input_type)) = input.get("type") {
+                        if input_type == "object" {
+                            if let Some(serde_yaml::Value::Mapping(properties)) =
+                                input.get(&serde_yaml::Value::String("properties".to_string()))
+                            {
+                                for (key, _) in properties {
+                                    if let serde_yaml::Value::String(key) = key {
+                                        input_order.push(key.clone());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            drop(value)
+        }
+
+        let mut value: Value = serde_yaml::from_str::<Value>(&file)
+            .map_err(Error::LoaderErrorYaml)
+            .unwrap();
+
+        value.insert("input_order".to_string(), input_order.to_value());
+
+        value
     }
 
     pub fn load_module(setup: ModuleSetup, module_name: &str) -> Result<(), Error> {

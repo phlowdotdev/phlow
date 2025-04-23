@@ -57,11 +57,6 @@ steps:
           payload: "3-18"
   - payload: !eval `result: ${payload}`
   - payload:
-
-
-
-
-      
       main: !eval main
       payload: !eval payload
       

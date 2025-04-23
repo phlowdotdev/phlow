@@ -4,8 +4,14 @@ use std::pin::Pin;
 use std::sync::Arc;
 use valu3::value::Value;
 
-pub type RepositoryFunction =
-    Arc<dyn Fn(Value) -> Pin<Box<dyn Future<Output = Value> + Send>> + Send + Sync>;
+pub type Function = Arc<dyn Fn(Value) -> Pin<Box<dyn Future<Output = Value> + Send>> + Send + Sync>;
+
+#[derive(Clone)]
+pub struct RepositoryFunction {
+    pub function: Function,
+    pub abstration: String,
+    pub args: Vec<String>,
+}
 
 #[derive(Clone)]
 pub struct Repositories {

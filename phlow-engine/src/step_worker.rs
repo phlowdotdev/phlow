@@ -218,7 +218,7 @@ impl StepWorker {
                 context.clone()
             };
 
-            match self.modules.execute(module, &context).await {
+            match self.modules.execute(module, &context.input).await {
                 Ok(response) => {
                     if let Some(err) = response.error {
                         return Err(StepWorkerError::ModulesError(ModulesError::ModuleError(

@@ -1,9 +1,8 @@
 use crate::id::ID;
 use crossbeam::channel;
-use phlow_sdk::{crossbeam, valu3};
+use phlow_sdk::{crossbeam, prelude::*};
 use serde::Serialize;
 use std::{collections::HashMap, fmt::Debug};
-use valu3::prelude::*;
 
 pub type ContextSender = channel::Sender<Step>;
 
@@ -42,6 +41,6 @@ impl Debug for Step {
         value.remove(&"id");
         value.insert("step_id", id);
 
-        write!(f, "{}", value.to_json(valu3::prelude::JsonMode::Inline))
+        write!(f, "{}", value.to_json(JsonMode::Inline))
     }
 }

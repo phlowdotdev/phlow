@@ -1,13 +1,12 @@
 use crate::context::Context;
 use crate::variable::Variable;
-use phlow_sdk::valu3;
+use phlow_sdk::prelude::*;
 use rhai::{
     plugin::*,
     serde::{from_dynamic, to_dynamic},
     Engine, EvalAltResult, ParseError, Scope, AST,
 };
 use std::{collections::HashMap, sync::Arc};
-use valu3::prelude::*;
 
 #[derive(Debug)]
 pub enum ScriptError {
@@ -172,7 +171,6 @@ mod test {
     use super::*;
     use phs::build_engine;
     use std::collections::HashMap;
-    use valu3::{traits::ToValueBehavior, value::Value};
 
     #[test]
     fn test_payload_execute() {

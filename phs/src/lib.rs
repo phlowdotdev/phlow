@@ -1,26 +1,48 @@
-mod functions;
+pub mod functions;
 mod repositories;
 use functions::build_functions;
-use repositories::Repositories;
+pub use repositories::{Repositories, RepositoryFunction};
 use rhai::serde::from_dynamic;
 use rhai::{Dynamic, Engine};
+use std::collections::HashMap;
 use std::future::Future;
 use std::sync::Arc;
-use valu3::value::Value;
+use valu3::prelude::*;
 
 pub fn build_engine(repositories: Option<Repositories>) -> Arc<Engine> {
     let mut engine = build_functions();
 
     if let Some(repositories) = repositories {
-        for (key, call) in repositories.repositories {
-            let call = call.clone();
+        for (key, repo) in repositories.repositories {
+            let call: Arc<
+                dyn Fn(Value) -> std::pin::Pin<Box<dyn Future<Output = Value> + Send>>
+                    + Send
+                    + Sync,
+            > = repo.function.clone();
 
-            engine.register_fn(key.clone(), move |dynamic: Dynamic| {
-                let value: Value = from_dynamic(&dynamic).unwrap_or(Value::Null);
+            let arg_types: Vec<std::any::TypeId> =
+                vec![std::any::TypeId::of::<Dynamic>(); repo.args.len()];
 
-                // Wrapper para chamar async dentro do sync
-                let rt = tokio::runtime::Runtime::new().unwrap();
-                rt.block_on((call)(value))
+            engine.register_raw_fn(&key, arg_types, move |_context, args| {
+                let mut args_map = HashMap::new();
+
+                for dynamic in args {
+                    let value: Value = from_dynamic(&dynamic).unwrap_or(Value::Null);
+
+                    if let Some(key) = repo.args.get(args_map.len()) {
+                        args_map.insert(key.clone(), value);
+                    }
+                }
+
+                let call = call.clone();
+                let args_value = args_map.to_value();
+
+                let result = tokio::task::block_in_place(move || {
+                    let future = (call)(args_value);
+                    tokio::runtime::Handle::current().block_on(future)
+                });
+
+                Ok(result)
             });
         }
     }
@@ -28,12 +50,31 @@ pub fn build_engine(repositories: Option<Repositories>) -> Arc<Engine> {
     Arc::new(engine)
 }
 
-pub fn wrap_async_fn<F, Fut>(func: F) -> repositories::RepositoryFunction
+pub fn resolve_function_name(name: &str) -> String {
+    format!("__module_{}", name)
+}
+
+pub fn args_to_abstration(name: String, args: &Vec<String>) -> String {
+    let args = args.join(", ");
+    let target = resolve_function_name(&name);
+
+    format!("{}({}){{{}([{}])}}", name, args, target, args)
+}
+
+pub fn wrap_async_fn<F, Fut>(
+    name: String,
+    func: F,
+    args: Vec<String>,
+) -> repositories::RepositoryFunction
 where
     F: Fn(Value) -> Fut + Send + Sync + 'static,
     Fut: Future<Output = Value> + Send + 'static,
 {
-    Arc::new(move |value| Box::pin(func(value)))
+    RepositoryFunction {
+        function: Arc::new(move |value| Box::pin(func(value))),
+        abstration: args_to_abstration(name, &args),
+        args,
+    }
 }
 
 #[cfg(test)]
@@ -47,13 +88,17 @@ mod tests {
     fn test_repository_function() {
         let mut repositories = HashMap::new();
 
-        let mock_function = wrap_async_fn(|value: Value| async move {
-            if let Value::String(s) = value {
-                Value::from(format!("{}-processed", s))
-            } else {
-                Value::Null
-            }
-        });
+        let mock_function = wrap_async_fn(
+            "process".to_string(),
+            |value: Value| async move {
+                if let Value::String(s) = value {
+                    Value::from(format!("{}-processed", s))
+                } else {
+                    Value::Null
+                }
+            },
+            vec!["input".into()],
+        );
 
         repositories.insert("process".to_string(), mock_function);
 
@@ -69,24 +114,27 @@ mod tests {
     fn test_respository_log() {
         let mut repositories = HashMap::new();
 
-        let mock_function = wrap_async_fn(|value: Value| async move {
-            println!("Received value: {:?}", value);
-            if let Value::Object(log) = value {
-                let level = match log.get("level") {
-                    Some(Value::String(s)) => s.to_string(),
-                    _ => "info".to_string(),
-                };
+        let mock_function = wrap_async_fn(
+            "log".into(),
+            |value: Value| async move {
+                if let Value::Object(log) = value {
+                    let level = match log.get("level") {
+                        Some(Value::String(s)) => s.to_string(),
+                        _ => "info".to_string(),
+                    };
 
-                let message = match log.get("message") {
-                    Some(Value::String(s)) => s.to_string(),
-                    _ => "No message".to_string(),
-                };
+                    let message = match log.get("message") {
+                        Some(Value::String(s)) => s.to_string(),
+                        _ => "No message".to_string(),
+                    };
 
-                Value::from(format!("Log Level: {}, Message: {}", level, message))
-            } else {
-                Value::Null
-            }
-        });
+                    Value::from(format!("Log Level: {}, Message: {}", level, message))
+                } else {
+                    Value::Null
+                }
+            },
+            vec!["message".into(), "level".into()],
+        );
 
         repositories.insert("log".to_string(), mock_function);
 

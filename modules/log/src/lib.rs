@@ -51,7 +51,7 @@ pub async fn log(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + S
     debug!("PHLOW_OTEL is set to false, using default subscriber");
 
     listen!(rx, move |package: ModulePackage| async {
-        let value = package.context.input.unwrap_or(Value::Null);
+        let value = package.input.unwrap_or(Value::Null);
         let log = Log::from(&value);
 
         match log.level {

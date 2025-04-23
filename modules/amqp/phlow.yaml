@@ -13,49 +13,58 @@ tags:
   - producer
   - consumer
 with:
-  host:
-    type: string
-    required: false
-    description: "AMQP host"
-  port:
-    type: integer
-    required: false
-    description: "AMQP port"
-  username:
-    type: string
-    required: false
-    description: "AMQP username"
-  password:
-    type: string
-    required: false
-    description: "AMQP password"
-  routing_key:
-    type: string
-    required: true
-    description: "AMQP routing key"
-  exchange:
-    type: string
-    required: false
-    description: "AMQP exchange"
-  consumer_tag:
-    type: string
-    required: false
-    description: "AMQP consumer tag"
-  declare:
-    type: boolean
-    required: false
-    description: "Declare exchange and queue"
+  type: object
+  required: true
+  properties:
+    host:
+      type: string
+      required: false
+      description: "AMQP host"
+    port:
+      type: integer
+      required: false
+      description: "AMQP port"
+    username:
+      type: string
+      required: false
+      description: "AMQP username"
+    password:
+      type: string
+      required: false
+      description: "AMQP password"
+    routing_key:
+      type: string
+      required: true
+      description: "AMQP routing key"
+    exchange:
+      type: string
+      required: false
+      description: "AMQP exchange"
+    consumer_tag:
+      type: string
+      required: false
+      description: "AMQP consumer tag"
+    declare:
+      type: boolean
+      required: false
+      description: "Declare exchange and queue"
 input:
-  message:
-    type: any
-    required: true
-    description: "Message to send"
+  type: object
+  required: true
+  properties:
+    message:
+      type: any
+      required: true
+      description: "Message to send"
 output:
-  success:
-    type: boolean
-    description: "Error message"
-    required: true
-  error_message:
-    type: string
-    description: "Error message"
-    required: false
+  type: object
+  required: true
+  properties:
+    success:
+      type: boolean
+      description: "Error message"
+      required: true
+    error_message:
+      type: string
+      description: "Error message"
+      required: false
