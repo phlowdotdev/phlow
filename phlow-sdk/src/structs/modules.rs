@@ -232,6 +232,7 @@ impl Modules {
         } else {
             Vec::new()
         };
+
         let module = Module {
             sender,
             params: ModuleParams {

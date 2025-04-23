@@ -216,7 +216,7 @@ impl Loader {
         let mut input_order = Vec::new();
 
         {
-            let value: serde_yaml::Value = serde_yaml::from_str(&file)
+            let value: serde_yaml::Value = serde_yaml::from_str::<serde_yaml::Value>(&file)
                 .map_err(Error::LoaderErrorYaml)
                 .unwrap();
 
@@ -241,7 +241,7 @@ impl Loader {
             drop(value)
         }
 
-        let mut value: Value = serde_yaml::from_str(&file)
+        let mut value: Value = serde_yaml::from_str::<Value>(&file)
             .map_err(Error::LoaderErrorYaml)
             .unwrap();
 
