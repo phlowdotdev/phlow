@@ -42,7 +42,6 @@ jobs:
         working-directory: phlow-docs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GIT_USER: github-actions
         run: |
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/lowcarboncode/phlow.git
           npx docusaurus deploy
