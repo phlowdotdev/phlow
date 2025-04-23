@@ -1,4 +1,4 @@
-use cli::{Cli, Error, MainArgs};
+use cli::{Cli, Error};
 use envs::Envs;
 
 pub mod cli;
@@ -6,7 +6,7 @@ pub mod envs;
 
 #[derive(Debug)]
 pub struct Settings {
-    pub main: Option<MainArgs>,
+    pub main_target: Option<String>,
     pub only_download_modules: bool,
     pub package_path: Option<String>,
     pub no_run: bool,
@@ -25,7 +25,7 @@ impl Settings {
         let envs = Envs::load();
 
         let setings = Self {
-            main: cli.main,
+            main_target: cli.main_target,
             only_download_modules: cli.only_download_modules,
             package_path: cli.package_path,
             no_run: cli.no_run,
