@@ -24,8 +24,10 @@ impl Settings {
         let cli = Cli::load()?;
         let envs = Envs::load();
 
+        let main_target = cli.main_target.clone().or(envs.main.clone());
+
         let setings = Self {
-            main_target: cli.main_target,
+            main_target,
             only_download_modules: cli.only_download_modules,
             package_path: cli.package_path,
             no_run: cli.no_run,

@@ -1,5 +1,10 @@
 FROM scratch
 
-COPY ../target/release/phlow /app/phlow
+ENV PHLOW_MAIN="https://github.com/lowcarboncode/phlow-mirror-request/tarball/main"
+ENV PHLOW_LOG="info"
+ENV PHLOW_OTEL="true"
 
-ENTRYPOINT ["/app/phlow"]
+COPY phlow /phlow
+
+# Executa o binário
+ENTRYPOINT ["/phlow"]

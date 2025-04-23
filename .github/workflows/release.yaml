@@ -3,14 +3,16 @@ name: Tagging and Release
 on:
   workflow_dispatch:
 
-permissions: write-all
+permissions:
+  contents: write
+  packages: write
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   tag:
-    name: Tag and Build Binary
+    name: Tag, Build Binary and Docker Image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -46,3 +48,18 @@ jobs:
           files: ./phlow
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build Docker image
+        run: |
+          docker build -f ./docker/Dockerfile \
+            -t ghcr.io/${{ github.repository_owner }}/phlow:${{ env.VERSION }} \
+            -t ghcr.io/${{ github.repository_owner }}/phlow:latest .
+
+      - name: Push Docker image with version
+        run: docker push ghcr.io/${{ github.repository_owner }}/phlow:${{ env.VERSION }}
+
+      - name: Push Docker image with latest
+        run: docker push ghcr.io/${{ github.repository_owner }}/phlow:latest

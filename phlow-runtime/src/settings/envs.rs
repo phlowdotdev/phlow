@@ -44,6 +44,14 @@ pub struct Envs {
      * Default: lowcarboncode/phlow-packages
      */
     pub default_package_repository_url: String,
+    /**
+     * Default phlow file main
+     *
+     * This is the default main file that will be used to run the phlow file.
+     * Environment variable: PHLOW_MAIN
+     * Default: None
+     */
+    pub main: Option<String>,
 }
 
 impl Envs {
@@ -74,6 +82,8 @@ impl Envs {
             Err(_) => "lowcarboncode/phlow-packages".to_string(),
         };
 
+        let main = env::var("PHLOW_MAIN").ok();
+
         debug!("PHLOW_PACKAGE_CONSUMERS_COUNT = {}", package_consumer_count);
         debug!("PHLOW_MIN_ALLOCATED_MEMORY_MB = {}", min_allocated_memory);
         debug!("PHLOW_GARBAGE_COLLECTION_ENABLED = {}", garbage_collection);
@@ -92,6 +102,7 @@ impl Envs {
             garbage_collection,
             garbage_collection_interval,
             default_package_repository_url,
+            main,
         }
     }
 }
