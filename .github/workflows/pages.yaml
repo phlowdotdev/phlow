@@ -28,16 +28,13 @@ jobs:
         working-directory: phlow-docs
         run: npm run build
 
-      - name: Configura identidade Git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
       - name: Deploy para GitHub Pages
         working-directory: phlow-docs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GIT_USER: github-actions
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/lowcarboncode/phlow.git
           npx docusaurus deploy
