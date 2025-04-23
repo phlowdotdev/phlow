@@ -23,13 +23,18 @@ jobs:
         run: npm ci
 
       - name: Build do site
-        working-directory: phlow-docs 
+        working-directory: phlow-docs
         run: npm run build
 
       - name: Configura identidade Git
         run: |
           git config --global user.name "${{ github.actor }}"
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+
+      - name: Corrige URL remota para usar GITHUB_TOKEN
+        working-directory: phlow-docs
+        run: |
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/codephi/phlow.git
 
       - name: Deploy para GitHub Pages
         working-directory: phlow-docs
