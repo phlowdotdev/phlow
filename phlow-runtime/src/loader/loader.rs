@@ -208,20 +208,7 @@ fn resolve_main(file: &str, main_file_path: String) -> Result<Value, Error> {
             return Err(Error::ModuleLoaderError("Modules not an array".to_string()));
         }
 
-        let modules_array = modules.as_array().unwrap();
-        let mut module_list = Vec::new();
-
-        for item in modules_array {
-            let mut module = item.clone();
-
-            let module_name = module.get("module").unwrap().to_string();
-            let module_info = load_external_module_info(&module_name);
-
-            module.insert("info", module_info);
-            module_list.push(module);
-        }
-
-        value.insert("modules", module_list.to_value());
+        value.insert("modules", modules.clone());
     } else {
         return Err(Error::ModuleLoaderError("Modules not found".to_string()));
     }
@@ -229,8 +216,9 @@ fn resolve_main(file: &str, main_file_path: String) -> Result<Value, Error> {
     Ok(value)
 }
 
-fn load_external_module_info(module: &str) -> Value {
+pub fn load_external_module_info(module: &str) -> Value {
     let module_path = format!("phlow_packages/{}/phlow.yaml", module);
+
     if !Path::new(&module_path).exists() {
         return Value::Null;
     }

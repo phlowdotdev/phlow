@@ -2,7 +2,7 @@ mod error;
 pub mod loader;
 use error::{Error, ModuleError};
 use libloading::{Library, Symbol};
-use loader::load_main;
+use loader::{load_external_module_info, load_main};
 use phlow_sdk::{prelude::*, tracing::info};
 use reqwest::Client;
 use std::io::Write;
@@ -35,6 +35,7 @@ impl Loader {
 
                 let mut modules_vec = Vec::new();
                 let modules_array = modules.as_array().unwrap();
+
                 for module in modules_array {
                     let module = ModuleData::try_from(module.clone())
                         .map_err(|_| Error::ModuleLoaderError("Module not found".to_string()))?;
@@ -253,5 +254,12 @@ impl Loader {
         info!("Module extracted to phlow_packages/{}", module);
 
         Ok(())
+    }
+
+    pub fn update_info(&mut self) {
+        for module in &mut self.modules {
+            let value = load_external_module_info(&module.name);
+            module.set_info(value);
+        }
     }
 }

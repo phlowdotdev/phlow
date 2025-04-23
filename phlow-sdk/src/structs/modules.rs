@@ -44,6 +44,43 @@ pub struct ModuleData {
     pub input_order: Value,
 }
 
+impl ModuleData {
+    pub fn set_info(&mut self, info: Value) {
+        let input = match info.get("input") {
+            Some(input) => {
+                if let Value::Object(obj) = input {
+                    if let Some(obj_type) = obj.get("type") {
+                        if obj_type.to_string() == "object" {
+                            obj.get("properties").unwrap_or(&Value::Null).clone()
+                        } else {
+                            input.clone()
+                        }
+                    } else {
+                        input.clone()
+                    }
+                } else {
+                    input.clone()
+                }
+            }
+            None => Value::Null,
+        };
+
+        let output = match info.get("output") {
+            Some(output) => output.clone(),
+            None => Value::Null,
+        };
+
+        let input_order = match info.get("input_order") {
+            Some(input_order) => input_order.clone(),
+            None => Value::Null,
+        };
+
+        self.input = input;
+        self.output = output;
+        self.input_order = input_order;
+    }
+}
+
 impl TryFrom<Value> for ModuleData {
     type Error = Error;
 
@@ -86,52 +123,17 @@ impl TryFrom<Value> for ModuleData {
             None => Value::Null,
         };
 
-        let (input, output, input_order) = if let Some(info) = value.get("info") {
-            let input = match info.get("input") {
-                Some(input) => {
-                    if let Value::Object(obj) = input {
-                        if let Some(obj_type) = obj.get("type") {
-                            if obj_type.to_string() == "object" {
-                                obj.get("properties").unwrap_or(&Value::Null).clone()
-                            } else {
-                                input.clone()
-                            }
-                        } else {
-                            input.clone()
-                        }
-                    } else {
-                        input.clone()
-                    }
-                }
-                None => Value::Null,
-            };
-
-            let output = match info.get("output") {
-                Some(output) => output.clone(),
-                None => Value::Null,
-            };
-
-            let input_order = match info.get("input_order") {
-                Some(input_order) => input_order.clone(),
-                None => Value::Null,
-            };
-
-            (input, output, input_order)
-        } else {
-            (Value::Null, Value::Null, Value::Null)
-        };
-
         Ok(ModuleData {
             module,
             repository,
             version,
             name,
             with,
-            input,
-            output,
+            input: Value::Null,
+            output: Value::Null,
             repository_path,
             repository_raw_content,
-            input_order,
+            input_order: Value::Null,
         })
     }
 }

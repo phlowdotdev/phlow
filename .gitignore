@@ -5,3 +5,4 @@ indexs
 *.tar.gz
 .tmp/*
 phlow_remote
+raw

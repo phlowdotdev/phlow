@@ -36,7 +36,7 @@ async fn main() {
     }
 
     if let Some(main) = &settings.main_target {
-        let loader = match Loader::load(&main).await {
+        let mut loader = match Loader::load(&main).await {
             Ok(main) => main,
             Err(err) => {
                 eprintln!("Runtime Error Main File: {:?}", err);
@@ -54,6 +54,8 @@ async fn main() {
             .download(&settings.default_package_repository_url)
             .await
             .expect("Error downloading modules");
+
+        loader.update_info();
 
         if settings.only_download_modules {
             return;
