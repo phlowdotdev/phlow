@@ -38,9 +38,6 @@ jobs:
     name: Compile Binary
     runs-on: ubuntu-latest
     needs: tag
-    strategy:
-      matrix:
-        target: [x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl]
     outputs:
       version: ${{ needs.tag.outputs.version }}
     steps:
@@ -50,30 +47,23 @@ jobs:
       - name: Install cross
         run: cargo install cross
 
-      - name: Build with cross for ${{ matrix.target }}
-        run: cross build --release --target ${{ matrix.target }} -p phlow-runtime
+      - name: Build with cross
+        run: cross build --release --target x86_64-unknown-linux-gnu -p phlow-runtime
 
       - name: Rename binary
-        run: mv ./target/${{ matrix.target }}/release/phlow ./phlow-${{ matrix.target }}
+        run: mv ./target/x86_64-unknown-linux-gnu/release/phlow ./phlow-x86_64-unknown-linux-gnu
 
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: phlow-${{ matrix.target }}
-          path: ./phlow-${{ matrix.target }}
-        
+          name: phlow-x86_64-unknown-linux-gnu
+          path: ./phlow-x86_64-unknown-linux-gnu
 
   release:
     name: Publish GitHub Release
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Download musl binary
-        uses: actions/download-artifact@v4
-        with:
-          name: phlow-x86_64-unknown-linux-musl
-          path: .
-
       - name: Download gnu binary
         uses: actions/download-artifact@v4
         with:
@@ -85,9 +75,7 @@ jobs:
         with:
           tag_name: v${{ needs.build.outputs.version }}
           name: Release v${{ needs.build.outputs.version }}
-          files: |
-            ./phlow-x86_64-unknown-linux-gnu
-            ./phlow-x86_64-unknown-linux-musl
+          files: ./phlow-x86_64-unknown-linux-gnu
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -99,21 +87,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download musl binary
-        uses: actions/download-artifact@v4
-        with:
-          name: phlow-x86_64-unknown-linux-musl
-          path: .
-
       - name: Download gnu binary
         uses: actions/download-artifact@v4
         with:
           name: phlow-x86_64-unknown-linux-gnu
           path: .
-
-      - name: Rename binaries
-        run: |
-          mv phlow-* . && ls -lh
 
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -123,15 +101,8 @@ jobs:
           docker build -f ./docker/Dockerfile.multi --target phlow-slim \
             -t ghcr.io/${{ github.repository_owner }}/phlow:slim \
             -t ghcr.io/${{ github.repository_owner }}/phlow:latest .
-
-          docker build -f ./docker/Dockerfile.multi --target phlow-static \
-            -t ghcr.io/${{ github.repository_owner }}/phlow:static .
-
           docker push ghcr.io/${{ github.repository_owner }}/phlow:slim
           docker push ghcr.io/${{ github.repository_owner }}/phlow:latest
-          docker push ghcr.io/${{ github.repository_owner }}/phlow:static
-
-
 
   docker-hub:
     name: Push to Docker Hub
@@ -141,20 +112,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download musl binary
-        uses: actions/download-artifact@v4
-        with:
-          name: phlow-x86_64-unknown-linux-musl
-          path: .
-
       - name: Download gnu binary
         uses: actions/download-artifact@v4
         with:
           name: phlow-x86_64-unknown-linux-gnu
           path: .
-
-      - name: Rename binaries
-        run: mv phlow-* .
 
       - name: Log in to Docker Hub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u lowcarboncode --password-stdin
@@ -164,12 +126,5 @@ jobs:
           docker build -f ./docker/Dockerfile.multi --target phlow-slim \
             -t lowcarboncode/phlow:slim \
             -t lowcarboncode/phlow:latest .
-
-          docker build -f ./docker/Dockerfile.multi --target phlow-static \
-            -t lowcarboncode/phlow:static .
-
           docker push lowcarboncode/phlow:slim
           docker push lowcarboncode/phlow:latest
-          docker push lowcarboncode/phlow:static
-
-

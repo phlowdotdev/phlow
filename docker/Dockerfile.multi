@@ -11,17 +11,3 @@ ENV PHLOW_OTEL="true"
 # Espera que o binário já esteja disponível no contexto de build
 COPY phlow-x86_64-unknown-linux-gnu /phlow
 ENTRYPOINT ["/phlow"]
-
-###########################
-# Final image: static musl
-# docker build --target phlow-static -t phlow:static -f Dockerfile.multi .
-###########################
-FROM scratch AS phlow-static
-
-ENV PHLOW_MAIN="https://github.com/lowcarboncode/phlow-mirror-request/tarball/main"
-ENV PHLOW_LOG="info"
-ENV PHLOW_OTEL="true"
-
-# Espera que o binário já esteja disponível no contexto de build
-COPY phlow-x86_64-unknown-linux-musl /phlow
-ENTRYPOINT ["/phlow"]
