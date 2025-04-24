@@ -1,24 +1,3 @@
-##############
-# Build glibc
-##############
-FROM rust:1.75-slim AS builder-glibc
-
-WORKDIR /app
-COPY . .
-
-RUN apt-get update && apt-get install -y pkg-config build-essential && \
-    cargo build --release -p phlow-runtime
-
-##############
-# Build musl
-##############
-FROM clux/muslrust:stable AS builder-musl
-
-WORKDIR /app
-COPY . .
-
-RUN cargo build --release -p phlow-runtime --target x86_64-unknown-linux-musl
-
 ###########################
 # Final image: glibc slim
 # docker build --target phlow-slim -t phlow:slim -f Dockerfile.multi .
@@ -29,7 +8,8 @@ ENV PHLOW_MAIN="https://github.com/lowcarboncode/phlow-mirror-request/tarball/ma
 ENV PHLOW_LOG="info"
 ENV PHLOW_OTEL="true"
 
-COPY --from=builder-glibc /app/target/release/phlow-runtime /phlow
+# Espera que o binário já esteja disponível no contexto de build
+COPY phlow-x86_64-unknown-linux-gnu /phlow
 ENTRYPOINT ["/phlow"]
 
 ###########################
@@ -42,5 +22,6 @@ ENV PHLOW_MAIN="https://github.com/lowcarboncode/phlow-mirror-request/tarball/ma
 ENV PHLOW_LOG="info"
 ENV PHLOW_OTEL="true"
 
-COPY --from=builder-musl /app/target/x86_64-unknown-linux-musl/release/phlow-runtime /phlow
+# Espera que o binário já esteja disponível no contexto de build
+COPY phlow-x86_64-unknown-linux-musl /phlow
 ENTRYPOINT ["/phlow"]

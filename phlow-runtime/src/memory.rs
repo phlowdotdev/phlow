@@ -15,7 +15,7 @@ pub fn force_memory_release(min_allocated_memory: usize) {
     }
 }
 
-#[cfg(not(target_env = "gnu"))]
+#[cfg(target_env = "musl")]
 pub fn force_memory_release(_: usize) {
     debug!("force_memory_release skipped: not supported in musl");
 }
