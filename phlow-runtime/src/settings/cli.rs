@@ -77,7 +77,7 @@ impl Cli {
 
         let main = match matches.get_one::<String>("main_path") {
             Some(target) => Some(target.clone()),
-            None => Some(".".to_string()),
+            None => None,
         };
 
         let install = *matches.get_one::<bool>("install").unwrap_or(&false);

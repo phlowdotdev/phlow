@@ -43,32 +43,30 @@ async fn main() {
         }
     }
 
-    if let Some(main) = &settings.main_target {
-        let mut loader = match Loader::load(&main).await {
-            Ok(main) => main,
-            Err(err) => {
-                eprintln!("Runtime Error Main File: {:?}", err);
-                return;
-            }
-        };
-
-        if settings.no_run {
+    let mut loader = match Loader::load(&settings.main_target).await {
+        Ok(main) => main,
+        Err(err) => {
+            eprintln!("Runtime Error Main File: {:?}", err);
             return;
         }
+    };
 
-        let guard = init_tracing_subscriber(loader.app_data.clone());
-
-        loader
-            .download(&settings.default_package_repository_url)
-            .await
-            .expect("Error downloading modules");
-
-        loader.update_info();
-
-        if settings.only_download_modules {
-            return;
-        }
-
-        Runtime::run(loader, guard.dispatch.clone(), settings).await;
+    if settings.no_run {
+        return;
     }
+
+    let guard = init_tracing_subscriber(loader.app_data.clone());
+
+    loader
+        .download(&settings.default_package_repository_url)
+        .await
+        .expect("Error downloading modules");
+
+    loader.update_info();
+
+    if settings.only_download_modules {
+        return;
+    }
+
+    Runtime::run(loader, guard.dispatch.clone(), settings).await;
 }

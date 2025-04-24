@@ -51,7 +51,7 @@ pub struct Envs {
      * Environment variable: PHLOW_MAIN
      * Default: None
      */
-    pub main: Option<String>,
+    pub main: String,
 }
 
 impl Envs {
@@ -82,7 +82,7 @@ impl Envs {
             Err(_) => "lowcarboncode/phlow-packages".to_string(),
         };
 
-        let main = env::var("PHLOW_MAIN").ok();
+        let main = env::var("PHLOW_MAIN").unwrap_or(".".to_string());
 
         debug!("PHLOW_PACKAGE_CONSUMERS_COUNT = {}", package_consumer_count);
         debug!("PHLOW_MIN_ALLOCATED_MEMORY_MB = {}", min_allocated_memory);

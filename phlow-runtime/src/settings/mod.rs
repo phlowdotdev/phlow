@@ -6,7 +6,7 @@ pub mod envs;
 
 #[derive(Debug)]
 pub struct Settings {
-    pub main_target: Option<String>,
+    pub main_target: String,
     pub only_download_modules: bool,
     pub package_path: Option<String>,
     pub no_run: bool,
@@ -24,9 +24,9 @@ impl Settings {
         let cli = Cli::load()?;
         let envs = Envs::load();
 
-        let main_target = cli.main_target.clone().or(envs.main.clone());
+        let main_target = cli.main_target.unwrap_or(envs.main.clone());
 
-        let setings = Self {
+        let settings = Self {
             main_target,
             only_download_modules: cli.only_download_modules,
             package_path: cli.package_path,
@@ -38,6 +38,6 @@ impl Settings {
             default_package_repository_url: envs.default_package_repository_url,
         };
 
-        Ok(setings)
+        Ok(settings)
     }
 }

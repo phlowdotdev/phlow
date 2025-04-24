@@ -123,7 +123,7 @@ jobs:
 
       - name: Build and Push Docker images to Docker Hub
         run: |
-          docker build -f ./docker/Dockerfile.multi --target phlow-slim \
+          docker build -f ./docker/Dockerfile --target phlow-slim \
             -t lowcarboncode/phlow:slim \
             -t lowcarboncode/phlow:latest .
           docker push lowcarboncode/phlow:slim
