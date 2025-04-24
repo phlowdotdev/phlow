@@ -36,6 +36,7 @@ chrono = { workspace = true }
 git2 = { version = "0.20.1" }
 tempfile = { version = "3.19.1" }
 zip = { version = "2.6.1" }
+openssl = { version = "0.10.72", features = ["vendored"] }
 
 # Optional allocators
 mimalloc = { version = "0.1", optional = true }

@@ -7,6 +7,7 @@ edition = "2021"
 phlow-sdk = { workspace = true }
 reqwest = { version = "0.12.15", features = ["blocking"] }
 lazy_static = "1.5.0"
+openssl = { version = "0.10.72", features = ["vendored"] }
 
 [lib]
 name = "http_request"
