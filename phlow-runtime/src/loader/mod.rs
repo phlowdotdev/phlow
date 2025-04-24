@@ -87,16 +87,17 @@ impl Loader {
 
     pub fn load_module(setup: ModuleSetup, module_name: &str) -> Result<(), Error> {
         unsafe {
-            let lib =
-                match Library::new(format!("phlow_packages/{}/module.so", module_name).as_str()) {
-                    Ok(lib) => lib,
-                    Err(err) => return Err(Error::LibLoadingError(err)),
-                };
+            let path = format!("phlow_packages/{}/module.so", module_name);
+            info!("🧪 Load Module: {}", path);
+
+            let lib = match Library::new(&path) {
+                Ok(lib) => lib,
+                Err(err) => return Err(Error::LibLoadingError(err)),
+            };
+
             let func: Symbol<unsafe extern "C" fn(ModuleSetup)> = match lib.get(b"plugin") {
                 Ok(func) => func,
-                Err(err) => {
-                    return Err(Error::LibLoadingError(err));
-                }
+                Err(err) => return Err(Error::LibLoadingError(err)),
             };
 
             func(setup);

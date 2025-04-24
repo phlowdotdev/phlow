@@ -47,27 +47,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install OpenSSL for GNU
-        if: matrix.target == 'x86_64-unknown-linux-gnu'
-        run: sudo apt-get update && sudo apt-get install -y libssl-dev pkg-config
+      - name: Install cross
+        run: cargo install cross
 
-      - name: Install target
-        run: rustup target add ${{ matrix.target }}
-
-      - name: Set OpenSSL environment for MUSL
-        if: matrix.target == 'x86_64-unknown-linux-musl'
-        run: |
-          echo "OPENSSL_STATIC=1" >> $GITHUB_ENV
-          echo "OPENSSL_NO_VENDOR=0" >> $GITHUB_ENV
-          echo "OPENSSL_DIR=" >> $GITHUB_ENV
-
-      - name: Build for ${{ matrix.target }}
-        run: |
-          features=""
-          if [ "${{ matrix.target }}" = "x86_64-unknown-linux-musl" ]; then
-            features="--features vendored"
-          fi
-          cargo build --release --target ${{ matrix.target }} -p phlow-runtime $features
+      - name: Build with cross for ${{ matrix.target }}
+        run: cross build --release --target ${{ matrix.target }} -p phlow-runtime
 
       - name: Rename binary
         run: mv ./target/${{ matrix.target }}/release/phlow ./phlow-${{ matrix.target }}

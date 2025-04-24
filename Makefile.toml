@@ -3,6 +3,14 @@ workspace = false
 description = "Executa o script build.sh"
 script = ["chmod +x ./scripts/modules-build.sh", "./scripts/modules-build.sh"]
 
+[tasks.mbuild-musl]
+workspace = false
+description = "Executa o script build.sh"
+script = [
+    "chmod +x ./scripts/modules-build-musl.sh",
+    "./scripts/modules-build-musl.sh",
+]
+
 [tasks.packages]
 workspace = false
 description = "Empacota todos os módulos em ./modules"
