@@ -15,4 +15,4 @@ chrono = "0.4"
 
 [lib]
 name = "postgres"
-crate-type = ["cdylib"]
+crate-type = ["staticlib"]

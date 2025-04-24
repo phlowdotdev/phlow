@@ -10,5 +10,5 @@ futures-lite = "2.6.0"
 openssl = { version = "0.10.72", features = ["vendored"] }
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["staticlib"]
 name = "amqp"

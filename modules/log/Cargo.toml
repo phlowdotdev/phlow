@@ -8,4 +8,4 @@ phlow-sdk = { workspace = true }
 
 [lib]
 name = "log"
-crate-type = ["cdylib"]
+crate-type = ["staticlib"]

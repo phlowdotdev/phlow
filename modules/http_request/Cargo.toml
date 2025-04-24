@@ -11,4 +11,4 @@ openssl = { version = "0.10.72", features = ["vendored"] }
 
 [lib]
 name = "http_request"
-crate-type = ["cdylib"]
+crate-type = ["staticlib"]

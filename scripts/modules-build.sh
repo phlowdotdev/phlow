@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Compila o projeto em modo release
-cargo build --release
+
 
 # Define os diretórios
 RELEASE_DIR="target/release"
@@ -12,7 +12,7 @@ MODULES_DIR="./modules"
 mkdir -p "$DEST_DIR"
 
 # Habilita nullglob para evitar erro se não houver arquivos .so
-shopt -s nullglob
+# shopt -s nullglob
 so_files=("$RELEASE_DIR"/lib*.so)
 
 if [ ${#so_files[@]} -eq 0 ]; then
