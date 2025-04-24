@@ -14,6 +14,14 @@ use phlow_sdk::tracing::error;
 use runtime::Runtime;
 use settings::Settings;
 
+#[cfg(all(feature = "mimalloc", target_env = "musl"))]
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
+#[cfg(all(feature = "jemalloc", target_env = "musl"))]
+#[global_allocator]
+static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
+
 #[tokio::main]
 async fn main() {
     let settings = Settings::try_load().expect("Error loading settings");

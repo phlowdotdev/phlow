@@ -1711,6 +1711,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
 
 [[package]]
+name = "jemalloc-sys"
+version = "0.5.4+5.3.0-patched"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac6c1946e1cea1788cbfde01c993b52a10e2da07f4bac608228d1bed20bfebf2"
+dependencies = [
+ "cc",
+ "libc",
+]
+
+[[package]]
+name = "jemallocator"
+version = "0.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a0de374a9f8e63150e6f5e8a60cc14c668226d7a347d8aee1a45766e3c4dd3bc"
+dependencies = [
+ "jemalloc-sys",
+ "libc",
+]
+
+[[package]]
 name = "jobserver"
 version = "0.1.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2377,7 +2397,7 @@ dependencies = [
 
 [[package]]
 name = "phlow-engine"
-version = "0.0.11"
+version = "0.0.12"
 dependencies = [
  "once_cell",
  "phlow-sdk",
@@ -2389,7 +2409,7 @@ dependencies = [
 
 [[package]]
 name = "phlow-runtime"
-version = "0.0.11"
+version = "0.0.12"
 dependencies = [
  "anyhow",
  "chrono",
@@ -2399,6 +2419,7 @@ dependencies = [
  "futures",
  "futures-util",
  "git2",
+ "jemallocator",
  "libc",
  "libloading",
  "mimalloc",
@@ -2417,7 +2438,7 @@ dependencies = [
 
 [[package]]
 name = "phlow-sdk"
-version = "0.0.11"
+version = "0.0.12"
 dependencies = [
  "crossbeam",
  "once_cell",
@@ -2439,7 +2460,7 @@ dependencies = [
 
 [[package]]
 name = "phs"
-version = "0.0.11"
+version = "0.0.12"
 dependencies = [
  "regex",
  "rhai",
@@ -2578,7 +2599,7 @@ checksum = "350e9b48cbc6b0e028b0473b114454c6316e57336ee184ceab6e53f72c178b3e"
 
 [[package]]
 name = "postgres"
-version = "0.0.11"
+version = "0.0.12"
 dependencies = [
  "chrono",
  "deadpool-postgres",

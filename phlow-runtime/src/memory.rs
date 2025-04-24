@@ -1,7 +1,9 @@
 use phlow_sdk::tracing::debug;
 
+#[cfg(target_env = "gnu")]
 extern crate libc;
 
+#[cfg(target_env = "gnu")]
 pub fn force_memory_release(min_allocated_memory: usize) {
     unsafe {
         let result = libc::malloc_trim(min_allocated_memory * 1024 * 1024);
@@ -11,4 +13,9 @@ pub fn force_memory_release(min_allocated_memory: usize) {
             debug!("Memory released successfully: {}", result);
         }
     }
+}
+
+#[cfg(target_env = "musl")]
+pub fn force_memory_release(_: usize) {
+    debug!("force_memory_release skipped: not supported in musl");
 }
