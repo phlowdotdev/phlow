@@ -76,7 +76,7 @@ jobs:
         env:
           DOCKER_BUILDKIT: 1
         run: |
-          docker build -f ./docker/Dockerfile --target phlow \
+          docker build -f ./docker/Dockerfile \
             -t ghcr.io/${{ github.repository_owner }}/phlow:glibc \
             -t ghcr.io/${{ github.repository_owner }}/phlow:busybox \
             -t ghcr.io/${{ github.repository_owner }}/phlow:latest \
@@ -101,7 +101,7 @@ jobs:
         env:
           DOCKER_BUILDKIT: 1
         run: |
-          docker build -f ./docker/Dockerfile --target phlow \
+          docker build -f ./docker/Dockerfile \
             -t lowcarboncode/phlow:glibc \
             -t lowcarboncode/phlow:busybox \
             -t lowcarboncode/phlow:latest \
