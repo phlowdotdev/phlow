@@ -8,7 +8,7 @@ COPY . .
 
 RUN rustup target add x86_64-unknown-linux-musl
 
-RUN RUSTFLAGS="-Ctarget-feature=-crt-static" cargo build --release --target x86_64-unknown-linux-musl -p phlow-runtime
+RUN RUSTFLAGS="-Ctarget-feature=-crt-static" cargo build --release --target x86_64-unknown-linux-musl
 
 # RUN bash /app/docker/modules-build.sh
 
@@ -17,7 +17,7 @@ RUN RUSTFLAGS="-Ctarget-feature=-crt-static" cargo build --release --target x86_
 ###############################################################################
 FROM alpine:latest AS libs
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates libgcc musl openssl3
 
 ###############################################################################
 # Imagem final com binário estático + certificados
@@ -30,7 +30,9 @@ ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
     PHLOW_OTEL=true
 
 COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/phlow /app/phlow
-# COPY --from=builder /app/phlow_packages /app/phlow_packages
 COPY --from=libs /etc/ssl/certs /etc/ssl/certs
+COPY --from=libs /lib /lib
+COPY --from=libs /usr/lib /usr/lib
+
 
 ENTRYPOINT ["/app/phlow"]
