@@ -80,7 +80,7 @@ jobs:
         env:
           DOCKER_BUILDKIT: 1
         run: |
-          docker build -f ./docker/Dockerfile.multi --target phlow \
+          docker build -f ./docker/Dockerfile --target phlow \
             -t ghcr.io/${{ github.repository_owner }}/phlow:dev-glibc \
             -t ghcr.io/${{ github.repository_owner }}/phlow:dev \
             -t ghcr.io/${{ github.repository_owner }}/phlow:${{ needs.tag.outputs.tag }} .
