@@ -28,7 +28,7 @@ jobs:
         env:
           DOCKER_BUILDKIT: 1
         run: |
-          docker build -f ./docker/Dockerfile . \
+          docker build -f ./docker/Dockerfile \
             -t ghcr.io/${{ github.repository_owner }}/phlow:dev-glibc \
             -t ghcr.io/${{ github.repository_owner }}/phlow:dev \
             -t ghcr.io/${{ github.repository_owner }}/phlow:${{ needs.tag.outputs.tag }} .
@@ -50,7 +50,7 @@ jobs:
         env:
           DOCKER_BUILDKIT: 1
         run: |
-          docker build -f ./docker/Dockerfile . \
+          docker build -f ./docker/Dockerfile \
             -t lowcarboncode/phlow:dev-glibc \
             -t lowcarboncode/phlow:dev \
             -t lowcarboncode/phlow:${{ needs.tag.outputs.tag }} .
