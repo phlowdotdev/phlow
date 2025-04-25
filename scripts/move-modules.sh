@@ -12,7 +12,7 @@ MODULES_DIR="./modules"
 mkdir -p "$DEST_DIR"
 
 # Habilita nullglob para evitar erro se não houver arquivos .so
-# shopt -s nullglob
+shopt -s nullglob
 so_files=("$RELEASE_DIR"/lib*.so)
 
 if [ ${#so_files[@]} -eq 0 ]; then
@@ -42,3 +42,5 @@ for file in "${so_files[@]}"; do
         echo "Aviso: $props_file não encontrado"
     fi
 done
+
+cd target

@@ -8,10 +8,9 @@ COPY . .
 
 RUN rustup target add x86_64-unknown-linux-musl
 
-RUN RUSTFLAGS="-Ctarget-feature=-crt-static" cargo build -p phlow-runtime
-RUN RUSTFLAGS="-Ctarget-feature=-crt-static" cargo build --release --target x86_64-unknown-linux-musl
+RUN RUSTFLAGS="-Ctarget-feature=-crt-static" cargo build --release --target x86_64-unknown-linux-musl -p phlow-runtime
 
-RUN bash /app/docker/modules-build.sh
+# RUN bash /app/docker/modules-build.sh
 
 ###############################################################################
 # Estágio auxiliar com os certificados
@@ -31,7 +30,7 @@ ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
     PHLOW_OTEL=true
 
 COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/phlow /app/phlow
-COPY --from=builder /app/phlow_packages /app/phlow_packages
+# COPY --from=builder /app/phlow_packages /app/phlow_packages
 COPY --from=libs /etc/ssl/certs /etc/ssl/certs
 
 ENTRYPOINT ["/app/phlow"]
