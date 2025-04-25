@@ -9,4 +9,4 @@ colored = "3.0.0"
 
 [lib]
 name = "cli"
-crate-type = ["staticlib"]
+crate-type = ["cdylib"]

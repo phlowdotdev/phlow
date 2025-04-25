@@ -9,4 +9,4 @@ phlow-sdk = { workspace = true }
 
 [lib]
 name = "sleep"
-crate-type = ["staticlib"]
+crate-type = ["cdylib"]
