@@ -7,7 +7,7 @@ modules:
   - module: cli
     version: latest
     with:
-      additional_args: false
+      additional_args: true
       args: 
         - name: name
           description: Name of the user

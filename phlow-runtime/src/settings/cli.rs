@@ -12,6 +12,7 @@ pub struct Cli {
     pub only_download_modules: bool,
     pub package_path: Option<String>,
     pub no_run: bool,
+    pub download: bool,
 }
 
 impl Cli {
@@ -38,8 +39,7 @@ impl Cli {
                     .long("download")
                     .short('d')
                     .help("Enable download modules before running")
-                    .action(ArgAction::SetTrue)
-                    .value_parser(clap::builder::BoolishValueParser::new())
+                    .value_parser(clap::builder::BoolValueParser::new())
                     .default_value("true"),
             )
             .arg(
@@ -65,11 +65,6 @@ impl Cli {
                     .default_value("false"),
             );
 
-        let args: Vec<String> = env::args().collect();
-        if args.contains(&"--help".to_string()) || args.contains(&"-h".to_string()) {
-            let _ = command.clone().print_help();
-        }
-
         let matches = command
             .trailing_var_arg(true)
             .allow_external_subcommands(true)
@@ -85,11 +80,13 @@ impl Cli {
 
         let no_run = *matches.get_one::<bool>("no_run").unwrap_or(&false);
 
+        let download = *matches.get_one::<bool>("download").unwrap_or(&true);
         Ok(Cli {
             main_target: main,
             only_download_modules: install,
             package_path,
             no_run,
+            download,
         })
     }
 }

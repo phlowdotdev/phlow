@@ -1,38 +1,43 @@
 ###############################################################################
-# Dockerfile para o Phlow Runtime
+# Phlow Runtime
 ###############################################################################
-FROM messense/rust-musl-cross:x86_64-musl AS builder
+FROM rust:1.86-slim-bookworm AS builder
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config \
+    libssl-dev \
+    ca-certificates \
+    zlib1g \
+    liblzma5 \
+    libgcc-s1 \
+    libssl3 \
+    perl \
+    make \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY . .
 
-RUN rustup target add x86_64-unknown-linux-musl
-
-RUN RUSTFLAGS="-Ctarget-feature=-crt-static" cargo build --release --target x86_64-unknown-linux-musl
-
-# RUN bash /app/docker/modules-build.sh
+RUN cargo build --release -p phlow-runtime && strip --strip-unneeded /app/target/release/phlow
 
 ###############################################################################
-# Estágio auxiliar com os certificados
-###############################################################################
-FROM alpine:latest AS libs
+# BusyBox
+####################################################################a###########
+FROM busybox:glibc
 
-RUN apk add --no-cache ca-certificates libgcc musl openssl3
+COPY --from=builder /lib/x86_64-linux-gnu/libz.so.1 /lib/
+COPY --from=builder /lib/x86_64-linux-gnu/liblzma.so.5 /lib/
+COPY --from=builder /lib/x86_64-linux-gnu/libgcc_s.so.1 /lib/
+COPY --from=builder /lib/x86_64-linux-gnu/libssl.so.3 /lib/
+COPY --from=builder /lib/x86_64-linux-gnu/libcrypto.so.3 /lib/
+COPY --from=builder /etc/ssl/certs /etc/ssl/certs
+COPY --from=builder /app/target/release/phlow /app/phlow
 
-###############################################################################
-# Imagem final com binário estático + certificados
-###############################################################################
-FROM scratch
+WORKDIR /app
+RUN chmod +x /app/phlow
 
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
     PHLOW_MAIN=https://github.com/lowcarboncode/phlow-mirror-request/archive/refs/heads/main.zip \
     PHLOW_LOG=info \
     PHLOW_OTEL=true
-
-COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/phlow /app/phlow
-COPY --from=libs /etc/ssl/certs /etc/ssl/certs
-COPY --from=libs /lib /lib
-COPY --from=libs /usr/lib /usr/lib
-
 
 ENTRYPOINT ["/app/phlow"]

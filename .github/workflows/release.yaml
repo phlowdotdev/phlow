@@ -122,9 +122,12 @@ jobs:
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u lowcarboncode --password-stdin
 
       - name: Build and Push Docker images to Docker Hub
+        env:
+          DOCKER_BUILDKIT: 1
         run: |
           docker build -f ./docker/Dockerfile --target phlow-slim \
             -t lowcarboncode/phlow:slim \
             -t lowcarboncode/phlow:latest .
-          docker push lowcarboncode/phlow:slim
+          docker push lowcarboncode/phlow:busybox
+          docker push lowcarboncode/phlow:glibc
           docker push lowcarboncode/phlow:latest

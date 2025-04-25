@@ -24,6 +24,8 @@ static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
 #[tokio::main]
 async fn main() {
+    debug!("Starting Phlow Runtime");
+
     let settings = Settings::try_load().expect("Error loading settings");
 
     if let Some(publish_path) = settings.package_path.clone() {
@@ -57,16 +59,25 @@ async fn main() {
 
     let guard = init_tracing_subscriber(loader.app_data.clone());
 
-    loader
-        .download(&settings.default_package_repository_url)
-        .await
-        .expect("Error downloading modules");
+    tracing::dispatcher::set_global_default(guard.dispatch.clone())
+        .expect("failed to set global subscriber"); // ✅ depois aplica global
 
-    loader.update_info();
+    let dispatch = guard.dispatch.clone();
+    let fut = async {
+        if settings.download {
+            loader
+                .download(&settings.default_package_repository_url)
+                .await
+                .expect("Download failed");
+        }
 
-    if settings.only_download_modules {
-        return;
-    }
+        loader.update_info();
 
-    Runtime::run(loader, guard.dispatch.clone(), settings).await;
+        if !settings.only_download_modules {
+            Runtime::run(loader, dispatch.clone(), settings).await;
+        }
+    };
+
+    // passamos a future para o escopo correto de dispatcher
+    tracing::dispatcher::with_default(&dispatch, || fut).await;
 }
