@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get_version.outputs.version }}
+      tag: ${{ steps.get_version.outputs.tag }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -24,15 +25,26 @@ jobs:
         id: get_version
         run: |
           version=$(grep '^version' Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/')
-          echo "version=$version" >> $GITHUB_OUTPUT
           echo "VERSION=$version" >> $GITHUB_ENV
+          echo "version=$version" >> $GITHUB_OUTPUT
+      
+          if [[ "$version" == *"-nightly"* || "$version" == *"-dev"* ]]; then
+            today=$(date +'%Y%m%d')
+            tag="nightly-$today"
+          else
+            tag="v$version"
+          fi
+
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+          echo "TAG=$tag" >> $GITHUB_ENV
 
       - name: Create Git tag
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git tag "v$VERSION"
-          git push origin "v$VERSION"
+          git tag "$TAG"
+          git push origin "$TAG"
+        
 
   build:
     name: Compile Binary
@@ -40,6 +52,7 @@ jobs:
     needs: tag
     outputs:
       version: ${{ needs.tag.outputs.version }}
+      tag: ${{ needs.tag.outputs.tag }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -73,8 +86,8 @@ jobs:
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ needs.build.outputs.version }}
-          name: Release v${{ needs.build.outputs.version }}
+          tag_name: ${{ needs.build.outputs.tag }}
+          name: Release ${{ needs.build.outputs.tag }}
           files: ./phlow-x86_64-unknown-linux-gnu
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -98,12 +111,24 @@ jobs:
 
       - name: Build and Push Docker images to GHCR
         run: |
-          docker build -f ./docker/Dockerfile.multi --target phlow-slim \
-            -t ghcr.io/${{ github.repository_owner }}/phlow:slim \
-            -t ghcr.io/${{ github.repository_owner }}/phlow:latest .
-          docker push ghcr.io/${{ github.repository_owner }}/phlow:slim
-          docker push ghcr.io/${{ github.repository_owner }}/phlow:latest
-
+          if [[ "${{ needs.build.outputs.tag }}" == nightly-* ]]; then
+            docker build -f ./docker/Dockerfile.multi --target phlow \
+              -t ghcr.io/${{ github.repository_owner }}/phlow:nightly-glibc \
+              -t ghcr.io/${{ github.repository_owner }}/phlow:nightly \
+              -t ghcr.io/${{ github.repository_owner }}/phlow:${{ needs.build.outputs.tag }} .
+            docker push ghcr.io/${{ github.repository_owner }}/phlow:${{ needs.build.outputs.tag }}
+          else
+            docker build -f ./docker/Dockerfile.multi --target phlow \
+              -t ghcr.io/${{ github.repository_owner }}/phlow:glibc \
+              -t ghcr.io/${{ github.repository_owner }}/phlow:busybox \
+              -t ghcr.io/${{ github.repository_owner }}/phlow:latest \
+              -t ghcr.io/${{ github.repository_owner }}/phlow:${{ needs.build.outputs.tag }} .
+            docker push ghcr.io/${{ github.repository_owner }}/phlow:glibc
+            docker push ghcr.io/${{ github.repository_owner }}/phlow:busybox
+            docker push ghcr.io/${{ github.repository_owner }}/phlow:latest
+            docker push ghcr.io/${{ github.repository_owner }}/phlow:${{ needs.build.outputs.tag }}
+          fi
+      
   docker-hub:
     name: Push to Docker Hub
     runs-on: ubuntu-latest
@@ -125,9 +150,21 @@ jobs:
         env:
           DOCKER_BUILDKIT: 1
         run: |
-          docker build -f ./docker/Dockerfile --target phlow-slim \
-            -t lowcarboncode/phlow:slim \
-            -t lowcarboncode/phlow:latest .
-          docker push lowcarboncode/phlow:busybox
-          docker push lowcarboncode/phlow:glibc
-          docker push lowcarboncode/phlow:latest
+          if [[ "${{ needs.build.outputs.tag }}" == nightly-* ]]; then
+            docker build -f ./docker/Dockerfile --target phlow \
+              -t lowcarboncode/phlow:nightly-glibc \
+              -t lowcarboncode/phlow:nightly \
+              -t lowcarboncode/phlow:${{ needs.build.outputs.tag }} .
+            docker push lowcarboncode/phlow:${{ needs.build.outputs.tag }}
+          else
+            docker build -f ./docker/Dockerfile --target phlow \
+              -t lowcarboncode/phlow:glibc \
+              -t lowcarboncode/phlow:busybox \
+              -t lowcarboncode/phlow:latest \
+              -t lowcarboncode/phlow:${{ needs.build.outputs.tag }} .
+            docker push lowcarboncode/phlow:glibc
+            docker push lowcarboncode/phlow:busybox
+            docker push lowcarboncode/phlow:latest
+            docker push lowcarboncode/phlow:${{ needs.build.outputs.tag }}
+          fi
+      
