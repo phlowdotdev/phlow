@@ -1,0 +1,112 @@
+name: Dev Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - dev
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  tag:
+    name: Create Dev Tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      tag: ${{ steps.get_version.outputs.tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from Cargo.toml
+        id: get_version
+        run: |
+          version=$(grep '^version' Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/')
+          today=$(date +'%Y%m%d')
+          tag="dev-$today"
+          echo "VERSION=$version" >> $GITHUB_ENV
+          echo "TAG=$tag" >> $GITHUB_ENV
+          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+
+      - name: Create Git Tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag "$TAG"
+          git push origin "$TAG"
+
+  github-release:
+    name: Create GitHub Dev Release
+    runs-on: ubuntu-latest
+    needs: tag
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build release binary
+        run: |
+          cargo install cross
+          cross build --release --target x86_64-unknown-linux-gnu -p phlow-runtime
+          mv ./target/x86_64-unknown-linux-gnu/release/phlow ./phlow-x86_64-unknown-linux-gnu
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.tag.outputs.tag }}
+          name: Dev Release ${{ needs.tag.outputs.tag }}
+          files: ./phlow-x86_64-unknown-linux-gnu
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker-ghcr:
+    name: Build & Push Dev to GHCR
+    runs-on: ubuntu-latest
+    needs: tag
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and Push Dev Docker images (GHCR)
+        env:
+          DOCKER_BUILDKIT: 1
+        run: |
+          docker build -f ./docker/Dockerfile.multi --target phlow \
+            -t ghcr.io/${{ github.repository_owner }}/phlow:dev-glibc \
+            -t ghcr.io/${{ github.repository_owner }}/phlow:dev \
+            -t ghcr.io/${{ github.repository_owner }}/phlow:${{ needs.tag.outputs.tag }} .
+          docker push ghcr.io/${{ github.repository_owner }}/phlow:dev-glibc
+          docker push ghcr.io/${{ github.repository_owner }}/phlow:dev
+          docker push ghcr.io/${{ github.repository_owner }}/phlow:${{ needs.tag.outputs.tag }}
+
+  docker-hub:
+    name: Build & Push Dev to Docker Hub
+    runs-on: ubuntu-latest
+    needs: tag
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u lowcarboncode --password-stdin
+
+      - name: Build and Push Dev Docker images (Docker Hub)
+        env:
+          DOCKER_BUILDKIT: 1
+        run: |
+          docker build -f ./docker/Dockerfile --target phlow \
+            -t lowcarboncode/phlow:dev-glibc \
+            -t lowcarboncode/phlow:dev \
+            -t lowcarboncode/phlow:${{ needs.tag.outputs.tag }} .
+          docker push lowcarboncode/phlow:dev-glibc
+          docker push lowcarboncode/phlow:dev
+          docker push lowcarboncode/phlow:${{ needs.tag.outputs.tag }}

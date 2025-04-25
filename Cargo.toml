@@ -16,7 +16,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.0.15-nightly"
+version = "0.0.16"
 edition = "2021"
 rust-version = "1.83.0"
 authors = ["Philippe Assis <codephilippe@gmail.com>"]
@@ -25,9 +25,9 @@ repository = "https://github.com/lowcarboncode/phlow"
 
 [workspace.dependencies]
 # internal
-phlow-engine = { path = "phlow-engine", version = "0.0.15-nightly" }
-phlow-sdk = { path = "phlow-sdk", version = "0.0.15-nightly" }
-phs = { path = "phs", version = "0.0.15-nightly" }
+phlow-engine = { path = "phlow-engine", version = "0.0.16" }
+phlow-sdk = { path = "phlow-sdk", version = "0.0.16" }
+phs = { path = "phs", version = "0.0.16" }
 
 #phlow
 libloading = "0.8"
