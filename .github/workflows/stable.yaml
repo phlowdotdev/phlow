@@ -28,7 +28,7 @@ jobs:
         id: get_version
         run: |
           version=$(grep '^version' Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/')
-          tag="v$version"
+          tag="stable-$version"
           echo "VERSION=$version" >> $GITHUB_ENV
           echo "TAG=$tag" >> $GITHUB_ENV
           echo "version=$version" >> $GITHUB_OUTPUT
