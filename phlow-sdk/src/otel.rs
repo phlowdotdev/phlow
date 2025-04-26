@@ -29,8 +29,8 @@ use crate::prelude::ApplicationData;
 // otel active
 static PHLOW_OTEL_ACTIVE: once_cell::sync::Lazy<bool> =
     once_cell::sync::Lazy::new(|| match std::env::var("PHLOW_OTEL") {
-        Ok(active) => active.parse::<bool>().unwrap_or(true),
-        Err(_) => true,
+        Ok(active) => active.parse::<bool>().unwrap_or(false),
+        Err(_) => false,
     });
 
 static PHLOW_SPAN_ACTIVE: once_cell::sync::Lazy<Level> =
