@@ -2,8 +2,6 @@ name: Nightly Release
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 3 * * *"  # Todo dia às 3h UTC
 
 permissions:
   contents: write
