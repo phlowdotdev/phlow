@@ -76,7 +76,7 @@ jobs:
         env:
           DOCKER_BUILDKIT: 1
         run: |
-          docker build -f ./docker/Dockerfile --target phlow \
+          docker build -f ./docker/Dockerfile  \
             -t ghcr.io/${{ github.repository_owner }}/phlow:canary-glibc \
             -t ghcr.io/${{ github.repository_owner }}/phlow:canary-busybox \
             -t ghcr.io/${{ github.repository_owner }}/phlow:canary-latest \
@@ -101,7 +101,7 @@ jobs:
         env:
           DOCKER_BUILDKIT: 1
         run: |
-          docker build -f ./docker/Dockerfile --target phlow \
+          docker build -f ./docker/Dockerfile  \
             -t lowcarboncode/phlow:canary-glibc \
             -t lowcarboncode/phlow:canary-busybox \
             -t lowcarboncode/phlow:canary-latest \
