@@ -2,6 +2,8 @@ name: Nightly Release
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * *"  # Todo dia às 3h UTC
 
 permissions:
   contents: write
@@ -113,7 +115,7 @@ jobs:
         env:
           DOCKER_BUILDKIT: 1
         run: |
-          docker build -f ./docker/Dockerfile.multi --target phlow \
+          docker build -f ./docker/Dockerfile --target phlow \
             -t ghcr.io/${{ github.repository_owner }}/phlow:nightly-glibc \
             -t ghcr.io/${{ github.repository_owner }}/phlow:nightly \
             -t ghcr.io/${{ github.repository_owner }}/phlow:${{ needs.tag.outputs.tag }} .
