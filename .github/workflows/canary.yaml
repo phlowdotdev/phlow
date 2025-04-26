@@ -58,6 +58,8 @@ jobs:
           tag_name: ${{ needs.tag.outputs.tag }}
           name: Release ${{ needs.tag.outputs.tag }}
           files: ./phlow-x86_64-unknown-linux-gnu
+          make_latest: false
+          prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
