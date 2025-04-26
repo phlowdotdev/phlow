@@ -1,12 +1,8 @@
 use anyhow::{anyhow, bail, Context, Result};
-use phlow_sdk::tracing::info;
+use log::info;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::{
-    fs::{self, File},
-    path::PathBuf,
-    process::Command,
-};
+use std::{fs, path::PathBuf, process::Command};
 
 #[derive(Debug)]
 pub struct Package {
@@ -161,8 +157,9 @@ impl TryFrom<String> for Package {
         if !module_dir.exists() {
             bail!("Directory not found: {}", module_dir.display());
         }
-        println!(
-            "[INFO] Initializing Publish struct for directory: {}",
+
+        info!(
+            "Initializing Publish struct for directory: {}",
             module_dir.display()
         );
         Ok(Package { module_dir })

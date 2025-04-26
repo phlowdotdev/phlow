@@ -21,9 +21,9 @@ use tracing_core::LevelFilter;
 use tracing_opentelemetry::MetricsLayer;
 use tracing_opentelemetry::OpenTelemetryLayer;
 use tracing_subscriber::fmt;
+use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::Registry;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::prelude::ApplicationData;
 // otel active

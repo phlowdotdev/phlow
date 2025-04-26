@@ -5,12 +5,13 @@ mod package;
 mod runtime;
 mod settings;
 mod yaml;
+use ::log::debug;
 use loader::Loader;
 use log::init_tracing;
 use package::Package;
 use phlow_sdk::otel::init_tracing_subscriber;
-use phlow_sdk::prelude::*;
 use phlow_sdk::tracing::error;
+use phlow_sdk::{tokio, tracing};
 use runtime::Runtime;
 use settings::Settings;
 
@@ -24,6 +25,8 @@ static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
+
     debug!("Starting Phlow Runtime");
 
     let settings = Settings::try_load().expect("Error loading settings");
