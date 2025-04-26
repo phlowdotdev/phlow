@@ -1,9 +1,7 @@
-name: Nightly Release
+name: Canary Release
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 3 * * *"  # Todo dia às 3h UTC
 
 permissions:
   contents: write
@@ -13,43 +11,9 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  check-changes-since-last-nightly:
-    name: Check changes since last nightly
-    runs-on: ubuntu-latest
-    outputs:
-      should_run: ${{ steps.check.outputs.should_run }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Check if there are changes since last nightly
-        id: check
-        run: |
-          git fetch --tags
-          last_nightly_tag=$(git tag --sort=-creatordate | grep '^nightly-' | head -n1)
-
-          if [ -z "$last_nightly_tag" ]; then
-            echo "No previous nightly tag found. Proceeding..."
-            echo "should_run=true" >> $GITHUB_OUTPUT
-          else
-            echo "Found last nightly tag: $last_nightly_tag"
-
-            commits_since_last_nightly=$(git log ${last_nightly_tag}..origin/main --oneline || true)
-
-            if [ -n "$commits_since_last_nightly" ]; then
-              echo "There are commits since last nightly. Proceeding..."
-              echo "should_run=true" >> $GITHUB_OUTPUT
-            else
-              echo "No new commits since last nightly. Skipping build."
-              echo "should_run=false" >> $GITHUB_OUTPUT
-            fi
-          fi
-
   tag:
-    name: Create Nightly Tag
+    name: Create Git Tag
     runs-on: ubuntu-latest
-    needs: check-changes-since-last-nightly
-    if: needs.check-changes-since-last-nightly.outputs.should_run == 'true'
     outputs:
       version: ${{ steps.get_version.outputs.version }}
       tag: ${{ steps.get_version.outputs.tag }}
@@ -61,8 +25,7 @@ jobs:
         id: get_version
         run: |
           version=$(grep '^version' Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/')
-          today=$(date +'%Y%m%d')
-          tag="nightly-$today"
+          tag="canary-$version"
           echo "VERSION=$version" >> $GITHUB_ENV
           echo "TAG=$tag" >> $GITHUB_ENV
           echo "version=$version" >> $GITHUB_OUTPUT
@@ -76,10 +39,9 @@ jobs:
           git push origin "$TAG"
 
   github-release:
-    name: Create GitHub Nightly Release
+    name: Create GitHub Release
     runs-on: ubuntu-latest
     needs: tag
-    if: needs.check-changes-since-last-nightly.outputs.should_run == 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -94,16 +56,15 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ needs.tag.outputs.tag }}
-          name: Nightly Release ${{ needs.tag.outputs.tag }}
+          name: Release ${{ needs.tag.outputs.tag }}
           files: ./phlow-x86_64-unknown-linux-gnu
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   docker-ghcr:
-    name: Build & Push Nightly to GHCR
+    name: Build & Push to GitHub Container Registry
     runs-on: ubuntu-latest
     needs: tag
-    if: needs.check-changes-since-last-nightly.outputs.should_run == 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -111,23 +72,24 @@ jobs:
       - name: Login to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Build and Push Nightly Docker images (GHCR)
+      - name: Build and Push Docker images (GHCR)
         env:
           DOCKER_BUILDKIT: 1
         run: |
           docker build -f ./docker/Dockerfile --target phlow \
-            -t ghcr.io/${{ github.repository_owner }}/phlow:nightly-glibc \
-            -t ghcr.io/${{ github.repository_owner }}/phlow:nightly \
+            -t ghcr.io/${{ github.repository_owner }}/phlow:canary-glibc \
+            -t ghcr.io/${{ github.repository_owner }}/phlow:canary-busybox \
+            -t ghcr.io/${{ github.repository_owner }}/phlow:canary-latest \
             -t ghcr.io/${{ github.repository_owner }}/phlow:${{ needs.tag.outputs.tag }} .
-          docker push ghcr.io/${{ github.repository_owner }}/phlow:nightly-glibc
-          docker push ghcr.io/${{ github.repository_owner }}/phlow:nightly
+          docker push ghcr.io/${{ github.repository_owner }}/phlow:canary-glibc
+          docker push ghcr.io/${{ github.repository_owner }}/phlow:canary-busybox
+          docker push ghcr.io/${{ github.repository_owner }}/phlow:canary-latest
           docker push ghcr.io/${{ github.repository_owner }}/phlow:${{ needs.tag.outputs.tag }}
 
   docker-hub:
-    name: Build & Push Nightly to Docker Hub
+    name: Build & Push to Docker Hub
     runs-on: ubuntu-latest
     needs: tag
-    if: needs.check-changes-since-last-nightly.outputs.should_run == 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -135,14 +97,16 @@ jobs:
       - name: Login to Docker Hub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u lowcarboncode --password-stdin
 
-      - name: Build and Push Nightly Docker images (Docker Hub)
+      - name: Build and Push Docker images (Docker Hub)
         env:
           DOCKER_BUILDKIT: 1
         run: |
           docker build -f ./docker/Dockerfile --target phlow \
-            -t lowcarboncode/phlow:nightly-glibc \
-            -t lowcarboncode/phlow:nightly \
+            -t lowcarboncode/phlow:canary-glibc \
+            -t lowcarboncode/phlow:canary-busybox \
+            -t lowcarboncode/phlow:canary-latest \
             -t lowcarboncode/phlow:${{ needs.tag.outputs.tag }} .
-          docker push lowcarboncode/phlow:nightly-glibc
-          docker push lowcarboncode/phlow:nightly
+          docker push lowcarboncode/phlow:canary-glibc
+          docker push lowcarboncode/phlow:canary-busybox
+          docker push lowcarboncode/phlow:canary-latest
           docker push lowcarboncode/phlow:${{ needs.tag.outputs.tag }}
