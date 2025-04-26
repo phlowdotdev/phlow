@@ -81,11 +81,11 @@ jobs:
           docker build -f ./docker/Dockerfile  \
             -t ghcr.io/${{ github.repository_owner }}/phlow:canary-glibc \
             -t ghcr.io/${{ github.repository_owner }}/phlow:canary-busybox \
-            -t ghcr.io/${{ github.repository_owner }}/phlow:canary-latest \
+            -t ghcr.io/${{ github.repository_owner }}/phlow:canary \
             -t ghcr.io/${{ github.repository_owner }}/phlow:${{ needs.tag.outputs.tag }} .
           docker push ghcr.io/${{ github.repository_owner }}/phlow:canary-glibc
           docker push ghcr.io/${{ github.repository_owner }}/phlow:canary-busybox
-          docker push ghcr.io/${{ github.repository_owner }}/phlow:canary-latest
+          docker push ghcr.io/${{ github.repository_owner }}/phlow:canary
           docker push ghcr.io/${{ github.repository_owner }}/phlow:${{ needs.tag.outputs.tag }}
 
   docker-hub:
@@ -106,9 +106,9 @@ jobs:
           docker build -f ./docker/Dockerfile  \
             -t lowcarboncode/phlow:canary-glibc \
             -t lowcarboncode/phlow:canary-busybox \
-            -t lowcarboncode/phlow:canary-latest \
+            -t lowcarboncode/phlow:canary \
             -t lowcarboncode/phlow:${{ needs.tag.outputs.tag }} .
           docker push lowcarboncode/phlow:canary-glibc
           docker push lowcarboncode/phlow:canary-busybox
-          docker push lowcarboncode/phlow:canary-latest
+          docker push lowcarboncode/phlow:canary
           docker push lowcarboncode/phlow:${{ needs.tag.outputs.tag }}

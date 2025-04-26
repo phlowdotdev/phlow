@@ -1,3 +1,4 @@
+use phlow_sdk::prelude::Value;
 use regex::Regex;
 use serde_yaml;
 use std::fs;
@@ -152,21 +153,14 @@ fn process_include_file(path: &Path) -> Result<String, String> {
 
     let raw = fs::read_to_string(path).map_err(|e| e.to_string())?;
 
-    let value = match extension.as_str() {
+    let value: Value = match extension.as_str() {
         "yaml" | "yml" => {
             let parent = path.parent().unwrap_or_else(|| Path::new("."));
             let transformed = yaml_helpers_transform(&raw, parent);
-            let yaml_value: serde_yaml::Value =
-                serde_yaml::from_str(&transformed).map_err(|e| e.to_string())?;
-            serde_json::to_value(yaml_value).map_err(|e| e.to_string())?
-        }
-        "json" => serde_json::from_str::<serde_json::Value>(&raw).map_err(|e| e.to_string())?,
-        "toml" => {
-            let toml_value: toml::Value = toml::from_str(&raw).map_err(|e| e.to_string())?;
-            serde_json::to_value(toml_value).map_err(|e| e.to_string())?
+            serde_yaml::from_str(&transformed).map_err(|e| e.to_string())?
         }
         _ => return Err("Unsupported file extension".into()),
     };
 
-    serde_json::to_string(&value).map_err(|e| e.to_string())
+    Ok(value.to_string())
 }

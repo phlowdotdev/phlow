@@ -40,7 +40,7 @@ impl Package {
             self.module_dir.display()
         );
 
-        let metadata_path = ["phlow.yaml", "phlow.yml", "phlow.json"]
+        let metadata_path = ["phlow.yaml", "phlow.yml"]
             .iter()
             .map(|f| self.module_dir.join(f))
             .find(|p| p.exists())
@@ -53,28 +53,11 @@ impl Package {
 
         info!("Metadata file found: {}", metadata_path.display());
 
-        let metadata: ModuleMetadata = match metadata_path.extension().and_then(|ext| ext.to_str())
-        {
-            Some("json") => {
-                info!("Reading metadata as JSON");
-                serde_json::from_reader(File::open(&metadata_path)?).with_context(|| {
-                    format!("Failed to parse JSON file: {}", metadata_path.display())
-                })?
-            }
-            Some("toml") => {
-                info!("Reading metadata as TOML");
-                let content = fs::read_to_string(&metadata_path)?;
-                toml::de::from_str(&content).with_context(|| {
-                    format!("Failed to parse TOML file: {}", metadata_path.display())
-                })?
-            }
-            _ => {
-                info!("Reading metadata as YAML");
-                let content = fs::read_to_string(&metadata_path)?;
-                serde_yaml::from_str(&content).with_context(|| {
-                    format!("Failed to parse YAML file: {}", metadata_path.display())
-                })?
-            }
+        let metadata: ModuleMetadata = {
+            let content = fs::read_to_string(&metadata_path)?;
+            serde_yaml::from_str(&content).with_context(|| {
+                format!("Failed to parse YAML file: {}", metadata_path.display())
+            })?
         };
 
         info!("Metadata loaded:\n  - name: {}\n  - version: {}\n  - repository: {}\n  - license: {}\n  - author: {}",
