@@ -2,7 +2,7 @@ use crate::{
     condition::{Condition, ConditionError},
     context::Context,
     id::ID,
-    script::{Script, ScriptError},
+    script::Script,
 };
 use once_cell::sync::Lazy;
 use phlow_sdk::prelude::*;
@@ -19,9 +19,9 @@ static PHLOW_TRUNCATE_SPAN_VALUE: Lazy<usize> =
 #[derive(Debug)]
 pub enum StepWorkerError {
     ConditionError(ConditionError),
-    PayloadError(ScriptError),
+    PayloadError(phs::ScriptError),
     ModulesError(ModulesError),
-    InputError(ScriptError),
+    InputError(phs::ScriptError),
 }
 
 impl Display for StepWorkerError {

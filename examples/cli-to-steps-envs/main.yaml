@@ -1,0 +1,20 @@
+main: cli
+name: Example Cli
+version: 1.0.0
+description: Example CLI module
+author: Your Name
+modules: 
+  - module: cli
+    version: latest
+    with:
+      additional_args: false
+      args: 
+        - name: name
+          description: Name of the user
+          index: 1
+          type: string
+          required: false
+          default: !phs if envs.DEFAULT_NAME != null { envs.DEFAULT_NAME } else { "John Doe" }
+steps:
+  - payload: !phs main.name
+      

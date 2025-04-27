@@ -5,10 +5,7 @@ use rhai::Engine;
 use serde::Serialize;
 use valu3::{prelude::StringBehavior, traits::ToValueBehavior, value::Value};
 
-use crate::{
-    context::Context,
-    script::{Script, ScriptError},
-};
+use crate::{context::Context, script::Script};
 
 #[derive(Debug)]
 pub enum ConditionError {
@@ -16,7 +13,7 @@ pub enum ConditionError {
     RightInvalid(String),
     LeftInvalid(String),
     AssertInvalid(String),
-    ScriptError(ScriptError),
+    ScriptError(phs::ScriptError),
 }
 
 impl Display for ConditionError {
@@ -153,8 +150,8 @@ impl Condition {
         right: String,
         operator: Operator,
     ) -> Result<Self, ConditionError> {
-        let left = Script::to_code_string(&left);
-        let right = Script::to_code_string(&right);
+        let left = phs::Script::to_code_string(&left);
+        let right = phs::Script::to_code_string(&right);
 
         let assert = {
             match operator {
@@ -234,7 +231,7 @@ impl Condition {
 
         match result {
             Value::Boolean(result) => Ok(result),
-            _ => Err(ConditionError::ScriptError(ScriptError::InvalidType(
+            _ => Err(ConditionError::ScriptError(phs::ScriptError::InvalidType(
                 result,
             ))),
         }

@@ -1,9 +1,5 @@
-use phlow_sdk::valu3;
 use regex::Regex;
-use valu3::{
-    prelude::{NumberBehavior, StringBehavior},
-    value::Value,
-};
+use valu3::{prelude::*, value::Value};
 
 #[derive(Debug, PartialEq)]
 pub struct Variable {

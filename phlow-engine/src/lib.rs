@@ -139,7 +139,7 @@ pub mod pipeline;
 pub mod script;
 pub mod step_worker;
 pub mod transform;
-pub mod variable;
+pub use phs;
 
 pub use context::Context;
 pub use phlow::Phlow;

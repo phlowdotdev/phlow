@@ -4,8 +4,9 @@ use crate::settings::Settings;
 use crossbeam::channel;
 use futures::future::join_all;
 use log::{debug, error, info};
-use phlow_engine::script::{Script, ScriptError};
+use phlow_engine::phs::{build_engine, Script, ScriptError};
 use phlow_engine::{Context, Phlow};
+use phlow_sdk::prelude::ToValueBehavior;
 use phlow_sdk::structs::Package;
 use phlow_sdk::tokio;
 use phlow_sdk::{
@@ -13,7 +14,7 @@ use phlow_sdk::{
     structs::{ModulePackage, ModuleSetup, Modules},
     tracing::{dispatcher, Dispatch},
 };
-use phs::build_engine;
+use std::collections::HashMap;
 use std::fmt::Display;
 use std::{sync::Arc, thread};
 use tokio::sync::oneshot;
@@ -21,7 +22,6 @@ use tokio::sync::oneshot;
 #[derive(Debug)]
 pub enum RuntimeError {
     MainModuleNotFound,
-    ModuleLoadError(String),
     ModuleWithError(ScriptError),
     ModuleRegisterError,
     FlowExecutionError(String),
@@ -33,7 +33,6 @@ impl Display for RuntimeError {
             RuntimeError::MainModuleNotFound => write!(f, "Main module not found"),
             RuntimeError::ModuleRegisterError => write!(f, "Module register error"),
             RuntimeError::FlowExecutionError(err) => write!(f, "Flow execution error: {}", err),
-            RuntimeError::ModuleLoadError(err) => write!(f, "Module load error: {}", err),
             RuntimeError::ModuleWithError(err) => write!(f, "Module with error: {}", err),
         }
     }
@@ -56,7 +55,7 @@ impl Runtime {
         let (tx_main_package, rx_main_package) = channel::unbounded::<Package>();
 
         let engine = build_engine(None);
-
+        let envs = HashMap::from([("envs".to_string(), Context::get_all_envs().to_value())]);
         // -------------------------
         // Load the modules
         // -------------------------
@@ -70,16 +69,24 @@ impl Runtime {
                 None
             };
 
-            let with = match Script::try_build(engine.clone(), &module.with) {
-                Ok(payload) => Some(payload),
-                Err(err) => return Err(RuntimeError::ModuleWithError(err)),
+            let with = {
+                let script = match Script::try_build(engine.clone(), &module.with) {
+                    Ok(payload) => payload,
+                    Err(err) => return Err(RuntimeError::ModuleWithError(err)),
+                };
+
+                let with = script
+                    .evaluate(&envs)
+                    .map_err(|err| RuntimeError::ModuleWithError(err))?;
+
+                with
             };
 
             let setup = ModuleSetup {
                 id,
                 setup_sender,
                 main_sender,
-                with: module.with.clone(),
+                with,
                 dispatch: dispatch.clone(),
                 app_data: loader.app_data.clone(),
             };
@@ -106,7 +113,7 @@ impl Runtime {
                 Ok(None) => {
                     debug!("Module {} did not register", module.name);
                 }
-                Err(err) => {
+                Err(_) => {
                     return Err(RuntimeError::ModuleRegisterError);
                 }
             }

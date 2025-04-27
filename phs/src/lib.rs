@@ -1,9 +1,12 @@
 pub mod functions;
 mod repositories;
+pub mod script;
+pub mod variable;
 use functions::build_functions;
 pub use repositories::{Repositories, RepositoryFunction};
 use rhai::serde::from_dynamic;
 use rhai::{Dynamic, Engine};
+pub use script::{Script, ScriptError};
 use std::collections::HashMap;
 use std::future::Future;
 use std::sync::Arc;
