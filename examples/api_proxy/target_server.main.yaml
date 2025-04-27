@@ -10,6 +10,6 @@ steps:
   - return:
       status_code: 200
       body: 
-        message: !eval main
+        message: !phs main
       headers:
         Content-Type: application/json

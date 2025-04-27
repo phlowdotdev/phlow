@@ -7,13 +7,13 @@ steps:
   - condition:
       ## You can create conditions in many ways      
       ##
-      ## 1. Using the `!eval` directive to evaluate an expression
-      # left: !eval main.method
+      ## 1. Using the `!phs` directive to evaluate an expression
+      # left: !phs main.method
       # operator: equal
       # right: POST
       
-      ## 2. Using the `!eval` directive to compare the result of an expression
-      # left: !eval main.method == "POST"
+      ## 2. Using the `!phs` directive to compare the result of an expression
+      # left: !phs main.method == "POST"
       # operator: equal
       # right: true
 
@@ -26,16 +26,16 @@ steps:
       assert: !import scripts/validator.rhai
 
       ## 5. Using 'assert' directive to compare the result of an expression
-      # assert: !eval main.method == "POST"
+      # assert: !phs main.method == "POST"
     then: 
       steps:
         - id: queue
           use: rabbitmq
           input:
-            message: !eval main
+            message: !phs main
         - return:
             status_code: 201
-            body: !eval steps.queue
+            body: !phs steps.queue
             headers:
               Content-Type: application/json
     else:

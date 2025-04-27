@@ -97,31 +97,31 @@ modules:
 
 steps:
     - condition:
-      assert: !eval main.path.start_with("/public")
+      assert: !phs main.path.start_with("/public")
       then:
         module: request
         input:
-            method: !eval main.method
-            url: !eval `public-service.local${main.uri}?` 
+            method: !phs main.method
+            url: !phs `public-service.local${main.uri}?` 
             headers:
-                x-forwarded-for: !eval main.client_ip
-                x-original-path: !eval main.path   
-            body: !eval main.body
+                x-forwarded-for: !phs main.client_ip
+                x-original-path: !phs main.path   
+            body: !phs main.body
     - use: authorization
       id: auth
       input:
-        api_key: !eval main.header.authorization
+        api_key: !phs main.header.authorization
     - condition:
-      assert: !eval steps.auth.authorized == true          
+      assert: !phs steps.auth.authorized == true          
       then:
           module: request
           with:
-              method: !eval main.method
-              url: !eval `private-service.local${main.uri}?` 
+              method: !phs main.method
+              url: !phs `private-service.local${main.uri}?` 
               headers:
-                  x-forwarded-for: !eval main.client_ip
-                  x-original-path: !eval main.path   
-              body: !eval main.body
+                  x-forwarded-for: !phs main.client_ip
+                  x-original-path: !phs main.path   
+              body: !phs main.body
     - return:
         status_code: 401
         body: {
@@ -181,7 +181,7 @@ steps:
   - module: log
     input:
       level: debug
-      message: !eval "'Current time: ' + timestamp()"
+      message: !phs "'Current time: ' + timestamp()"
 
   - module: log
     input:
@@ -193,9 +193,9 @@ steps:
 
 Phlow extends YAML with:
 
-- `!eval`: execute inline expressions using Phlow Script (phs).
+- `!phs`: execute inline expressions using Phlow Script (phs).
 - `!include`: include other YAML files into the flow tree.
-- `!import`: import external script files (.phs or .rhai) and evaluate them with `!eval`.
+- `!import`: import external script files (.phs or .rhai) and evaluate them with `!phs`.
 
 ---
 
@@ -543,7 +543,7 @@ steps:
   - use: log
     input:
       level: error
-      message: !eval "something went wrong: " + main.error
+      message: !phs "something went wrong: " + main.error
 ```
 ---
 

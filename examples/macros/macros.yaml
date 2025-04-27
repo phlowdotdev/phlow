@@ -4,18 +4,18 @@
     payload:
       url: {{proxy_url}}
     condition:
-      left: !eval main.path
+      left: !phs main.path
       operator: starts_with
       right: {{path}}
     then:
       - id: proxy
         use: http_request
         input:
-          method: !eval main.method
-          url: !eval steps.{{id}}.url
-          headers: !eval main.headers
-          body: !eval main.body
+          method: !phs main.method
+          url: !phs steps.{{id}}.url
+          headers: !phs main.headers
+          body: !phs main.body
       - return: 
-          status_code: !eval steps.proxy.response.status_code
-          body: !eval steps.proxy.response.
-          headers: !eval steps.proxy.response.headers
+          status_code: !phs steps.proxy.response.status_code
+          body: !phs steps.proxy.response.
+          headers: !phs steps.proxy.response.headers

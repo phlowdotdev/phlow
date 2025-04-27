@@ -16,7 +16,7 @@ steps:
       proxy_url: http://localhost:3001/v1/${main.full_path}
   - !include authorizer.yaml
   - condition:
-      assert: !eval steps.auth == true
+      assert: !phs steps.auth == true
     then:
       macro: router
       with:

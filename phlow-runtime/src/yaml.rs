@@ -84,7 +84,7 @@ fn yaml_helpers_eval(yaml: &str) -> String {
     let mut lines = yaml.lines().peekable();
 
     while let Some(line) = lines.next() {
-        if let Some(pos) = line.find("!eval") {
+        if let Some(pos) = line.find("!phs") {
             let before_eval = &line[..pos];
             let after_eval = line[pos + 5..].trim();
             let indent = " ".repeat(pos);

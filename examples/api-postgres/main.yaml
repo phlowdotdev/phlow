@@ -31,6 +31,6 @@ steps:
       query: SELECT * FROM Student;
   - return:
       status_code: 200
-      body: !eval payload
+      body: !phs payload
       headers:
         Content-Type: application/json

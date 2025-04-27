@@ -9,7 +9,7 @@ steps:
     input:
       message: Hello, World!
   - condition:
-      assert: !eval main.method == "POST"
+      assert: !phs main.method == "POST"
     then:
       return:
         status_code: 201

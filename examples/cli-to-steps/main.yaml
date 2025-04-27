@@ -31,32 +31,32 @@ steps:
   - id: jump_me
     return:
       message: Jump me baby
-      main: !eval main
+      main: !phs main
   - id: assert
     condition:
-      assert: !eval main.active
+      assert: !phs main.active
     then:
       label: is active
       return: 
         message: is active
-        main: !eval main
+        main: !phs main
     else:
       label: 18+
       condition:
-        assert: !eval main.age >= 18
+        assert: !phs main.age >= 18
       then:
         label: "> 18"
         payload: "> 18"
       else:
         condition:
-          assert: !eval main.age <= 3
+          assert: !phs main.age <= 3
         then:
           to: jump_me
         else:
           label: "3-18"
           payload: "3-18"
-  - payload: !eval `result: ${payload}`
+  - payload: !phs `result: ${payload}`
   - payload:
-      main: !eval main
-      payload: !eval payload
+      main: !phs main
+      payload: !phs payload
       

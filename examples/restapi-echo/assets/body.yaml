@@ -1,2 +1,2 @@
-message: !eval steps.echo
+message: !phs steps.echo
 data: !import scripts/script.rhai
