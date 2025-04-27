@@ -6,7 +6,6 @@ use futures::future::join_all;
 use log::{debug, error, info};
 use phlow_engine::phs::{build_engine, Script, ScriptError};
 use phlow_engine::{Context, Phlow};
-use phlow_sdk::prelude::ToValueBehavior;
 use phlow_sdk::structs::Package;
 use phlow_sdk::tokio;
 use phlow_sdk::{
@@ -14,7 +13,6 @@ use phlow_sdk::{
     structs::{ModulePackage, ModuleSetup, Modules},
     tracing::{dispatcher, Dispatch},
 };
-use std::collections::HashMap;
 use std::fmt::Display;
 use std::{sync::Arc, thread};
 use tokio::sync::oneshot;
@@ -55,7 +53,6 @@ impl Runtime {
         let (tx_main_package, rx_main_package) = channel::unbounded::<Package>();
 
         let engine = build_engine(None);
-        let envs = HashMap::from([("envs".to_string(), Context::get_all_envs().to_value())]);
         // -------------------------
         // Load the modules
         // -------------------------
@@ -76,7 +73,7 @@ impl Runtime {
                 };
 
                 let with = script
-                    .evaluate(&envs)
+                    .evaluate_without_context()
                     .map_err(|err| RuntimeError::ModuleWithError(err))?;
 
                 with

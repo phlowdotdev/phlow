@@ -9,7 +9,6 @@ pub struct Context {
     pub main: Option<Value>,
     pub payload: Option<Value>,
     pub input: Option<Value>,
-    pub envs: HashMap<String, String>,
 }
 
 impl Context {
@@ -19,14 +18,7 @@ impl Context {
             steps: HashMap::new(),
             payload: None,
             input: None,
-            envs: Self::get_all_envs(),
         }
-    }
-
-    pub fn get_all_envs() -> HashMap<String, String> {
-        std::env::vars()
-            .map(|(key, value)| (key, value))
-            .collect::<HashMap<String, String>>()
     }
 
     pub fn from_payload(payload: Value) -> Self {
@@ -35,7 +27,6 @@ impl Context {
             steps: HashMap::new(),
             payload: Some(payload),
             input: None,
-            envs: Self::get_all_envs(),
         }
     }
 
@@ -45,7 +36,6 @@ impl Context {
             steps: HashMap::new(),
             payload: None,
             input: None,
-            envs: Self::get_all_envs(),
         }
     }
 
@@ -55,7 +45,6 @@ impl Context {
             steps: HashMap::new(),
             payload: None,
             input: Some(input),
-            envs: Self::get_all_envs(),
         }
     }
 
@@ -65,7 +54,6 @@ impl Context {
             steps: self.steps.clone(),
             payload: self.payload.clone(),
             input: Some(output),
-            envs: Self::get_all_envs(),
         }
     }
 
@@ -75,7 +63,6 @@ impl Context {
             steps: self.steps.clone(),
             payload: Some(output),
             input: self.input.clone(),
-            envs: Self::get_all_envs(),
         }
     }
 

@@ -65,6 +65,8 @@ impl Script {
     }
 
     pub fn evaluate_from_scope(&self, scope: &mut Scope) -> Result<Value, ScriptError> {
+        Self::default_scope(scope)?;
+
         let mut result_map: HashMap<usize, Value> = HashMap::new();
 
         for (key, value) in self.map_index_ast.iter() {
@@ -92,9 +94,27 @@ impl Script {
         self.evaluate_from_scope(&mut scope)
     }
 
+    pub fn evaluate_without_context(&self) -> Result<Value, ScriptError> {
+        self.evaluate(&Context::new())
+    }
+
     pub fn evaluate_variable(&self, context: &Context) -> Result<Variable, ScriptError> {
         let value = self.evaluate(context)?;
         Ok(Variable::new(value))
+    }
+
+    fn default_scope(scope: &mut Scope) -> Result<(), ScriptError> {
+        let envs = {
+            let envs = std::env::vars()
+                .map(|(key, value)| (key, value))
+                .collect::<HashMap<String, String>>();
+
+            to_dynamic(envs).map_err(ScriptError::EvalError)?
+        };
+
+        scope.push_constant("envs", envs);
+
+        Ok(())
     }
 
     fn replace_null_safe(code: &str) -> String {
