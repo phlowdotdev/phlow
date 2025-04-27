@@ -14,7 +14,7 @@ modules:
           index: 1
           type: string
           required: false
-          default: !phs if envs.DEFAULT_NAME != null { envs.DEFAULT_NAME } else { "John Doe" }
+          default: !phs envs.DEFAULT_NAME ?? "John Doe"
 steps:
   - payload: !phs main.name
       
