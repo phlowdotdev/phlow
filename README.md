@@ -3,15 +3,16 @@
   <h1 align="center">Phlow</h1>
 </p>
 
-<h2 align="center">Modular Flow Runtime for Composable Backends</h1>
+<h2 align="center">Modular Flow Runtime for Composable Backends</h2>
 
 **Phlow** is a **high-performance, scalable, and Low Code flow runtime** built with Rust — designed to revolutionize the way you build backends. With Phlow, you can **create APIs, automations, and event-driven systems using just YAML**, composing logic like building blocks.
 
-Thanks to its modular architecture and clear separation between control and behavior, Phlow lets you **orchestrate complex flows without writing code** — and when you need more power, just plug in lightweight scripts or Rust modules.
+Thanks to its modular architecture and clear separation between control and behavior, Phlow lets you **orchestrate complex flows without coding** — and when you need extra power, simply **plug in lightweight scripts or Rust modules**.
 
-It also comes with **native observability powered by OpenTelemetry**, giving you full visibility into your flows, modules, and executions. Easily export traces and metrics to **Jaeger**, **Grafana Tempo**, or **AWS X-Ray**, all with simple environment variables.
 
-If you're looking for speed, flexibility, and full insight into your backend — **Phlow is the Low Code revolution you’ve been waiting for**.
+It comes with **built-in observability powered by OpenTelemetry**, giving you full visibility into your flows, modules, and executions. Easily export traces and metrics to **Jaeger**, **Grafana Tempo**, or **AWS X-Ray**, all with simple environment variables.
+
+If you're looking for speed, flexibility, and full insight into your backend — **Phlow is the Low-Code revolution you’ve been waiting for**.
 
 ---
 
@@ -25,6 +26,7 @@ If you're looking for speed, flexibility, and full insight into your backend —
 - [🧾 Phlow Script (.phs)](/phs/README.md)
 - [⚙️ Install & Uninstall](#%EF%B8%8F-installation--uninstall)
 - [🚀 Running a Flow](#-running-a-flow)
+- [📈 Enabling OpenTelemetry](#-enabling-opentelemetry)
 - [🌐 Running Remote Projects](#-running-remote-projects)
 - [🔌 Module Types](#-module-types)
 - [🧠 Creating Your Own Module: `log`](#-creating-your-own-module-log)
@@ -141,7 +143,7 @@ You'll find ready-to-run flows for:
 - Using `phs` and `rhai` scripts
 - Full observability with spans and logs
 
-Clone, run, and experiment — Phlow is made to get you flowing in minutes. 🚀
+Clone, run, and start building — Phlow gets you flowing in minutes. 🚀
 
 ---
 
@@ -260,6 +262,65 @@ phlow -h
 phlow --help
 ```
 ---
+
+## 📈 Enabling OpenTelemetry
+
+By default, **Phlow** disables OpenTelemetry to minimize resource usage on lightweight flows.  
+If you want full observability with traces and metrics, **you must explicitly enable it** by setting the environment variable:
+
+```bash
+export PHLOW_OTEL=true
+```
+
+> ⚠️ **Note:** `PHLOW_OTEL` is `false` by default. Always set it to `true` if you need OpenTelemetry integration (Jaeger, Grafana Tempo, AWS X-Ray, etc).
+
+---
+
+## 🔧 Important Default OpenTelemetry Environment Variables
+
+When enabling OpenTelemetry in Phlow, it also respects standard **OpenTelemetry** environment variables.  
+Here are the main ones you should know:
+
+| Variable                         | Purpose                                                                                      | Example Value                                  |
+|----------------------------------|----------------------------------------------------------------------------------------------|------------------------------------------------|
+| `OTEL_EXPORTER_OTLP_ENDPOINT`    | Target OTLP endpoint URL (HTTP or gRPC) where spans and metrics will be exported.             | `http://localhost:4318` (HTTP) / `http://localhost:4317` (gRPC) |
+| `OTEL_RESOURCE_ATTRIBUTES`      | Defines resource metadata (e.g., service name, version, environment).                        | `service.name=phlow-dev,service.version=0.1.0` |
+| `OTEL_SERVICE_NAME`              | Shortcut for setting `service.name` in resource attributes (some collectors require this).   | `phlow-dev`                                   |
+| `OTEL_TRACES_EXPORTER`           | Defines which traces exporter to use (defaults to OTLP exporter).                           | `otlp` (default)                               |
+| `OTEL_METRICS_EXPORTER`          | Defines which metrics exporter to use (defaults to OTLP exporter).                          | `otlp` (default)                               |
+| `OTEL_EXPORTER_OTLP_PROTOCOL`    | Protocol to use for the OTLP exporter: `grpc` or `http/protobuf`.                           | `http/protobuf`                                |
+
+---
+
+### ✅ Minimal working example to enable Jaeger (local development)
+
+```bash
+export PHLOW_OTEL=true
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+export OTEL_RESOURCE_ATTRIBUTES="service.name=phlow-dev,service.version=0.1.0"
+export OTEL_SERVICE_NAME=phlow-dev
+```
+
+Then, start your Jaeger container:
+
+```bash
+docker run -d \
+  -p4318:4318 \
+  -p4317:4317 \
+  -p16686:16686 \
+  jaegertracing/all-in-one:latest
+```
+
+---
+
+> ℹ️ **Tip:**  
+> If you don't define `OTEL_EXPORTER_OTLP_ENDPOINT`, Phlow will default to `http://localhost:4318` (standard OTLP over HTTP).
+
+---
+
+> Phlow integrates OpenTelemetry in a **non-intrusive and optional** way:  
+> **No OpenTelemetry setup is mandatory unless you explicitly enable `PHLOW_OTEL=true`.**
+
 ## 🌐 Running Remote Projects
 
 Phlow supports running remote projects directly from URLs or Git repositories. You can pass a `.git`, `.zip`, or `.tar.gz` source — Phlow will automatically download, extract (if needed), and execute the flow from a `main.yaml`.
@@ -602,4 +663,6 @@ Below is a list of **all** environment variables used by the application, combin
 
 ## 📜 License
 
-MIT © 2025 — Built with ❤️ and Rust.
+© 2025 — Built with ❤️ and Rust. Licensed under [MIT License](License).
+
+

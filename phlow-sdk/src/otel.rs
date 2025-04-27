@@ -113,9 +113,15 @@ fn init_meter_provider(resource: Resource) -> Result<SdkMeterProvider, ExporterB
 }
 
 fn init_tracer_provider(resource: Resource) -> Result<SdkTracerProvider, ExporterBuildError> {
-    let exporter: opentelemetry_otlp::SpanExporter = opentelemetry_otlp::SpanExporter::builder()
-        .with_http()
-        .build()?;
+    let exporter = if env::var("OTEL_EXPORTER_OTLP_PROTOCOL") == Ok("grpc".to_string()) {
+        opentelemetry_otlp::SpanExporter::builder()
+            .with_tonic()
+            .build()?
+    } else {
+        opentelemetry_otlp::SpanExporter::builder()
+            .with_http()
+            .build()?
+    };
 
     Ok(SdkTracerProvider::builder()
         // Customize sampling strategy
