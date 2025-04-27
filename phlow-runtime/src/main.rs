@@ -1,13 +1,11 @@
 mod loader;
-mod log;
 mod memory;
 mod package;
 mod runtime;
 mod settings;
 mod yaml;
-use ::log::debug;
 use loader::Loader;
-use log::init_tracing;
+use log::debug;
 use package::Package;
 use phlow_sdk::otel::init_tracing_subscriber;
 use phlow_sdk::tracing::error;
@@ -32,8 +30,6 @@ async fn main() {
     let settings = Settings::try_load().expect("Error loading settings");
 
     if let Some(publish_path) = settings.package_path.clone() {
-        init_tracing();
-
         match Package::try_from(publish_path) {
             Ok(publish) => {
                 if let Err(err) = publish.run() {
