@@ -4,6 +4,7 @@ use crate::settings::Settings;
 use crossbeam::channel;
 use futures::future::join_all;
 use log::{debug, error, info};
+use phlow_engine::script::{Script, ScriptError};
 use phlow_engine::{Context, Phlow};
 use phlow_sdk::structs::Package;
 use phlow_sdk::tokio;
@@ -12,13 +13,40 @@ use phlow_sdk::{
     structs::{ModulePackage, ModuleSetup, Modules},
     tracing::{dispatcher, Dispatch},
 };
+use phs::build_engine;
+use std::fmt::Display;
 use std::{sync::Arc, thread};
 use tokio::sync::oneshot;
+
+#[derive(Debug)]
+pub enum RuntimeError {
+    MainModuleNotFound,
+    ModuleLoadError(String),
+    ModuleWithError(ScriptError),
+    ModuleRegisterError,
+    FlowExecutionError(String),
+}
+
+impl Display for RuntimeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RuntimeError::MainModuleNotFound => write!(f, "Main module not found"),
+            RuntimeError::ModuleRegisterError => write!(f, "Module register error"),
+            RuntimeError::FlowExecutionError(err) => write!(f, "Flow execution error: {}", err),
+            RuntimeError::ModuleLoadError(err) => write!(f, "Module load error: {}", err),
+            RuntimeError::ModuleWithError(err) => write!(f, "Module with error: {}", err),
+        }
+    }
+}
 
 pub struct Runtime {}
 
 impl Runtime {
-    pub async fn run(loader: Loader, dispatch: Dispatch, settings: Settings) {
+    pub async fn run(
+        loader: Loader,
+        dispatch: Dispatch,
+        settings: Settings,
+    ) -> Result<(), RuntimeError> {
         let mut modules = Modules::default();
         let steps: Value = loader.get_steps();
 
@@ -26,6 +54,8 @@ impl Runtime {
         // Create the channels
         // -------------------------
         let (tx_main_package, rx_main_package) = channel::unbounded::<Package>();
+
+        let engine = build_engine(None);
 
         // -------------------------
         // Load the modules
@@ -38,6 +68,11 @@ impl Runtime {
                 Some(tx_main_package.clone())
             } else {
                 None
+            };
+
+            let with = match Script::try_build(engine.clone(), &module.with) {
+                Ok(payload) => Some(payload),
+                Err(err) => return Err(RuntimeError::ModuleWithError(err)),
             };
 
             let setup = ModuleSetup {
@@ -72,15 +107,13 @@ impl Runtime {
                     debug!("Module {} did not register", module.name);
                 }
                 Err(err) => {
-                    error!("Runtime Error Setup Receive: {:?}", err);
-                    return;
+                    return Err(RuntimeError::ModuleRegisterError);
                 }
             }
         }
 
         if loader.main == -1 {
-            error!("Runtime Error Main Module: No main module found");
-            return;
+            return Err(RuntimeError::MainModuleNotFound);
         }
 
         drop(tx_main_package);
@@ -101,10 +134,7 @@ impl Runtime {
         let flow = Arc::new({
             match Phlow::try_from_value(&steps, Some(Arc::new(modules))) {
                 Ok(flow) => flow,
-                Err(err) => {
-                    error!("Runtime Error To Value: {:?}", err);
-                    return;
-                }
+                Err(err) => return Err(RuntimeError::FlowExecutionError(err.to_string())),
             }
         });
 
@@ -154,5 +184,7 @@ impl Runtime {
         }
 
         join_all(handles).await;
+
+        Ok(())
     }
 }

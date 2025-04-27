@@ -73,7 +73,9 @@ async fn main() {
         loader.update_info();
 
         if !settings.only_download_modules {
-            Runtime::run(loader, dispatch.clone(), settings).await;
+            if let Err(rr) = Runtime::run(loader, dispatch.clone(), settings).await {
+                error!("Runtime Error: {:?}", rr);
+            }
         }
     };
 

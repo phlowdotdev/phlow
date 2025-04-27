@@ -5,14 +5,23 @@ use crate::{
 };
 use phlow_sdk::{prelude::*, valu3};
 use rhai::Engine;
-use std::collections::HashMap;
 use std::sync::Arc;
+use std::{collections::HashMap, fmt::Display};
 use valu3::{traits::ToValueBehavior, value::Value};
 
 #[derive(Debug)]
 pub enum TransformError {
     InnerStepError(StepWorkerError),
     Parser(valu3::Error),
+}
+
+impl Display for TransformError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TransformError::InnerStepError(err) => write!(f, "Inner step error: {}", err),
+            TransformError::Parser(_) => write!(f, "Parser error: Non parseable"),
+        }
+    }
 }
 
 pub(crate) fn value_to_pipelines(

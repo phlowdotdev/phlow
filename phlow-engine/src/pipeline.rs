@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::{
     context::Context,
     step_worker::{NextStep, StepOutput, StepWorker, StepWorkerError},
@@ -6,6 +8,14 @@ use crate::{
 #[derive(Debug)]
 pub enum PipelineError {
     StepWorkerError(StepWorkerError),
+}
+
+impl Display for PipelineError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PipelineError::StepWorkerError(err) => write!(f, "Step worker error: {}", err),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

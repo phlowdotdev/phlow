@@ -6,13 +6,23 @@ use rhai::{
     serde::{from_dynamic, to_dynamic},
     Engine, EvalAltResult, ParseError, Scope, AST,
 };
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, fmt::Display, sync::Arc};
 
 #[derive(Debug)]
 pub enum ScriptError {
     EvalError(Box<EvalAltResult>),
     InvalidType(Value),
     CompileError(String, ParseError),
+}
+
+impl Display for ScriptError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ScriptError::EvalError(err) => write!(f, "Eval error: {}", err),
+            ScriptError::InvalidType(value) => write!(f, "Invalid type: {}", value),
+            ScriptError::CompileError(code, err) => write!(f, "Compile error: {}: {}", code, err),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

@@ -8,7 +8,7 @@ use once_cell::sync::Lazy;
 use phlow_sdk::prelude::*;
 use rhai::Engine;
 use serde::Serialize;
-use std::sync::Arc;
+use std::{fmt::Display, sync::Arc};
 
 static PHLOW_TRUNCATE_SPAN_VALUE: Lazy<usize> =
     Lazy::new(|| match std::env::var("PHLOW_TRUNCATE_SPAN_VALUE") {
@@ -22,6 +22,17 @@ pub enum StepWorkerError {
     PayloadError(ScriptError),
     ModulesError(ModulesError),
     InputError(ScriptError),
+}
+
+impl Display for StepWorkerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StepWorkerError::ConditionError(err) => write!(f, "Condition error: {}", err),
+            StepWorkerError::PayloadError(err) => write!(f, "Payload error: {}", err),
+            StepWorkerError::ModulesError(err) => write!(f, "Modules error: {}", err),
+            StepWorkerError::InputError(err) => write!(f, "Input error: {}", err),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]

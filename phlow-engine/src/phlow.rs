@@ -5,8 +5,8 @@ use crate::{
     transform::{value_to_pipelines, TransformError},
 };
 use phlow_sdk::prelude::*;
-use phs::{build_engine, Repositories};
-use std::{collections::HashMap, sync::Arc};
+use phs::build_engine;
+use std::{collections::HashMap, fmt::Display, sync::Arc};
 
 #[derive(Debug)]
 pub enum PhlowError {
@@ -14,6 +14,17 @@ pub enum PhlowError {
     PipelineError(PipelineError),
     PipelineNotFound,
     ParentError,
+}
+
+impl Display for PhlowError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PhlowError::TransformError(err) => write!(f, "Transform error: {}", err),
+            PhlowError::PipelineError(err) => write!(f, "Pipeline error: {}", err),
+            PhlowError::PipelineNotFound => write!(f, "Pipeline not found"),
+            PhlowError::ParentError => write!(f, "Parent error"),
+        }
+    }
 }
 
 pub type PipelineMap = HashMap<usize, Pipeline>;
@@ -30,7 +41,7 @@ impl Phlow {
     ) -> Result<Self, PhlowError> {
         let engine = match &modules {
             Some(modules) => {
-                let repositories: Repositories = modules.extract_repositories();
+                let repositories = modules.extract_repositories();
                 build_engine(Some(repositories))
             }
             None => build_engine(None),

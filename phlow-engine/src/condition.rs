@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{fmt::Display, sync::Arc};
 
 use phlow_sdk::valu3;
 use rhai::Engine;
@@ -17,6 +17,18 @@ pub enum ConditionError {
     LeftInvalid(String),
     AssertInvalid(String),
     ScriptError(ScriptError),
+}
+
+impl Display for ConditionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ConditionError::InvalidOperator(err) => write!(f, "Invalid operator: {}", err),
+            ConditionError::RightInvalid(err) => write!(f, "Right invalid: {}", err),
+            ConditionError::LeftInvalid(err) => write!(f, "Left invalid: {}", err),
+            ConditionError::AssertInvalid(err) => write!(f, "Assert invalid: {}", err),
+            ConditionError::ScriptError(err) => write!(f, "Script error: {}", err),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]

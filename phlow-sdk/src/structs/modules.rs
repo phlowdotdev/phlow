@@ -145,6 +145,16 @@ pub enum ModulesError {
     ModuleError(String),
 }
 
+impl Display for ModulesError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ModulesError::ModuleNotFound(name) => write!(f, "Module not found: {}", name),
+            ModulesError::ModuleNotLoaded(name) => write!(f, "Module not loaded: {}", name),
+            ModulesError::ModuleError(err) => write!(f, "Module error: {}", err),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ModuleResponse {
     pub error: Option<String>,
