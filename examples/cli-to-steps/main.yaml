@@ -33,8 +33,7 @@ steps:
       message: Jump me baby
       main: !phs main
   - id: assert
-    condition:
-      assert: !phs main.active
+    assert: !phs main.active
     then:
       label: is active
       return: 
@@ -42,14 +41,12 @@ steps:
         main: !phs main
     else:
       label: 18+
-      condition:
-        assert: !phs main.age >= 18
+      assert: !phs main.age >= 18
       then:
         label: "> 18"
         payload: "> 18"
       else:
-        condition:
-          assert: !phs main.age <= 3
+        assert: !phs main.age <= 3
         then:
           to: jump_me
         else:

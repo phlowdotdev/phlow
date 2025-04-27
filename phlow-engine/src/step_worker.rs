@@ -91,7 +91,13 @@ impl StepWorker {
             {
                 Some(condition.map_err(StepWorkerError::ConditionError)?)
             } else {
-                None
+                if let Some(condition) = value.get("assert").map(|assert| {
+                    Condition::try_build_with_assert(engine.clone(), assert.to_string())
+                }) {
+                    Some(condition.map_err(StepWorkerError::ConditionError)?)
+                } else {
+                    None
+                }
             }
         };
         let payload = match value.get("payload") {
