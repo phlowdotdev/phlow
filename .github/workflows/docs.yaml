@@ -33,5 +33,6 @@ jobs:
         working-directory: ./docs
         run: npm run deploy
         env:
+          USE_SSH: true
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Token para autenticação
           # Adicione outras variáveis de ambiente necessárias para o seu deploy
