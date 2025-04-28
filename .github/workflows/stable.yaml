@@ -47,12 +47,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build release binary using Docker Action
-        uses: ./.github/actions/build-binary
-        with:
-          dockerfile: ./docker/Dockerfile
-          target: environment
-          output_path: /target/release/phlow
-          filename: target/release/phlow
+        run: |
+          docker build -f ./docker/Dockerfile  \
+            --target runtime \
+            -t phlow-build-temp .
+          docker run --rm -v ${{ github.workspace }}:/app phlow-build-temp bash -c "cargo build --release -p phlow-runtime && strip --strip-unneeded /app/target/release/phlow"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
