@@ -21,7 +21,7 @@ edition = "2021"
 rust-version = "1.83.0"
 authors = ["Philippe Assis <codephilippe@gmail.com>"]
 license = "MIT"
-repository = "https://github.com/lowcarboncode/phlow"
+repository = "https://github.com/phlowdotdev/phlow"
 
 [workspace.dependencies]
 # internal

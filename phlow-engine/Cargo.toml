@@ -10,7 +10,7 @@ description = "Engine for Phlow, a fast, modular runtime for building backends w
 keywords = ["phlow", "engine", "lib"]
 categories = ["development-tools"]
 readme = "../README.md"
-homepage = "https://github.com/lowcarboncode/phlow"
+homepage = "https://github.com/phlowdotdev/phlow"
 documentation = "https://docs.rs/phlow"
 
 

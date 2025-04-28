@@ -25,12 +25,12 @@ The complete documentation is available at [https://phlow.dev](https://phlow.dev
 
 ### Install Phlow
 ```bash
-curl -fsSL https://raw.githubusercontent.com/lowcarboncode/phlow/main/scripts/install-phlow.sh | bash
+curl -fsSL https://raw.githubusercontent.com/phlowdotdev/phlow/main/scripts/install-phlow.sh | bash
 ```
 
 ### Run a demo
 ```bash
-phlow git@github.com:lowcarboncode/phlow-mirror-request.git
+phlow git@github.com:phlowdotdev/phlow-mirror-request.git
 ```
 
 ## 📜 License

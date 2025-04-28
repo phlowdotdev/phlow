@@ -1,7 +1,7 @@
 <p align="center"> <img src="../docs/phlow.svg" alt="Phlow logo" width="140"/> </p> <h1 align="center">PHS – Phlow Script</h1>
 
 
-**PHS** is a lightweight scripting format for [Phlow](https://github.com/lowcarboncode/phlow), built on top of [Rhai](https://rhai.rs/). It enables simple, dynamic behavior scripting using `.phs` files while deeply integrating with the Phlow runtime and module system.
+**PHS** is a lightweight scripting format for [Phlow](https://github.com/phlowdotdev/phlow), built on top of [Rhai](https://rhai.rs/). It enables simple, dynamic behavior scripting using `.phs` files while deeply integrating with the Phlow runtime and module system.
 
 ## ✨ Overview
 

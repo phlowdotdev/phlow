@@ -97,18 +97,18 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Login to Docker Hub
-        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u lowcarboncode --password-stdin
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u phlowdotdev --password-stdin
 
       - name: Build and Push Docker images (Docker Hub)
         env:
           DOCKER_BUILDKIT: 1
         run: |
           docker build -f ./docker/Dockerfile  \
-            -t lowcarboncode/phlow:glibc \
-            -t lowcarboncode/phlow:busybox \
-            -t lowcarboncode/phlow:latest \
-            -t lowcarboncode/phlow:${{ needs.tag.outputs.version }} .
-          docker push lowcarboncode/phlow:glibc
-          docker push lowcarboncode/phlow:busybox
-          docker push lowcarboncode/phlow:latest
-          docker push lowcarboncode/phlow:${{ needs.tag.outputs.version }}
+            -t phlowdotdev/phlow:glibc \
+            -t phlowdotdev/phlow:busybox \
+            -t phlowdotdev/phlow:latest \
+            -t phlowdotdev/phlow:${{ needs.tag.outputs.version }} .
+          docker push phlowdotdev/phlow:glibc
+          docker push phlowdotdev/phlow:busybox
+          docker push phlowdotdev/phlow:latest
+          docker push phlowdotdev/phlow:${{ needs.tag.outputs.version }}

@@ -122,7 +122,7 @@ name: log
 description: Log a message to the console.
 version: 0.0.1
 author: Philippe Assis <codephilippe@gmail.com>
-repository: https://github.com/lowcarboncode/phlow
+repository: https://github.com/phlowdotdev/phlow
 license: MIT
 type: step
 tags:

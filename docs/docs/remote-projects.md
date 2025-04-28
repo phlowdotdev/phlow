@@ -7,21 +7,21 @@ Phlow supports running remote projects directly from URLs or Git repositories. Y
 
 ```bash
 # Git via SSH
-phlow git@github.com:lowcarboncode/phlow-mirror-request.git 
+phlow git@github.com:phlowdotdev/phlow-mirror-request.git 
 
 # Git via HTTPS
-phlow https://github.com/lowcarboncode/phlow-mirror-request.git
+phlow https://github.com/phlowdotdev/phlow-mirror-request.git
 
 # ZIP archive
-phlow https://github.com/lowcarboncode/phlow-mirror-request/archive/refs/heads/main.zip
+phlow https://github.com/phlowdotdev/phlow-mirror-request/archive/refs/heads/main.zip
 
 # Tarball (GZIP)
-phlow https://github.com/lowcarboncode/phlow-mirror-request/tarball/main
+phlow https://github.com/phlowdotdev/phlow-mirror-request/tarball/main
 ```
 ###  Git branch selector
 
 ```bash
-phlow git@github.com:lowcarboncode/phlow-mirror-request.git#develop
+phlow git@github.com:phlowdotdev/phlow-mirror-request.git#develop
 ```
 
 ### Custom SSH Key
@@ -46,7 +46,7 @@ Phlow will include this header when performing the HTTP request for ZIP or GZIP 
 If you are downloading a ZIP or GZIP archive and want to specify which folder inside the archive contains your flow, you can add `#folder_name` at the end:
 
 ```bash
-phlow https://github.com/lowcarboncode/phlow-mirror-request/archive/refs/heads/main.zip#phlow-mirror-request
+phlow https://github.com/phlowdotdev/phlow-mirror-request/archive/refs/heads/main.zip#phlow-mirror-request
 ```
 
 ###  Auto-detection of inner folder

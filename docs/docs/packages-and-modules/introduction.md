@@ -12,7 +12,7 @@ Phlow has a powerful package management system that allows you to import and use
 
 Phlow automatically downloads the modules specified in your flow configuration.
 
-The official module repository is [phlow-packages](https://github.com/lowcarboncode/phlow-packages), which contains all official Phlow modules precompiled for Linux.
+The official module repository is [phlow-packages](https://github.com/phlowdotdev/phlow-packages), which contains all official Phlow modules precompiled for Linux.
 
 When you run Phlow, it will automatically fetch and install the required modules into a local `phlow-packages/` folder at the root of your project execution.
 

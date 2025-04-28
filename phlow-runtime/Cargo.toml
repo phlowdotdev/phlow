@@ -10,7 +10,7 @@ description = "Phlow is a fast, modular runtime for building backends with YAML 
 keywords = ["phlow", "phlow-runtime", "workflow", "cli", "automation"]
 categories = ["development-tools"]
 readme = "../README.md"
-homepage = "https://github.com/lowcarboncode/phlow"
+homepage = "https://github.com/phlowdotdev/phlow"
 documentation = "https://docs.rs/phlow"
 publish = true
 

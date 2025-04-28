@@ -2,7 +2,7 @@
 
 set -e
 
-REPO="lowcarboncode/phlow"
+REPO="phlowdotdev/phlow"
 BIN_NAME="phlow"
 INSTALL_PATH="/usr/local/bin/$BIN_NAME"
 

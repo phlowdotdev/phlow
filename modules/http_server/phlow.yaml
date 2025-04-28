@@ -3,7 +3,7 @@ name: http_server
 description: A simple REST API server.
 version: 0.0.1
 author: Philippe Assis <codephilippe@gmail.com>
-repository: https://github.com/lowcarboncode/phlow
+repository: https://github.com/phlowdotdev/phlow
 license: MIT
 type: main
 tags:

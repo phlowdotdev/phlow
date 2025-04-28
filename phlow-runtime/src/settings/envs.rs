@@ -41,7 +41,7 @@ pub struct Envs {
      *
      * This is the URL of the default package repository that will be used to fetch packages.
      * Environment variable: PHLOW_DEFAULT_PACKAGE_REPOSITORY_URL
-     * Default: lowcarboncode/phlow-packages
+     * Default: phlowdotdev/phlow-packages
      */
     pub default_package_repository_url: String,
     /**
@@ -79,7 +79,7 @@ impl Envs {
         let default_package_repository_url = match env::var("PHLOW_DEFAULT_PACKAGE_REPOSITORY_URL")
         {
             Ok(repo) => repo,
-            Err(_) => "lowcarboncode/phlow-packages".to_string(),
+            Err(_) => "phlowdotdev/phlow-packages".to_string(),
         };
 
         let main = env::var("PHLOW_MAIN").unwrap_or(".".to_string());
