@@ -1,5 +1,6 @@
 name: Build Binary using Docker
 description: Build the binary inside a Docker container and export it to the GitHub workspace.
+
 inputs:
   dockerfile:
     description: Path to Dockerfile
@@ -20,6 +21,9 @@ runs:
     - name: Build Docker Image
       run: |
         docker build -f ${{ inputs.dockerfile }} --target ${{ inputs.target }} -t phlow-build-temp .
+      shell: bash
+
     - name: Extract Binary
       run: |
         docker run --rm -v ${{ github.workspace }}:/app phlow-build-temp cp ${{ inputs.output_path }} /app/${{ inputs.filename }}
+      shell: bash
