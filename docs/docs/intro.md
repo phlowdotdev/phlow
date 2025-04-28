@@ -3,7 +3,7 @@ sidebar_position: 1
 title: Intro
 ---
 <p align="center">
-  <img src="/img/phlow.svg" alt="Phlow logo" width="160"/>
+  <img src="/img/logo.svg" alt="Phlow logo" width="160"/>
 </p>
 
 # Phlow
