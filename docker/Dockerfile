@@ -1,7 +1,7 @@
 ###############################################################################
 # Phlow Runtime - Builder
 ###############################################################################
-FROM debian:bookworm-slim AS builder
+FROM debian:bookworm-slim AS libs
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
@@ -18,6 +18,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
+###############################################################################
+# Phlow Runtime - trixie
+###############################################################################
+FROM busybox:1.34.1-glibc AS builder
+
+COPY --from=libs /lib/x86_64-linux-gnu/libz.so.1 /lib/
+COPY --from=libs /lib/x86_64-linux-gnu/liblzma.so.5 /lib/
+COPY --from=libs /lib/x86_64-linux-gnu/libgcc_s.so.1 /lib/
+COPY --from=libs /lib/x86_64-linux-gnu/libssl.so.3 /lib/
+COPY --from=libs /lib/x86_64-linux-gnu/libcrypto.so.3 /lib/
+COPY --from=libs /etc/ssl/certs /etc/ssl/certs
+
 # Instala Rust manualmente
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
@@ -28,30 +40,11 @@ COPY . .
 RUN cargo build --release -p phlow-runtime \
     && strip --strip-unneeded /app/target/release/phlow
 
-###############################################################################
-# Phlow Runtime - trixie
-###############################################################################
-FROM debian:trixie-slim AS trixie
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-
-# Copia apenas o binário (não precisa mais copiar as libs separadas)
-COPY --from=builder /app/target/release/phlow /app/phlow
-
-RUN chmod +x /app/phlow
-
-ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt 
-
-ENTRYPOINT ["/app/phlow"]
 
 ###############################################################################
-# Phlow Runtime - trixie
+# Phlow Runtime - busybox
 ###############################################################################
-FROM busybox:glibc AS busybox
+FROM busybox:1.34.1-glibc
 
 COPY --from=builder /lib/x86_64-linux-gnu/libz.so.1 /lib/
 COPY --from=builder /lib/x86_64-linux-gnu/liblzma.so.5 /lib/
@@ -64,9 +57,6 @@ COPY --from=builder /app/target/release/phlow /app/phlow
 WORKDIR /app
 RUN chmod +x /app/phlow
 
-ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
-    PHLOW_MAIN=https://github.com/phlowdotdev/phlow-mirror-request/archive/refs/heads/main.zip \
-    PHLOW_LOG=info \
-    PHLOW_OTEL=true
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
 ENTRYPOINT ["/app/phlow"]
