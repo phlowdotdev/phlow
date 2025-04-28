@@ -19,7 +19,6 @@ const config: Config = {
   // If you aren't using GitHub pages, you don't need these.
   organizationName: 'phlowdotdev', // Usually your GitHub org/user name.
   projectName: 'phlow', // Usually your repo name.
-
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
 

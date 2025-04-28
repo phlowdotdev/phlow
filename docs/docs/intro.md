@@ -1,11 +1,8 @@
 ---
 sidebar_position: 1
 title: Intro
+hide_title: true
 ---
-<p align="center">
-  <img src="/img/logo.svg" alt="Phlow logo" width="160"/>
-</p>
-
 # Phlow
 
 ## Modular Flow Runtime for Composable Backends
