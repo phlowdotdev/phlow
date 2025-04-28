@@ -44,13 +44,10 @@ body {
   /* azul escuro, por exemplo */
 }
 
-
 [data-theme='dark'] .navbar {
   background-color: #1B1B1D;
   /* azul escuro, por exemplo */
 }
-
-
 
 .footer {
   text-align: center;
@@ -58,13 +55,31 @@ body {
 
 /* Footer no modo claro */
 [data-theme='light'] .footer {
+  background-color: #F2F2F2;
+}
+
+/* Footer no modo claro */
+.plugin-pages[data-theme='light'] .footer {
   background-color: #3399FF;
-  /* azul escuro (ou o que quiser para light) */
+}
+
+.plugin-pages[data-theme='light'] .footer a,
+.plugin-pages[data-theme='light'] .footer .footer__copyright,
+.plugin-pages[data-theme='light'] .footer .footer__title {
+  color: #ffffff;
+}
+
+[data-theme='dark'].footer {
+  background-color: #1B1B1D;
 }
 
 /* Footer no modo escuro */
-[data-theme='dark'] .footer {
+.plugin-pages[data-theme='dark'] .footer {
   background-color: #056BD2;
-  ;
-  /* um azul ainda mais escuro para dark, por exemplo */
+}
+
+.plugin-pages .buttons_AeoN a {
+  border: none;
+  /* color: #ffffff; */
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.3);
 }
