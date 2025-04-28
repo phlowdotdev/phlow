@@ -3,14 +3,13 @@
 set -e
 
 REPO="phlowdotdev/phlow"
-BIN_NAME="phlow"
-INSTALL_PATH="/usr/local/bin/$BIN_NAME"
+BIN_NAME="phlow-x86_64-unknown-linux-gnu"
+INSTALL_PATH="/usr/local/bin/phlow"
 
 echo "🔍 Detecting platform..."
 ARCH=$(uname -m)
 case "$ARCH" in
     x86_64) ARCH="x86_64" ;;
-    aarch64) ARCH="aarch64" ;;
     *) echo "❌ Unsupported architecture: $ARCH" && exit 1 ;;
 esac
 

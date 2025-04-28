@@ -44,9 +44,6 @@ COPY --from=builder /app/target/release/phlow /app/phlow
 
 RUN chmod +x /app/phlow
 
-ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
-    PHLOW_MAIN=https://github.com/phlowdotdev/phlow-mirror-request/archive/refs/heads/main.zip \
-    PHLOW_LOG=info \
-    PHLOW_OTEL=false
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt 
 
 ENTRYPOINT ["/app/phlow"]
