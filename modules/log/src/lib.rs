@@ -1,12 +1,4 @@
-use phlow_sdk::tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
-use phlow_sdk::tracing_subscriber::util::SubscriberInitExt;
-use phlow_sdk::tracing_subscriber::Layer;
-use phlow_sdk::{
-    otel::get_log_level,
-    prelude::*,
-    tracing_core::LevelFilter,
-    tracing_subscriber::{fmt, Registry},
-};
+use phlow_sdk::prelude::*;
 
 create_step!(log(rx));
 
@@ -44,9 +36,12 @@ impl From<&Value> for Log {
 }
 
 pub async fn log(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    Registry::default()
-        .with(fmt::layer().with_filter(LevelFilter::from_level(get_log_level())))
-        .init();
+    env_logger::Builder::from_env(
+        env_logger::Env::new()
+            .default_filter_or("info")
+            .filter_or("PHLOW_LOG", "info"),
+    )
+    .init();
 
     debug!("PHLOW_OTEL is set to false, using default subscriber");
 

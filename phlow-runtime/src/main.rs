@@ -23,7 +23,12 @@ static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
 #[tokio::main]
 async fn main() {
-    env_logger::init();
+    env_logger::Builder::from_env(
+        env_logger::Env::new()
+            .default_filter_or("info")
+            .filter_or("PHLOW_LOG", "info"),
+    )
+    .init();
 
     debug!("Starting Phlow Runtime");
 

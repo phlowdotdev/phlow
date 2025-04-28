@@ -6,3 +6,5 @@ indexs
 .tmp/*
 phlow_remote
 raw
+node_modules
+*.egg-info

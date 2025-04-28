@@ -1,80 +1,4 @@
-<p align="center">
-  <img src="./docs/phlow.svg" alt="Phlow logo" width="160"/>
-  <h1 align="center">Phlow</h1>
-</p>
 
-<h2 align="center">Modular Flow Runtime for Composable Backends</h2>
-
-**Phlow** is a **high-performance, scalable, and Low Code flow runtime** built with Rust — designed to revolutionize the way you build backends. With Phlow, you can **create APIs, automations, and event-driven systems using just YAML**, composing logic like building blocks.
-
-Thanks to its modular architecture and clear separation between control and behavior, Phlow lets you **orchestrate complex flows without coding** — and when you need extra power, simply **plug in lightweight scripts or Rust modules**.
-
-
-It comes with **built-in observability powered by OpenTelemetry**, giving you full visibility into your flows, modules, and executions. Easily export traces and metrics to **Jaeger**, **Grafana Tempo**, or **AWS X-Ray**, all with simple environment variables.
-
-If you're looking for speed, flexibility, and full insight into your backend — **Phlow is the Low-Code revolution you’ve been waiting for**.
-
----
-
-## 📚 Summary
-
-- [🎯 Philosophy](#-philosophy)
-- [🧱 Example: `main.yaml` for an HTTP Gateway](#-example-mainyaml-for-an-http-gateway)
-- [🧪 More Examples](#-more-examples)
-- [📦 Packages And Modules](#-packages-and-modules)
-- [⚡ YAML Superpowers](#-yaml-superpowers)
-- [🧾 Phlow Script (.phs)](/phs/README.md)
-- [⚙️ Install & Uninstall](#%EF%B8%8F-installation--uninstall)
-- [🚀 Running a Flow](#-running-a-flow)
-- [📈 Enabling OpenTelemetry](#-enabling-opentelemetry)
-- [🌐 Running Remote Projects](#-running-remote-projects)
-- [🔌 Module Types](#-module-types)
-- [🧠 Creating Your Own Module: `log`](#-creating-your-own-module-log)
-- [📦 Project Structure](#-project-structure)
-- [📡 Observability](#-observability)
-- [🧪 OpenTelemetry + Jaeger (Local Dev Setup)](#-opentelemetry--jaeger-local-dev-setup)
-- [🌍 Environment Settings](#-environment-settings)
-- [📜 License](#-license)
-
----
-
-## 🎯 Philosophy
-
-### 🧱 1. Radical Modularity  
-**Principle:** *Each piece must be independent, reusable, and pluggable.*
-
-Phlow is designed as a set of decoupled modules. You connect functionalities like LEGO blocks, allowing you to replace or evolve parts without breaking the whole. This promotes maintainability and system flexibility.
-
----
-
-### 🧩 2. Code-Free Composition (Low Code)  
-**Principle:** *The flow matters more than the language.*
-
-Business logic is declared using simple files like YAML. Instead of programming behavior, you **compose** it. This empowers both developers and analysts to build together, democratizing software creation.
-
----
-
-### ⚙️ 3. High-Performance Runtime  
-**Principle:** *Performance is not a detail — it's architecture.*
-
-Phlow is built in **Rust**, ensuring memory safety, low resource consumption, and blazing speed. It runs anywhere — locally, on the edge, or in the cloud — with minimal latency and maximum scalability.
-
----
-
-### 📦 4. Automatic Module Installation  
-**Principle:** *The user experience should be instant.*
-
-Phlow detects the required modules and automatically downloads them from the official `phlow-packages` repository. Everything is installed locally under `./phlow-packages`, with no manual setup or external dependencies.
-
----
-
-### 🔍 5. Observability by Design  
-**Principle:** *You can only improve what you can observe.*
-
-Every flow and module is traceable with **logs, metrics, and spans** via OpenTelemetry. Real-time tracking with Jaeger, Grafana, or Prometheus is built-in. Transparency and traceability are part of the system’s DNA.
-
-
----
 
 ## 🧱 Example: `main.yaml` for an HTTP Gateway
 
@@ -377,6 +301,79 @@ If the archive contains multiple folders or any loose files in the root and no f
 ---
 
 ## 🔌 Module Types
+
+| Type         | Purpose                                 |
+|--------------|------------------------------------------|
+| `main module`| Entry point. Starts the app (HTTP, CLI, AMQP, etc). |
+| `step module`| Logic executed within a flow (log, fetch, transform, etc). |
+
+Step modules can also be executed directly from Phlow Script (PHS), making it easy to use simple modules inside .phs or .rhai files.
+
+### 📄 Example: Step Module with Phlow Script (PHS)
+#### main.yaml
+```yaml
+main: cli
+name: Example Cli
+version: 1.0.0
+description: Example CLI module
+author: Your Name
+modules:
+  - module: cli
+    version: latest
+    with:
+      additional_args: false
+      args:
+        - name: name
+          description: Name of the user
+          index: 1
+          type: string
+          required: false
+  - module: log
+    version: latest
+steps:
+  - return: !import script.phs
+```
+
+#### script.phs
+```rust
+log("warn", `Hello, ${main.name}`);
+"phs"
+```
+
+To execute this file, just run:
+```bash
+2025-04-23T05:23:25.474573Z  WARN log: Hello, Phlow!
+phs
+```
+
+This will evaluate the imported .phs file and run the steps using the declared modules.
+
+> ℹ️ **Note:** In Phlow Script (PHS), function calls respect the **order of parameters** defined in the module's package. For example, if your `phlow.yaml` for the `log` module defines inputs like:
+>
+> ```yaml
+> input: 
+>   type: object
+>   required: true
+>   properties:
+>     level:
+>       type: string
+>       description: The log level (e.g., info, debug, warn, error).
+>       default: info
+>       required: false
+>     message:
+>       type: string
+>       description: The message to log.
+>       required: true
+> ```
+>
+> Then the correct function signature in `.phs` is:
+>
+> ```phs
+> log(level, message)
+> ```
+>
+> because the parameter order defined in `properties` is preserved and required by the execution engine.
+
 
 ---
 
