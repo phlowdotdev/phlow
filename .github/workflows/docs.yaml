@@ -21,6 +21,7 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
+        working-directory: docs
         run: npm ci
       - name: Build website
         run: npm run build
@@ -28,7 +29,7 @@ jobs:
       - name: Upload Build Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: build
+          path: docs/build
 
   deploy:
     name: Deploy to GitHub Pages
