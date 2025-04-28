@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkphlow_docs=self.webpackChunkphlow_docs||[]).push([[8121],{8070:s=>{s.exports=JSON.parse('{"tags":[{"label":"Phlow","permalink":"/blog/tags/phlow","description":"Phlow tag description","count":1}]}')}}]);
