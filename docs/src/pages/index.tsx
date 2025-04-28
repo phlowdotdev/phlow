@@ -42,7 +42,7 @@ export default function Home(): ReactNode {
   return (
     <Layout
       title={`Build Flows, Not Code`}
-      description="Create APIs, automations, and workflows without coding. Powered by Phlow, built in Rust.">
+      description="Phlow lets you launch scalable, modular backends in record time — no complex coding, just pure flow.">
       <OceanBackground />
       <HomepageHeader />
       <main>
