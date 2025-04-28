@@ -1,6 +1,0 @@
-name: rabbitmq
-module: amqp
-version: latest
-with:
-  routing_key: "my.routing.key"
-  declare: true

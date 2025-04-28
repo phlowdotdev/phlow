@@ -1,2 +1,0 @@
-message: !phs steps.echo
-data: !import scripts/script.phs
