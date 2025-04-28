@@ -26,3 +26,45 @@
   --ifm-color-primary-lighter: #3d94ca;
   --ifm-color-primary-lightest: #31739c;
 }
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+body {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 300;
+}
+
+.plugin-pages .navbar {
+  box-shadow: none;
+}
+
+[data-theme='light'] .navbar {
+  background-color: #ffffff;
+  /* azul escuro, por exemplo */
+}
+
+
+[data-theme='dark'] .navbar {
+  background-color: #1B1B1D;
+  /* azul escuro, por exemplo */
+}
+
+
+
+.footer {
+  text-align: center;
+}
+
+/* Footer no modo claro */
+[data-theme='light'] .footer {
+  background-color: #3399FF;
+  /* azul escuro (ou o que quiser para light) */
+}
+
+/* Footer no modo escuro */
+[data-theme='dark'] .footer {
+  background-color: #056BD2;
+  ;
+  /* um azul ainda mais escuro para dark, por exemplo */
+}
