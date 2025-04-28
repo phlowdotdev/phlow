@@ -90,8 +90,7 @@ A good practice is to keep the modules in a separate file, such as `modules.yaml
 
 ```yaml
 modules: !include modules.yaml
-
-flow:
+steps:
   - step: initialize
     description: Initialize the environment
   - step: run-cli

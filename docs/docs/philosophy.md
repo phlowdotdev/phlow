@@ -11,8 +11,6 @@ Our philosophy is rooted in five fundamental pillars:
 Phlow is built around highly decoupled modules, where each functionality is a self-contained unit. Like LEGO blocks, modules can be connected, replaced, or upgraded without disrupting the system.
 This modularity boosts maintainability, scalability, and innovation — enabling systems to grow organically over time without technical debt accumulation.
 
-
-
 ---
 
 ### 2. Code-Free Composition (Low Code)  
@@ -20,6 +18,7 @@ This modularity boosts maintainability, scalability, and innovation — enabling
 
 Instead of hardcoding behaviors, Phlow empowers you to compose them declaratively through simple YAML files. Business logic becomes readable, portable, and editable — accessible to developers, analysts, and architects alike.
 By shifting focus from coding to composing, Phlow democratizes backend creation and shortens the path from idea to production.
+
 ---
 
 ### 3. High-Performance Runtime  
@@ -45,4 +44,3 @@ No manual downloads. No dependency hell. Just instant readiness — letting you 
 Phlow embeds full observability from the ground up.
 Every flow and module is instrumented with OpenTelemetry, generating logs, metrics, and distributed traces out of the box.
 With native integrations to Jaeger, Grafana, Prometheus, and more, Phlow gives you real-time, actionable visibility — so you can understand, debug, and optimize with precision.
-
