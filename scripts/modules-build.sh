@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Compila o projeto em modo release
-
-
 # Define os diretórios
 RELEASE_DIR="target/release"
 DEST_DIR="./phlow_packages"

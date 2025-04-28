@@ -29,9 +29,9 @@ RUN cargo build --release -p phlow-runtime \
     && strip --strip-unneeded /app/target/release/phlow
 
 ###############################################################################
-# Phlow Runtime - Final image
+# Phlow Runtime - trixie
 ###############################################################################
-FROM debian:trixie-slim AS runtime
+FROM debian:trixie-slim AS trixie
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates && \
@@ -45,5 +45,28 @@ COPY --from=builder /app/target/release/phlow /app/phlow
 RUN chmod +x /app/phlow
 
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt 
+
+ENTRYPOINT ["/app/phlow"]
+
+###############################################################################
+# Phlow Runtime - trixie
+###############################################################################
+FROM busybox:glibc AS busybox
+
+COPY --from=builder /lib/x86_64-linux-gnu/libz.so.1 /lib/
+COPY --from=builder /lib/x86_64-linux-gnu/liblzma.so.5 /lib/
+COPY --from=builder /lib/x86_64-linux-gnu/libgcc_s.so.1 /lib/
+COPY --from=builder /lib/x86_64-linux-gnu/libssl.so.3 /lib/
+COPY --from=builder /lib/x86_64-linux-gnu/libcrypto.so.3 /lib/
+COPY --from=builder /etc/ssl/certs /etc/ssl/certs
+COPY --from=builder /app/target/release/phlow /app/phlow
+
+WORKDIR /app
+RUN chmod +x /app/phlow
+
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
+    PHLOW_MAIN=https://github.com/phlowdotdev/phlow-mirror-request/archive/refs/heads/main.zip \
+    PHLOW_LOG=info \
+    PHLOW_OTEL=true
 
 ENTRYPOINT ["/app/phlow"]

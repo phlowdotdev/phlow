@@ -1,0 +1,27 @@
+###############################################################################
+# Phlow Packages
+###############################################################################
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    pkg-config \
+    libssl-dev \
+    ca-certificates \
+    zlib1g-dev \
+    liblzma-dev \
+    gcc \
+    libgcc-s1 \
+    libssl3 \
+    perl \
+    make \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instala Rust manualmente
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+RUN cargo install cargo-make
+
+WORKDIR /app

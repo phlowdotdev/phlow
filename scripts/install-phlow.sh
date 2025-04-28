@@ -25,8 +25,16 @@ curl -L "$URL" -o "$BIN_NAME"
 echo "⚙️ Making binary executable..."
 chmod +x "$BIN_NAME"
 
-echo "📁 Moving to $INSTALL_PATH (requires sudo)..."
-sudo mv "$BIN_NAME" "$INSTALL_PATH"
+echo "📁 Moving to $INSTALL_PATH..."
+
+# Verifica se o sudo existe
+if command -v sudo >/dev/null 2>&1; then
+    echo "🔒 Using sudo to move the binary..."
+    sudo mv "$BIN_NAME" "$INSTALL_PATH"
+else
+    echo "⚠️ Sudo not found. Trying to move without sudo..."
+    mv "$BIN_NAME" "$INSTALL_PATH"
+fi
 
 echo "✅ $BIN_NAME installed successfully at $INSTALL_PATH"
 echo "🚀 Run it with: phlow --help"

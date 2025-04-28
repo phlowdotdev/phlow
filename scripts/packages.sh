@@ -1,19 +1,21 @@
 #!/bin/bash
 set -e
 
-# verifica de pasta raw exste, se existe remove
-if [ -d "./raw" ]; then
-    echo "🗑️  Removendo pasta ./raw"
-    rm -rf ./raw
+# verifica de pasta packages não existe, se não existir cria
+if [ ! -d "./packages" ]; then
+    echo "📦 Criando pasta ./packages"
+    mkdir -p ./packages
 fi
-# cria pasta raw
-mkdir -p ./raw
+
+# apaga todo conteudo da pasta packages
+echo "📦 Limpando pasta ./packages
+rm -rf ./packages/*"
 
 for dir in ./modules/*/; do
     if [ -d "$dir" ]; then
     echo "📦 Empacotando $dir"
     cargo run --release -p phlow-runtime -- --package "$dir"
-    # move para pasta raw
-    mv *.tar.gz ./raw/
+    # move para pasta packages
+    mv *.tar.gz ./packages/
     fi
 done

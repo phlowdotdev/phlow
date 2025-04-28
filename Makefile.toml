@@ -1,15 +1,12 @@
-[tasks.mbuild]
+[tasks.build-modules]
 workspace = false
 description = "Executa o script build.sh"
 script = ["chmod +x ./scripts/modules-build.sh", "./scripts/modules-build.sh"]
 
-[tasks.mbuild-musl]
+[tasks.build-bin]
 workspace = false
-description = "Executa o script build.sh"
-script = [
-    "chmod +x ./scripts/modules-build-musl.sh",
-    "./scripts/modules-build-musl.sh",
-]
+description = "Executa o script"
+script = ["cargo", "build", "--release", "-p", "phlow-runtime"]
 
 [tasks.packages]
 workspace = false
