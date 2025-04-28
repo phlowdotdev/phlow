@@ -12,3 +12,16 @@ script = ["cargo", "build", "--release", "-p", "phlow-runtime"]
 workspace = false
 description = "Empacota todos os módulos em ./modules"
 script = ["chmod +x ./scripts/packages.sh", "./scripts/packages.sh"]
+
+[tasks.env-build]
+workspace = false
+description = "Executa o container Docker phlow-environment"
+script = [
+    "docker build --target environment -t phlow-env -f ./docker/Dockerfile .",
+]
+args = []
+
+[tasks.env]
+workspace = false
+description = "Executa o container Docker phlow-environment"
+script = ["docker run -it --rm -v .:/app phlow-env ${@}"]
