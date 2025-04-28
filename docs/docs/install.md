@@ -23,12 +23,12 @@ wget -qO- https://raw.githubusercontent.com/phlowdotdev/phlow/main/scripts/insta
 
 These scripts will install or remove the `phlow` binary from `/usr/local/bin`. The install script fetches the latest release and makes it globally available on your system.
 
-### Running with Docker
+## Running with Docker
 
 There are two ways to execute Phlow using Docker:
 
 1. **Pass a file, gzip, zip, or Git repository URL via the `MAIN_FILE` environment variable**:  
-    Phlow will download and execute the specified file.
+    Phlow will download the file and execute it.
 
     Example:
     ```bash
@@ -36,13 +36,9 @@ There are two ways to execute Phlow using Docker:
     ```
 
 2. **Create a volume and pass the file path via the `MAIN_FILE` environment variable**:  
-    Mount a local file or directory into the container and specify its path.
+    Phlow will execute the specified file from the mounted volume.
 
     Example:
     ```bash
-    docker run -it --rm \
-    -v "$(pwd)/examples/restapi-ping:/data" \
-    -e PHLOW_MAIN=/data/main.yaml \
-    -p 3000:3000 \
-    phlow
+    docker run -it --rm -v "$(pwd)/examples/restapi-ping:/data"-e PHLOW_MAIN=/data/main.yaml -p 3000:3000 phlow
     ```
