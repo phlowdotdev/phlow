@@ -2,8 +2,11 @@
 sidebar_position: 3
 title: Install
 ---
+You can easily install Phlow using our ready-to-use shell scripts.
 
-You can easily install or uninstall Phlow using our ready-to-use shell scripts.
+> **Requirements**:
+> - 64-bit Linux system (`x86_64-unknown-linux-gnu` target)
+> - **glibc** version **2.27** or higher (included in **Ubuntu 18.04** and later)
 
 ### 🔽 Install via `curl`
 
@@ -18,17 +21,24 @@ wget -qO- https://raw.githubusercontent.com/phlowdotdev/phlow/main/scripts/insta
 ```
 ---
 
-### 🧹 Uninstall via `curl`
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/phlowdotdev/phlow/main/scripts/uninstall-phlow.sh | bash
-```
-
-### 🧹 Uninstall via `wget`
-
-```bash
-wget -qO- https://raw.githubusercontent.com/phlowdotdev/phlow/main/scripts/uninstall-phlow.sh | bash
-```
----
-
 These scripts will install or remove the `phlow` binary from `/usr/local/bin`. The install script fetches the latest release and makes it globally available on your system.
+
+### Running with Docker
+
+There are two ways to execute Phlow using Docker:
+
+1. **Pass a file, gzip, zip, or Git repository URL via the `MAIN_FILE` environment variable**:  
+    Phlow will download and execute the specified file.
+
+    Example:
+    ```bash
+    docker run -it --rm -e MAIN_FILE=https://example.com/file.zip ghcr.io/phlowdotdev/phlow:latest
+    ```
+
+2. **Create a volume and pass the file path via the `MAIN_FILE` environment variable**:  
+    Mount a local file or directory into the container and specify its path.
+
+    Example:
+    ```bash
+    docker run -it --rm -v /path/to/local/file:/data -e MAIN_FILE=/data/file.zip ghcr.io/phlowdotdev/phlow:latest
+    ```

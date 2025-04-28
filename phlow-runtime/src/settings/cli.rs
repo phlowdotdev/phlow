@@ -24,7 +24,8 @@ impl Cli {
                 Arg::new("main_path")
                     .help("Main path/file to load")
                     .required(false)
-                    .index(1),
+                    .index(1)
+                    .num_args(1..), // <= Aqui adiciona múltiplos valores possíveis
             )
             .arg(
                 Arg::new("install")
