@@ -59,12 +59,14 @@ body {
 }
 
 /* Footer no modo claro */
-.plugin-pages[data-theme='light'] .footer {
+.plugin-pages[data-theme='light'] .footer,
+.plugin-pages[data-theme='light'] main {
   background-color: #3399FF;
 }
 
 .plugin-pages[data-theme='light'] .footer a,
 .plugin-pages[data-theme='light'] .footer .footer__copyright,
+.features_t9lD,
 .plugin-pages[data-theme='light'] .footer .footer__title {
   color: #ffffff;
 }
@@ -74,7 +76,8 @@ body {
 }
 
 /* Footer no modo escuro */
-.plugin-pages[data-theme='dark'] .footer {
+.plugin-pages[data-theme='dark'] .footer,
+.plugin-pages[data-theme='dark'] main {
   background-color: #056BD2;
 }
 

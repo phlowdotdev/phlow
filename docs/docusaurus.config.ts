@@ -9,6 +9,7 @@ const config: Config = {
   tagline: 'Is a Low Code Rust runtime for modular backends',
   favicon: 'img/favicon.svg',
 
+
   // Set the production url of your site here
   url: 'https://phlow.dev',
   // Set the /<baseUrl>/ pathname under which your site is served
@@ -64,7 +65,11 @@ const config: Config = {
   ],
 
   themeConfig: {
-    // Replace with your project's social card
+    colorMode: {
+      defaultMode: 'dark',
+      disableSwitch: false, // ou true se quiser forçar dark sem opção de trocar
+      respectPrefersColorScheme: false, // ignora a preferência do navegador
+    },
     image: 'img/logo.svg',
     navbar: {
       title: 'Phlow',
