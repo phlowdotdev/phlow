@@ -41,8 +41,8 @@ export default function Home(): ReactNode {
   const { siteConfig } = useDocusaurusContext();
   return (
     <Layout
-      title={`Hello from ${siteConfig.title}`}
-      description="Description will go into a meta tag in <head />">
+      title={`Build Flows, Not Code`}
+      description="Create APIs, automations, and workflows without coding. Powered by Phlow, built in Rust.">
       <OceanBackground />
       <HomepageHeader />
       <main>
