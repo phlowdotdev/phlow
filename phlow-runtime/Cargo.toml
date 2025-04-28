@@ -17,7 +17,6 @@ publish = true
 [dependencies]
 phlow-sdk = { workspace = true }
 phlow-engine = { workspace = true }
-phlow-graph = { workspace = true }
 serde = { workspace = true }
 libloading = { workspace = true }
 clap = { workspace = true }

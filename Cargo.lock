@@ -917,12 +917,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fea41bba32d969b513997752735605054bc0dfa92b4c56bf1189f2e174be7a10"
 
 [[package]]
-name = "dot_graph"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b310edef633ba5dde93f7b916ca82ee872dd3571c22f4ee98b44877d40995e2e"
-
-[[package]]
 name = "echo"
 version = "0.1.0"
 dependencies = [
@@ -2477,15 +2471,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "phlow-graph"
-version = "0.0.20"
-dependencies = [
- "dot_graph",
- "serde",
- "serde_yaml",
-]
-
-[[package]]
 name = "phlow-runtime"
 version = "0.0.20"
 dependencies = [
@@ -2505,7 +2490,6 @@ dependencies = [
  "mimalloc",
  "openssl",
  "phlow-engine",
- "phlow-graph",
  "phlow-sdk",
  "regex",
  "reqwest",
