@@ -348,6 +348,7 @@ PHS supports common primitive types, plus arrays and maps (objects):
 | `int`    | `42`                   |
 | `float`  | `3.14` *(if enabled)*  |
 | `array`  | `[1, 2, 3]`            |
+| `null`    | `null`                |
 | `map`    | `{ key: "value" }`     |
 | `fn`     | `fn name(x) { ... }`   |
 
