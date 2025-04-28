@@ -88,27 +88,27 @@ jobs:
           docker push ghcr.io/${{ github.repository_owner }}/phlow:latest
           docker push ghcr.io/${{ github.repository_owner }}/phlow:${{ needs.tag.outputs.version }}
 
-  docker-hub:
-    name: Build & Push to Docker Hub
-    runs-on: ubuntu-latest
-    needs: tag
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  # docker-hub:
+  #   name: Build & Push to Docker Hub
+  #   runs-on: ubuntu-latest
+  #   needs: tag
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: Login to Docker Hub
-        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u phlowdotdev --password-stdin
+  #     - name: Login to Docker Hub
+  #       run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u phlowdotdev --password-stdin
 
-      - name: Build and Push Docker images (Docker Hub)
-        env:
-          DOCKER_BUILDKIT: 1
-        run: |
-          docker build -f ./docker/Dockerfile  \
-            -t phlowdotdev/phlow:glibc \
-            -t phlowdotdev/phlow:busybox \
-            -t phlowdotdev/phlow:latest \
-            -t phlowdotdev/phlow:${{ needs.tag.outputs.version }} .
-          docker push phlowdotdev/phlow:glibc
-          docker push phlowdotdev/phlow:busybox
-          docker push phlowdotdev/phlow:latest
-          docker push phlowdotdev/phlow:${{ needs.tag.outputs.version }}
+  #     - name: Build and Push Docker images (Docker Hub)
+  #       env:
+  #         DOCKER_BUILDKIT: 1
+  #       run: |
+  #         docker build -f ./docker/Dockerfile  \
+  #           -t phlowdotdev/phlow:glibc \
+  #           -t phlowdotdev/phlow:busybox \
+  #           -t phlowdotdev/phlow:latest \
+  #           -t phlowdotdev/phlow:${{ needs.tag.outputs.version }} .
+  #         docker push phlowdotdev/phlow:glibc
+  #         docker push phlowdotdev/phlow:busybox
+  #         docker push phlowdotdev/phlow:latest
+  #         docker push phlowdotdev/phlow:${{ needs.tag.outputs.version }}
