@@ -1,0 +1,37 @@
+name: Build and Deploy Docs
+
+on:
+    push:
+        branches:
+        - main
+        paths:
+        - 'docs/**' # Só roda se houver mudanças dentro de docs
+    workflow_dispatch: # Para permitir também rodar manualmente se quiser
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # ou outra versão que você esteja usando
+
+      - name: Install dependencies
+        working-directory: ./docs
+        run: npm ci
+
+      - name: Build project
+        working-directory: ./docs
+        run: npm run build
+
+      - name: Deploy
+        working-directory: ./docs
+        run: npm run deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Token para autenticação
+          # Adicione outras variáveis de ambiente necessárias para o seu deploy
