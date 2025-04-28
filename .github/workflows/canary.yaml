@@ -79,11 +79,11 @@ jobs:
         run: |
           docker build -f ./docker/Dockerfile  \
             -t ghcr.io/${{ github.repository_owner }}/phlow:canary-glibc \
-            -t ghcr.io/${{ github.repository_owner }}/phlow:canary-busybox \
+            -t ghcr.io/${{ github.repository_owner }}/phlow:canary-slim \
             -t ghcr.io/${{ github.repository_owner }}/phlow:canary \
             -t ghcr.io/${{ github.repository_owner }}/phlow:${{ needs.tag.outputs.tag }} .
           docker push ghcr.io/${{ github.repository_owner }}/phlow:canary-glibc
-          docker push ghcr.io/${{ github.repository_owner }}/phlow:canary-busybox
+          docker push ghcr.io/${{ github.repository_owner }}/phlow:canary-slim
           docker push ghcr.io/${{ github.repository_owner }}/phlow:canary
           docker push ghcr.io/${{ github.repository_owner }}/phlow:${{ needs.tag.outputs.tag }}
 
@@ -104,7 +104,7 @@ jobs:
   #       run: |
   #         docker build -f ./docker/Dockerfile  \
   #           -t phlowdotdev/phlow:canary-glibc \
-  #           -t phlowdotdev/phlow:canary-busybox \
+  #           -t phlowdotdev/phlow:canary-slim \
   #           -t phlowdotdev/phlow:canary \
   #           -t phlowdotdev/phlow:${{ needs.tag.outputs.tag }} .
   #         docker push phlowdotdev/phlow:canary-glibc

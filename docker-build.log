@@ -10,7 +10,7 @@
 #3 [internal] load metadata for docker.io/library/debian:bullseye-slim
 #3 ...
 
-#4 [internal] load metadata for docker.io/library/busybox:glibc
+#4 [internal] load metadata for docker.io/library/slim:glibc
 #4 DONE 0.5s
 
 #5 [internal] load metadata for docker.io/library/rust:1.19
@@ -26,7 +26,7 @@
 #7 [libs 1/4] FROM docker.io/library/debian:bullseye-slim@sha256:7aafeb23eaef5d5b1de26e967b9a78f018baaac81dd75246b99781eaaa2d59ef
 #7 CACHED
 
-#8 [stage-2 1/7] FROM docker.io/library/busybox:glibc@sha256:45fb3214fa75ede765da7fa85a18a96d0973c26d84dac49b1af23923e627a219
+#8 [stage-2 1/7] FROM docker.io/library/slim:glibc@sha256:45fb3214fa75ede765da7fa85a18a96d0973c26d84dac49b1af23923e627a219
 #8 CACHED
 
 #9 [builder 1/5] FROM docker.io/library/rust:1.19@sha256:6bfca54b06b57ea2a1ddc0f0fd46c4170633b2f372ed03531f7ac04c5d868c7c
@@ -138,7 +138,28 @@
 #11 5.554 debconf: delaying package configuration, since apt-utils is not installed
 #11 5.569 Fetched 1017 kB in 0s (3922 kB/s)
 #11 5.602 Selecting previously unselected package openssl.
-#11 5.602 (Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6673 files and directories currently installed.)
+#11 5.602 (Reading database ... 
+(Reading database ... 5%
+(Reading database ... 10%
+(Reading database ... 15%
+(Reading database ... 20%
+(Reading database ... 25%
+(Reading database ... 30%
+(Reading database ... 35%
+(Reading database ... 40%
+(Reading database ... 45%
+(Reading database ... 50%
+(Reading database ... 55%
+(Reading database ... 60%
+(Reading database ... 65%
+(Reading database ... 70%
+(Reading database ... 75%
+(Reading database ... 80%
+(Reading database ... 85%
+(Reading database ... 90%
+(Reading database ... 95%
+(Reading database ... 100%
+(Reading database ... 6673 files and directories currently installed.)
 #11 5.648 Preparing to unpack .../openssl_1.1.1w-0+deb11u2_amd64.deb ...
 #11 5.659 Unpacking openssl (1.1.1w-0+deb11u2) ...
 #11 8.549 Selecting previously unselected package ca-certificates.
@@ -179,7 +200,7 @@
 
 #9 [builder 1/5] FROM docker.io/library/rust:1.19@sha256:6bfca54b06b57ea2a1ddc0f0fd46c4170633b2f372ed03531f7ac04c5d868c7c
 #9 ...
-
+slim
 #13 [libs 4/4] RUN find / -name liblzma.so.5
 #13 0.470 /lib/x86_64-linux-gnu/liblzma.so.5
 #13 DONE 0.6s
