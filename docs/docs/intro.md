@@ -10,10 +10,13 @@ title: Intro
 
 ## Modular Flow Runtime for Composable Backends
 
-**Phlow** is a **high-performance, scalable, and Low Code flow runtime** built with Rust — designed to revolutionize the way you build backends. With Phlow, you can **create APIs, automations, and event-driven systems using just YAML**, composing logic like building blocks.
+**Phlow** is a **high-performance**, **low-code** flow runtime built in **Rust** — crafted to transform the way you build backends.
+With Phlow, you design APIs, automations, and event-driven systems by composing YAML flows, treating logic as modular building blocks.
 
-Thanks to its modular architecture and clear separation between control and behavior, Phlow lets you **orchestrate complex flows without coding** — and when you need extra power, simply **plug in lightweight scripts or Rust modules**.
+Its radically **modular** architecture separates control from behavior, empowering you to orchestrate complex workflows without writing traditional code.
+Need more flexibility? Simply extend with lightweight scripts or Rust-based modules — no rewrites, no complexity.
 
-It comes with **built-in observability powered by OpenTelemetry**, giving you full visibility into your flows, modules, and executions. Easily export traces and metrics to **Jaeger**, **Grafana Tempo**, or **AWS X-Ray**, all with simple environment variables.
+**Observability** is built-in by design. Every flow and module emits traces, logs, and metrics through **OpenTelemetry**, integrating seamlessly with Jaeger, Grafana Tempo, Prometheus, or AWS X-Ray — all via simple environment variables.
 
-If you're looking for speed, flexibility, and full insight into your backend — **Phlow is the Low-Code revolution you’ve been waiting for**.
+Whether you’re running locally, on the edge, or across the cloud, Phlow delivers extreme speed, effortless scalability, and full-stack visibility.
+If you're ready to rethink how backends are built — **Phlow is the low-code revolution you’ve been waiting for**.
