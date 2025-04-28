@@ -25,9 +25,9 @@ repository = "https://github.com/phlowdotdev/phlow"
 
 [workspace.dependencies]
 # internal
-phlow-engine = { path = "phlow-engine", version = "*" }
-phlow-sdk = { path = "phlow-sdk", version = "*" }
-phs = { path = "phs", version = "*" }
+phlow-engine = { path = "phlow-engine", version = "0" }
+phlow-sdk = { path = "phlow-sdk", version = "0" }
+phs = { path = "phs", version = "0" }
 
 #phlow
 libloading = "0.8"
