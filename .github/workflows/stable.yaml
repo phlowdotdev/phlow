@@ -46,10 +46,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build release binary using Docker
-        run: |
-          docker build -f ./docker/Dockerfile --target environment -t phlow-environment .
-          docker run --rm -v ${{ github.workspace }}:/app phlow-environment cp /phlow-x86_64-unknown-linux-gnu /app/phlow-x86_64-unknown-linux-gnu
+      - name: Build release binary using Docker Action
+        uses: ./.github/actions/build-binary
+        with:
+          dockerfile: ./docker/Dockerfile
+          target: environment
+          output_path: /phlow-x86_64-unknown-linux-gnu
+          filename: phlow-x86_64-unknown-linux-gnu
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
@@ -61,6 +64,7 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
         
   docker-ghcr:
     name: Build & Push to GitHub Container Registry
