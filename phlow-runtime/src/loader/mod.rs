@@ -21,8 +21,8 @@ pub struct Loader {
 }
 
 impl Loader {
-    pub async fn load(main_path: &str) -> Result<Self, Error> {
-        let value = load_main(main_path).await?;
+    pub async fn load(main_path: &str, print_yaml: bool) -> Result<Self, Error> {
+        let value = load_main(main_path, print_yaml).await?;
 
         let (main, modules) = match value.get("modules") {
             Some(modules) => {

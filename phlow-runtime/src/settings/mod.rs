@@ -11,6 +11,7 @@ pub struct Settings {
     pub package_path: Option<String>,
     pub no_run: bool,
     pub download: bool,
+    pub print_yaml: bool,
 
     // envs
     pub package_consumer_count: i32,
@@ -38,6 +39,7 @@ impl Settings {
             garbage_collection_interval: envs.garbage_collection_interval,
             default_package_repository_url: envs.default_package_repository_url,
             download: cli.download,
+            print_yaml: cli.print_yaml,
         };
 
         Ok(settings)

@@ -49,7 +49,7 @@ async fn main() {
         }
     }
 
-    let mut loader = match Loader::load(&settings.main_target).await {
+    let mut loader = match Loader::load(&settings.main_target, settings.print_yaml).await {
         Ok(main) => main,
         Err(err) => {
             eprintln!("Runtime Error Main File: {:?}", err);

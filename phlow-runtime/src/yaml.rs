@@ -4,8 +4,20 @@ use serde_yaml;
 use std::fs;
 use std::path::Path;
 
-pub fn yaml_helpers_transform(yaml: &str, base_path: &Path) -> String {
-    yaml_helpers_eval(&yaml_helpers_include(yaml, base_path))
+pub fn yaml_helpers_transform(yaml: &str, base_path: &Path, print_yaml: bool) -> String {
+    let yaml = yaml_helpers_eval(&yaml_helpers_include(yaml, base_path));
+
+    if print_yaml {
+        println!("");
+        println!("#####################################################################");
+        println!("# YAML TRANSFORMED");
+        println!("#####################################################################");
+        println!("{}", yaml);
+        println!("#####################################################################");
+        println!("");
+    }
+
+    yaml
 }
 
 fn yaml_helpers_include(yaml: &str, base_path: &Path) -> String {
@@ -156,7 +168,7 @@ fn process_include_file(path: &Path) -> Result<String, String> {
     let value: Value = match extension.as_str() {
         "yaml" | "yml" => {
             let parent = path.parent().unwrap_or_else(|| Path::new("."));
-            let transformed = yaml_helpers_transform(&raw, parent);
+            let transformed = yaml_helpers_transform(&raw, parent, false);
             serde_yaml::from_str(&transformed).map_err(|e| e.to_string())?
         }
         _ => return Err("Unsupported file extension".into()),

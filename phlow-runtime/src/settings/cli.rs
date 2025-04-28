@@ -13,6 +13,7 @@ pub struct Cli {
     pub package_path: Option<String>,
     pub no_run: bool,
     pub download: bool,
+    pub print_yaml: bool,
 }
 
 impl Cli {
@@ -63,6 +64,15 @@ impl Cli {
                     .value_parser(clap::builder::BoolishValueParser::new())
                     .action(ArgAction::SetTrue)
                     .default_value("false"),
+            )
+            .arg(
+                Arg::new("print_yaml")
+                    .long("print")
+                    .short('p')
+                    .help("Print the YAML file generated from the target file")
+                    .value_parser(clap::builder::BoolishValueParser::new())
+                    .action(ArgAction::SetTrue)
+                    .default_value("false"),
             );
 
         let matches = command
@@ -81,12 +91,16 @@ impl Cli {
         let no_run = *matches.get_one::<bool>("no_run").unwrap_or(&false);
 
         let download = *matches.get_one::<bool>("download").unwrap_or(&true);
+
+        let print_yaml = *matches.get_one::<bool>("print_yaml").unwrap_or(&false);
+
         Ok(Cli {
             main_target: main,
             only_download_modules: install,
             package_path,
             no_run,
             download,
+            print_yaml,
         })
     }
 }
