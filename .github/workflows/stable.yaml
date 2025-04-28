@@ -12,7 +12,7 @@ env:
 
 jobs:
   build:
-    name: Build Docker Image
+    name: Build Docker Image and Save Artifact
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get_version.outputs.version }}
@@ -41,6 +41,18 @@ jobs:
             -t ghcr.io/${{ github.repository_owner }}/phlow:latest \
             -t ghcr.io/${{ github.repository_owner }}/phlow:stable-${{ env.VERSION }} .
 
+      - name: Extract binary from built image
+        run: |
+          container_id=$(docker create ghcr.io/${{ github.repository_owner }}/phlow:stable-${{ env.VERSION }})
+          docker cp $container_id:/app/phlow ./phlow
+          docker rm $container_id
+
+      - name: Upload binary as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: phlow-binary
+          path: ./phlow
+
   tag:
     name: Create Git Tag
     runs-on: ubuntu-latest
@@ -62,18 +74,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, tag]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download built Docker image locally
-        run: |
-          docker pull ghcr.io/${{ github.repository_owner }}/phlow:stable-${{ needs.build.outputs.version }}
-
-      - name: Extract binary from image
-        run: |
-          container_id=$(docker create ghcr.io/${{ github.repository_owner }}/phlow:stable-${{ needs.build.outputs.version }})
-          docker cp $container_id:/app/phlow ./phlow
-          docker rm $container_id
+      - name: Download built binary
+        uses: actions/download-artifact@v4
+        with:
+          name: phlow-binary
+          path: .
 
       - name: Upload binary to GitHub Release
         uses: softprops/action-gh-release@v1
@@ -86,17 +91,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # docker-ghcr:
-  #   name: Push Docker Images
-  #   runs-on: ubuntu-latest
-  #   needs: [build, tag]
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
+  docker-ghcr:
+    name: Push Docker Images
+    runs-on: ubuntu-latest
+    needs: [build, tag]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-  #     - name: Push all tags to GHCR
-  #       run: |
-  #         docker push ghcr.io/${{ github.repository_owner }}/phlow:glibc
-  #         docker push ghcr.io/${{ github.repository_owner }}/phlow:stable-${{ needs.build.outputs.version }}-glibc
-  #         docker push ghcr.io/${{ github.repository_owner }}/phlow:latest
-  #         docker push ghcr.io/${{ github.repository_owner }}/phlow:stable-${{ needs.build.outputs.version }}
+      - name: Push all tags to GHCR
+        run: |
+          docker push ghcr.io/${{ github.repository_owner }}/phlow:glibc
+          docker push ghcr.io/${{ github.repository_owner }}/phlow:stable-${{ needs.build.outputs.version }}-glibc
+          docker push ghcr.io/${{ github.repository_owner }}/phlow:latest
+          docker push ghcr.io/${{ github.repository_owner }}/phlow:stable-${{ needs.build.outputs.version }}
