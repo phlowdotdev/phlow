@@ -46,7 +46,7 @@ There are two ways to execute Phlow using Docker:
 > ## Extra example:
 > **Run a Phlow mirror request**:
 >
->   This example demonstrates how to run a Phlow mirror request using Docker. The `MAIN_FILE` environment variable is set to the URL of the main file in the GitHub repository.
+>   This example demonstrates how to run a [Phlow mirror request](https://github.com/phlowdotdev/phlow-mirror-request) using Docker. The `MAIN_FILE` environment variable is set to the URL of the main file in the GitHub repository.
 >
 >    Example:
 >    ```bash
