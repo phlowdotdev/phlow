@@ -6,7 +6,7 @@ You can easily install Phlow using our ready-to-use shell scripts.
 
 > **Requirements**:
 > - 64-bit Linux system (`x86_64-unknown-linux-gnu` target)
-> - **glibc** version **2.27** or higher (included in **Ubuntu 18.04** and later)
+> - **glibc** version **2.31** or higher (included in **Ubuntu 20.04** and later)
 
 ### Install via `curl`
 
@@ -62,3 +62,4 @@ You can run Phlow in Windows using Docker. The installation process is similar t
 ```bash
 docker run --platform linux/amd64 -it --rm -v "$(pwd)/examples/restapi-ping:/data" -e PHLOW_MAIN=/data/main.yaml -p 3000:3000 phlow
 ```
+
