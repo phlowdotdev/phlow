@@ -3,7 +3,7 @@
 set -e
 
 REPO="phlowdotdev/phlow"
-BIN_NAME="phlow-x86_64-unknown-linux-gnu"
+BIN_NAME="phlow"
 INSTALL_DIR="$HOME/.phlow"
 BIN_PATH="$INSTALL_DIR/phlow"
 
@@ -18,7 +18,7 @@ echo "⬇️ Fetching latest version from GitHub..."
 LATEST=$(curl -s https://api.github.com/repos/$REPO/releases/latest | grep tag_name | cut -d '"' -f 4)
 echo "📦 Latest version is $LATEST"
 
-URL="https://github.com/$REPO/releases/download/stable-$LATEST/$BIN_NAME"
+URL="https://github.com/$REPO/releases/download/$LATEST/$BIN_NAME"
 
 echo "🚚 Downloading $BIN_NAME from $URL..."
 mkdir -p "$INSTALL_DIR"
