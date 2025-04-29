@@ -17,7 +17,7 @@ modules:
 steps:
   - return:
       status_code: 200
-      body: !eval main
+      body: !phs main
       headers:
         Content-Type: application/json
 ```
