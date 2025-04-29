@@ -86,3 +86,19 @@ body {
   /* color: #ffffff; */
   box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.3);
 }
+
+.button--start-tutorial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  height: 100%;
+  line-height: 1;
+  padding: 1rem 2rem;
+}
+
+.button--start-tutorial svg {
+  margin-left: 5px;
+  /* center vertical */
+
+}

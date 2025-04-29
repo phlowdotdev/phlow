@@ -52,3 +52,15 @@ There are two ways to execute Phlow using Docker:
 >    ```bash
 >    docker run -it --rm -e MAIN_FILE=https://github.com/phlowdotdev/phlow-mirror-request/archive/refs/heads/main.zip ghcr.io/phlowdotdev/phlow:latest
 >    ```
+
+## Run in macOS
+You can run Phlow in macOS using Docker. The installation process is similar to the Linux version, but you need to use the `--platform` flag to specify the architecture.
+```bash 
+docker run --platform linux/amd64 -it --rm -v "$(pwd)/examples/restapi-ping:/data" -e PHLOW_MAIN=/data/main.yaml -p 3000:3000 phlow
+```
+
+## Run in Windows
+You can run Phlow in Windows using Docker. The installation process is similar to the Linux version, but you need to use the `--platform` flag to specify the architecture.
+```bash
+docker run --platform linux/amd64 -it --rm -v "$(pwd)/examples/restapi-ping:/data" -e PHLOW_MAIN=/data/main.yaml -p 3000:3000 phlow
+```
