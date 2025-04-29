@@ -6,6 +6,7 @@ import Layout from '@theme/Layout';
 import HomepageFeatures from '@site/src/components/HomepageFeatures';
 import Heading from '@theme/Heading';
 import ClockSvg from '@site/static/img/clock.svg';
+import CodespaceSvg from '@site/static/img/codespace.svg';
 import styles from './index.module.css';
 import OceanBackground from '../components/Backgrounds/OceanBackground';
 
@@ -25,12 +26,22 @@ function HomepageHeader() {
           {siteConfig.title}
         </Heading>
         <p className="hero__subtitle">{siteConfig.tagline}</p>
-        <div className={styles.buttons}>
-          <Link
-            className="button button--secondary button--lg button--start-tutorial"
-            to="/docs/intro">
-            Phlow Tutorial - 5min <ClockSvg />
-          </Link>
+        <div className='buttons--home'>
+          <div className={styles.buttons}>
+            <Link
+              className="button button--secondary button--lg button--start-tutorial"
+              to="/docs/intro">
+              Phlow Tutorial - 5min <ClockSvg />
+            </Link>
+          </div>
+          <div className={styles.buttons}>
+            <Link
+              className="button button--secondary button--lg button--start-codespace"
+              target='_blank'
+              to="https://github.com/codespaces/new?repo=phlowdotdev/phlow-mirror-request">
+              Run now in codespace <CodespaceSvg />
+            </Link>
+          </div>
         </div>
       </div>
     </header>

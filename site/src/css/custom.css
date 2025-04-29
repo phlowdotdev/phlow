@@ -87,7 +87,19 @@ body {
   box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.3);
 }
 
-.button--start-tutorial {
+
+.buttons--home {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.buttons--home .button:first-child {
+  margin: 0 0.5rem;
+}
+
+.buttons--home .button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -97,8 +109,18 @@ body {
   padding: 1rem 2rem;
 }
 
-.button--start-tutorial svg {
+.buttons--home .button svg {
   margin-left: 5px;
-  /* center vertical */
+}
 
+.button--start-codespace {
+  background-color: #0090DF;
+  color: #ffffff !important;
+  border-radius: 5px;
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.3);
+}
+
+
+.button--start-codespace svg {
+  margin-left: 5px;
 }

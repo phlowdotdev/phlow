@@ -33,6 +33,10 @@ curl -fsSL https://raw.githubusercontent.com/phlowdotdev/phlow/main/scripts/inst
 phlow git@github.com:phlowdotdev/phlow-mirror-request.git
 ```
 
+### Try it now on GitHub Codespaces
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?repo=phlowdotdev/phlow-mirror-request)
+
 ## 📜 License
 
 © 2025 — Built with ❤️ and Rust. Licensed under [MIT License](License).
