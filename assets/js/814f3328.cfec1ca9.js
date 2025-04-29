@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkphlow_docs=self.webpackChunkphlow_docs||[]).push([[7472],{5513:e=>{e.exports=JSON.parse('{"title":"Recent posts","items":[{"title":"What is Phlow? Discover Its Proposal, Modular Architecture, and How Modules Work Together","permalink":"/blog/what-is-phlow","unlisted":false,"date":"2025-04-29T00:00:00.000Z"}]}')}}]);
