@@ -21,8 +21,6 @@ wget -qO- https://raw.githubusercontent.com/phlowdotdev/phlow/main/scripts/insta
 ```
 ---
 
-These scripts will install or remove the `phlow` binary from `/usr/local/bin`. The install script fetches the latest release and makes it globally available on your system.
-
 ## Running with Docker
 
 There are two ways to execute Phlow using Docker:

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./docs/static/img/logo.svg" alt="Phlow logo" width="160"/>
+  <img src="./site/static/img/logo.svg" alt="Phlow logo" width="160"/>
   <h1 align="center">Phlow</h1>
 </p>
 
