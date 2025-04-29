@@ -63,7 +63,7 @@ Phlow is a simple yet powerful tool that allows you to automate complex workflow
 
 Now, with module integration and the ability to run workflows in parallel or conditionally, Phlow fits perfectly into any automation scenario, making it an ideal solution for businesses of all sizes and sectors.
 
-If you still have questions about how to get started, our complete documentation is available at phlow.dev to guide you through every step of the process.
+If you still have questions about how to get started, our complete documentation is available at [phlow.dev](https://phlow.dev) to guide you through every step of the process.
 
 Ready to try it out? The future of process automation is in your hands with Phlow!
 
