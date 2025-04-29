@@ -42,3 +42,13 @@ There are two ways to execute Phlow using Docker:
     ```bash
     docker run -it --rm -v "$(pwd)/examples/restapi-ping:/data" -e PHLOW_MAIN=/data/main.yaml -p 3000:3000 phlow
     ```
+
+> ## Extra example:
+> **Run a Phlow mirror request**:
+>
+>   This example demonstrates how to run a Phlow mirror request using Docker. The `MAIN_FILE` environment variable is set to the URL of the main file in the GitHub repository.
+>
+>    Example:
+>    ```bash
+>    docker run -it --rm -e MAIN_FILE=https://github.com/phlowdotdev/phlow-mirror-request/archive/refs/heads/main.zip ghcr.io/phlowdotdev/phlow:latest
+>    ```
