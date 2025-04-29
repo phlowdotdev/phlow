@@ -5,6 +5,7 @@ title: Install
 You can easily install Phlow using our ready-to-use shell scripts.
 
 ## Requirements:
+
 - 64-bit Linux system ([x86_64-unknown-linux-gnu](https://doc.rust-lang.org/rustc/platform-support.html) target)
 - **glibc** version **2.31** or higher (included in **Ubuntu 20.04** and later)
 
