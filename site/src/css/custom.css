@@ -109,6 +109,17 @@ body {
   padding: 1rem 2rem;
 }
 
+@media (max-width: 628px) {
+  .buttons--home {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .buttons--home .buttons_AeoN:first-child {
+    margin-bottom: 2dvh;
+  }
+}
+
 .buttons--home .button svg {
   margin-left: 5px;
 }
@@ -120,6 +131,9 @@ body {
   box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.3);
 }
 
+header.heroBanner_qdFl {
+  min-height: 500px;
+}
 
 .button--start-codespace svg {
   margin-left: 5px;
