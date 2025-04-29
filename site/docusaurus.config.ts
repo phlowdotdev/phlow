@@ -134,7 +134,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Phlow, Inc. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} Phlow, Inc. Built with ❤️ and Rust.`,
     },
     prism: {
       theme: prismThemes.github,
