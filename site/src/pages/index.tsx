@@ -9,6 +9,7 @@ import ClockSvg from '@site/static/img/clock.svg';
 import CodespaceSvg from '@site/static/img/codespace.svg';
 import styles from './index.module.css';
 import OceanBackground from '../components/Backgrounds/OceanBackground';
+import { HomeButton } from '../components/Buttons';
 
 function HomepageHeader() {
   const { siteConfig } = useDocusaurusContext();
@@ -27,21 +28,15 @@ function HomepageHeader() {
         </Heading>
         <p className="hero__subtitle">{siteConfig.tagline}</p>
         <div className='buttons--home'>
-          <div className={styles.buttons}>
-            <Link
-              className="button button--secondary button--lg button--start-tutorial"
-              to="/docs/intro">
-              Phlow Tutorial - 5min <ClockSvg />
-            </Link>
-          </div>
-          <div className={styles.buttons}>
-            <Link
-              className="button button--secondary button--lg button--start-codespace"
-              target='_blank'
-              to="https://github.com/codespaces/new?repo=phlowdotdev/phlow-mirror-request">
-              Run now in codespace <CodespaceSvg />
-            </Link>
-          </div>
+          <HomeButton
+            className="button button--secondary button--lg button--start-tutorial"
+            to="/docs/intro"
+          >Phlow Tutorial - 5min <ClockSvg /></HomeButton>
+          <HomeButton
+            className="button button--secondary button--lg button--start-codespace"
+            target='_blank'
+            to="https://github.com/codespaces/new?repo=phlowdotdev/phlow-mirror-request">
+            Run now in codespace <CodespaceSvg /></HomeButton>
         </div>
       </div>
     </header>
@@ -49,16 +44,15 @@ function HomepageHeader() {
 }
 
 export default function Home(): ReactNode {
-  const { siteConfig } = useDocusaurusContext();
   return (
     <Layout
       title={`Build Flows, Not Code`}
       description="Phlow lets you launch scalable, modular backends in record time — no complex coding, just pure flow.">
-      <OceanBackground />
       <HomepageHeader />
       <main>
         <HomepageFeatures />
       </main>
+      <OceanBackground />
     </Layout>
   );
 }
