@@ -8,13 +8,13 @@ You can easily install Phlow using our ready-to-use shell scripts.
 > - 64-bit Linux system (`x86_64-unknown-linux-gnu` target)
 > - **glibc** version **2.27** or higher (included in **Ubuntu 18.04** and later)
 
-### 🔽 Install via `curl`
+### Install via `curl`
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/phlowdotdev/phlow/main/scripts/install-phlow.sh | { bash || true; }
 ```
 
-### 🔽 Install via `wget`
+### Install via `wget`
 
 ```bash
 wget -qO- https://raw.githubusercontent.com/phlowdotdev/phlow/main/scripts/install-phlow.sh | { bash || true; }
