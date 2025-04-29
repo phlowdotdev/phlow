@@ -6,6 +6,7 @@ REPO="phlowdotdev/phlow"
 BIN_NAME="phlow"
 INSTALL_DIR="$HOME/.phlow"
 BIN_PATH="$INSTALL_DIR/phlow"
+ADD_PATH_CMD='export PATH="$HOME/.phlow:$PATH"'
 
 echo "🔍 Detecting platform..."
 ARCH=$(uname -m)
@@ -28,24 +29,16 @@ echo "⚙️ Making binary executable..."
 chmod +x "$BIN_PATH"
 
 echo "🔧 Updating shell configuration files..."
-ADD_PATH_CMD='export PATH="$HOME/.phlow:$PATH"'
-
-if [ -f "$HOME/.zshrc" ]; then
-    if ! grep -Fxq "$ADD_PATH_CMD" "$HOME/.zshrc"; then
-        echo "$ADD_PATH_CMD" >> "$HOME/.zshrc"
-        echo "✅ Added ~/.phlow to PATH in .zshrc"
-    else
-        echo "ℹ️ ~/.phlow already in PATH in .zshrc"
+for shell_rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
+    if [ -f "$shell_rc" ]; then
+        if ! grep -Fxq "$ADD_PATH_CMD" "$shell_rc"; then
+            echo "$ADD_PATH_CMD" >> "$shell_rc"
+            echo "✅ Added ~/.phlow to PATH in $(basename "$shell_rc")"
+        else
+            echo "ℹ️ ~/.phlow already in PATH in $(basename "$shell_rc")"
+        fi
     fi
-fi
+done
 
-if [ -f "$HOME/.bashrc" ]; then
-    if ! grep -Fxq "$ADD_PATH_CMD" "$HOME/.bashrc"; then
-        echo "$ADD_PATH_CMD" >> "$HOME/.bashrc"
-        echo "✅ Added ~/.phlow to PATH in .bashrc"
-    else
-        echo "ℹ️ ~/.phlow already in PATH in .bashrc"
-    fi
-fi
-
-echo "🎉 Installation complete! Open a new terminal or run 'source ~/.zshrc' or 'source ~/.bashrc' to update your session."
+echo "🎉 Installation complete!"
+echo "ℹ️ Open a new terminal, or run: source ~/.bashrc (or ~/.zshrc) to update your session."
