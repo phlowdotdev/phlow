@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { spring, Motion } from 'react-motion';
+import { motion } from 'framer-motion';
 import styles from '../pages/index.module.css';
 import Link from '@docusaurus/Link';
 
@@ -18,21 +18,21 @@ export const HomeButton: React.FC<HomeButtonProps> = ({ className, target, to, c
 
     return (
         <div className={styles.buttons}>
-            <Motion style={{ scale: spring(pressed ? 0.98 : 1, { stiffness: 300, damping: 20 }) }}>
-                {({ scale }) => (
-                    <Link
-                        className={`button ${className}`}
-                        target={target}
-                        to={to}
-                        style={{ transform: `scale(${scale})` }}
-                        onMouseDown={handlePressIn}
-                        onMouseUp={handlePressOut}
-                        onMouseLeave={handlePressOut}
-                    >
-                        {children}
-                    </Link>
-                )}
-            </Motion>
+            <motion.div
+                whileTap={{ scale: 0.98 }}
+                style={{ display: 'inline-block' }}
+            >
+                <Link
+                    className={`button ${className}`}
+                    target={target}
+                    to={to}
+                    onMouseDown={handlePressIn}
+                    onMouseUp={handlePressOut}
+                    onMouseLeave={handlePressOut}
+                >
+                    {children}
+                </Link>
+            </motion.div>
         </div>
     );
 };
