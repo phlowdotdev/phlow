@@ -70,7 +70,6 @@ const config: Config = {
 
   themeConfig: {
     colorMode: {
-      defaultMode: 'dark',
       disableSwitch: false, // ou true se quiser forçar dark sem opção de trocar
       respectPrefersColorScheme: false, // ignora a preferência do navegador
     },
