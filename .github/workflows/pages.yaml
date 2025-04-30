@@ -22,7 +22,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: site
-        run: npm ci --legacy-peer-deps
+        run: npm install --force
       - name: Build website
         working-directory: site
         run: npm run build
