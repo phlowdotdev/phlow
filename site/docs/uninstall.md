@@ -14,4 +14,3 @@ curl -fsSL https://raw.githubusercontent.com/phlowdotdev/phlow/main/scripts/unin
 ```bash
 wget -qO- https://raw.githubusercontent.com/phlowdotdev/phlow/main/scripts/uninstall-phlow.sh | { bash || true; }
 ```
----
