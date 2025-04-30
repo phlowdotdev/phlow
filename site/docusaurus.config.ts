@@ -65,6 +65,10 @@ const config: Config = {
   ],
 
   themeConfig: {
+    googleAnalytics: {
+      trackingID: 'G-XX4ER3X2MS',
+      anonymizeIP: true,
+    },
     colorMode: {
       defaultMode: 'dark',
       disableSwitch: false, // ou true se quiser forçar dark sem opção de trocar
