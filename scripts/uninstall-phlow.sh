@@ -19,23 +19,5 @@ if [ -d "$INSTALL_DIR" ]; then
     rmdir "$INSTALL_DIR" 2>/dev/null || echo "ℹ️ Directory not empty or already removed."
 fi
 
-# Remove PATH entry
-REMOVE_PATH_CMD='export PATH="$HOME/.phlow:$PATH"'
-
-remove_from_shell_config() {
-    local file="$1"
-    if [ -f "$file" ]; then
-        if grep -Fxq "$REMOVE_PATH_CMD" "$file"; then
-            echo "✏️ Removing PATH modification from $file..."
-            sed -i.bak "\|$REMOVE_PATH_CMD|d" "$file"
-            echo "✅ Updated $file (backup created as $file.bak)"
-        else
-            echo "ℹ️ No PATH modification found in $file."
-        fi
-    fi
-}
-
-remove_from_shell_config "$HOME/.zshrc"
-remove_from_shell_config "$HOME/.bashrc"
-
-echo "🎉 Uninstallation complete! Open a new terminal or run 'source ~/.zshrc' or 'source ~/.bashrc' to update your session."
+echo "🎉 Uninstallation complete! Please manually update your PATH if necessary."
+echo "ℹ️ Don't forget to remove any references to '$INSTALL_DIR' or '$BIN_NAME' from your ~/.bashrc and ~/.zshrc files."
