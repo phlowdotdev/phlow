@@ -62,13 +62,18 @@ const config: Config = {
         },
       } satisfies Preset.Options,
     ],
+    [
+      '@docusaurus/preset-classic',
+      {
+        gtag: {
+          trackingID: 'G-999X9XX9XX',
+          anonymizeIP: true,
+        },
+      },
+    ],
   ],
 
   themeConfig: {
-    googleAnalytics: {
-      trackingID: 'G-XX4ER3X2MS',
-      anonymizeIP: true,
-    },
     colorMode: {
       defaultMode: 'dark',
       disableSwitch: false, // ou true se quiser forçar dark sem opção de trocar
