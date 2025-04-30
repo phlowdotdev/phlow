@@ -27,7 +27,7 @@ remove_from_shell_config() {
     if [ -f "$file" ]; then
         if grep -Fxq "$REMOVE_PATH_CMD" "$file"; then
             echo "✏️ Removing PATH modification from $file..."
-            sed -i.bak "/$(echo "$REMOVE_PATH_CMD" | sed 's/[$]/\\$/g')/d" "$file"
+            sed -i.bak "\|$REMOVE_PATH_CMD|d" "$file"
             echo "✅ Updated $file (backup created as $file.bak)"
         else
             echo "ℹ️ No PATH modification found in $file."
