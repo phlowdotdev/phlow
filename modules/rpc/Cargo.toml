@@ -1,0 +1,16 @@
+[package]
+name = "rpc"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+phlow-sdk = { workspace = true }
+tarpc = "0.36"
+
+[lib]
+name = "log"
+crate-type = ["cdylib"]
