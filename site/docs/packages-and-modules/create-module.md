@@ -110,12 +110,13 @@ This file describes the module's metadata, including its name, description, vers
 | author      | Author of the module.                                                   | John Doe \<email@email.c>  |string |
 | repository  | URL of the module's repository.                                         | github.com/my_repo/my_phlow| string |
 | license     | License of the module.                                                  | MIT ou ./LICENSE | string ou path |
-| type        | Type of the module                                                      | step, main or any |
+| type        | Type of the module                                                      | step, main or main,step |
 | tags        | Tags associated with the module.                                        | [http, web, request] | array |
 | input       | Input schema of the module, defining the properties and their types.    | [object schema](#object-schema) | object |
 | output      | Output schema of the module, defining the properties and their types.   | [object schema](#object-schema) | object |
 | with        | Additional configurations for the module.                               | `{database: postgres, username: postgres}` | object |
 
+> ℹ️ **Note:** In cases where the module is both `main` and `step`, specify `type: main,step` in the configuration file.
 
 ```yaml
 name: log

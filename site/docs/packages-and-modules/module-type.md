@@ -12,8 +12,6 @@ These modules enable flexibility and reusability, making it easier to build modu
 
 Step modules can also be executed directly from Phlow Script (PHS), making it easy to use simple modules inside `.phs` or `.rhai` files.
 
-> ℹ️ **Note:** In cases where the module is both `main` and `step`, specify `type: main,step` in the configuration file.
-
 ### Example: Step Module with Phlow Script (PHS)
 #### main.yaml
 ```yaml
