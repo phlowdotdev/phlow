@@ -69,6 +69,38 @@ const config: Config = {
   ],
 
   themeConfig: {
+    algolia: {
+      // The application ID provided by Algolia
+      appId: 'ADQF8UB5CB',
+
+      // Public API key: it is safe to commit it
+      apiKey: 'c116dfd3505bbae4a85f1b2981e1d2f2',
+
+      indexName: 'phlow-docs',
+
+      // Optional: see doc section below
+      contextualSearch: true,
+
+      // Opcional: Especifique domínios onde a navegação deve ocorrer através de window.location em vez de history.push. Útil quando nossa configuração do Algolia rastreia vários sites de documentação e queremos navegar com window.location.href para eles.
+      externalUrlRegex: 'phlow\\.dev|localhost:3000|127\\.0\\.0\\.1|phlow\\.dev|phlow\\.dev\\:3000',
+
+      // Optional: Replace parts of the item URLs from Algolia. Useful when using the same search index for multiple deployments using a different baseUrl. You can use regexp or string in the `from` param. For example: localhost:3000 vs myCompany.com/docs
+      // replaceSearchResultPathname: {
+      //   from: '/docs/', // or as RegExp: /\/docs\//
+      //   to: '/',
+      // },
+
+      // Optional: Algolia search parameters
+      searchParameters: {},
+
+      // Optional: path for search page that enabled by default (`false` to disable it)
+      searchPagePath: 'search',
+
+      // Optional: whether the insights feature is enabled or not on Docsearch (`false` by default)
+      insights: false,
+
+      //... other Algolia params
+    },
     colorMode: {
       disableSwitch: false, // ou true se quiser forçar dark sem opção de trocar
       respectPrefersColorScheme: false, // ignora a preferência do navegador
