@@ -10,7 +10,9 @@ Phlow provides two types of modules: `main` and `step`.
 
 These modules enable flexibility and reusability, making it easier to build modular and scalable applications.
 
-Step modules can also be executed directly from Phlow Script (PHS), making it easy to use simple modules inside .phs or .rhai files.
+Step modules can also be executed directly from Phlow Script (PHS), making it easy to use simple modules inside `.phs` or `.rhai` files.
+
+> ℹ️ **Note:** In cases where the module is both `main` and `step`, specify `type: main,step` in the configuration file.
 
 ### Example: Step Module with Phlow Script (PHS)
 #### main.yaml
@@ -49,8 +51,6 @@ To execute this file, just run:
 phs
 ```
 
-This will evaluate the imported .phs file and run the steps using the declared modules.
-
 > ℹ️ **Note:** In Phlow Script (PHS), function calls respect the **order of parameters** defined in the module's package. For example, if your `phlow.yaml` for the `log` module defines inputs like:
 >
 > ```yaml
@@ -76,4 +76,3 @@ This will evaluate the imported .phs file and run the steps using the declared m
 > ```
 >
 > because the parameter order defined in `properties` is preserved and required by the execution engine.
-
