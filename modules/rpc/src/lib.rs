@@ -18,9 +18,16 @@ pub async fn start_server(
     let is_main = setup.is_main();
     let config = Config::from(setup.with);
 
-    if is_main {
-        return server::main(config).await;
-    }
+    let rx: channel::Receiver<ModulePackage> = module_channel!(setup);
 
-    return Ok(());
+    if is_main {
+        let config_clone = config.clone();
+        tokio::spawn(async move {
+            server::main(config_clone).await.unwrap();
+        });
+    };
+
+    client::main(rx, config).await;
+
+    Ok(())
 }

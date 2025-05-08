@@ -1,5 +1,5 @@
 use phlow_sdk::{prelude::*, valu3::types::object};
-use std::{collections::HashMap, fmt::Display, net::SocketAddr};
+use std::{collections::HashMap, env, fmt::Display, net::SocketAddr};
 
 pub const DEFAULT_PORT: u16 = 31451;
 pub const DEFAULT_SERVER_ADDR: &str = "localhost";
@@ -33,14 +33,21 @@ impl Default for Server {
 pub struct Config {
     pub main_server: Server,
     pub target_servers: HashMap<String, Server>,
+    pub parallel_executions: i32,
 }
 
 impl From<Value> for Config {
     fn from(value: Value) -> Self {
+        let package_consumer_count = env::var("PHLOW_PACKAGE_CONSUMERS_COUNT")
+            .ok()
+            .and_then(|v| v.parse::<usize>().ok())
+            .unwrap_or(10) as i32;
+
         if value.is_null() {
             return Config {
                 main_server: Server::default(),
                 target_servers: HashMap::new(),
+                parallel_executions: package_consumer_count,
             };
         }
 
@@ -72,9 +79,15 @@ impl From<Value> for Config {
             }
         }
 
+        let parallel_executions = match value.get("parallel_executions") {
+            Some(port) => port.to_u64().unwrap_or(10) as i32,
+            None => package_consumer_count,
+        };
+
         Config {
             main_server,
             target_servers,
+            parallel_executions,
         }
     }
 }
