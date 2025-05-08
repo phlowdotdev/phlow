@@ -1,14 +1,26 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+mod client;
+mod server;
+mod setup;
+use phlow_sdk::prelude::*;
+use setup::Config;
+
+create_main!(start_server(setup));
+
+#[tarpc::service]
+pub trait World {
+    /// Returns a greeting for name.
+    async fn hello(name: String) -> String;
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub async fn start_server(
+    setup: ModuleSetup,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let is_main = setup.is_main();
+    let config = Config::from(setup.with);
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+    if is_main {
+        return server::main(config).await;
     }
+
+    return Ok(());
 }

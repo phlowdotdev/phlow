@@ -1,0 +1,17 @@
+main: rpc
+name: Hello
+version: 1.0.0
+description: Say Hello.
+modules: 
+  - module: rpc
+    version: latest
+    with:
+      schema: 
+        - name: name
+          description: Student name
+          type: string
+          required: true
+steps:
+  - payload: 
+      message: !phs "Hello, {{name}}!"
+      timestamp: now

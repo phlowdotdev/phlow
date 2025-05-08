@@ -1,0 +1,26 @@
+main: http_server
+modules: 
+  - module: http_server
+    version: latest
+  - module: rpc
+    version: latest
+steps:
+  - assert: !phs main.method == "POST" && main.path == "/hello" && main.body.name
+    else:
+      - return:
+          status_code: 400
+          body: 
+            message: "Bad Request"
+          headers:
+            Content-Type: application/json
+  - use: rpc
+    with:
+      address: localhost
+      port: 31415
+      params:
+        name: !phs main.body.name
+  - return:
+      status_code: 200
+      body: !phs payload
+      headers:
+        Content-Type: application/json
