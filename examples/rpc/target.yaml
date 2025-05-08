@@ -6,6 +6,7 @@ modules:
   - module: rpc
     version: latest
     with:
+      port: 31415
       schema: 
         - name: name
           description: Student name

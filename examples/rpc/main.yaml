@@ -4,6 +4,9 @@ modules:
     version: latest
   - module: rpc
     version: latest
+    with:
+      servers:
+        hello: target.local:31415
 steps:
   - assert: !phs main.method == "POST" && main.path == "/hello" && main.body.name
     else:
@@ -15,10 +18,13 @@ steps:
             Content-Type: application/json
   - use: rpc
     with:
-      address: localhost
-      port: 31415
+      server: hello
       params:
         name: !phs main.body.name
+  # - rpc: util
+  #   with:
+  #     name: !phs main.body.name
+  # - payload: !phs rpc.util(main.body.name)
   - return:
       status_code: 200
       body: !phs payload

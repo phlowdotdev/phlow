@@ -1,25 +1,58 @@
-// Copyright 2018 Google LLC
-//
-// Use of this source code is governed by an MIT-style
-// license that can be found in the LICENSE file or at
-// https://opensource.org/licenses/MIT.
+use std::{collections::HashMap, sync::Arc};
 
-use phlow_sdk::structs::ModuleSetup;
-use std::{net::SocketAddr, time::Duration};
+use futures::lock::Mutex;
+use phlow_sdk::prelude::*;
 use tarpc::{client, context, tokio_serde::formats::Json};
-use tokio::time::sleep;
 
-use crate::{setup::Config, WorldClient};
+use crate::{
+    setup::{Config, StepInput},
+    RPCClient,
+};
 
-pub async fn main(config: Config) -> anyhow::Result<()> {
-    let mut transport = tarpc::serde_transport::tcp::connect(config.server_addr, Json::default);
-    transport.config_mut().max_frame_length(usize::MAX);
+pub async fn main_client(setup: ModuleSetup) -> anyhow::Result<()> {
+    let config = Config::from(setup.with);
 
-    let client = WorldClient::new(client::Config::default(), transport.await?).spawn();
+    let transports = {
+        let mut transports = HashMap::new();
 
-    let hello = hello
-        .hello(context::current(), format!("{}1", flags.name))
-        .await;
+        for (name, server) in config.target_servers.iter() {
+            let mut transport =
+                tarpc::serde_transport::tcp::connect(server.get_address(), Json::default);
+
+            transport.config_mut().max_frame_length(usize::MAX);
+
+            transports.insert(name.clone(), Arc::new(transport.await?));
+        }
+
+        transports
+    };
+
+    let rx = module_channel!(setup);
+
+    listen!(rx, move |package: ModulePackage| async {
+        let input = match StepInput::try_from(package.input().unwrap_or(Value::Null)) {
+            Ok(config) => config,
+            Err(err) => {
+                let response = ModuleResponse::from_error(err.to_string());
+                sender_safe!(package.sender, response.into());
+                return;
+            }
+        };
+
+        let data = match transports.get(&input.server) {
+            Some(transport) => {
+                let client = RPCClient::new(client::Config::default(), transport.clone());
+
+                client.call(context::current(), input.params).await;
+            }
+            None => {
+                let response =
+                    ModuleResponse::from_error(format!("Server {} not found", input.server));
+                sender_safe!(package.sender, response.into());
+                return;
+            }
+        };
+    });
 
     Ok(())
 }

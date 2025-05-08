@@ -1,30 +1,116 @@
-use phlow_sdk::prelude::*;
+use phlow_sdk::{prelude::*, valu3::types::object};
+use std::{collections::HashMap, fmt::Display, net::SocketAddr};
+
+pub const DEFAULT_PORT: u16 = 31451;
+pub const DEFAULT_SERVER_ADDR: &str = "localhost";
+
+#[derive(Clone, Debug)]
+pub struct Server {
+    pub port: u16,
+    pub server_addr: String,
+}
+
+impl Server {
+    pub fn get_address(&self) -> SocketAddr {
+        format!("{}:{}", self.server_addr, self.port)
+            .parse()
+            .unwrap_or_else(|_| {
+                panic!("Invalid server address: {}:{}", self.server_addr, self.port)
+            })
+    }
+}
+
+impl Default for Server {
+    fn default() -> Self {
+        Server {
+            port: DEFAULT_PORT,
+            server_addr: DEFAULT_SERVER_ADDR.to_string(),
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct Config {
-    pub port: u16,
-    pub server_addr: String,
+    pub main_server: Server,
+    pub target_servers: HashMap<String, Server>,
 }
 
 impl From<Value> for Config {
     fn from(value: Value) -> Self {
         if value.is_null() {
             return Config {
-                port: 31451,
-                server_addr: "127.0.0.1".to_string(),
+                main_server: Server::default(),
+                target_servers: HashMap::new(),
             };
         }
 
-        let port = match value.get("port") {
-            Some(port) => port.to_u64().unwrap_or(3000) as u16,
-            None => 31451,
+        let main_server = {
+            let port = match value.get("port") {
+                Some(port) => port.to_u64().unwrap_or(3000) as u16,
+                None => DEFAULT_PORT,
+            };
+
+            let server_addr = match value.get("server_addr") {
+                Some(addr) => addr.to_string(),
+                None => DEFAULT_SERVER_ADDR.to_string(),
+            };
+
+            Server { port, server_addr }
         };
 
-        let server_addr = match value.get("server_addr") {
-            Some(addr) => addr.to_string(),
-            None => "127.0.0.1".to_string(),
+        let mut target_servers = HashMap::new();
+
+        if let Some(servers_value) = value.get("servers") {
+            let object = servers_value.as_object().unwrap();
+            for (key, value) in object.iter() {
+                let value_split = value.as_str().split(':').collect::<Vec<_>>();
+
+                let port = value_split[1].parse::<u16>().unwrap_or(DEFAULT_PORT);
+                let server_addr = value_split[0].to_string();
+
+                target_servers.insert(key.to_string(), Server { port, server_addr });
+            }
+        }
+
+        Config {
+            main_server,
+            target_servers,
+        }
+    }
+}
+
+pub struct StepInput {
+    pub server: String,
+    pub params: Value,
+}
+
+pub enum Error {
+    InvalidInput(String),
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::InvalidInput(msg) => write!(f, "Invalid input: {}", msg),
+        }
+    }
+}
+
+impl TryFrom<Value> for StepInput {
+    type Error = Error;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        let server = match value.get("server") {
+            Some(server) => server.to_string(),
+            None => {
+                return Err(Error::InvalidInput(
+                    "Server address is required".to_string(),
+                ))
+            }
         };
 
-        Config { port, server_addr }
+        let params = value.get("params").cloned().unwrap_or(Value::Null);
+
+        Ok(StepInput { server, params })
     }
 }

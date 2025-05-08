@@ -7,9 +7,9 @@ use setup::Config;
 create_main!(start_server(setup));
 
 #[tarpc::service]
-pub trait World {
+pub trait RPC {
     /// Returns a greeting for name.
-    async fn hello(name: String) -> String;
+    async fn call(input: Value) -> Value;
 }
 
 pub async fn start_server(
