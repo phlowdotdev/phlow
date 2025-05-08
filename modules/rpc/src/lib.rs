@@ -25,8 +25,12 @@ pub async fn start_server(
         });
     };
 
-    let rx: channel::Receiver<ModulePackage> = module_channel!(setup);
-    client::main(rx, config).await;
+    if config.target_servers.is_empty() {
+        sender_safe!(setup.setup_sender, None);
+    } else {
+        let rx: channel::Receiver<ModulePackage> = module_channel!(setup);
+        client::main(rx, config).await;
+    }
 
     Ok(())
 }
