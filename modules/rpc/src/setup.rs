@@ -33,7 +33,7 @@ impl Default for Server {
 pub struct Config {
     pub main_server: Server,
     pub target_servers: HashMap<String, Server>,
-    pub parallel_executions: i32,
+    pub parallel_executions: u32,
 }
 
 impl From<Value> for Config {
@@ -41,7 +41,7 @@ impl From<Value> for Config {
         let package_consumer_count = env::var("PHLOW_PACKAGE_CONSUMERS_COUNT")
             .ok()
             .and_then(|v| v.parse::<usize>().ok())
-            .unwrap_or(10) as i32;
+            .unwrap_or(10) as u32;
 
         if value.is_null() {
             return Config {
@@ -80,7 +80,7 @@ impl From<Value> for Config {
         }
 
         let parallel_executions = match value.get("parallel_executions") {
-            Some(port) => port.to_u64().unwrap_or(10) as i32,
+            Some(port) => port.to_u64().unwrap_or(10) as u32,
             None => package_consumer_count,
         };
 
