@@ -1,0 +1,14 @@
+name: Phlow Mirror
+description: Mirror request to Phlow.
+version: 1.0
+main: http_server
+modules:
+  - module: http_server
+    version: latest
+steps:
+  - return:
+      status_code: 200
+      body: !phs main
+      headers:
+        Content-Type: application/json
+  
