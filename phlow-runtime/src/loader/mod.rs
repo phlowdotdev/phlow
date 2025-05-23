@@ -91,7 +91,7 @@ impl Loader {
 
     pub fn load_module(setup: ModuleSetup, module_name: &str) -> Result<(), Error> {
         unsafe {
-            let path = format!("phlow_packages/{}/module.so", module_name);
+            let path = format!("phlow_packages/{}/module.dylib", module_name);
             info!("🧪 Load Module: {}", path);
 
             let lib = match Library::new(&path) {
@@ -129,7 +129,7 @@ impl Loader {
         let mut downloads = Vec::new();
 
         for module in &self.modules {
-            let module_so_path = format!("phlow_packages/{}/module.so", module.module);
+            let module_so_path = format!("phlow_packages/{}/module.dylib", module.module);
             if Path::new(&module_so_path).exists() {
                 info!(
                     "Module {} already exists at {}, skipping download",
@@ -220,7 +220,7 @@ impl Loader {
         let target_url = format!("{}/{}", base_url.trim_end_matches('/'), tarball_name);
         let target_path = format!("phlow_packages/{}/{}", module, tarball_name);
 
-        if Path::new(&format!("phlow_packages/{}/module.so", module)).exists() {
+        if Path::new(&format!("phlow_packages/{}/module.dylib", module)).exists() {
             return Ok(());
         }
 

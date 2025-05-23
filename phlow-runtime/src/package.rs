@@ -103,17 +103,17 @@ impl Package {
         info!("Creating temporary directory: {}", temp_dir.display());
         fs::create_dir_all(&temp_dir)?;
 
-        let so_name = format!("lib{}.so", metadata.name);
+        let so_name = format!("lib{}.dylib", metadata.name);
         let so_path = release_dir.join(&so_name);
         if !so_path.exists() {
-            bail!("Missing .so file: {}", so_path.display());
+            bail!("Missing .dylib file: {}", so_path.display());
         }
         info!(
-            "Copying .so file from {} to {}",
+            "Copying .dylib file from {} to {}",
             so_path.display(),
             temp_dir.display()
         );
-        fs::copy(&so_path, temp_dir.join("module.so"))?;
+        fs::copy(&so_path, temp_dir.join("module.dylib"))?;
 
         info!("Copying metadata file to temp folder");
         fs::copy(
