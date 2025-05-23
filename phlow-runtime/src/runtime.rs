@@ -1,4 +1,5 @@
 use crate::loader::Loader;
+#[cfg(target_env = "gnu")]
 use crate::memory::force_memory_release;
 use crate::settings::Settings;
 use crossbeam::channel;
@@ -14,7 +15,7 @@ use phlow_sdk::{
     tracing::{dispatcher, Dispatch},
 };
 use std::fmt::Display;
-use std::{sync::Arc, thread};
+use std::sync::Arc;
 use tokio::sync::oneshot;
 
 #[derive(Debug)]
@@ -122,7 +123,7 @@ impl Runtime {
 
         drop(tx_main_package);
 
-        #[cfg(target_os = "linux")]
+        #[cfg(target_env = "gnu")]
         if settings.garbage_collection {
             thread::spawn(move || loop {
                 thread::sleep(std::time::Duration::from_secs(

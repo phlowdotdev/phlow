@@ -18,6 +18,7 @@ pub struct Envs {
      * Environment variable: PHLOW_MIN_ALLOCATED_MEMORY_MB
      * Default: 10
      */
+    #[cfg(target_env = "gnu")]
     pub min_allocated_memory: usize,
     /**
      * Enable garbage collection
@@ -26,6 +27,7 @@ pub struct Envs {
      * Environment variable: PHLOW_GARBAGE_COLLECTION_ENABLED
      * Default: true
      */
+    #[cfg(target_env = "gnu")]
     pub garbage_collection: bool,
     /**
      * Garbage collection interval in seconds
@@ -34,6 +36,7 @@ pub struct Envs {
      * Environment variable: PHLOW_GARBAGE_COLLECTION_INTERVAL_SECONDS
      * Default: 60
      */
+    #[cfg(target_env = "gnu")]
     pub garbage_collection_interval: u64,
 
     /**
@@ -60,17 +63,18 @@ impl Envs {
             .ok()
             .and_then(|v| v.parse::<usize>().ok())
             .unwrap_or(10) as i32;
-
+        #[cfg(target_env = "gnu")]
         let min_allocated_memory = env::var("PHLOW_MIN_ALLOCATED_MEMORY_MB")
             .ok()
             .and_then(|v| v.parse::<usize>().ok())
             .unwrap_or(10);
 
+        #[cfg(target_env = "gnu")]
         let garbage_collection = env::var("PHLOW_GARBAGE_COLLECTION_ENABLED")
             .ok()
             .and_then(|v| v.parse::<bool>().ok())
             .unwrap_or(true);
-
+        #[cfg(target_env = "gnu")]
         let garbage_collection_interval = env::var("PHLOW_GARBAGE_COLLECTION_INTERVAL_SECONDS")
             .ok()
             .and_then(|v| v.parse::<u64>().ok())
@@ -85,8 +89,11 @@ impl Envs {
         let main = env::var("PHLOW_MAIN").unwrap_or(".".to_string());
 
         debug!("PHLOW_PACKAGE_CONSUMERS_COUNT = {}", package_consumer_count);
+        #[cfg(target_env = "gnu")]
         debug!("PHLOW_MIN_ALLOCATED_MEMORY_MB = {}", min_allocated_memory);
+        #[cfg(target_env = "gnu")]
         debug!("PHLOW_GARBAGE_COLLECTION_ENABLED = {}", garbage_collection);
+        #[cfg(target_env = "gnu")]
         debug!(
             "PHLOW_GARBAGE_COLLECTION_INTERVAL_SECONDS = {}",
             garbage_collection_interval
@@ -98,8 +105,11 @@ impl Envs {
 
         Self {
             package_consumer_count,
+            #[cfg(target_env = "gnu")]
             min_allocated_memory,
+            #[cfg(target_env = "gnu")]
             garbage_collection,
+            #[cfg(target_env = "gnu")]
             garbage_collection_interval,
             default_package_repository_url,
             main,
