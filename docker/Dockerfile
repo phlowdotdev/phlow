@@ -41,6 +41,7 @@ COPY --from=builder /lib/x86_64-linux-gnu/liblzma.so.5 /lib/
 COPY --from=builder /lib/x86_64-linux-gnu/libgcc_s.so.1 /lib/
 COPY --from=builder /lib/x86_64-linux-gnu/libssl.so.1.1 /lib/
 COPY --from=builder /lib/x86_64-linux-gnu/libcrypto.so.1.1 /lib/
+COPY --from=builder /lib/x86_64-linux-gnu/libdl.so.2 /lib/
 COPY --from=builder /etc/ssl/certs /etc/ssl/certs
 COPY --from=builder /app/target/release/phlow /app/phlow
 
@@ -50,3 +51,4 @@ RUN chmod +x /app/phlow
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
 ENTRYPOINT ["/app/phlow"]
+
