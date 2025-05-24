@@ -1,0 +1,133 @@
+name: Build and Deploy Packages
+
+# Required secrets:
+# - PACKAGES_PUSH_TOKEN: Personal Access Token with permission to push to phlowdotdev/phlow-packages repository
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+  checks: read
+
+jobs:
+  build_mac:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Make scripts executable
+        run: chmod +x ./scripts/*.sh
+
+      - name: Run packages script
+        run: ./scripts/build-packages.sh
+
+      - name: Upload Mac packages
+        uses: actions/upload-artifact@v3
+        with:
+          name: mac-packages
+          path: ./packages
+          retention-days: 1
+
+  build_ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Make scripts executable
+        run: chmod +x ./scripts/*.sh
+
+      - name: Run packages script
+        run: ./scripts/build-packages.sh
+
+      - name: Upload Ubuntu packages
+        uses: actions/upload-artifact@v3
+        with:
+          name: ubuntu-packages
+          path: ./packages
+          retention-days: 1
+
+  deploy:
+    needs: [build_mac, build_ubuntu]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Make scripts executable
+        run: chmod +x ./scripts/*.sh
+
+      - name: Create raw directory
+        run: mkdir -p raw
+
+      - name: Download Mac packages
+        uses: actions/download-artifact@v3
+        with:
+          name: mac-packages
+          path: mac-packages
+
+      - name: Download Ubuntu packages
+        uses: actions/download-artifact@v3
+        with:
+          name: ubuntu-packages
+          path: ubuntu-packages
+
+      - name: Move artifacts to raw directory
+        run: |
+          cp mac-packages/*.tar.gz raw/ || true
+          cp ubuntu-packages/*.tar.gz raw/ || true
+          ls -la raw/
+
+      - name: Run resolver script
+        run: ./scripts/resolver-packages-dir.sh
+
+      - name: Setup Git for packages repo
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+
+      - name: Clone packages repository
+        env:
+          TOKEN: ${{ secrets.PHLOW_PACKAGES_PAT }}
+        run: |
+          git clone https://x-access-token:${TOKEN}@github.com/phlowdotdev/phlow-packages.git packages-repo
+
+      - name: Update packages repository
+        run: |
+          find packages-repo -mindepth 1 -maxdepth 1 -not -name ".git" -exec rm -rf {} \;
+          cp -r packages/* packages-repo/
+          cd packages-repo
+          git add .
+          git commit -m "Update packages from workflow run ${{ github.run_id }}" || echo "No changes to commit"
+          git push --force origin main
