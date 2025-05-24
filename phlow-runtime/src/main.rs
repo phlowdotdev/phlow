@@ -21,6 +21,12 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 #[global_allocator]
 static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
+#[cfg(target_os = "macos")]
+pub const MODULE_EXTENSION: &str = "dylib";
+
+#[cfg(target_os = "linux")]
+pub const MODULE_EXTENSION: &str = "so";
+
 #[tokio::main]
 async fn main() {
     env_logger::Builder::from_env(

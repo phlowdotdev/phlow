@@ -12,6 +12,8 @@ use reqwest::Client;
 use std::io::Write;
 use std::{fs::File, path::Path};
 
+use crate::MODULE_EXTENSION;
+
 #[derive(Debug, Clone)]
 pub struct Loader {
     pub main: i32,
@@ -91,7 +93,7 @@ impl Loader {
 
     pub fn load_module(setup: ModuleSetup, module_name: &str) -> Result<(), Error> {
         unsafe {
-            let path = format!("phlow_packages/{}/module.dylib", module_name);
+            let path = format!("phlow_packages/{}/module.{}", module_name, MODULE_EXTENSION);
             info!("🧪 Load Module: {}", path);
 
             let lib = match Library::new(&path) {
@@ -129,7 +131,10 @@ impl Loader {
         let mut downloads = Vec::new();
 
         for module in &self.modules {
-            let module_so_path = format!("phlow_packages/{}/module.dylib", module.module);
+            let module_so_path = format!(
+                "phlow_packages/{}/module.{}",
+                module.module, MODULE_EXTENSION
+            );
             if Path::new(&module_so_path).exists() {
                 info!(
                     "Module {} already exists at {}, skipping download",
@@ -220,7 +225,12 @@ impl Loader {
         let target_url = format!("{}/{}", base_url.trim_end_matches('/'), tarball_name);
         let target_path = format!("phlow_packages/{}/{}", module, tarball_name);
 
-        if Path::new(&format!("phlow_packages/{}/module.dylib", module)).exists() {
+        if Path::new(&format!(
+            "phlow_packages/{}/module.{}",
+            module, MODULE_EXTENSION
+        ))
+        .exists()
+        {
             return Ok(());
         }
 
