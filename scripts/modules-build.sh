@@ -8,27 +8,32 @@ MODULES_DIR="./modules"
 # Cria o diretório de destino se não existir
 mkdir -p "$DEST_DIR"
 
-# Habilita nullglob para evitar erro se não houver arquivos .so
-# shopt -s nullglob
-so_files=("$RELEASE_DIR"/lib*.so)
+# Habilita nullglob para evitar erro se não houver arquivos de biblioteca
+if [[ "$(uname)" == "Linux" ]]; then
+    LIB_EXT="so"
+else
+    LIB_EXT="dylib"
+fi
 
-if [ ${#so_files[@]} -eq 0 ]; then
-    echo "Nenhum arquivo .so encontrado em $RELEASE_DIR"
+lib_files=("$RELEASE_DIR"/lib*."$LIB_EXT")
+
+if [ ${#lib_files[@]} -eq 0 ]; then
+    echo "Nenhum arquivo .$LIB_EXT encontrado em $RELEASE_DIR"
     exit 1
 fi
 
-# Processa cada .so
-for file in "${so_files[@]}"; do
+# Processa cada biblioteca
+for file in "${lib_files[@]}"; do
     filename=$(basename "$file")
-    modulename=${filename#lib}              # Remove o prefixo 'lib'
-    modulename_no_ext="${modulename%.so}"   # Remove a extensão .so
+    modulename=${filename#lib}                      # Remove o prefixo 'lib'
+    modulename_no_ext="${modulename%.$LIB_EXT}"     # Remove a extensão
 
     module_dest_dir="$DEST_DIR/$modulename_no_ext"
     mkdir -p "$module_dest_dir"
 
-    # Copia e renomeia a .so como module.so
-    cp "$file" "$module_dest_dir/module.so"
-    echo "Copiado: $file -> $module_dest_dir/module.so"
+    # Copia e renomeia a biblioteca como module.$LIB_EXT
+    cp "$file" "$module_dest_dir/module.$LIB_EXT"
+    echo "Copiado: $file -> $module_dest_dir/module.$LIB_EXT"
 
     # Copia o phlow.yaml correspondente
     props_file="$MODULES_DIR/$modulename_no_ext/phlow.yaml"

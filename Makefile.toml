@@ -6,7 +6,7 @@ script = ["chmod +x ./scripts/modules-build.sh", "./scripts/modules-build.sh"]
 [tasks.build-bin]
 workspace = false
 description = "Executa o script"
-script = ["cargo", "build", "--release", "-p", "phlow-runtime"]
+script = ["cargo build --release -p phlow-runtime"]
 
 [tasks.packages]
 workspace = false

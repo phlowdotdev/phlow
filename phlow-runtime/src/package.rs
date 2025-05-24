@@ -1,3 +1,4 @@
+use crate::MODULE_EXTENSION;
 use anyhow::{anyhow, bail, Context, Result};
 use log::info;
 use regex::Regex;
@@ -103,17 +104,21 @@ impl Package {
         info!("Creating temporary directory: {}", temp_dir.display());
         fs::create_dir_all(&temp_dir)?;
 
-        let so_name = format!("lib{}.so", metadata.name);
+        let so_name = format!("lib{}.{}", metadata.name, MODULE_EXTENSION);
         let so_path = release_dir.join(&so_name);
         if !so_path.exists() {
-            bail!("Missing .so file: {}", so_path.display());
+            bail!("Missing .{} file: {}", MODULE_EXTENSION, so_path.display());
         }
         info!(
-            "Copying .so file from {} to {}",
+            "Copying .{} file from {} to {}",
+            MODULE_EXTENSION,
             so_path.display(),
             temp_dir.display()
         );
-        fs::copy(&so_path, temp_dir.join("module.so"))?;
+        fs::copy(
+            &so_path,
+            temp_dir.join(format!("module.{}", MODULE_EXTENSION)),
+        )?;
 
         info!("Copying metadata file to temp folder");
         fs::copy(
