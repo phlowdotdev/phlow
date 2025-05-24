@@ -1,8 +1,5 @@
 name: Build and Deploy Packages
 
-# Required secrets:
-# - PACKAGES_PUSH_TOKEN: Personal Access Token with permission to push to phlowdotdev/phlow-packages repository
-
 on:
   push:
     branches: [ main ]
