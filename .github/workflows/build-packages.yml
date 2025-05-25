@@ -29,7 +29,7 @@ jobs:
       - name: Upload Mac packages
         uses: actions/upload-artifact@v4
         with:
-          name: mac-packages
+          name: darwin-packages
           path: ./packages
           retention-days: 1
 
@@ -53,7 +53,7 @@ jobs:
       - name: Upload Ubuntu packages
         uses: actions/upload-artifact@v4
         with:
-          name: ubuntu-packages
+          name: linux-gnu-packages
           path: ./packages
           retention-days: 1
 
@@ -78,21 +78,19 @@ jobs:
       - name: Download Mac packages
         uses: actions/upload-artifact@v4
         with:
-          name: mac-packages
-          path: mac-packages
+          name: darwin-packages
+          path: darwin-packages
 
       - name: Download Ubuntu packages
         uses: actions/upload-artifact@v4
         with:
-          name: ubuntu-packages
-          path: ubuntu-packages
+          name: linux-gnu-packages
+          path: linux-gnu-packages
 
       - name: Move artifacts to raw directory
         run: |
-          ls -la mac-packages/
-          ls -la ubuntu-packages/
-          cp mac-packages/*.tar.gz raw/ || true
-          cp ubuntu-packages/*.tar.gz raw/ || true
+          cp darwin-packages/*.tar.gz raw/ || true
+          cp linux-gnu-packages/*.tar.gz raw/ || true
           ls -la raw/
 
       - name: Run resolver script
