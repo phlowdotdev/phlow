@@ -14,7 +14,7 @@ permissions:
   checks: read
 
 jobs:
-  build_mac:
+  build_darwin:
     runs-on: macos-latest
     steps:
       - name: Checkout repository
@@ -35,7 +35,7 @@ jobs:
           path: ./packages
           retention-days: 1
 
-  build_ubuntu:
+  build_linux_gnu:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -60,7 +60,7 @@ jobs:
           retention-days: 1
 
   deploy:
-    needs: [build_mac, build_ubuntu]
+    needs: [build_darwin, build_linux_gnu]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
