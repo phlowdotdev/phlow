@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+env:
+  CARGO_TERM_COLOR: always
+
 permissions:
   contents: write
   actions: read
@@ -15,15 +18,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
 
       - name: Make scripts executable
         run: chmod +x ./scripts/*.sh
@@ -32,7 +29,7 @@ jobs:
         run: ./scripts/build-packages.sh
 
       - name: Upload Mac packages
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: mac-packages
           path: ./packages
@@ -42,15 +39,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
 
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y jq
@@ -62,7 +53,7 @@ jobs:
         run: ./scripts/build-packages.sh
 
       - name: Upload Ubuntu packages
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ubuntu-packages
           path: ./packages
@@ -73,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -87,13 +78,13 @@ jobs:
         run: mkdir -p raw
 
       - name: Download Mac packages
-        uses: actions/download-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: mac-packages
           path: mac-packages
 
       - name: Download Ubuntu packages
-        uses: actions/download-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ubuntu-packages
           path: ubuntu-packages
