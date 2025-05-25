@@ -7,7 +7,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     OS_SUFFIX="-darwin"
     echo "🍎 Detected macOS platform"
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    OS_SUFFIX="-linux-gnu"
+    OS_SUFFIX="-linux_gnu"
     echo "🐧 Detected Linux GNU platform"
 else
     echo "⚠️ Unknown platform: $OSTYPE"
