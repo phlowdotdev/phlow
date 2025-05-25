@@ -43,7 +43,7 @@ jobs:
           context: .
           file: ./docker/Dockerfile
           target: runtime
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/phlow:glibc
@@ -56,11 +56,28 @@ jobs:
           docker run --platform linux/amd64 --rm --entrypoint cat ghcr.io/${{ github.repository_owner }}/phlow:stable-${{ env.VERSION }} /app/phlow > ./phlow
           chmod +x ./phlow
 
-      - name: Upload binary as artifact
+      - name: Upload Linux binary as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: phlow-binary
+          name: phlow-binary-linux
           path: ./phlow
+
+  build_macos:
+    name: Build Binary for macOS
+    runs-on: macos-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build with Cargo
+        run: cargo build --release -p phlow-runtime
+
+      - name: Upload macOS binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: phlow-binary-macos
+          path: target/release/phlow
 
   tag:
     name: Create Git Tag
@@ -81,20 +98,28 @@ jobs:
   github-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [build, tag]
+    needs: [build, build_macos, tag]
     steps:
-      - name: Download built binary
+      - name: Download Linux binary
         uses: actions/download-artifact@v4
         with:
-          name: phlow-binary
-          path: .
+          name: phlow-binary-linux
+          path: ./linux
 
-      - name: Upload binary to GitHub Release
+      - name: Download macOS binary
+        uses: actions/download-artifact@v4
+        with:
+          name: phlow-binary-macos
+          path: ./macos
+
+      - name: Upload binaries to GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: stable-${{ needs.build.outputs.version }}
           name: Release stable-${{ needs.build.outputs.version }}
-          files: ./phlow
+          files: |
+            ./linux/phlow
+            ./macos/phlow
           draft: false
           prerelease: false
         env:
