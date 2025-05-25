@@ -144,6 +144,8 @@ jobs:
           git clone https://x-access-token:${TOKEN}@github.com/phlowdotdev/phlow-packages.git
 
       - name: Update packages repository
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # necessário para o `gh pr create`
         run: |
           cp -R packages/* phlow-packages/packages/
           cd phlow-packages
