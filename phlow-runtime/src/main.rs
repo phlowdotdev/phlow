@@ -23,9 +23,13 @@ static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
 #[cfg(target_os = "macos")]
 pub const MODULE_EXTENSION: &str = "dylib";
-
 #[cfg(target_os = "linux")]
 pub const MODULE_EXTENSION: &str = "so";
+
+#[cfg(target_os = "macos")]
+pub const RUNTIME_ARCH: &str = "darwin";
+#[cfg(all(target_os = "linux", target_env = "gnu"))]
+pub const RUNTIME_ARCH: &str = "linux_gnu";
 
 #[tokio::main]
 async fn main() {

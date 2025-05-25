@@ -13,6 +13,7 @@ use std::io::Write;
 use std::{fs::File, path::Path};
 
 use crate::MODULE_EXTENSION;
+use crate::RUNTIME_ARCH;
 
 #[derive(Debug, Clone)]
 pub struct Loader {
@@ -221,7 +222,7 @@ impl Loader {
         use flate2::read::GzDecoder;
         use tar::Archive;
 
-        let tarball_name = format!("{}-{}.tar.gz", module, version);
+        let tarball_name = format!("{}-{}-{}.tar.gz", module, version, RUNTIME_ARCH);
         let target_url = format!("{}/{}", base_url.trim_end_matches('/'), tarball_name);
         let target_path = format!("phlow_packages/{}/{}", module, tarball_name);
 

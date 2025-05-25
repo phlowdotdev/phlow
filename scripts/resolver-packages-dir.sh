@@ -5,11 +5,24 @@ DEST_DIR="./packages"
 
 mkdir -p "$DEST_DIR"
 
+echo "Resolve packages directory"
+echo "  - Source: $RAW_DIR"
+echo "  - Destination: $DEST_DIR"
+
+ls "$RAW_DIR"
+
+
 for filepath in "$RAW_DIR"/*.tar.gz; do
+  echo "Processing: $filepath"
   [ -e "$filepath" ] || continue
 
   filename=$(basename "$filepath")
   base_name="${filename%.tar.gz}"
+
+  echo "  - Base name: $base_name"
+  echo "  - File path: $filepath"
+  echo "  - Destination: $DEST_DIR"
+  echo "  - File name: $filename"
 
   # Extrai nome e versão do padrão: nome-versão-architecture_123.tar.gz
   package_name="${base_name%%-*}"
@@ -23,45 +36,19 @@ for filepath in "$RAW_DIR"/*.tar.gz; do
   middle="${padded:2:2}"
 
   final_path="$DEST_DIR/$prefix/$middle/$package_name"
-  index_file="$final_path/index.json"
   metadata_file="$final_path/metadata.json"
 
   mkdir -p "$final_path"
-
-  # Cria nova entrada
-  new_entry=$(jq -n \
-    --arg name "$package_name" \
-    --arg version "$version" \
-    --arg repository "https://github.com/lowcarboncode/phlow-packages" \
-    '{name: $name, version: $version, repository: $repository}')
-
-  # Verifica se a versão já existe no index.json
-  if [ -f "$index_file" ]; then
-    exists=$(jq --arg name "$package_name" --arg version "$version" \
-      'map(select(.name == $name and .version == $version)) | length' "$index_file")
-
-    if [ "$exists" -eq 0 ]; then
-      tmp=$(mktemp)
-      jq ". += [$new_entry]" "$index_file" > "$tmp" && mv "$tmp" "$index_file"
-    else
-      echo "⚠️ Versão $version já existe para $package_name. Pulando..."
-      continue
-    fi
-  else
-    echo "[$new_entry]" > "$index_file"
-  fi
 
   # Atualiza metadata.json com a versão mais recente
   jq -n \
     --arg name "$package_name" \
     --arg latest "$version" \
-    --arg author "Philippe Assis <codephilippe@gmail.com>" \
-    --arg homepage "phlow.dev" \
-    '{name: $name, author: $author, homepage: $homepage, latest: $latest}' \
+    '{name: $name, latest: $latest}' \
     > "$metadata_file"
 
   # Move o tar.gz
-  mv "$filepath" "$final_path/$filename"
+  cp "$filepath" "$final_path/$filename"
 
   echo "✅ Movido e indexado: $filename -> $final_path/$filename"
 done

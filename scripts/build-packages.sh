@@ -16,17 +16,17 @@ fi
 
 # verifica de pasta packages não existe, se não existir cria
 if [ ! -d "./packages" ]; then
-    echo "📦 Criando pasta ./packages"
+    echo "📦 Create folder ./packages"
     mkdir -p ./packages
 fi
 
 # apaga todo conteudo da pasta packages
-echo "📦 Limpando pasta ./packages"
+echo "📦 Clean folder ./packages"
 rm -rf ./packages/*
 
 for dir in ./modules/*/; do
     if [ -d "$dir" ]; then
-        echo "📦 Empacotando $dir"
+        echo "📦 Packing $dir"
         cargo run --release -p phlow-runtime -- --package "$dir"
         
         # rename tar.gz files to include OS suffix
