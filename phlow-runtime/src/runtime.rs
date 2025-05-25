@@ -16,6 +16,8 @@ use phlow_sdk::{
 };
 use std::fmt::Display;
 use std::sync::Arc;
+#[cfg(target_env = "gnu")]
+use std::thread;
 use tokio::sync::oneshot;
 
 #[derive(Debug)]
