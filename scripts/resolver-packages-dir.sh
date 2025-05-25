@@ -13,7 +13,9 @@ for filepath in "$RAW_DIR"/*.tar.gz; do
 
   # Extrai nome e versão do padrão: nome-versão.tar.gz
   package_name="${base_name%-*}"
-  version="${base_name##*-}"
+  # Extrai a versão como o penúltimo elemento separado por '-'
+  IFS='-' read -ra parts <<< "$base_name"
+  version="${parts[-2]}"
 
   # Padroniza para no mínimo 4 caracteres
   padded=$(printf "%-4s" "$package_name" | tr ' ' '_')
