@@ -50,5 +50,5 @@ for filepath in "$RAW_DIR"/*.tar.gz; do
   # Move o tar.gz
   cp "$filepath" "$final_path/$filename"
 
-  echo "✅ Movido e indexado: $filename -> $final_path/$filename"
+  echo "✅ Created package directory: $final_path"
 done
