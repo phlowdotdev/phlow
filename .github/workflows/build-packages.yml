@@ -105,13 +105,12 @@ jobs:
         env:
           TOKEN: ${{ secrets.PHLOW_PACKAGES_PAT }}
         run: |
-          git clone https://x-access-token:${TOKEN}@github.com/phlowdotdev/phlow-packages.git packages-repo
+          git clone https://x-access-token:${TOKEN}@github.com/phlowdotdev/phlow-packages.git
 
       - name: Update packages repository
         run: |
-          find packages-repo -mindepth 1 -maxdepth 1 -not -name ".git" -exec rm -rf {} \;
-          cp -r packages/* packages-repo/
-          cd packages-repo
+          cp -r packages/* phlow-packages/packages/
+          cd phlow-packages
           git add .
           git commit -m "Update packages from workflow run ${{ github.run_id }}" || echo "No changes to commit"
           git push --force origin main
