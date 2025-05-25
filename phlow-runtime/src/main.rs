@@ -30,6 +30,8 @@ pub const MODULE_EXTENSION: &str = "so";
 pub const RUNTIME_ARCH: &str = "darwin";
 #[cfg(all(target_os = "linux", target_env = "gnu"))]
 pub const RUNTIME_ARCH: &str = "linux_gnu";
+#[cfg(all(target_os = "linux", target_env = "musl"))]
+pub const RUNTIME_ARCH: &str = "linux_musl";
 
 #[tokio::main]
 async fn main() {
