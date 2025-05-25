@@ -109,7 +109,7 @@ jobs:
 
       - name: Update packages repository
         run: |
-          cp -r packages/* phlow-packages/packages/
+          cp -R packages/* phlow-packages/packages/
           cd phlow-packages
           git add .
           git commit -m "Update packages from workflow run ${{ github.run_id }}" || echo "No changes to commit"
