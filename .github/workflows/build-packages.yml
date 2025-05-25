@@ -89,6 +89,8 @@ jobs:
 
       - name: Move artifacts to raw directory
         run: |
+          ls -la mac-packages/
+          ls -la ubuntu-packages/
           cp mac-packages/*.tar.gz raw/ || true
           cp ubuntu-packages/*.tar.gz raw/ || true
           ls -la raw/
