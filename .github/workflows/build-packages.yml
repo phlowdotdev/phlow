@@ -87,17 +87,11 @@ jobs:
           name: linux-gnu-packages
           path: linux-gnu-packages
 
-      - name: Download musl packages
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-musl-packages
-          path: linux-musl-packages
 
       - name: Move artifacts to raw directory
         run: |
           cp darwin-packages/*.tar.gz raw/ || true
           cp linux-gnu-packages/*.tar.gz raw/ || true
-          cp linux-musl-packages/*.tar.gz raw/ || true
           ls -la raw/
 
       - name: Run resolver script
