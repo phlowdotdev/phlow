@@ -76,7 +76,7 @@ const config: Config = {
       // Public API key: it is safe to commit it
       apiKey: '137aee06e280e0a5fa12533cd5473ea3',
 
-      indexName: 'phlow-docs',
+      indexName: 'phlow_dev_adqf8ub5cb_pages',
 
       // Optional: see doc section below
       contextualSearch: true,
@@ -91,7 +91,13 @@ const config: Config = {
       // },
 
       // Optional: Algolia search parameters
-      searchParameters: {},
+      searchParameters: {
+        attributesToRetrieve: ['title', 'description', 'keywords', 'image'],
+        attributesToHighlight: ['title', 'description', 'keywords'],
+        attributesToSnippet: ['description:20'],
+        snippetEllipsisText: '…',
+        hitsPerPage: 10,
+      },
 
       // Optional: path for search page that enabled by default (`false` to disable it)
       searchPagePath: 'search',
