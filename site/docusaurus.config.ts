@@ -82,7 +82,7 @@ const config: Config = {
       contextualSearch: true,
 
       // Opcional: Especifique domínios onde a navegação deve ocorrer através de window.location em vez de history.push. Útil quando nossa configuração do Algolia rastreia vários sites de documentação e queremos navegar com window.location.href para eles.
-      externalUrlRegex: 'phlow\\.dev|localhost:3000|127\\.0\\.0\\.1|phlow\\.dev|phlow\\.dev\\:3000',
+      externalUrlRegex: 'phlow\\.dev',
 
       // Optional: Replace parts of the item URLs from Algolia. Useful when using the same search index for multiple deployments using a different baseUrl. You can use regexp or string in the `from` param. For example: localhost:3000 vs myCompany.com/docs
       // replaceSearchResultPathname: {
