@@ -110,7 +110,7 @@ jobs:
 
       - name: Update packages repository
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # necessário para o `gh pr create`
+          GH_TOKEN: ${{ secrets.GH_PAT  }} # necessário para o `gh pr create`
         run: |
           cp -R packages/* phlow-packages/packages/
           cd phlow-packages
