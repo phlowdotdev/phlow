@@ -43,7 +43,7 @@ jobs:
           context: .
           file: ./docker/Dockerfile
           target: runtime
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/phlow:glibc
@@ -70,8 +70,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
       - name: Build with Cargo
-        run: cargo build --release -p phlow-runtime
+        run: cargo build --release
 
       - name: Upload macOS binary
         uses: actions/upload-artifact@v4
@@ -112,6 +118,12 @@ jobs:
           name: phlow-binary-macos
           path: ./macos
 
+      - name: Download musl binary
+        uses: actions/download-artifact@v4
+        with:
+          name: phlow-binary-musl
+          path: ./musl
+
       - name: Upload binaries to GitHub Release
         uses: softprops/action-gh-release@v1
         with:
@@ -120,6 +132,7 @@ jobs:
           files: |
             ./linux/phlow
             ./macos/phlow
+            ./musl/phlow-musl
           draft: false
           prerelease: false
         env:
