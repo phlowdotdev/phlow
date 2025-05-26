@@ -74,7 +74,7 @@ const config: Config = {
       appId: 'ADQF8UB5CB',
 
       // Public API key: it is safe to commit it
-      apiKey: 'c116dfd3505bbae4a85f1b2981e1d2f2',
+      apiKey: '137aee06e280e0a5fa12533cd5473ea3',
 
       indexName: 'phlow-docs',
 
