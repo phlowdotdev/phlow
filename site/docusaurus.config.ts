@@ -74,9 +74,9 @@ const config: Config = {
       appId: 'ADQF8UB5CB',
 
       // Public API key: it is safe to commit it
-      apiKey: '137aee06e280e0a5fa12533cd5473ea3',
+      apiKey: 'c33c1bd2a21be98f716a3ea2ed0f30b9',
 
-      indexName: 'phlow_dev_adqf8ub5cb_pages',
+      indexName: 'phlow',
 
       // Optional: see doc section below
       contextualSearch: true,
@@ -92,11 +92,6 @@ const config: Config = {
 
       // Optional: Algolia search parameters
       searchParameters: {
-        attributesToRetrieve: ['title', 'description', 'keywords', 'image'],
-        attributesToHighlight: ['title', 'description', 'keywords'],
-        attributesToSnippet: ['description:20'],
-        snippetEllipsisText: '…',
-        hitsPerPage: 10,
       },
 
       // Optional: path for search page that enabled by default (`false` to disable it)
