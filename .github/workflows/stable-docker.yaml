@@ -46,5 +46,4 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/phlow:latest
-            ghcr.io/${{ github.repository_owner }}/phlow:${{ github.ref_name }}
             ghcr.io/${{ github.repository_owner }}/phlow:${{ steps.get_version.outputs.version }}
