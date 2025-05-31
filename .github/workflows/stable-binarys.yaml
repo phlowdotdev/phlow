@@ -99,7 +99,11 @@ jobs:
   tag:
     name: Tag Release
     runs-on: ubuntu-latest
-    needs: app_version
+    needs: 
+      - app_version
+      - linux_amd64_binary
+      - linux_arm64_binary
+      - build_macos
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
