@@ -4,18 +4,18 @@ set -e
 # Detect operating system or target
 OS_SUFFIX=""
 
-if [[ "$TARGET" == "x86_64-unknown-linux-musl" ]]; then
-    OS_SUFFIX="-linux_musl"
-    echo "📦 Detected MUSL target"
-elif [[ "$OSTYPE" == "darwin"* ]]; then
+if [[ "$OSTYPE" == "darwin"* ]]; then
     OS_SUFFIX="-darwin"
     echo "🍎 Detected macOS platform"
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     OS_SUFFIX="-linux_gnu"
     echo "🐧 Detected Linux GNU platform"
+elif [[ "$OSTYPE" == "linux-musl"* ]]; then
+    OS_SUFFIX="-linux_musl"
+    echo "🐧 Detected Linux MUSL platform"
 else
-    echo "⚠️ Unknown platform or target"
-    OS_SUFFIX="-unknown"
+    echo "⚠️ Unknown OSTYPE: $OSTYPE"
+    exit 1
 fi
 
 # Create packages directory if it doesn't exist

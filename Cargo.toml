@@ -30,25 +30,25 @@ phlow-sdk = { path = "phlow-sdk", version = "0" }
 phs = { path = "phs", version = "0" }
 
 #phlow
-libloading = "0.8"
+libloading = "0.8.8"
 clap = "4.5.37"
-serde_yaml = "0.9"
+serde_yaml = "0.9.33"
 regex = "1.11.1"
 futures = "0.3"
 libc = "0.2.172"
 valu3 = "0.8"
-tokio = { version = "1.44.2", features = ["full", "tracing"] }
+tokio = { version = "1.45.1", features = ["full", "tracing"] }
 serde = { version = "1.0", features = ["derive"] }
 crossbeam = "0.8"
-reqwest = { version = "0.12.15", features = ["blocking", "rustls-tls"] }
+reqwest = { version = "0.12.18", features = ["blocking", "rustls-tls"] }
 futures-util = "0.3.31"
 anyhow = "1.0.98"
 flate2 = "1.1.1"
 tar = "0.4.44"
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4.41", features = ["serde"] }
 
 #Engine
-rhai = { version = "1.21.0", features = ["serde", "sync"] }
+rhai = { version = "1.22.0", features = ["serde", "sync"] }
 
 # OpenTelemetry
 opentelemetry = "0.29.1"

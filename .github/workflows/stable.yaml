@@ -26,7 +26,7 @@ jobs:
           version=$(grep '^version' Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/')
           echo "version=$version" >> $GITHUB_OUTPUT
 
-  build_linux_docker:
+  build_docker:
     name: Build Docker Multi-Platform and Export Linux Binary
     runs-on: ubuntu-latest
     needs: app_version
@@ -55,39 +55,41 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/phlow:latest
             ghcr.io/${{ github.repository_owner }}/phlow:stable-${{ needs.app_version.outputs.version }}
 
-  prepare_linux_amd64_binary:
+  linux_amd64_binary:
     name: Prepare Linux AMD64 Binary
     runs-on: ubuntu-latest
-    needs: [build_linux_docker, app_version]
     steps:
-      - name: Extract linux/amd64 binary from Docker image
+      - name: Install Rust Cross Lib
         run: |
-          docker run --platform linux/amd64 --rm ghcr.io/${{ github.repository_owner }}/phlow:stable-${{ needs.app_version.outputs.version }} \
-            cat /phlow-runtime > ./phlow
-          chmod +x ./phlow-amd64
+          cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Build with Cross
+        run: |
+          cross build --target x86_64-unknown-linux-gnu --release
 
       - name: Upload Linux binary artifact
         uses: actions/upload-artifact@v4
         with:
           name: phlow-binary-linux-amd64
-          path: ./phlow
+          path: ./target/x86_64-unknown-linux-gnu/release/phlow
 
-  prepare_linux_arm64_binary:
+  linux_arm64_binary:
     name: Prepare Linux ARM64 Binary
     runs-on: ubuntu-latest
-    needs: [build_linux_docker, app_version]
     steps:
-      - name: Extract linux/arm64 binary from Docker image
+      - name: Install Rust Cross Lib
         run: |
-          docker run --platform linux/arm64 --rm ghcr.io/${{ github.repository_owner }}/phlow:stable-${{ needs.app_version.outputs.version }} \
-            cat /phlow-runtime > ./phlow
-          chmod +x ./phlow-arm64
+          cargo install cross --git
 
+      - name: Build with Cross
+        run: |
+          cross build --target aarch64-unknown-linux-gnu --release
+      
       - name: Upload Linux binary artifact
         uses: actions/upload-artifact@v4
         with:
           name: phlow-binary-linux-arm64
-          path: ./phlow
+          path: ./target/aarch64-unknown-linux-gnu/release/phlow
 
   build_macos:
     name: Build Binary for macOS
@@ -111,14 +113,11 @@ jobs:
           name: phlow-binary-macos
           path: target/release/phlow
 
-  tag:
-    name: Create Git Tag
+  github-release:
+    name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [build_linux_docker, build_macos, app_version]
+    needs: [app_version, linux_amd64_binary, linux_arm64_binary, build_macos]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Create Git Tag
         run: |
           git config user.name "github-actions"
@@ -127,11 +126,6 @@ jobs:
           git tag "stable-${{ needs.app_version.outputs.version }}"
           git push origin "stable-${{ needs.app_version.outputs.version }}"
 
-  github-release:
-    name: Create GitHub Release
-    runs-on: ubuntu-latest
-    needs: [app_version, prepare_linux_amd64_binary, prepare_linux_arm64_binary, build_macos, tag]
-    steps:
       - name: Download Linux binary
         uses: actions/download-artifact@v4
         with:
@@ -153,7 +147,7 @@ jobs:
       - name: Rename binaries
         run: |
           mv ./linux-amd64/phlow ./linux-amd64/phlow-amd64
-          mv ./linux-arm64/phlow ./linux-arm64/phlow-arm64
+          mv ./linux-arm64/phlow ./linux-arm64/phlow-aarch64
           mv ./macos/phlow ./macos/phlow-macos
 
       - name: Upload binaries to GitHub Release

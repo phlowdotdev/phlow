@@ -11,7 +11,6 @@ echo "  - Destination: $DEST_DIR"
 
 ls "$RAW_DIR"
 
-
 for filepath in "$RAW_DIR"/*.tar.gz; do
   echo "Processing: $filepath"
   [ -e "$filepath" ] || continue

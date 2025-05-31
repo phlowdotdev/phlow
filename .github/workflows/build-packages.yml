@@ -48,7 +48,7 @@ jobs:
         run: chmod +x ./scripts/*.sh
 
       - name: Run packages script
-        run: ./scripts/build-packages.sh
+        run: TARGET=x86_64-unknown-linux-gnu ./scripts/build-packages.sh
 
       - name: Upload Ubuntu packages
         uses: actions/upload-artifact@v4
@@ -56,9 +56,33 @@ jobs:
           name: linux-gnu-packages
           path: ./packages
           retention-days: 1
+  
+  build_linux_musl:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Make scripts executable
+        run: chmod +x ./scripts/*.sh
+
+      - name: Run packages script
+        run: TARGET=x86_64-unknown-linux-musl ./scripts/build-packages.sh
+
+      - name: Upload Linux musl packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-musl-packages
+          path: ./packages
+          retention-days: 1
 
   deploy:
-    needs: [build_darwin, build_linux_gnu]
+    needs: [build_darwin, build_linux_gnu, build_linux_musl]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -87,12 +111,17 @@ jobs:
           name: linux-gnu-packages
           path: linux-gnu-packages
 
+      - name: Download Linux musl packages
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-musl-packages
+          path: linux-musl-packages
 
       - name: Move artifacts to raw directory
         run: |
           cp darwin-packages/*.tar.gz raw/ || true
           cp linux-gnu-packages/*.tar.gz raw/ || true
-          ls -la raw/
+          cp linux-musl-packages/*.tar.gz raw/ || true
 
       - name: Run resolver script
         run: ./scripts/resolver-packages-dir.sh

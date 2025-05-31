@@ -17,15 +17,15 @@ COPY modules modules
 COPY phs phs
 COPY phlow-sdk phlow-sdk
 COPY phlow-engine phlow-engine
-COPY phlow-runtime phlow-runtime
+COPY phlow-runtime/Cargo.toml phlow-runtime/Cargo.toml
 
-RUN rm -rf phlow-runtime/src && mkdir -p phlow-runtime/src && echo "fn main() {}" > phlow-runtime/src/main.rs
+RUN mkdir -p phlow-runtime/src && echo "fn main() {}" > phlow-runtime/src/main.rs
 
 RUN cargo build --release -p phlow-runtime
-RUN rm -rf phlow-runtime/src phlow-runtime/src
+RUN rm -rf phlow-runtime/src phlow-engine/src
 
 # Copiar o restante do código
-COPY phlow-runtime/src phlow-runtime/src
+COPY phlow-runtime phlow-runtime
 
 # Build real específico do workspace phlow-runtime
 RUN cargo build --release -p phlow-runtime

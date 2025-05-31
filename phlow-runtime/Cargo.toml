@@ -31,8 +31,8 @@ anyhow = { workspace = true }
 flate2 = { workspace = true }
 tar = { workspace = true }
 chrono = { workspace = true }
-git2 = { version = "0.20.1" }
-zip = { version = "2.6.1" }
+git2 = { version = "0.20", features = ["vendored-openssl"] }
+zip = { version = "4.0.0" }
 openssl = { version = "0.10.72", features = ["vendored"] }
 log = { version = "0.4" }
 env_logger = { version = "0.11" }
