@@ -50,7 +50,6 @@ jobs:
           name: phlow-binary-linux-amd64
           path: ./target/x86_64-unknown-linux-gnu/release/phlow
 
-
   linux_arm64_binary:
     name: Prepare Linux ARM64 Binary
     runs-on: ubuntu-latest
@@ -97,15 +96,14 @@ jobs:
           name: phlow-binary-macos
           path: target/release/phlow
 
-  github-release:
-    name: Create GitHub Release
+  tag:
+    name: Tag Release
     runs-on: ubuntu-latest
-    needs: 
-      - app_version
-      - linux_amd64_binary
-      - linux_arm64_binary
-      - build_macos
+    needs: app_version
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Create Git Tag
         run: |
           git config user.name "github-actions"
@@ -114,6 +112,16 @@ jobs:
           git tag "stable-${{ needs.app_version.outputs.version }}"
           git push origin "stable-${{ needs.app_version.outputs.version }}"
 
+  github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: 
+      - app_version
+      - linux_amd64_binary
+      - linux_arm64_binary
+      - build_macos
+      - tag
+    steps:
       - name: Download Linux binary
         uses: actions/download-artifact@v4
         with:
