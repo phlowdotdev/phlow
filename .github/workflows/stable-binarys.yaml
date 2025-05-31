@@ -50,7 +50,7 @@ jobs:
     steps:
       - name: Install Rust Cross Lib
         run: |
-          cargo install cross --git
+          cargo install cross --git https://github.com/cross-rs/cross
 
       - name: Build with Cross
         run: |
