@@ -37,7 +37,7 @@ jobs:
 
       - name: Build with Cross
         run: |
-          cross build --target x86_64-unknown-linux-gnu --release
+          cross build --target x86_64-unknown-linux-gnu --release -p phlow-runtime
 
       - name: Upload Linux binary artifact
         uses: actions/upload-artifact@v4
@@ -55,7 +55,7 @@ jobs:
 
       - name: Build with Cross
         run: |
-          cross build --target aarch64-unknown-linux-gnu --release
+          cross build --target aarch64-unknown-linux-gnu --release -p phlow-runtime
       
       - name: Upload Linux binary artifact
         uses: actions/upload-artifact@v4
