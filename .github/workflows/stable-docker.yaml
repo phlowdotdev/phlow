@@ -1,7 +1,6 @@
 name: Release Stable Docker Image
 
 on:
-  workflow_dispatch:
   push:
     tags:
       - 'stable-*'
@@ -14,25 +13,9 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  app_version:
-    name: Get App Version
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.get_version.outputs.version }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Get version from Cargo.toml
-        id: get_version
-        run: |
-          version=$(grep '^version' Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/')
-          echo "version=$version" >> $GITHUB_OUTPUT
-
   build_docker:
     name: Build Docker Multi-Platform and Export Linux Binary
     runs-on: ubuntu-latest
-    needs: app_version
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -47,13 +30,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Get Version By Tag
+        id: get_version
+        run: |
+          version=$(echo "${GITHUB_REF#refs/tags/}" | sed -E 's/^stable-//')
+          echo "version=$version" >> $GITHUB_OUTPUT
+
       - name: Build and push multi-platform Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/Dockerfile.cross
+          file: ./docker/Dockerfile.cross.gnu
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/phlow:latest
-            ghcr.io/${{ github.repository_owner }}/phlow:stable-${{ needs.app_version.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/phlow:${{ github.ref_name }}
+            ghcr.io/${{ github.repository_owner }}/phlow:${{ steps.get_version.outputs.version }}

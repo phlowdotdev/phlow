@@ -33,7 +33,7 @@ jobs:
           path: ./packages
           retention-days: 1
 
-  build_linux_gnu:
+  build_linux_amd64:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -50,14 +50,14 @@ jobs:
       - name: Run packages script
         run: TARGET=x86_64-unknown-linux-gnu ./scripts/build-packages.sh
 
-      - name: Upload Ubuntu packages
+      - name: Upload Linux amd64 packages
         uses: actions/upload-artifact@v4
         with:
-          name: linux-gnu-packages
+          name: linux-amd64-packages
           path: ./packages
           retention-days: 1
   
-  build_linux_musl:
+  build_linux_aarch64:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -72,17 +72,21 @@ jobs:
         run: chmod +x ./scripts/*.sh
 
       - name: Run packages script
-        run: TARGET=x86_64-unknown-linux-musl ./scripts/build-packages.sh
+        run: TARGET=aarch64-unknown-linux-gnu ./scripts/build-packages.sh
 
-      - name: Upload Linux musl packages
+      - name: Upload Linux aarch64 packages
         uses: actions/upload-artifact@v4
         with:
-          name: linux-musl-packages
+          name: linux-aarch64-packages
           path: ./packages
           retention-days: 1
 
+
   deploy:
-    needs: [build_darwin, build_linux_gnu, build_linux_musl]
+    needs: 
+      - build_darwin
+      - build_linux_amd64
+      - build_linux_aarch64
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -108,20 +112,20 @@ jobs:
       - name: Download Ubuntu packages
         uses: actions/download-artifact@v4
         with:
-          name: linux-gnu-packages
-          path: linux-gnu-packages
+          name: linux-amd64-packages
+          path: linux-amd64-packages
 
       - name: Download Linux musl packages
         uses: actions/download-artifact@v4
         with:
-          name: linux-musl-packages
-          path: linux-musl-packages
+          name: linux-aarch64-packages
+          path: linux-aarch64-packages
 
       - name: Move artifacts to raw directory
         run: |
           cp darwin-packages/*.tar.gz raw/ || true
-          cp linux-gnu-packages/*.tar.gz raw/ || true
-          cp linux-musl-packages/*.tar.gz raw/ || true
+          cp linux-amd64-packages/*.tar.gz raw/ || true
+          cp linux-aarch64-packages/*.tar.gz raw/ || true
 
       - name: Run resolver script
         run: ./scripts/resolver-packages-dir.sh

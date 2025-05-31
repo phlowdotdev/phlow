@@ -8,11 +8,17 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     OS_SUFFIX="-darwin"
     echo "🍎 Detected macOS platform"
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    OS_SUFFIX="-linux_gnu"
-    echo "🐧 Detected Linux GNU platform"
-elif [[ "$OSTYPE" == "linux-musl"* ]]; then
-    OS_SUFFIX="-linux_musl"
-    echo "🐧 Detected Linux MUSL platform"
+    ARCH=$(uname -m)
+    if [[ "$ARCH" == "x86_64" ]]; then
+        OS_SUFFIX="-linux-amd64"
+        echo "🐧 Detected Linux amd64 platform"
+    elif [[ "$ARCH" == "aarch64" ]]; then
+        OS_SUFFIX="-linux-aarch64"
+        echo "🐧 Detected Linux aarch64 platform"
+    else
+        echo "⚠️ Unknown Linux architecture: $ARCH"
+        exit 1
+    fi
 else
     echo "⚠️ Unknown OSTYPE: $OSTYPE"
     exit 1
