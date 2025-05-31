@@ -34,13 +34,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Docker DinD
+        uses: docker/setup-buildx-action@v3
+
       - name: Install Rust Cross Lib
         run: |
           cargo install cross --git https://github.com/cross-rs/cross
 
       - name: Build with Cross
         run: |
-          cross build --target x86_64-unknown-linux-gnu --release -p phlow-runtime
+          cross build --target x86_64-unknown-linux-gnu --release -p phlow-runtime --no-docker
 
       - name: Upload Linux binary artifact
         uses: actions/upload-artifact@v4
@@ -55,6 +58,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      
+      - name: Setup Docker DinD
+        uses: docker/setup-buildx-action@v3
         
       - name: Install Rust Cross Lib
         run: |
@@ -62,7 +68,7 @@ jobs:
 
       - name: Build with Cross
         run: |
-          cross build --target aarch64-unknown-linux-gnu --release -p phlow-runtime
+          cross build --target aarch64-unknown-linux-gnu --release -p phlow-runtime --no-docker
       
       - name: Upload Linux binary artifact
         uses: actions/upload-artifact@v4

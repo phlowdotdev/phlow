@@ -1,0 +1,18 @@
+name: "Rust Build with cross-rs"
+description: "Build Rust projects using cross-rs inside Docker"
+author: "Philippe Assis"
+inputs:
+  target:
+    description: "Rust target triple"
+    required: true
+  project-path:
+    description: "Relative path to the Rust project (default: .)"
+    required: false
+    default: "."
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  args:
+    - ${{ inputs.target }}
+    - ${{ inputs.project-path }}
