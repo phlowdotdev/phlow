@@ -97,8 +97,8 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git fetch --tags
-          git tag "stable-${{ needs.build.outputs.version }}"
-          git push origin "stable-${{ needs.build.outputs.version }}"
+          git tag "stable-${{ needs.build_linux_gnu.outputs.version }}"
+          git push origin "stable-${{ needs.build_linux_gnu.outputs.version }}"
 
   github-release:
     name: Create GitHub Release
@@ -120,8 +120,8 @@ jobs:
       - name: Upload binaries to GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: stable-${{ needs.build.outputs.version }}
-          name: Release stable-${{ needs.build.outputs.version }}
+          tag_name: stable-${{ needs.build_linux_gnu.outputs.version }}
+          name: Release stable-${{ needs.build_linux_gnu.outputs.version }}
           files: |
             ./linux/phlow
             ./macos/phlow
