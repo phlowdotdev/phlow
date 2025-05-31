@@ -1,6 +1,7 @@
 name: Release Stable Docker Image
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'stable-*'
