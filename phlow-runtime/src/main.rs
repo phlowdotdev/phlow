@@ -8,8 +8,8 @@ use loader::Loader;
 use log::debug;
 use package::Package;
 use phlow_sdk::otel::init_tracing_subscriber;
+use phlow_sdk::tracing;
 use phlow_sdk::tracing::error;
-use phlow_sdk::{tokio, tracing};
 use runtime::Runtime;
 use settings::Settings;
 

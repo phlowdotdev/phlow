@@ -1,0 +1,37 @@
+# syntax=docker/dockerfile:1
+
+ARG TARGETARCH
+
+FROM ghcr.io/rust-cross/rust-musl-cross:x86_64-musl AS builder-amd64
+FROM ghcr.io/rust-cross/rust-musl-cross:aarch64-musl AS builder-arm64
+
+FROM builder-${TARGETARCH} AS builder
+
+WORKDIR /app
+
+# Copiar dependências primeiro para otimizar cache
+COPY Cargo.toml Cargo.lock ./
+
+# Copie todos os membros do workspace (apenas os arquivos Cargo.toml)
+COPY modules modules
+COPY phs phs
+COPY phlow-sdk phlow-sdk
+COPY phlow-engine phlow-engine
+COPY phlow-runtime phlow-runtime
+
+RUN rm -rf phlow-runtime/src && mkdir -p phlow-runtime/src && echo "fn main() {}" > phlow-runtime/src/main.rs
+
+RUN cargo build --release -p phlow-runtime
+RUN rm -rf phlow-runtime/src phlow-runtime/src
+
+# Copiar o restante do código
+COPY phlow-runtime/src phlow-runtime/src
+
+# Build real específico do workspace phlow-runtime
+RUN cargo build --release -p phlow-runtime
+
+# Extrair apenas o binário compilado específico
+FROM scratch
+COPY --from=builder /app/target/*/release/phlow-runtime /
+
+ENTRYPOINT ["/phlow-runtime"]

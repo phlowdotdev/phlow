@@ -11,8 +11,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build_linux_gnu:
-    name: Build Docker Image amd64 and Save Artifact
+  build_linux_docker:
+    name: Build Docker Multi-Platform and Export Linux Binary
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get_version.outputs.version }}
@@ -25,7 +25,6 @@ jobs:
         run: |
           version=$(grep '^version' Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/')
           echo "version=$version" >> $GITHUB_OUTPUT
-          echo "VERSION=$version" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -41,25 +40,45 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/Dockerfile
-          target: runtime
-          platforms: linux/amd64
+          file: ./docker/Dockerfile.cross
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/phlow:glibc
-            ghcr.io/${{ github.repository_owner }}/phlow:stable-${{ env.VERSION }}-glibc
             ghcr.io/${{ github.repository_owner }}/phlow:latest
-            ghcr.io/${{ github.repository_owner }}/phlow:stable-${{ env.VERSION }}
-
-      - name: Extract binary from built image (linux/amd64 only)
+            ghcr.io/${{ github.repository_owner }}/phlow:stable-${{ steps.get_version.outputs.version }}
+  
+  prepare_linux_amd64_binary:
+    name: Prepare Linux AMD64 Binary
+    runs-on: ubuntu-latest
+    needs: build_linux_docker
+    steps:
+      - name: Extract linux/amd64 binary from Docker image
         run: |
-          docker run --platform linux/amd64 --rm --entrypoint cat ghcr.io/${{ github.repository_owner }}/phlow:stable-${{ env.VERSION }} /app/phlow > ./phlow
-          chmod +x ./phlow
+          docker run --platform linux/amd64 --rm ghcr.io/${{ github.repository_owner }}/phlow:stable-${{ needs.build_linux_docker.outputs.version }} \
+            cat /phlow-runtime > ./phlow
+          chmod +x ./phlow-amd64
 
-      - name: Upload Linux binary as artifact
+      - name: Upload Linux binary artifact
         uses: actions/upload-artifact@v4
         with:
-          name: phlow-binary-linux
+          name: phlow-binary-linux-amd64
+          path: ./phlow
+
+  prepare_linux_arm64_binary:
+    name: Prepare Linux ARM64 Binary
+    runs-on: ubuntu-latest
+    needs: build_linux_docker
+    steps:
+      - name: Extract linux/arm64 binary from Docker image
+        run: |
+          docker run --platform linux/arm64 --rm ghcr.io/${{ github.repository_owner }}/phlow:stable-${{ needs.build_linux_docker.outputs.version }} \
+            cat /phlow-runtime > ./phlow
+          chmod +x ./phlow-arm64
+
+      - name: Upload Linux binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: phlow-binary-linux-arm64
           path: ./phlow
 
   build_macos:
@@ -87,7 +106,7 @@ jobs:
   tag:
     name: Create Git Tag
     runs-on: ubuntu-latest
-    needs: [build_linux_gnu, build_macos]
+    needs: [build_linux_docker]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -97,19 +116,25 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git fetch --tags
-          git tag "stable-${{ needs.build_linux_gnu.outputs.version }}"
-          git push origin "stable-${{ needs.build_linux_gnu.outputs.version }}"
+          git tag "stable-${{ needs.build_linux_docker.outputs.version }}"
+          git push origin "stable-${{ needs.build_linux_docker.outputs.version }}"
 
   github-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [build_linux_gnu, build_macos, tag]
+    needs: [build_linux_docker, prepare_linux_amd64_binary, prepare_linux_arm64_binary, build_macos, tag]
     steps:
       - name: Download Linux binary
         uses: actions/download-artifact@v4
         with:
-          name: phlow-binary-linux
-          path: ./linux
+          name: phlow-binary-linux-amd64
+          path: ./linux-amd64
+
+      - name: Download Linux binary
+        uses: actions/download-artifact@v4
+        with:
+          name: phlow-binary-linux-arm64
+          path: ./linux-arm64
 
       - name: Download macOS binary
         uses: actions/download-artifact@v4
@@ -117,14 +142,21 @@ jobs:
           name: phlow-binary-macos
           path: ./macos
 
+      - name: Rename binaries
+        run: |
+          mv ./linux-amd64/phlow ./linux-amd64/phlow-amd64
+          mv ./linux-arm64/phlow ./linux-arm64/phlow-arm64
+          mv ./macos/phlow ./macos/phlow-macos
+
       - name: Upload binaries to GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: stable-${{ needs.build_linux_gnu.outputs.version }}
-          name: Release stable-${{ needs.build_linux_gnu.outputs.version }}
+          tag_name: stable-${{ needs.build_linux_docker.outputs.version }}
+          name: Release stable-${{ needs.build_linux_docker.outputs.version }}
           files: |
-            ./linux/phlow
-            ./macos/phlow
+            ./linux-amd64/phlow-amd64
+            ./linux-arm64/phlow-arm64
+            ./macos/phlow-macos
           draft: false
           prerelease: false
         env:
