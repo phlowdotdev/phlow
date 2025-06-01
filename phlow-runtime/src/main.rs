@@ -30,12 +30,10 @@ pub const MODULE_EXTENSION: &str = "dll";
 
 #[cfg(target_os = "macos")]
 pub const RUNTIME_ARCH: &str = "darwin";
-#[cfg(all(target_os = "linux", target_env = "gnu"))]
-pub const RUNTIME_ARCH: &str = "linux_gnu";
-#[cfg(all(target_os = "linux", target_env = "musl"))]
-pub const RUNTIME_ARCH: &str = "linux_musl";
-#[cfg(target_os = "windows")]
-pub const RUNTIME_ARCH: &str = "windows";
+#[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+pub const RUNTIME_ARCH: &str = "linux-aarch64";
+#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+pub const RUNTIME_ARCH: &str = "linux-amd64";
 
 #[tokio::main]
 async fn main() {
