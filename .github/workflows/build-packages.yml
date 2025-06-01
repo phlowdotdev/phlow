@@ -14,6 +14,9 @@ permissions:
 jobs:
   build_darwin:
     runs-on: macos-latest
+    env:
+      OS_SUFFIX: -darwin-aarch64
+      TARGET: aarch64-apple-darwin
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -35,6 +38,9 @@ jobs:
 
   build_linux_amd64:
     runs-on: ubuntu-latest
+    env:
+      OS_SUFFIX: -linux-amd64
+      TARGET: x86_64-unknown-linux-gnu
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -48,7 +54,7 @@ jobs:
         run: chmod +x ./scripts/*.sh
 
       - name: Run packages script
-        run: TARGET=x86_64-unknown-linux-gnu ./scripts/build-packages.sh
+        run: TARGET=x86_64-unknown-linux-gnu ./scripts/packages.sh
 
       - name: Upload Linux amd64 packages
         uses: actions/upload-artifact@v4
@@ -59,6 +65,9 @@ jobs:
   
   build_linux_aarch64:
     runs-on: ubuntu-latest
+    env:
+      OS_SUFFIX: -linux-aarch64
+      TARGET: aarch64-unknown-linux-gnu
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -72,7 +81,7 @@ jobs:
         run: chmod +x ./scripts/*.sh
 
       - name: Run packages script
-        run: TARGET=aarch64-unknown-linux-gnu ./scripts/build-packages.sh
+        run: TARGET=aarch64-unknown-linux-gnu ./scripts/packages.sh
 
       - name: Upload Linux aarch64 packages
         uses: actions/upload-artifact@v4
