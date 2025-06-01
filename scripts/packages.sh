@@ -2,6 +2,8 @@
 
 set -e
 
+cargo install cross
+
 # Detect operating system or target
 # Use OS_SUFFIX and TARGET from environment if already set
 if [[ -z "$OS_SUFFIX" || -z "$TARGET" ]]; then
