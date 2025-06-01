@@ -103,7 +103,7 @@ const config: Config = {
       //... other Algolia params
     },
     colorMode: {
-      disableSwitch: false, // ou true se quiser forçar dark sem opção de trocar
+      disableSwitch: true, // ou true se quiser forçar dark sem opção de trocar
       respectPrefersColorScheme: false, // ignora a preferência do navegador
     },
     image: 'img/logo.svg',
@@ -173,7 +173,7 @@ const config: Config = {
       copyright: `Copyright © ${new Date().getFullYear()} Phlow, Inc. Built with ❤️ and Rust.`,
     },
     prism: {
-      theme: prismThemes.github,
+      theme: prismThemes.dracula,
       darkTheme: prismThemes.dracula,
     },
   } satisfies Preset.ThemeConfig,
