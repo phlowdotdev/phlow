@@ -1,0 +1,19 @@
+[package]
+name = "rpc"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+phlow-sdk = { workspace = true }
+anyhow = "1.0"
+futures = "0.3"
+tarpc = { version = "0.36", features = ["full"] }
+tokio = { version = "1.0", features = ["rt-multi-thread", "macros"] }
+
+[lib]
+name = "log"
+crate-type = ["cdylib"]
