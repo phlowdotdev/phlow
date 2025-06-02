@@ -9,17 +9,38 @@ BIN_PATH="$INSTALL_DIR/phlow"
 ADD_PATH_CMD='export PATH="$HOME/.phlow:$PATH"'
 
 echo "🔍 Detecting platform..."
-ARCH=$(uname -m)
-case "$ARCH" in
-    x86_64) ARCH="x86_64" ;;
-    *) echo "❌ Unsupported architecture: $ARCH" && exit 1 ;;
-esac
 
+OS=$(uname -s)
+ARCH=$(uname -m)
+
+# Identificando o asset correto
+if [[ "$OS" == "Darwin" ]]; then
+    ASSET_NAME="${BIN_NAME}-macos"
+elif [[ "$OS" == "Linux" ]]; then
+    case "$ARCH" in
+        x86_64)
+            ASSET_NAME="${BIN_NAME}-amd64"
+            ;;
+        aarch64 | arm64)
+            ASSET_NAME="${BIN_NAME}-arm64"
+            ;;
+        *)
+            echo "❌ Unsupported Linux architecture: $ARCH"
+            exit 1
+            ;;
+    esac
+else
+    echo "❌ Unsupported OS: $OS"
+    exit 1
+fi
+
+echo "📦 Platform detected: OS=$OS ARCH=$ARCH"
 echo "⬇️ Fetching latest version from GitHub..."
+
 LATEST=$(curl -s https://api.github.com/repos/$REPO/releases/latest | grep tag_name | cut -d '"' -f 4)
 echo "📦 Latest version is $LATEST"
 
-URL="https://github.com/$REPO/releases/download/$LATEST/$BIN_NAME"
+URL="https://github.com/$REPO/releases/download/$LATEST/$ASSET_NAME"
 
 echo "🚚 Downloading $BIN_NAME from $URL..."
 mkdir -p "$INSTALL_DIR"

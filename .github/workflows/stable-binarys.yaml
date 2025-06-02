@@ -147,7 +147,7 @@ jobs:
       - name: Rename binaries
         run: |
           mv ./linux-amd64/phlow ./linux-amd64/phlow-amd64
-          mv ./linux-arm64/phlow ./linux-arm64/phlow-aarch64
+          mv ./linux-arm64/phlow ./linux-arm64/phlow-arm64
           mv ./macos/phlow ./macos/phlow-macos
 
       - name: Upload binaries to GitHub Release

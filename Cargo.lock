@@ -2452,7 +2452,7 @@ dependencies = [
 
 [[package]]
 name = "phlow-engine"
-version = "0.0.26"
+version = "0.0.27"
 dependencies = [
  "once_cell",
  "phlow-sdk",
@@ -2464,7 +2464,7 @@ dependencies = [
 
 [[package]]
 name = "phlow-runtime"
-version = "0.0.26"
+version = "0.0.27"
 dependencies = [
  "anyhow",
  "chrono",
@@ -2494,7 +2494,7 @@ dependencies = [
 
 [[package]]
 name = "phlow-sdk"
-version = "0.0.26"
+version = "0.0.27"
 dependencies = [
  "crossbeam",
  "once_cell",
@@ -2516,7 +2516,7 @@ dependencies = [
 
 [[package]]
 name = "phs"
-version = "0.0.26"
+version = "0.0.27"
 dependencies = [
  "regex",
  "rhai",
@@ -2664,7 +2664,7 @@ dependencies = [
 
 [[package]]
 name = "postgres"
-version = "0.0.26"
+version = "0.0.27"
 dependencies = [
  "chrono",
  "deadpool-postgres",
