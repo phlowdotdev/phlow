@@ -13,13 +13,13 @@ You can easily install Phlow using our ready-to-use shell scripts.
 ### Install via `curl`
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/phlowdotdev/phlow/main/scripts/install-phlow.sh | { bash || true; }
+curl -fsSL https://raw.githubusercontent.com/phlowdotdev/phlow/refs/heads/main/scripts/install-phlow.sh | { bash || true; }
 ```
 
 ### Install via `wget`
 
 ```bash
-wget -qO- https://raw.githubusercontent.com/phlowdotdev/phlow/main/scripts/install-phlow.sh | { bash || true; }
+wget -qO- https://raw.githubusercontent.com/phlowdotdev/phlow/refs/heads/main/scripts/install-phlow.sh | { bash || true; }
 ```
 ---
 
