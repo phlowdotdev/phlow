@@ -103,8 +103,9 @@ const config: Config = {
       //... other Algolia params
     },
     colorMode: {
-      disableSwitch: true, // ou true se quiser forçar dark sem opção de trocar
-      respectPrefersColorScheme: false, // ignora a preferência do navegador
+      disableSwitch: false, // ou true se quiser forçar dark sem opção de trocar
+      defaultMode: 'dark', // ou 'dark' se quiser forçar dark
+      respectPrefersColorScheme: false, // Respeitar a preferência do usuário
     },
     image: 'img/logo.svg',
     navbar: {
@@ -171,10 +172,6 @@ const config: Config = {
         },
       ],
       copyright: `Copyright © ${new Date().getFullYear()} Phlow, Inc. Built with ❤️ and Rust.`,
-    },
-    prism: {
-      theme: prismThemes.dracula,
-      darkTheme: prismThemes.dracula,
     },
   } satisfies Preset.ThemeConfig,
 };
