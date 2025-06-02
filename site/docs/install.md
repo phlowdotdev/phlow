@@ -27,15 +27,15 @@ wget -qO- https://raw.githubusercontent.com/phlowdotdev/phlow/main/scripts/insta
 
 There are two ways to execute Phlow using Docker:
 
-1. **Pass a file, gzip, zip, or Git repository URL via the `MAIN_FILE` environment variable**:  
+1. **Pass a file, gzip, zip, or Git repository URL via the `PHLOW_MAIN` environment variable**:  
     Phlow will download the file and execute it.
 
     Example:
     ```bash
-    docker run -it --rm -e MAIN_FILE=https://example.com/file.zip ghcr.io/phlowdotdev/phlow:latest
+    docker run -it --rm -e PHLOW_MAIN=https://example.com/file.zip ghcr.io/phlowdotdev/phlow:latest
     ```
 
-2. **Create a volume and pass the file path via the `MAIN_FILE` environment variable**:  
+2. **Create a volume and pass the file path via the `PHLOW_MAIN` environment variable**:  
     Phlow will execute the specified file from the mounted volume.
 
     Example:
@@ -46,10 +46,10 @@ There are two ways to execute Phlow using Docker:
 > ## Extra example:
 > **Run a Phlow mirror request**:
 >
->   This example demonstrates how to run a [Phlow mirror request](https://github.com/phlowdotdev/phlow-mirror-request) using Docker. The `MAIN_FILE` environment variable is set to the URL of the main file in the GitHub repository.
+>   This example demonstrates how to run a [Phlow mirror request](https://github.com/phlowdotdev/phlow-mirror-request) using Docker. The `PHLOW_MAIN` environment variable is set to the URL of the main file in the GitHub repository.
 >
 >    Example:
 >    ```bash
->    docker run -it --rm -e MAIN_FILE=https://github.com/phlowdotdev/phlow-mirror-request/archive/refs/heads/main.zip ghcr.io/phlowdotdev/phlow:latest
+>    docker run -it --rm -e PHLOW_MAIN=https://github.com/phlowdotdev/phlow-mirror-request/archive/refs/heads/main.zip ghcr.io/phlowdotdev/phlow:latest
 >    ```
 
