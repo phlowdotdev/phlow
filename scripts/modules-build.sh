@@ -5,6 +5,9 @@ RELEASE_DIR="target/release"
 DEST_DIR="./phlow_packages"
 MODULES_DIR="./modules"
 
+
+cargo build --release
+
 # Cria o diretório de destino se não existir
 mkdir -p "$DEST_DIR"
 

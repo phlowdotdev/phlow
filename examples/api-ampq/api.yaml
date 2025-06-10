@@ -2,7 +2,13 @@ main: http_server
 modules: 
   - module: http_server
     version: latest
-  - !include config/amqp.yaml
+    with:
+      port: 8080
+  - module: amqp
+    version: latest
+    with:
+      routing_key: "my.routing.key"
+      declare: true
 steps:
   - condition:
       ## You can create conditions in many ways      
@@ -30,7 +36,7 @@ steps:
     then: 
       steps:
         - id: queue
-          use: rabbitmq
+          use: amqp
           input:
             message: !phs main
         - return:

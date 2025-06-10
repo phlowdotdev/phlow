@@ -67,7 +67,7 @@ impl TryFrom<&Value> for Config {
         let exchange_type = value
             .get("exchange_type")
             .map(|v| v.to_string())
-            .ok_or(Error::ExchangeType)?;
+            .unwrap_or("direct".to_string());
 
         let routing_key = if exchange_type == "fanout" || exchange_type == "headers" {
             "".to_string()

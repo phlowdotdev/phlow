@@ -53,6 +53,7 @@ pub async fn start_server(
 
     if setup.is_main() {
         info!("Main module started");
+        let dispatch = setup.dispatch.clone();
         let channel = conn.create_channel().await?;
         let main_sender = match setup.main_sender.clone() {
             Some(sender) => sender,
@@ -63,7 +64,7 @@ pub async fn start_server(
         let id = setup.id.clone();
         let config = config.clone();
         tokio::task::spawn(async move {
-            let _ = consumer::consumer(id, main_sender, config.clone(), channel).await;
+            let _ = consumer::consumer(id, main_sender, config.clone(), channel, dispatch).await;
         });
     }
 
