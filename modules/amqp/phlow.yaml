@@ -40,6 +40,11 @@ with:
       type: string
       required: false
       description: "AMQP exchange"
+    exchange_type:
+      type: enum
+      enum: [direct, fanout, topic, headers]
+      required: false
+      description: "AMQP exchange type"
     consumer_tag:
       type: string
       required: false
