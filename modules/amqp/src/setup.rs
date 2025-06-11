@@ -4,14 +4,12 @@ use std::fmt::Display;
 #[derive(Debug)]
 pub enum Error {
     RoutingKey,
-    ExchangeType,
 }
 
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::RoutingKey => write!(f, "routing_key is required"),
-            Self::ExchangeType => write!(f, "exchange_type is required"),
         }
     }
 }
