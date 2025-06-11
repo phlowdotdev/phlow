@@ -2,7 +2,8 @@ use crate::setup::Config;
 use lapin::message::DeliveryResult;
 use lapin::{options::*, types::FieldTable};
 use phlow_sdk::prelude::*;
-use phlow_sdk::tracing::debug;
+
+use std::sync::Arc;
 
 pub async fn consumer(
     id: ModuleId,
@@ -11,7 +12,11 @@ pub async fn consumer(
     channel: lapin::Channel,
     dispatch: Dispatch,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    debug!("Starting consumer");
+    println!("Starting consumer");
+
+    let config = Arc::new(config);
+    let main_sender = Arc::new(main_sender);
+    let id = Arc::new(id);
 
     channel
         .queue_declare(
@@ -30,64 +35,75 @@ pub async fn consumer(
         )
         .await?;
 
-    let client_hostname = hostname::get()
-        .ok()
-        .and_then(|h| h.into_string().ok())
-        .unwrap_or_else(|| "unknown_host".to_string());
+    let config_cloned = Arc::clone(&config);
+    let main_sender_cloned = Arc::clone(&main_sender);
+    let id_cloned = Arc::clone(&id);
 
-    consumer.set_delegate(move |delivery: DeliveryResult| {
-        phlow_sdk::tracing::dispatcher::with_default(&dispatch.clone(), || {
-            let span = tracing::span!(
-                Level::INFO,
-                "message_receive",
-                // Atributos gerais
-                "messaging.system" = "amqp",
-                "messaging.destination.name" = &config.routing_key,
-                "messaging.destination.kind" = "queue",
-                "messaging.operation" = "receive",
-                "messaging.protocol" = "AMQP",
-                "messaging.protocol_version" = "0.9.1",
-                "messaging.amqp.consumer_tag" = &config.consumer_tag,
-                "messaging.client.id" = &client_hostname,
-                // Campos opcionais para debugging
-                "messaging.message.payload_size_bytes" = field::Empty,
-                "messaging.message.conversation_id" = field::Empty,
-            );
+    consumer.set_delegate({
+        let config = config_cloned;
+        let dispatch = dispatch.clone();
+        let main_sender = main_sender_cloned;
+        let id = id_cloned;
 
-            span_enter!(span);
+        move |delivery: DeliveryResult| {
+            let config = Arc::clone(&config);
+            let main_sender = Arc::clone(&main_sender);
+            let id = Arc::clone(&id);
+            let dispatch = dispatch.clone();
 
-            debug!("Received message");
+            phlow_sdk::tracing::dispatcher::with_default(&dispatch.clone(), || {
+                let span = tracing::span!(
+                    Level::INFO,
+                    "message_receive",
+                    // Atributos gerais
+                    "messaging.system" = "rabbitmq",
+                    "messaging.destination.name" = &config.routing_key,
+                    "messaging.destination.kind" = "queue",
+                    "messaging.operation" = "receive",
+                    "messaging.protocol" = "AMQP",
+                    "messaging.protocol_version" = "0.9.1",
+                    "messaging.rabbitmq.consumer_tag" = &config.consumer_tag,
+                    "messaging.client.id" = &config.consumer_tag, // ou ID do cliente se houver
+                    // Campos opcionais para debugging
+                    "messaging.message.payload_size_bytes" = field::Empty,
+                    "messaging.message.conversation_id" = field::Empty,
+                );
 
-            let sender = main_sender.clone();
+                span_enter!(span);
 
-            Box::pin(async move {
-                let delivery = match delivery {
-                    Ok(Some(delivery)) => delivery,
-                    Ok(None) => return,
-                    Err(error) => {
-                        dbg!("Failed to consume queue message {}", error);
-                        return;
-                    }
-                };
+                Box::pin(async move {
+                    let sender = (*main_sender).clone();
+                    let id = (*id).clone();
 
-                let data: Value = String::from_utf8_lossy(&delivery.data)
-                    .to_string()
-                    .to_value();
+                    let delivery = match delivery {
+                        Ok(Some(delivery)) => delivery,
+                        Ok(None) => return,
+                        Err(error) => {
+                            dbg!("Failed to consume queue message {}", error);
+                            return;
+                        }
+                    };
 
-                debug!("Received message: {:?}", data);
+                    let data: Value = String::from_utf8_lossy(&delivery.data)
+                        .to_string()
+                        .to_value();
 
-                let response_value = sender_package!(id, sender, Some(data))
-                    .await
-                    .unwrap_or(Value::Null);
+                    println!("Received message: {:?}", data);
 
-                debug!("Response: {:?}", response_value);
+                    let response_value =
+                        sender_package!(span.clone(), dispatch.clone(), id, sender, Some(data))
+                            .await
+                            .unwrap_or(Value::Null);
 
-                delivery
-                    .ack(BasicAckOptions::default())
-                    .await
-                    .expect("Failed to ack send_webhook_event message");
+                    println!("Response: {:?}", response_value);
+
+                    delivery
+                        .ack(BasicAckOptions::default())
+                        .await
+                        .expect("Failed to ack send_webhook_event message");
+                })
             })
-        })
+        }
     });
 
     Ok(())

@@ -65,10 +65,10 @@ pub async fn producer(
         .send(Some(tx))
         .map_err(|e| format!("{:?}", e))?;
 
-    debug!("Producer started");
+    println!("Producer started");
 
     for package in rx {
-        debug!("Received package");
+        println!("Received package");
 
         let input = match package.input {
             Some(input) => Input::from(&input),
@@ -95,20 +95,20 @@ pub async fn producer(
             .await?
             .await?;
 
-        debug!("Published message to {} ({})", config.exchange, routing_key);
+        println!("Published message to {} ({})", config.exchange, routing_key);
 
         let (success, error_message) = match confirm {
             Confirmation::NotRequested => {
-                debug!("Published message without ack");
+                println!("Published message without ack");
                 (true, None)
             }
             Confirmation::Ack(msg) => {
-                debug!("Ack: {:?}", msg);
+                println!("Ack: {:?}", msg);
                 (true, None)
             }
             Confirmation::Nack(msg) => {
                 let err = format!("Nack: {:?}", msg);
-                debug!("{}", err);
+                println!("{}", err);
                 (false, Some(err))
             }
         };
