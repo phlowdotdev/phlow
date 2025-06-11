@@ -28,27 +28,34 @@ pub async fn start_server(
 
     if config.declare {
         if !config.exchange.is_empty() {
+            let exchange_kind = match config.exchange_type.as_str() {
+                "fanout" => lapin::ExchangeKind::Fanout,
+                "topic" => lapin::ExchangeKind::Topic,
+                "headers" => lapin::ExchangeKind::Headers,
+                _ => lapin::ExchangeKind::Direct,
+            };
+
             channel
                 .exchange_declare(
                     &config.exchange,
-                    ExchangeKind::Direct,
-                    ExchangeDeclareOptions::default(),
-                    FieldTable::default(),
+                    exchange_kind,
+                    lapin::options::ExchangeDeclareOptions::default(),
+                    lapin::types::FieldTable::default(),
                 )
                 .await?;
-
-            debug!("Declared exchange");
+            debug!("Producer declared exchange: {}", config.exchange);
         }
 
-        channel
-            .queue_declare(
-                &config.routing_key,
-                QueueDeclareOptions::default(),
-                FieldTable::default(),
-            )
-            .await?;
-
-        debug!("Declared queue");
+        if !config.routing_key.is_empty() {
+            channel
+                .queue_declare(
+                    &config.routing_key,
+                    lapin::options::QueueDeclareOptions::default(),
+                    lapin::types::FieldTable::default(),
+                )
+                .await?;
+            debug!("Producer declared queue: {}", config.routing_key);
+        }
     }
 
     if setup.is_main() {
