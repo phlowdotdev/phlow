@@ -4,12 +4,14 @@ use std::fmt::Display;
 #[derive(Debug)]
 pub enum Error {
     RoutingKey,
+    ExchangeType,
 }
 
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::RoutingKey => write!(f, "routing_key is required"),
+            Self::ExchangeType => write!(f, "exchange_type is required"),
         }
     }
 }
@@ -22,6 +24,7 @@ pub struct Config {
     pub password: String,
     pub port: u16,
     pub exchange: String,
+    pub exchange_type: String,
     pub consumer_tag: String,
     pub declare: bool,
 }
@@ -56,15 +59,24 @@ impl TryFrom<&Value> for Config {
             .map(|v| v.to_string())
             .unwrap_or("localhost".to_string());
 
-        let routing_key = value
-            .get("routing_key")
-            .map(|v| v.to_string())
-            .ok_or(Error::RoutingKey)?;
-
         let exchange = value
             .get("exchange")
             .map(|v| v.to_string())
             .unwrap_or("".to_string());
+
+        let exchange_type = value
+            .get("exchange_type")
+            .map(|v| v.to_string())
+            .unwrap_or("direct".to_string());
+
+        let routing_key = if exchange_type == "fanout" || exchange_type == "headers" {
+            "".to_string()
+        } else {
+            value
+                .get("routing_key")
+                .map(|v| v.to_string())
+                .ok_or(Error::RoutingKey)?
+        };
 
         let consumer_tag = value
             .get("consumer_tag")
@@ -83,6 +95,7 @@ impl TryFrom<&Value> for Config {
             port: port.unwrap_or(5672),
             routing_key,
             exchange,
+            exchange_type,
             consumer_tag,
             declare,
         })

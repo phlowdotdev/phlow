@@ -1,6 +1,9 @@
-main: rabbitmq
+main: amqp
 modules: 
-  - !include config/amqp.yaml
+  - module: amqp
+    version: latest
+    with:
+      routing_key: "my.routing.key"
   - module: log
     version: latest
 steps:

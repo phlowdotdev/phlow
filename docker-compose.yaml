@@ -28,6 +28,15 @@ services:
     networks:
       - monitoring
 
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672" # Porta padrão do RabbitMQ
+      - "15672:15672" # Porta de gerenciamento do RabbitMQ
+    networks:
+      - monitoring
+
   jaeger:
     image: jaegertracing/jaeger:latest
     container_name: jaeger

@@ -2,15 +2,21 @@ use crate::setup::Config;
 use lapin::message::DeliveryResult;
 use lapin::{options::*, types::FieldTable};
 use phlow_sdk::prelude::*;
-use phlow_sdk::tracing::debug;
+
+use std::sync::Arc;
 
 pub async fn consumer(
     id: ModuleId,
     main_sender: MainRuntimeSender,
     config: Config,
     channel: lapin::Channel,
+    dispatch: Dispatch,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     debug!("Starting consumer");
+
+    let config = Arc::new(config);
+    let main_sender = Arc::new(main_sender);
+    let id = Arc::new(id);
 
     channel
         .queue_declare(
@@ -29,37 +35,81 @@ pub async fn consumer(
         )
         .await?;
 
-    consumer.set_delegate(move |delivery: DeliveryResult| {
-        debug!("Received message");
+    let config_cloned = Arc::clone(&config);
+    let main_sender_cloned = Arc::clone(&main_sender);
+    let id_cloned = Arc::clone(&id);
+    let hostname = match hostname::get() {
+        Ok(name) => name.to_string_lossy().into_owned(),
+        Err(_) => "unknown".to_string(),
+    };
 
-        let sender = main_sender.clone();
+    consumer.set_delegate({
+        let config = config_cloned;
+        let dispatch = dispatch.clone();
+        let main_sender = main_sender_cloned;
+        let id = id_cloned;
 
-        async move {
-            let delivery = match delivery {
-                Ok(Some(delivery)) => delivery,
-                Ok(None) => return,
-                Err(error) => {
-                    dbg!("Failed to consume queue message {}", error);
-                    return;
-                }
-            };
+        move |delivery: DeliveryResult| {
+            let config = Arc::clone(&config);
+            let main_sender = Arc::clone(&main_sender);
+            let id = Arc::clone(&id);
+            let dispatch = dispatch.clone();
 
-            let data: Value = String::from_utf8_lossy(&delivery.data)
-                .to_string()
-                .to_value();
+            phlow_sdk::tracing::dispatcher::with_default(&dispatch.clone(), || {
+                let span = tracing::span!(
+                    Level::INFO,
+                    "message_receive",
+                    // Atributos gerais
+                    "messaging.system" = "rabbitmq",
+                    "messaging.destination.name" = &config.routing_key,
+                    "messaging.destination.kind" = "queue",
+                    "messaging.operation" = "receive",
+                    "messaging.protocol" = "AMQP",
+                    "messaging.protocol_version" = "0.9.1",
+                    "messaging.rabbitmq.consumer_tag" = &config.consumer_tag,
+                    "messaging.client.id" = hostname,
+                    // Campos opcionais para debugging
+                    "messaging.message.payload_size_bytes" = field::Empty,
+                    "messaging.message.conversation_id" = field::Empty,
+                );
 
-            debug!("Received message: {:?}", data);
+                span_enter!(span);
 
-            let response_value = sender_package!(id, sender, Some(data))
-                .await
-                .unwrap_or(Value::Null);
+                Box::pin(async move {
+                    let sender = (*main_sender).clone();
+                    let id = (*id).clone();
 
-            debug!("Response: {:?}", response_value);
+                    let delivery = match delivery {
+                        Ok(Some(delivery)) => delivery,
+                        Ok(None) => return,
+                        Err(error) => {
+                            dbg!("Failed to consume queue message {}", error);
+                            return;
+                        }
+                    };
 
-            delivery
-                .ack(BasicAckOptions::default())
-                .await
-                .expect("Failed to ack send_webhook_event message");
+                    let data: Value = String::from_utf8_lossy(&delivery.data)
+                        .to_string()
+                        .to_value();
+
+                    span.record("messaging.message.payload_size_bytes", delivery.data.len());
+                    span.record("messaging.message.conversation_id", &id.to_string());
+
+                    debug!("Received message: {:?}", data);
+
+                    let response_value =
+                        sender_package!(span.clone(), dispatch.clone(), id, sender, Some(data))
+                            .await
+                            .unwrap_or(Value::Null);
+
+                    debug!("Response: {:?}", response_value);
+
+                    delivery
+                        .ack(BasicAckOptions::default())
+                        .await
+                        .expect("Failed to ack send_webhook_event message");
+                })
+            })
         }
     });
 

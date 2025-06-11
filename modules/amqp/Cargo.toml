@@ -8,6 +8,7 @@ phlow-sdk = { workspace = true }
 lapin = "2.5.1"
 futures-lite = "2.6.0"
 openssl = { version = "0.10.72", features = ["vendored"] }
+hostname = "0.4.1"
 
 [lib]
 crate-type = ["cdylib"]

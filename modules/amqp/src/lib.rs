@@ -1,8 +1,7 @@
 mod consumer;
 mod produce;
 mod setup;
-use lapin::ExchangeKind;
-use lapin::{options::*, types::FieldTable, Connection, ConnectionProperties};
+use lapin::{Connection, ConnectionProperties};
 use phlow_sdk::prelude::*;
 use produce::producer;
 use setup::Config;
@@ -28,31 +27,39 @@ pub async fn start_server(
 
     if config.declare {
         if !config.exchange.is_empty() {
+            let exchange_kind = match config.exchange_type.as_str() {
+                "fanout" => lapin::ExchangeKind::Fanout,
+                "topic" => lapin::ExchangeKind::Topic,
+                "headers" => lapin::ExchangeKind::Headers,
+                _ => lapin::ExchangeKind::Direct,
+            };
+
             channel
                 .exchange_declare(
                     &config.exchange,
-                    ExchangeKind::Direct,
-                    ExchangeDeclareOptions::default(),
-                    FieldTable::default(),
+                    exchange_kind,
+                    lapin::options::ExchangeDeclareOptions::default(),
+                    lapin::types::FieldTable::default(),
                 )
                 .await?;
-
-            debug!("Declared exchange");
+            debug!("Producer declared exchange: {}", config.exchange);
         }
 
-        channel
-            .queue_declare(
-                &config.routing_key,
-                QueueDeclareOptions::default(),
-                FieldTable::default(),
-            )
-            .await?;
-
-        debug!("Declared queue");
+        if !config.routing_key.is_empty() {
+            channel
+                .queue_declare(
+                    &config.routing_key,
+                    lapin::options::QueueDeclareOptions::default(),
+                    lapin::types::FieldTable::default(),
+                )
+                .await?;
+            debug!("Producer declared queue: {}", config.routing_key);
+        }
     }
 
     if setup.is_main() {
         info!("Main module started");
+        let dispatch = setup.dispatch.clone();
         let channel = conn.create_channel().await?;
         let main_sender = match setup.main_sender.clone() {
             Some(sender) => sender,
@@ -63,7 +70,7 @@ pub async fn start_server(
         let id = setup.id.clone();
         let config = config.clone();
         tokio::task::spawn(async move {
-            let _ = consumer::consumer(id, main_sender, config.clone(), channel).await;
+            let _ = consumer::consumer(id, main_sender, config.clone(), channel, dispatch).await;
         });
     }
 
