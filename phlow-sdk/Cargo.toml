@@ -20,7 +20,6 @@ serde = { workspace = true }
 crossbeam = { workspace = true }
 opentelemetry = { workspace = true }
 opentelemetry_sdk = { workspace = true }
-opentelemetry-prometheus = { workspace = true }
 tracing-opentelemetry = { workspace = true }
 opentelemetry-semantic-conventions = { workspace = true }
 opentelemetry-stdout = { workspace = true }
