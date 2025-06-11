@@ -274,7 +274,7 @@ impl Loader {
 
     pub fn update_info(&mut self) {
         for module in &mut self.modules {
-            let value = load_external_module_info(&module.name);
+            let value = load_external_module_info(&module.module);
             module.set_info(value);
         }
     }

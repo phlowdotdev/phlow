@@ -6,6 +6,7 @@ modules:
       port: 8080
   - module: amqp
     version: latest
+    name: rabbitmq
     with:
       routing_key: "my.routing.key"
       declare: true
@@ -36,7 +37,7 @@ steps:
     then: 
       steps:
         - id: queue
-          use: amqp
+          use: rabbitmq
           input:
             message: !phs main
         - return:
