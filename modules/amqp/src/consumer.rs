@@ -12,7 +12,7 @@ pub async fn consumer(
     channel: lapin::Channel,
     dispatch: Dispatch,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    println!("Starting consumer");
+    debug!("Starting consumer");
 
     let config = Arc::new(config);
     let main_sender = Arc::new(main_sender);
@@ -38,6 +38,10 @@ pub async fn consumer(
     let config_cloned = Arc::clone(&config);
     let main_sender_cloned = Arc::clone(&main_sender);
     let id_cloned = Arc::clone(&id);
+    let hostname = match hostname::get() {
+        Ok(name) => name.to_string_lossy().into_owned(),
+        Err(_) => "unknown".to_string(),
+    };
 
     consumer.set_delegate({
         let config = config_cloned;
@@ -63,7 +67,7 @@ pub async fn consumer(
                     "messaging.protocol" = "AMQP",
                     "messaging.protocol_version" = "0.9.1",
                     "messaging.rabbitmq.consumer_tag" = &config.consumer_tag,
-                    "messaging.client.id" = &config.consumer_tag, // ou ID do cliente se houver
+                    "messaging.client.id" = hostname,
                     // Campos opcionais para debugging
                     "messaging.message.payload_size_bytes" = field::Empty,
                     "messaging.message.conversation_id" = field::Empty,
@@ -88,14 +92,17 @@ pub async fn consumer(
                         .to_string()
                         .to_value();
 
-                    println!("Received message: {:?}", data);
+                    span.record("messaging.message.payload_size_bytes", delivery.data.len());
+                    span.record("messaging.message.conversation_id", &id.to_string());
+
+                    debug!("Received message: {:?}", data);
 
                     let response_value =
                         sender_package!(span.clone(), dispatch.clone(), id, sender, Some(data))
                             .await
                             .unwrap_or(Value::Null);
 
-                    println!("Response: {:?}", response_value);
+                    debug!("Response: {:?}", response_value);
 
                     delivery
                         .ack(BasicAckOptions::default())
