@@ -1,8 +1,7 @@
 mod consumer;
 mod produce;
 mod setup;
-use lapin::ExchangeKind;
-use lapin::{options::*, types::FieldTable, Connection, ConnectionProperties};
+use lapin::{Connection, ConnectionProperties};
 use phlow_sdk::prelude::*;
 use produce::producer;
 use setup::Config;
