@@ -13,7 +13,6 @@ members = [
     "modules/postgres",
     "modules/cli",
     "modules/rpc",
-    "modules/tarrpc",
 ]
 resolver = "2"
 
