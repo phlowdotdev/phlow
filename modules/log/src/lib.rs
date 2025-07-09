@@ -36,12 +36,13 @@ impl From<&Value> for Log {
 }
 
 pub async fn log(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    env_logger::Builder::from_env(
+    // Initialize the logger only if it hasn't been initialized yet
+    let _ = env_logger::Builder::from_env(
         env_logger::Env::new()
             .default_filter_or("info")
             .filter_or("PHLOW_LOG", "info"),
     )
-    .init();
+    .try_init();
 
     debug!("PHLOW_OTEL is set to false, using default subscriber");
 
@@ -50,10 +51,10 @@ pub async fn log(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + S
         let log = Log::from(&value);
 
         match log.level {
-            LogLevel::Info => info!("{}", log.message),
-            LogLevel::Debug => debug!("{}", log.message),
-            LogLevel::Warn => warn!("{}", log.message),
-            LogLevel::Error => error!("{}", log.message),
+            LogLevel::Info => log::info!("{}", log.message),
+            LogLevel::Debug => log::debug!("{}", log.message),
+            LogLevel::Warn => log::warn!("{}", log.message),
+            LogLevel::Error => log::error!("{}", log.message),
         }
 
         sender_safe!(package.sender, Value::Null.into());

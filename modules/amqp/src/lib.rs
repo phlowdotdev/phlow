@@ -26,6 +26,7 @@ pub async fn start_server(
     debug!("Created channel");
 
     if config.declare {
+        // Declare exchange if specified
         if !config.exchange.is_empty() {
             let exchange_kind = match config.exchange_type.as_str() {
                 "fanout" => lapin::ExchangeKind::Fanout,
@@ -34,26 +35,55 @@ pub async fn start_server(
                 _ => lapin::ExchangeKind::Direct,
             };
 
+            let exchange_options = lapin::options::ExchangeDeclareOptions {
+                durable: config.exchange_durable,
+                ..Default::default()
+            };
+
             channel
                 .exchange_declare(
                     &config.exchange,
                     exchange_kind,
-                    lapin::options::ExchangeDeclareOptions::default(),
+                    exchange_options,
                     lapin::types::FieldTable::default(),
                 )
                 .await?;
-            debug!("Producer declared exchange: {}", config.exchange);
+            debug!("Declared exchange: {} (durable: {})", config.exchange, config.exchange_durable);
         }
 
-        if !config.routing_key.is_empty() {
+        // Declare queue if specified
+        if !config.queue_name.is_empty() {
+            let queue_options = lapin::options::QueueDeclareOptions {
+                durable: config.queue_durable,
+                exclusive: config.queue_exclusive,
+                auto_delete: config.queue_auto_delete,
+                ..Default::default()
+            };
+
             channel
                 .queue_declare(
-                    &config.routing_key,
-                    lapin::options::QueueDeclareOptions::default(),
+                    &config.queue_name,
+                    queue_options,
                     lapin::types::FieldTable::default(),
                 )
                 .await?;
-            debug!("Producer declared queue: {}", config.routing_key);
+            debug!("Declared queue: {} (durable: {}, exclusive: {}, auto_delete: {})", 
+                   config.queue_name, config.queue_durable, config.queue_exclusive, config.queue_auto_delete);
+        }
+
+        // Bind queue to exchange if both are specified and auto_bind is true
+        if config.auto_bind && !config.exchange.is_empty() && !config.queue_name.is_empty() && !config.routing_key.is_empty() {
+            channel
+                .queue_bind(
+                    &config.queue_name,
+                    &config.exchange,
+                    &config.routing_key,
+                    lapin::options::QueueBindOptions::default(),
+                    lapin::types::FieldTable::default(),
+                )
+                .await?;
+            debug!("Bound queue '{}' to exchange '{}' with routing_key '{}'", 
+                   config.queue_name, config.exchange, config.routing_key);
         }
     }
 

@@ -18,17 +18,28 @@ pub async fn consumer(
     let main_sender = Arc::new(main_sender);
     let id = Arc::new(id);
 
-    channel
-        .queue_declare(
-            &config.routing_key,
-            QueueDeclareOptions::default(),
-            FieldTable::default(),
-        )
-        .await?;
+    // Declare queue if not already declared
+    if !config.declare {
+        let queue_options = QueueDeclareOptions {
+            durable: config.queue_durable,
+            exclusive: config.queue_exclusive,
+            auto_delete: config.queue_auto_delete,
+            ..Default::default()
+        };
+
+        channel
+            .queue_declare(
+                &config.queue_name,
+                queue_options,
+                FieldTable::default(),
+            )
+            .await?;
+        debug!("Consumer declared queue: {}", config.queue_name);
+    }
 
     let consumer = channel
         .basic_consume(
-            &config.routing_key,
+            &config.queue_name,
             &config.consumer_tag,
             BasicConsumeOptions::default(),
             FieldTable::default(),
@@ -61,7 +72,7 @@ pub async fn consumer(
                     "message_receive",
                     // Atributos gerais
                     "messaging.system" = "rabbitmq",
-                    "messaging.destination.name" = &config.routing_key,
+                    "messaging.destination.name" = &config.queue_name,
                     "messaging.destination.kind" = "queue",
                     "messaging.operation" = "receive",
                     "messaging.protocol" = "AMQP",

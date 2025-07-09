@@ -8,8 +8,18 @@ modules:
     version: latest
     name: rabbitmq
     with:
-      routing_key: "my.routing.key"
+      routing_key: my.routing.key
+      exchange: my.exchange
+      queue_name: my.queue
+      exchange_type: direct
       declare: true
+      auto_bind: true
+      queue_durable: true
+      exchange_durable: true
+      queue_exclusive: false
+      queue_auto_delete: false
+  - module: log
+    version: latest
 steps:
   - condition:
       ## You can create conditions in many ways      
@@ -36,6 +46,10 @@ steps:
       # assert: !phs main.method == "POST"
     then: 
       steps:
+        - use: log
+          input:
+            level: info
+            message: !phs main
         - id: queue
           use: rabbitmq
           input:

@@ -25,6 +25,12 @@ pub struct Config {
     pub exchange_type: String,
     pub consumer_tag: String,
     pub declare: bool,
+    pub queue_name: String,
+    pub auto_bind: bool,
+    pub queue_durable: bool,
+    pub queue_exclusive: bool,
+    pub queue_auto_delete: bool,
+    pub exchange_durable: bool,
 }
 
 impl Config {
@@ -86,6 +92,39 @@ impl TryFrom<&Value> for Config {
             .map(|v| v.as_bool().unwrap_or(&false))
             .unwrap_or(&false);
 
+        let queue_name: String = value
+            .get("queue_name")
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| {
+                // Use routing_key as default only if queue_name is not provided
+                routing_key.clone()
+            });
+
+        let auto_bind = *value
+            .get("auto_bind")
+            .map(|v| v.as_bool().unwrap_or(&true))
+            .unwrap_or(&true);
+
+        let queue_durable = *value
+            .get("queue_durable")
+            .map(|v| v.as_bool().unwrap_or(&false))
+            .unwrap_or(&false);
+
+        let queue_exclusive = *value
+            .get("queue_exclusive")
+            .map(|v| v.as_bool().unwrap_or(&false))
+            .unwrap_or(&false);
+
+        let queue_auto_delete = *value
+            .get("queue_auto_delete")
+            .map(|v| v.as_bool().unwrap_or(&false))
+            .unwrap_or(&false);
+
+        let exchange_durable = *value
+            .get("exchange_durable")
+            .map(|v| v.as_bool().unwrap_or(&false))
+            .unwrap_or(&false);
+
         Ok(Self {
             host,
             username,
@@ -96,6 +135,12 @@ impl TryFrom<&Value> for Config {
             exchange_type,
             consumer_tag,
             declare,
+            queue_name,
+            auto_bind,
+            queue_durable,
+            queue_exclusive,
+            queue_auto_delete,
+            exchange_durable,
         })
     }
 }

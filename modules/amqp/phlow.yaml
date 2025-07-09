@@ -1,6 +1,40 @@
 
 name: amqp
-description: This module provides a simple interface to send and receive messages using AMQP 0.9.1 (Advanced Message Queuing Protocol).
+description: |
+  This module provides a comprehensive interface to send and receive messages using AMQP 0.9.1 (Advanced Message Queuing Protocol).
+  
+  **Usage Modes:**
+  - **Consumer Mode**: When configured as 'main', it consumes messages from a specified queue
+  - **Producer Mode**: When used with 'use' in steps, it sends messages to exchanges or queues
+  
+  **Features:**
+  - Auto-declaration of exchanges, queues, and bindings
+  - Configurable durability, exclusivity, and auto-deletion
+  - Support for all AMQP exchange types (direct, fanout, topic, headers)
+  - Automatic queue binding to exchanges
+  - SSL/TLS support via OpenSSL
+  - Full observability with OpenTelemetry tracing
+  
+  **Examples:**
+  ```yaml
+  # As consumer (main)
+  main: amqp
+  modules:
+    - module: amqp
+      with:
+        host: "rabbitmq.example.com"
+        queue_name: "input_queue"
+        routing_key: "process.task"
+        exchange: "task_exchange"
+        declare: true
+        auto_bind: true
+  
+  # As producer (in steps)
+  steps:
+    - use: amqp
+      input:
+        message: '{"task": "process_data"}'
+  ```
 version: 0.0.1
 author: Philippe Assis <codephilippe@gmail.com>
 repository: https://github.com/phlowdotdev/phlow
@@ -12,6 +46,8 @@ tags:
   - rabbitmq
   - producer
   - consumer
+  - amqp
+  - messaging
 with:
   type: object
   required: true
@@ -53,6 +89,30 @@ with:
       type: boolean
       required: false
       description: "Declare exchange and queue"
+    queue_name:
+      type: string
+      required: false
+      description: "AMQP queue name (if different from routing_key)"
+    auto_bind:
+      type: boolean
+      required: false
+      description: "Automatically bind queue to exchange with routing_key"
+    queue_durable:
+      type: boolean
+      required: false
+      description: "Make queue durable"
+    queue_exclusive:
+      type: boolean
+      required: false
+      description: "Make queue exclusive"
+    queue_auto_delete:
+      type: boolean
+      required: false
+      description: "Auto delete queue when no consumers"
+    exchange_durable:
+      type: boolean
+      required: false
+      description: "Make exchange durable"
 input:
   type: object
   required: true
