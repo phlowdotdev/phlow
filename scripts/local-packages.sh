@@ -54,16 +54,19 @@ if [[ -z "$OS_SUFFIX" || -z "$TARGET" ]]; then
             OS_SUFFIX="-darwin-x86_64"
             TARGET="x86_64-apple-darwin"
         fi
+        MODULE_EXTENSION="dylib"
         echo "🍎 Detected macOS platform"
     elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
         ARCH=$(uname -m)
         if [[ "$ARCH" == "x86_64" ]]; then
             if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX="-linux-amd64"; fi
             if [[ -z "$TARGET" ]]; then TARGET="x86_64-unknown-linux-gnu"; fi
+            MODULE_EXTENSION="so"
             echo "🐧 Detected Linux amd64 platform"
         elif [[ "$ARCH" == "aarch64" ]]; then
             if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX="-linux-aarch64"; fi
             if [[ -z "$TARGET" ]]; then TARGET="aarch64-unknown-linux-gnu"; fi
+            MODULE_EXTENSION="so"
             echo "🐧 Detected Linux aarch64 platform"
         else
             echo "⚠️ Unknown Linux architecture: $ARCH"
@@ -74,6 +77,11 @@ if [[ -z "$OS_SUFFIX" || -z "$TARGET" ]]; then
         exit 1
     fi
   fi
+fi
+
+# Define a extensão padrão se não foi definida
+if [[ -z "$MODULE_EXTENSION" ]]; then
+    MODULE_EXTENSION="so"
 fi
 
 # Cria a pasta de destino
