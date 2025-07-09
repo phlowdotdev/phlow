@@ -1,0 +1,20 @@
+main: rpc_server
+modules:
+  - module: rpc
+    version: latest
+    name: rpc_server
+    with:
+      host: "127.0.0.1"
+      port: 8090
+      timeout_ms: 10000
+      max_connections: 100
+      service_name: "phlow-rpc-example"
+  - module: log
+    version: latest
+    name: logger
+steps:
+  - use: logger
+    input:
+      level: info
+      message: !phs main
+  - return: true

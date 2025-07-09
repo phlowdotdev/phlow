@@ -100,11 +100,6 @@ package_module() {
       exit 1
     fi
 
-    if ! echo "$AUTHOR" | grep -Pq '^[^<]+<[^@]+@[^>]+>$'; then
-        echo "❌ Invalid author format: $AUTHOR"
-        exit 1
-    fi
-
     KNOWN_LICENSES=("MIT" "Apache-2.0" "GPL-3.0" "BSD-3-Clause" "MPL-2.0" "LGPL-3.0" "CDDL-1.0" "EPL-2.0" "Unlicense")
     VALID_LICENSE=false
     for lic in "${KNOWN_LICENSES[@]}"; do

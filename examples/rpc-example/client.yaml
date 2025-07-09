@@ -1,0 +1,49 @@
+main: http_server
+modules:
+  - module: http_server
+    version: latest
+    with:
+      port: 8080
+  - module: rpc
+    version: latest
+    name: rpc_client
+    with:
+      host: "127.0.0.1"
+      port: 8090
+      timeout_ms: 5000
+      service_name: "phlow-rpc-example"
+  - module: log
+    version: latest
+    name: logger
+steps:
+  - condition:
+      assert: !phs main.method == "POST"
+    then:
+      steps:
+        - id: rpc_call
+          use: rpc_client
+          input:
+            method: "process_data"
+            params: !phs main.body
+            headers:
+              "Content-Type": "application/json"
+        - use: logger
+          input:
+            level: info
+            message: !phs steps.rpc_call
+        - return:
+            status_code: 200
+            body: !phs steps.rpc_call
+            headers:
+              Content-Type: application/json
+    else:
+      steps:
+        - id: health_check
+          use: rpc_client
+          input:
+            action: "health"
+        - return:
+            status_code: 200
+            body: !phs steps.health_check
+            headers:
+              Content-Type: application/json

@@ -1,0 +1,8 @@
+module: rpc
+version: latest
+with:
+  host: "127.0.0.1"
+  port: 8090
+  timeout_ms: 5000
+  max_connections: 50
+  service_name: "phlow-rpc"
