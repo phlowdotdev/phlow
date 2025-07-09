@@ -1,0 +1,178 @@
+name: comprehensive-tarrpc-client
+modules:
+  - module: tarrpc
+    with:
+      host: localhost
+      port: 8080
+      service_name: comprehensive_service
+      transport: tcp
+      timeout: 30
+      retry_attempts: 3
+      
+  - module: log
+    with: {}
+
+steps:
+  - step: test_user_registration
+    description: "Test user registration RPC method"
+    use: tarrpc
+    input:
+      method: user_registration
+      args:
+        user_data:
+          email: "test@example.com"
+          name: "Test User"
+          password: "secure_password123"
+        options:
+          send_welcome_email: true
+      timeout: 15
+      context:
+        client_id: "test_client"
+        request_id: "req_001"
+        
+  - step: log_registration_result
+    description: "Log registration result"
+    use: log
+    input:
+      level: info
+      message: !phs "User registration result: " + result.success
+      
+  - step: test_data_processing
+    description: "Test data processing RPC method"
+    use: tarrpc
+    input:
+      method: data_processing
+      args:
+        batch_id: "batch_001"
+        data:
+          - id: 1
+            name: "Item 1"
+            value: 100
+          - id: 2
+            name: "Item 2"
+            value: 200
+          - id: 3
+            name: "Item 3"
+            value: 300
+        options:
+          parallel: true
+          chunk_size: 10
+      timeout: 30
+      
+  - step: log_processing_result
+    description: "Log processing result"
+    use: log
+    input:
+      level: info
+      message: !phs "Data processing result: " + result.success
+      
+  - step: test_file_upload
+    description: "Test file upload RPC method"
+    use: tarrpc
+    input:
+      method: file_upload
+      args:
+        filename: "document.pdf"
+        size: 1024000  # 1MB
+        content_type: "application/pdf"
+        metadata:
+          user_id: "user_123"
+          department: "HR"
+      timeout: 20
+      
+  - step: log_upload_result
+    description: "Log upload result"
+    use: log
+    input:
+      level: info
+      message: !phs "File upload result: " + result.success
+      
+  - step: test_notification_send
+    description: "Test notification sending RPC method"
+    use: tarrpc
+    input:
+      method: notification_send
+      args:
+        type: "email"
+        recipient: "user@example.com"
+        message: "Your file has been processed successfully"
+        priority: "high"
+        template: "file_processed"
+      timeout: 10
+      
+  - step: log_notification_result
+    description: "Log notification result"
+    use: log
+    input:
+      level: info
+      message: !phs "Notification result: " + result.success
+      
+  - step: test_analytics_report
+    description: "Test analytics report generation RPC method"
+    use: tarrpc
+    input:
+      method: analytics_report
+      args:
+        report_type: "user_activity"
+        period: "30d"
+        filters:
+          department: "ALL"
+          status: "active"
+        format: "json"
+      timeout: 45
+      
+  - step: log_analytics_result
+    description: "Log analytics result"
+    use: log
+    input:
+      level: info
+      message: !phs "Analytics report result: " + result.success
+      
+  - step: test_health_check
+    description: "Test health check"
+    use: tarrpc
+    input:
+      method: health_check
+      
+  - step: log_health_result
+    description: "Log health check result"
+    use: log
+    input:
+      level: info
+      message: !phs "Health check result: " + result.success
+      
+  - step: test_service_info
+    description: "Test service info"
+    use: tarrpc
+    input:
+      method: get_service_info
+      
+  - step: log_service_info_result
+    description: "Log service info result"
+    use: log
+    input:
+      level: info
+      message: !phs "Service info result: " + result.success
+      
+  - step: test_error_handling
+    description: "Test error handling with invalid method"
+    use: tarrpc
+    input:
+      method: invalid_method
+      args:
+        test: "data"
+      timeout: 5
+      
+  - step: log_error_result
+    description: "Log error handling result"
+    use: log
+    input:
+      level: warn
+      message: !phs "Error handling test - should fail: " + result.success
+      
+  - step: final_summary
+    description: "Log final test summary"
+    use: log
+    input:
+      level: info
+      message: "All TarRPC tests completed successfully"

@@ -1,0 +1,48 @@
+name: tarrpc-amqp-integration
+main: tarrpc
+modules:
+  - module: tarrpc
+    with:
+      host: localhost
+      port: 8080
+      service_name: amqp_rpc_service
+      transport: tcp
+      timeout: 30
+      methods:
+        - name: process_message
+          handler: process_message_handler
+        - name: send_notification
+          handler: send_notification_handler
+          
+  - module: amqp
+    with:
+      host: localhost
+      port: 5672
+      username: guest
+      password: guest
+      exchange: notifications
+      exchange_type: topic
+      routing_key: notification.sent
+      declare: true
+      auto_bind: true
+      queue_name: notification_queue
+
+steps:
+  - step: process_message_handler
+    description: "Process message and log it"
+    use: log
+    input:
+      level: info
+      message: !phs "Processing message: " + input.args.message
+      
+  - step: send_notification_handler
+    description: "Send notification via AMQP"
+    use: amqp
+    input:
+      message: !phs |
+        {
+          "type": "notification",
+          "timestamp": now(),
+          "data": input.args,
+          "processed_by": "tarrpc-service"
+        }

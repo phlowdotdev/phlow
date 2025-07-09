@@ -12,6 +12,8 @@ members = [
     "modules/http_request",
     "modules/postgres",
     "modules/cli",
+    "modules/rpc",
+    "modules/tarrpc",
 ]
 resolver = "2"
 

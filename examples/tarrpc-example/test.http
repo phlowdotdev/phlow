@@ -1,0 +1,104 @@
+# TarRPC Test Requests
+# These are example HTTP requests that could be used to test the tarrpc module
+# if it were exposed through an HTTP API
+
+### Health Check
+GET http://localhost:8080/health
+Content-Type: application/json
+
+### Get Service Info
+GET http://localhost:8080/service-info
+Content-Type: application/json
+
+### Process Data Method
+POST http://localhost:8080/rpc
+Content-Type: application/json
+
+{
+  "method": "process_data",
+  "args": {
+    "data": "sample data to process",
+    "options": {
+      "priority": "high",
+      "batch_size": 100
+    }
+  },
+  "timeout": 15,
+  "context": {
+    "user_id": "user123",
+    "session_id": "session456"
+  }
+}
+
+### Calculate Method
+POST http://localhost:8080/rpc
+Content-Type: application/json
+
+{
+  "method": "calculate",
+  "args": {
+    "operation": "sum",
+    "values": [1, 2, 3, 4, 5]
+  },
+  "context": {
+    "user_id": "user123"
+  }
+}
+
+### Transform Method
+POST http://localhost:8080/rpc
+Content-Type: application/json
+
+{
+  "method": "transform",
+  "args": {
+    "input": "Hello, World!",
+    "format": "uppercase"
+  },
+  "timeout": 10
+}
+
+### Validate Method
+POST http://localhost:8080/rpc
+Content-Type: application/json
+
+{
+  "method": "validate",
+  "args": {
+    "data": {
+      "name": "John Doe",
+      "age": 30,
+      "email": "john@example.com"
+    },
+    "schema": "user_schema"
+  }
+}
+
+### Aggregate Method
+POST http://localhost:8080/rpc
+Content-Type: application/json
+
+{
+  "method": "aggregate",
+  "args": {
+    "data": [
+      {"value": 10, "category": "A"},
+      {"value": 20, "category": "B"},
+      {"value": 15, "category": "A"},
+      {"value": 25, "category": "B"}
+    ],
+    "group_by": "category",
+    "operation": "sum"
+  }
+}
+
+### Error Case - Invalid Method
+POST http://localhost:8080/rpc
+Content-Type: application/json
+
+{
+  "method": "invalid_method",
+  "args": {
+    "test": "data"
+  }
+}

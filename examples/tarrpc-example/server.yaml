@@ -1,0 +1,41 @@
+name: tarrpc-server
+main: tarrpc
+modules:
+  - module: tarrpc
+    with:
+      host: localhost
+      port: 8080
+      service_name: example_service
+      transport: tcp
+      timeout: 30
+      max_connections: 100
+      retry_attempts: 3
+      methods:
+        - name: process_data
+          handler: process_data_handler
+        - name: calculate
+          handler: calculate_handler
+        - name: transform
+          handler: transform_handler
+
+steps:
+  - step: process_data_handler
+    description: "Process incoming data"
+    use: log
+    input:
+      level: info
+      message: !phs "Processing data: " + input.args.data
+    
+  - step: calculate_handler  
+    description: "Perform calculations"
+    use: log
+    input:
+      level: info
+      message: !phs "Calculating: " + input.args.operation + " with values: " + input.args.values
+    
+  - step: transform_handler
+    description: "Transform data"
+    use: log
+    input:
+      level: info
+      message: !phs "Transforming: " + input.args.input + " to format: " + input.args.format

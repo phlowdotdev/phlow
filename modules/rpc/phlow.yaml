@@ -1,0 +1,286 @@
+name: rpc
+version: 0.0.1
+author: Philippe Assis <codephilippe@gmail.com>
+repository: https://github.com/phlowdotdev/phlow
+license: MIT
+type: any
+description: |
+  This module provides Remote Procedure Call (RPC) functionality using tarpc for high-performance client-server communication.
+  
+  **Usage Modes:**
+  - **Server Mode**: When configured as 'main', it starts an RPC server that can handle incoming RPC calls and pass them to the defined steps as 'main' input
+  - **Client Mode**: When used with 'use' in steps, it acts as an RPC client to make remote calls
+  
+  **Features:**
+  - High-performance RPC using tarpc with TCP transport
+  - JSON serialization for cross-language compatibility
+  - Configurable timeouts and connection limits
+  - Built-in health check endpoint
+  - Service information endpoint
+  - Automatic connection pooling
+  - Full observability with OpenTelemetry tracing
+  
+  **Server Mode Data Structure:**
+  When used as 'main', the RPC server passes the following data structure to steps:
+  ```json
+  {
+    "method": "method_name",
+    "params": { /* RPC call parameters */ },
+    "headers": { /* RPC call headers */ }
+  }
+  ```
+  
+  **Examples:**
+  ```yaml
+  # As RPC server (main) - receives RPC calls and processes them through steps
+  main: rpc_server
+  modules:
+    - module: rpc
+      name: rpc_server
+      with:
+        host: "127.0.0.1"
+        port: 8090
+        service_name: "my-service"
+        max_connections: 100
+    - module: log
+      name: logger
+  steps:
+    - use: logger
+      input:
+        level: info
+        message: !phs main  # 'main' contains the RPC request data
+  
+  # As RPC client (in steps) - makes calls to RPC servers
+  steps:
+    - use: rpc_client
+      input:
+        method: "process_data"
+        params:
+          data: "some value"
+          count: 42
+        headers:
+          "Content-Type": "application/json"
+  
+  # Health check
+  steps:
+    - use: rpc_client
+      input:
+        action: "health"
+  
+  # Service info
+  steps:
+    - use: rpc_client
+      input:
+        action: "info"
+  ```
+tags:
+  - rpc
+  - tarpc
+  - communication
+  - client-server
+  - remote-procedure-call
+  - tcp
+  - json
+  - microservices
+with:
+  type: object
+  required: false
+  description: "Configuration parameters for the RPC module"
+  properties:
+    host:
+      type: string
+      required: false
+      default: "127.0.0.1"
+      description: "IP address or hostname where the RPC server will listen (server mode) or connect to (client mode)"
+      examples:
+        - "127.0.0.1"
+        - "0.0.0.0"
+        - "rpc.example.com"
+    port:
+      type: integer
+      required: false
+      default: 8080
+      minimum: 1
+      maximum: 65535
+      description: "Port number for the RPC server to listen on (server mode) or connect to (client mode)"
+      examples:
+        - 8080
+        - 8090
+        - 9000
+    timeout_ms:
+      type: integer
+      required: false
+      default: 5000
+      minimum: 100
+      maximum: 300000
+      description: "Timeout in milliseconds for RPC calls (client mode only)"
+      examples:
+        - 5000
+        - 10000
+        - 30000
+    max_connections:
+      type: integer
+      required: false
+      default: 100
+      minimum: 1
+      maximum: 10000
+      description: "Maximum number of concurrent connections (server mode only)"
+      examples:
+        - 100
+        - 500
+        - 1000
+    service_name:
+      type: string
+      required: false
+      default: "default"
+      description: "Name of the RPC service for identification and logging purposes"
+      examples:
+        - "user-service"
+        - "payment-processor"
+        - "data-analytics"
+input:
+  type: object
+  required: true
+  description: "Input parameters for RPC client calls"
+  properties:
+    action:
+      type: string
+      required: false
+      enum: ["health", "info"]
+      description: "Special action to perform instead of a regular RPC call"
+      examples:
+        - "health"
+        - "info"
+    method:
+      type: string
+      required: false
+      default: "call"
+      description: "Name of the remote method to call (ignored for special actions)"
+      examples:
+        - "process_data"
+        - "get_user"
+        - "calculate_metrics"
+    params:
+      type: any
+      required: false
+      description: "Parameters to pass to the remote method (can be any JSON-serializable data)"
+      examples:
+        - {"user_id": 123, "include_details": true}
+        - [{"name": "item1"}, {"name": "item2"}]
+        - "simple string parameter"
+        - 42
+    headers:
+      type: object
+      required: false
+      description: "HTTP-like headers to include with the RPC call"
+      additionalProperties:
+        type: string
+      examples:
+        - {"Content-Type": "application/json", "X-Request-ID": "123"}
+        - {"Authorization": "Bearer token123"}
+output:
+  type: object
+  required: true
+  description: "Response from RPC calls"
+  properties:
+    result:
+      type: any
+      required: true
+      description: "The result returned by the remote method or special action"
+      examples:
+        - {"user": {"id": 123, "name": "John"}}
+        - {"status": "success", "processed": 100}
+        - "Operation completed"
+    error:
+      type: string
+      required: false
+      description: "Error message if the RPC call failed"
+      examples:
+        - "Connection timeout"
+        - "Method not found"
+        - "Invalid parameters"
+    headers:
+      type: object
+      required: false
+      description: "Response headers returned by the remote service"
+      additionalProperties:
+        type: string
+      examples:
+        - {"Content-Type": "application/json"}
+        - {"X-Response-Time": "150ms"}
+    # Special outputs for health check
+    healthy:
+      type: boolean
+      required: false
+      description: "Health status (only present when action is 'health')"
+      examples:
+        - true
+        - false
+    service:
+      type: string
+      required: false
+      description: "Service name (only present when action is 'health')"
+      examples:
+        - "user-service"
+    address:
+      type: string
+      required: false
+      description: "Server address (only present when action is 'health')"
+      examples:
+        - "127.0.0.1:8090"
+    # Special outputs for service info
+    service_name:
+      type: string
+      required: false
+      description: "Service name (only present when action is 'info')"
+      examples:
+        - "user-service"
+    version:
+      type: string
+      required: false
+      description: "Service version (only present when action is 'info')"
+      examples:
+        - "0.1.0"
+    status:
+      type: string
+      required: false
+      description: "Service status (only present when action is 'info')"
+      examples:
+        - "running"
+    hostname:
+      type: string
+      required: false
+      description: "Hostname where service is running (only present when action is 'info')"
+      examples:
+        - "server01.example.com"
+main_input:
+  type: object
+  required: true
+  description: "Data structure passed to steps when module is used as 'main' (server mode)"
+  properties:
+    method:
+      type: string
+      required: true
+      description: "The RPC method name that was called"
+      examples:
+        - "process_data"
+        - "get_user"
+        - "calculate_metrics"
+    params:
+      type: any
+      required: true
+      description: "Parameters sent with the RPC call"
+      examples:
+        - {"user_id": 123, "include_details": true}
+        - [{"name": "item1"}, {"name": "item2"}]
+        - "simple string parameter"
+        - 42
+    headers:
+      type: object
+      required: true
+      description: "Headers sent with the RPC call"
+      additionalProperties:
+        type: string
+      examples:
+        - {"Content-Type": "application/json"}
+        - {"Authorization": "Bearer token123"}

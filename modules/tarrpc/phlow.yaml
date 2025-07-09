@@ -1,0 +1,153 @@
+name: tarrpc
+description: |
+  This module provides a comprehensive interface for creating RPC services using the tarpc framework.
+  
+  **Usage Modes:**
+  - **Server Mode**: When configured as 'main', it creates a tarpc RPC server listening for incoming requests
+  - **Client Mode**: When used with 'use' in steps, it acts as a client making RPC calls to the server
+  
+  **Features:**
+  - High-performance RPC communication with tarpc
+  - Support for all tarpc transport types (TCP, in-memory, custom)
+  - Automatic service discovery and connection management
+  - Built-in error handling and retry mechanisms
+  - Full observability with OpenTelemetry tracing
+  - Serde-based serialization for request/response data
+  - Deadline propagation and cascading cancellation
+  - Bi-directional streaming support
+  
+  **Examples:**
+  ```yaml
+  # As RPC server (main)
+  main: tarrpc
+  modules:
+    - module: tarrpc
+      with:
+        host: "localhost"
+        port: 8080
+        service_name: "my_service"
+        transport: "tcp"
+        methods:
+          - name: "process_data"
+            handler: "process_data_handler"
+          - name: "health_check"
+            handler: "health_check_handler"
+  
+  # As RPC client (in steps)
+  steps:
+    - use: tarrpc
+      input:
+        method: "process_data"
+        args:
+          data: "some_data"
+          options:
+            timeout: 30
+  ```
+version: 0.0.1
+author: Philippe Assis <codephilippe@gmail.com>
+repository: https://github.com/phlowdotdev/phlow
+license: MIT
+type: any
+tags:
+  - rpc
+  - tarpc
+  - client
+  - server
+  - remote-procedure-call
+  - microservices
+  - distributed-systems
+with:
+  type: object
+  required: true
+  properties:
+    host:
+      type: string
+      required: false
+      default: "localhost"
+      description: "RPC server host"
+    port:
+      type: integer
+      required: false
+      default: 8080
+      description: "RPC server port"
+    service_name:
+      type: string
+      required: false
+      default: "phlow_service"
+      description: "Name of the RPC service"
+    transport:
+      type: enum
+      enum: [tcp, memory, custom]
+      required: false
+      default: "tcp"
+      description: "Transport type to use"
+    timeout:
+      type: integer
+      required: false
+      default: 30
+      description: "Request timeout in seconds"
+    methods:
+      type: array
+      required: false
+      description: "Available RPC methods for the server"
+      items:
+        type: object
+        properties:
+          name:
+            type: string
+            required: true
+            description: "Method name"
+          handler:
+            type: string
+            required: true
+            description: "Handler function name"
+    max_connections:
+      type: integer
+      required: false
+      default: 100
+      description: "Maximum number of concurrent connections"
+    retry_attempts:
+      type: integer
+      required: false
+      default: 3
+      description: "Number of retry attempts for failed requests"
+input:
+  type: object
+  required: true
+  properties:
+    method:
+      type: string
+      required: true
+      description: "RPC method name to call"
+    args:
+      type: any
+      required: false
+      description: "Arguments to pass to the RPC method"
+    timeout:
+      type: integer
+      required: false
+      description: "Request timeout in seconds (overrides global timeout)"
+    context:
+      type: object
+      required: false
+      description: "Additional context data for the RPC call"
+output:
+  type: object
+  required: true
+  properties:
+    success:
+      type: boolean
+      description: "Whether the RPC call was successful"
+      required: true
+    result:
+      type: any
+      description: "Result data from the RPC call"
+      required: false
+    error_message:
+      type: string
+      description: "Error message if call failed"
+      required: false
+    execution_time:
+      type: number
+      description: "Execution time in milliseconds"
+      required: false

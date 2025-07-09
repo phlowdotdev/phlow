@@ -1,0 +1,26 @@
+### Test RPC Call via HTTP
+POST http://localhost:8080/
+Content-Type: application/json
+X-Request-ID: test-123
+
+{
+  "data": "Hello from RPC test",
+  "value": 42,
+  "timestamp": "2024-01-01T00:00:00Z"
+}
+
+### Health Check
+GET http://localhost:8080/
+Content-Type: application/json
+
+### Test with different data
+POST http://localhost:8080/
+Content-Type: application/json
+X-Request-ID: test-456
+
+{
+  "user_id": 123,
+  "action": "process_payment",
+  "amount": 99.99,
+  "currency": "USD"
+}
