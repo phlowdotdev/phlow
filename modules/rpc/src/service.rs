@@ -32,6 +32,7 @@ pub trait PhlowRpc {
 
 #[derive(Clone)]
 pub struct PhlowRpcServer {
+    #[allow(dead_code)] // Used in tracing and sender_package! macro
     pub dispatch: Dispatch,
     pub service_name: String,
     pub main_sender: MainRuntimeSender,

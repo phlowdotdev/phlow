@@ -2,6 +2,7 @@ use phlow_sdk::prelude::*;
 use std::fmt::Display;
 
 #[derive(Debug)]
+#[allow(dead_code)] // Future use for validation
 pub enum Error {
     InvalidAddress,
     InvalidPort,
