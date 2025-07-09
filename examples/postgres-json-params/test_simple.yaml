@@ -1,0 +1,39 @@
+main: cli
+name: Simple Postgres JSON Test
+version: 1.0.0
+description: Teste simples do módulo postgres com parâmetros JSON
+author: Philippe Assis <codephilippe@gmail.com>
+modules:
+  - module: cli
+    version: latest
+    with:
+      additional_args: false
+      args:
+        - name: test_query
+          description: Query de teste
+          index: 1
+          type: string
+          default: "SELECT 'Hello' as greeting, 'World' as subject"
+          required: false
+  - module: postgres
+    version: latest
+    with:
+      host: !phs envs.POSTGRES_HOST ?? 'localhost'
+      port: !phs envs.POSTGRES_PORT ?? 5432
+      user: !phs envs.POSTGRES_USER ?? 'postgres'
+      password: !phs envs.POSTGRES_PASSWORD ?? 'postgres'
+      database: !phs envs.POSTGRES_DB ?? 'postgres'
+      max_pool_size: 5
+      cache_query: true
+      batch: true
+
+steps:
+  # Teste simples sem parâmetros
+  - use: postgres
+    input:
+      query: !phs cli.test_query
+      params: {}
+      batch: true
+      cache_query: true
+    then:
+      return: !phs "Teste executado com sucesso"

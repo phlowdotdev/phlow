@@ -70,8 +70,8 @@ input:
       description: The SQL query to execute.
       required: true
     params:
-      type: array
-      description: The parameters to bind to the query.
+      type: object
+      description: The parameters to bind to the query as JSON object.
       required: false
     batch:
       type: boolean

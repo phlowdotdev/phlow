@@ -36,6 +36,7 @@ Phlow will automatically detect the `main.yaml` inside the specified folder.
 - `api-postgres` – Example of API interacting with a PostgreSQL database
 - `cli_to_steps` – CLI-based trigger that executes a flow
 - `macros` – Demonstrates usage of YAML macros or includes
+- `postgres-json-params` – Demonstrates PostgreSQL module with JSON parameters instead of arrays
 - `restapi-ampq` – Connects REST APIs to AMQP message queues
 - `restapi-echo` – Echo service for testing HTTP input/output
 - `restapi-ping` – Lightweight ping endpoint

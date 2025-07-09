@@ -1,0 +1,71 @@
+main: cli
+name: Postgres JSON Parameters Example
+version: 1.0.0
+description: Exemplo de uso do módulo postgres com parâmetros JSON em vez de array
+author: Philippe Assis <codephilippe@gmail.com>
+modules:
+  - module: cli
+    version: latest
+    with:
+      additional_args: false
+      args:
+        - name: user_id
+          description: ID do usuário
+          index: 1
+          type: number
+          required: true
+        - name: user_name
+          description: Nome do usuário
+          index: 2
+          type: string
+          required: true
+        - name: user_email
+          description: Email do usuário
+          index: 3
+          type: string
+          required: true
+  - module: postgres
+    version: latest
+    with:
+      host: !phs envs.POSTGRES_HOST ?? 'localhost'
+      port: !phs envs.POSTGRES_PORT ?? 5432
+      user: !phs envs.POSTGRES_USER ?? 'postgres'
+      password: !phs envs.POSTGRES_PASSWORD ?? 'postgres'
+      database: !phs envs.POSTGRES_DB ?? 'test'
+      max_pool_size: 10
+      cache_query: true
+      batch: true
+
+steps:
+  # Exemplo 1: Inserir usuário usando parâmetros JSON
+  - use: postgres
+    input:
+      query: "INSERT INTO users (id, name, email) VALUES ($1, $2, $3)"
+      params:
+        id: !phs cli.user_id
+        name: !phs cli.user_name
+        email: !phs cli.user_email
+      batch: true
+      cache_query: true
+    
+  # Exemplo 2: Buscar usuário usando parâmetros JSON
+  - use: postgres
+    input:
+      query: "SELECT * FROM users WHERE id = $1 AND name = $2"
+      params:
+        user_id: !phs cli.user_id
+        user_name: !phs cli.user_name
+      batch: true
+      cache_query: true
+    
+  # Exemplo 3: Atualizar usuário usando parâmetros JSON
+  - use: postgres
+    input:
+      query: "UPDATE users SET email = $1 WHERE id = $2"
+      params:
+        new_email: !phs cli.user_email
+        user_id: !phs cli.user_id
+      batch: true
+      cache_query: true
+    then:
+      return: !phs "Usuário atualizado com sucesso"
