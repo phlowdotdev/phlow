@@ -27,7 +27,7 @@ jobs:
         run: chmod +x ./scripts/*.sh
 
       - name: Run packages script
-        run: ./scripts/build-packages.sh
+        run: TARGET=aarch64-apple-darwin ./scripts/packages.sh
 
       - name: Upload Mac packages
         uses: actions/upload-artifact@v4
