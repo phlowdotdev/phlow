@@ -20,3 +20,18 @@ args = []
 workspace = false
 description = "Executa o container Docker phlow-environment"
 script = ["docker run -it --rm -v .:/app phlow-env ${@}"]
+
+[tasks.example]
+workspace = false
+description = "Executa cargo run -p phlow-runtime -- examples/ARG"
+script = ["cargo run -p phlow-runtime -- examples/${@}"]
+args = []
+
+[tasks.local]
+workspace = false
+description = "Executa ./scripts/local-packages.sh ARG"
+script = [
+    "chmod +x ./scripts/local-packages.sh",
+    "./scripts/local-packages.sh ${@}",
+]
+args = []
