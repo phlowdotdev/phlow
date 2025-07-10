@@ -39,33 +39,30 @@ cargo install cross
 # Detect operating system or target
 # Use OS_SUFFIX and TARGET from environment if already set
 if [[ -z "$OS_SUFFIX" || -z "$TARGET" ]]; then
-  if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX=""; fi
-  if [[ -z "$TARGET" ]]; then TARGET=""; fi
-
-  if [[ -z "$OS_SUFFIX" || -z "$TARGET" ]]; then
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX="-darwin"; fi
-        if [[ -z "$TARGET" ]]; then TARGET="x86_64-apple-darwin"; fi
-        if [[ "$(uname -m)" == "arm64" ]]; then
+        ARCH=$(uname -m)
+        if [[ "$ARCH" == "arm64" ]]; then
             OS_SUFFIX="-darwin-aarch64"
             TARGET="aarch64-apple-darwin"
-        fi
-        if [[ "$(uname -m)" == "x86_64" ]]; then
+        elif [[ "$ARCH" == "x86_64" ]]; then
             OS_SUFFIX="-darwin-x86_64"
+            TARGET="x86_64-apple-darwin"
+        else
+            OS_SUFFIX="-darwin"
             TARGET="x86_64-apple-darwin"
         fi
         MODULE_EXTENSION="dylib"
-        echo "🍎 Detected macOS platform"
+        echo "🍎 Detected macOS platform ($ARCH)"
     elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
         ARCH=$(uname -m)
         if [[ "$ARCH" == "x86_64" ]]; then
-            if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX="-linux-amd64"; fi
-            if [[ -z "$TARGET" ]]; then TARGET="x86_64-unknown-linux-gnu"; fi
+            OS_SUFFIX="-linux-amd64"
+            TARGET="x86_64-unknown-linux-gnu"
             MODULE_EXTENSION="so"
             echo "🐧 Detected Linux amd64 platform"
         elif [[ "$ARCH" == "aarch64" ]]; then
-            if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX="-linux-aarch64"; fi
-            if [[ -z "$TARGET" ]]; then TARGET="aarch64-unknown-linux-gnu"; fi
+            OS_SUFFIX="-linux-aarch64"
+            TARGET="aarch64-unknown-linux-gnu"
             MODULE_EXTENSION="so"
             echo "🐧 Detected Linux aarch64 platform"
         else
@@ -76,13 +73,18 @@ if [[ -z "$OS_SUFFIX" || -z "$TARGET" ]]; then
         echo "⚠️ Unknown OSTYPE: $OSTYPE"
         exit 1
     fi
-  fi
 fi
 
-# Define a extensão padrão se não foi definida
+# Define a extensão padrão se não foi definida (apenas como fallback)
 if [[ -z "$MODULE_EXTENSION" ]]; then
-    MODULE_EXTENSION="so"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        MODULE_EXTENSION="dylib"
+    else
+        MODULE_EXTENSION="so"
+    fi
 fi
+
+echo "🔧 Using MODULE_EXTENSION: $MODULE_EXTENSION"
 
 # Cria a pasta de destino
 DEST_DIR="./phlow_packages"
@@ -100,7 +102,8 @@ fi
 
 package_module() {
     MODULE_DIR="$1"
-    MODULE_EXTENSION="${MODULE_EXTENSION:-so}"
+    # REMOVIDO: MODULE_EXTENSION="${MODULE_EXTENSION:-so}"
+    # A variável MODULE_EXTENSION já foi definida globalmente
     
     # Salva o diretório atual (raiz do projeto)
     PROJECT_ROOT="$(pwd)"
