@@ -5,42 +5,43 @@ set -e
 cargo install cross
 
 # Detect operating system or target
-# Use OS_SUFFIX and TARGET from environment if already set
-if [[ -z "$OS_SUFFIX" || -z "$TARGET" ]]; then
+# Define OS_SUFFIX, TARGET e MODULE_EXTENSION dinamicamente
+if [[ -z "$OS_SUFFIX" || -z "$TARGET" || -z "$MODULE_EXTENSION" ]]; then
   if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX=""; fi
   if [[ -z "$TARGET" ]]; then TARGET=""; fi
+  if [[ -z "$MODULE_EXTENSION" ]]; then MODULE_EXTENSION=""; fi
 
-  if [[ -z "$OS_SUFFIX" || -z "$TARGET" ]]; then
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX="-darwin"; fi
-        if [[ -z "$TARGET" ]]; then TARGET="x86_64-apple-darwin"; fi
-        if [[ "$(uname -m)" == "arm64" ]]; then
-            OS_SUFFIX="-darwin-aarch64"
-            TARGET="aarch64-apple-darwin"
-        fi
-        if [[ "$(uname -m)" == "x86_64" ]]; then
-            OS_SUFFIX="-darwin-x86_64"
-            TARGET="x86_64-apple-darwin"
-        fi
-        echo "🍎 Detected macOS platform"
-    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        ARCH=$(uname -m)
-        if [[ "$ARCH" == "x86_64" ]]; then
-            if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX="-linux-amd64"; fi
-            if [[ -z "$TARGET" ]]; then TARGET="x86_64-unknown-linux-gnu"; fi
-            echo "🐧 Detected Linux amd64 platform"
-        elif [[ "$ARCH" == "aarch64" ]]; then
-            if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX="-linux-aarch64"; fi
-            if [[ -z "$TARGET" ]]; then TARGET="aarch64-unknown-linux-gnu"; fi
-            echo "🐧 Detected Linux aarch64 platform"
-        else
-            echo "⚠️ Unknown Linux architecture: $ARCH"
-            exit 1
-        fi
-    else
-        echo "⚠️ Unknown OSTYPE: $OSTYPE"
-        exit 1
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX="-darwin"; fi
+    if [[ -z "$TARGET" ]]; then TARGET="x86_64-apple-darwin"; fi
+    if [[ "$(uname -m)" == "arm64" ]]; then
+        OS_SUFFIX="-darwin-aarch64"
+        TARGET="aarch64-apple-darwin"
+    elif [[ "$(uname -m)" == "x86_64" ]]; then
+        OS_SUFFIX="-darwin-x86_64"
+        TARGET="x86_64-apple-darwin"
     fi
+    MODULE_EXTENSION="dylib"
+    echo "🍎 Detected macOS platform"
+  elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    ARCH=$(uname -m)
+    if [[ "$ARCH" == "x86_64" ]]; then
+      if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX="-linux-amd64"; fi
+      if [[ -z "$TARGET" ]]; then TARGET="x86_64-unknown-linux-gnu"; fi
+      MODULE_EXTENSION="so"
+      echo "🐧 Detected Linux amd64 platform"
+    elif [[ "$ARCH" == "aarch64" ]]; then
+      if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX="-linux-aarch64"; fi
+      if [[ -z "$TARGET" ]]; then TARGET="aarch64-unknown-linux-gnu"; fi
+      MODULE_EXTENSION="so"
+      echo "🐧 Detected Linux aarch64 platform"
+    else
+      echo "⚠️ Unknown Linux architecture: $ARCH"
+      exit 1
+    fi
+  else
+    echo "⚠️ Unknown OSTYPE: $OSTYPE"
+    exit 1
   fi
 fi
 
@@ -65,7 +66,6 @@ fi
 
 package_module() {
     MODULE_DIR="$1"
-    MODULE_EXTENSION="${MODULE_EXTENSION:-so}"
 
     cd "$MODULE_DIR"
 
