@@ -12,29 +12,29 @@ permissions:
   checks: read
 
 jobs:
-  # build_darwin:
-  #   runs-on: macos-latest
-  #   env:
-  #     OS_SUFFIX: -darwin-aarch64
-  #     TARGET: aarch64-apple-darwin
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
-  #       with:
-  #         fetch-depth: 0
+  build_darwin:
+    runs-on: macos-latest
+    env:
+      OS_SUFFIX: -darwin-aarch64
+      TARGET: aarch64-apple-darwin
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-  #     - name: Make scripts executable
-  #       run: chmod +x ./scripts/*.sh
+      - name: Make scripts executable
+        run: chmod +x ./scripts/*.sh
 
-  #     - name: Run packages script
-  #       run: TARGET=aarch64-apple-darwin ./scripts/packages.sh
+      - name: Run packages script
+        run: TARGET=x86_64-apple-darwin ./scripts/packages.sh
 
-  #     - name: Upload Mac packages
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: darwin-packages
-  #         path: ./packages
-  #         retention-days: 1
+      - name: Upload Mac packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: darwin-packages
+          path: ./packages
+          retention-days: 1
 
   build_linux_amd64:
     runs-on: ubuntu-latest
@@ -98,7 +98,7 @@ jobs:
 
   deploy:
     needs: 
-      # - build_darwin
+      - build_darwin
       - build_linux_amd64
       - build_linux_aarch64
     runs-on: ubuntu-latest
@@ -117,11 +117,11 @@ jobs:
       - name: Create raw directory
         run: mkdir -p raw
 
-      # - name: Download Mac packages
-      #   uses: actions/download-artifact@v4
-      #   with:
-      #     name: darwin-packages
-      #     path: darwin-packages
+      - name: Download Mac packages
+        uses: actions/download-artifact@v4
+        with:
+          name: darwin-packages
+          path: darwin-packages
 
       - name: Download Ubuntu packages
         uses: actions/download-artifact@v4
