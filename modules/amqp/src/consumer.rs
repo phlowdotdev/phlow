@@ -19,24 +19,6 @@ pub async fn consumer(
     let id = Arc::new(id);
 
     // Declare queue if not already declared
-    if !config.declare {
-        let queue_options = QueueDeclareOptions {
-            durable: config.queue_durable,
-            exclusive: config.queue_exclusive,
-            auto_delete: config.queue_auto_delete,
-            ..Default::default()
-        };
-
-        channel
-            .queue_declare(
-                &config.queue_name,
-                queue_options,
-                FieldTable::default(),
-            )
-            .await?;
-        debug!("Consumer declared queue: {}", config.queue_name);
-    }
-
     let consumer = channel
         .basic_consume(
             &config.queue_name,
