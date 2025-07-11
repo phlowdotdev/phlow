@@ -11,6 +11,8 @@ description: |
   - Auto-declaration of exchanges, queues, and bindings
   - Configurable durability, exclusivity, and auto-deletion
   - Support for all AMQP exchange types (direct, fanout, topic, headers)
+  - Custom headers support for messages
+  - Import and automatic creation of vhosts, exchanges, queues, and bindings using `reqwest`
   - Automatic queue binding to exchanges
   - SSL/TLS support via OpenSSL
   - Full observability with OpenTelemetry tracing
@@ -35,6 +37,10 @@ description: |
     - use: amqp
       input:
         message: '{"task": "process_data"}'
+        headers:
+          content-type: "application/json"
+          priority: "high"
+          timestamp: "2024-01-01T00:00:00Z"
   ```
 version: 0.0.1
 author: Philippe Assis <codephilippe@gmail.com>
@@ -69,6 +75,26 @@ with:
       type: string
       required: false
       description: "AMQP password"
+    vhost:
+      type: string
+      required: false
+      description: "AMQP virtual host (default: /)"
+    use_ssl:
+      type: boolean
+      required: false
+      description: "Use SSL/TLS for connection"
+    ssl_ca_cert:
+      type: string
+      required: false
+      description: "SSL CA certificate file path"
+    ssl_client_cert:
+      type: string
+      required: false
+      description: "SSL client certificate file path"
+    ssl_client_key:
+      type: string
+      required: false
+      description: "SSL client key file path"
     routing_key:
       type: string
       required: true
@@ -122,6 +148,22 @@ with:
       type: object
       required: false
       description: "RabbitMQ definitions to import via Management API"
+    connection_timeout:
+      type: integer
+      required: false
+      description: "Connection timeout in seconds"
+    heartbeat:
+      type: integer
+      required: false
+      description: "Heartbeat interval in seconds"
+    channel_max:
+      type: integer
+      required: false
+      description: "Maximum number of channels"
+    frame_max:
+      type: integer
+      required: false
+      description: "Maximum frame size"
 input:
   type: object
   required: true
@@ -130,6 +172,10 @@ input:
       type: any
       required: true
       description: "Message to send"
+    headers:
+      type: object
+      required: false
+      description: "Custom headers to include with the message"
 output:
   type: object
   required: true
