@@ -12,13 +12,30 @@ modules:
       exchange: my.exchange
       queue_name: my.queue
       exchange_type: direct
-      declare: true
-      auto_bind: true
-      queue_durable: true
-      exchange_durable: true
-      queue_exclusive: false
-      queue_auto_delete: false
-  - module: log
+      definition:
+        vhosts:
+          - name: "/"
+        exchanges:
+          - name: my.exchange
+            vhost: "/"
+            type: direct
+            durable: true
+            auto_delete: false
+            internal: false
+            arguments: {}
+        queues:
+          - name: my.queue
+            vhost: "/"
+            durable: true
+            auto_delete: false
+            arguments: {}
+        bindings:
+          - source: my.exchange
+            vhost: "/"
+            destination: my.queue
+            destination_type: queue
+            routing_key: my.routing.key
+            arguments: {}
     version: latest
 steps:
   - condition:
