@@ -11,13 +11,16 @@ create_main!(start_server(setup));
 pub async fn start_server(
     setup: ModuleSetup,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    debug!("AMQP start_server called");
     let config = Config::try_from(&setup.with).map_err(|e| format!("{:?}", e))?;
+    debug!("Config created successfully");
 
-    let conn = Connection::connect(
-        &config.to_connection_string(),
-        ConnectionProperties::default(),
-    )
-    .await?;
+    let uri: String = match config.uri.clone() {
+        Some(uri) => uri,
+        None => config.to_connection_string(),
+    };
+
+    let conn = Connection::connect(&uri, ConnectionProperties::default()).await?;
 
     debug!("Connected to RabbitMQ");
 

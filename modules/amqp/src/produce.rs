@@ -58,7 +58,7 @@ impl ProducerResponse {
 pub async fn producer(
     setup_sender: ModuleSetupSender,
     config: Config,
-    channel: lapin::Channel,
+    mut channel: lapin::Channel,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let (tx, rx) = channel::unbounded::<ModulePackage>();
     setup_sender
@@ -66,6 +66,13 @@ pub async fn producer(
         .map_err(|e| format!("{:?}", e))?;
 
     debug!("Producer started");
+
+    // Create connection for potential channel recreation
+    let uri = match config.uri.clone() {
+        Some(uri) => uri,
+        None => config.to_connection_string(),
+    };
+    let conn = lapin::Connection::connect(&uri, lapin::ConnectionProperties::default()).await?;
 
     for package in rx {
         debug!("Received package");
@@ -84,7 +91,23 @@ pub async fn producer(
             _ => config.routing_key.as_str(),
         };
 
-        let confirm = channel
+        // Check if channel is closed and recreate if needed
+        if !channel.status().connected() {
+            debug!("Channel is closed, recreating...");
+            match conn.create_channel().await {
+                Ok(new_channel) => {
+                    channel = new_channel;
+                    debug!("Channel recreated successfully");
+                }
+                Err(e) => {
+                    let response = ProducerResponse::from_error(&format!("Failed to recreate channel: {}", e));
+                    let _ = package.sender.send(response.to_value().into());
+                    continue;
+                }
+            }
+        }
+
+        let publish_result = channel
             .basic_publish(
                 &config.exchange,
                 routing_key,
@@ -92,8 +115,25 @@ pub async fn producer(
                 input.message.as_bytes(),
                 input.basic_props,
             )
-            .await?
-            .await?;
+            .await;
+
+        let confirm = match publish_result {
+            Ok(confirm_future) => {
+                match confirm_future.await {
+                    Ok(confirm) => confirm,
+                    Err(e) => {
+                        let response = ProducerResponse::from_error(&format!("Publish confirmation error: {}", e));
+                        let _ = package.sender.send(response.to_value().into());
+                        continue;
+                    }
+                }
+            }
+            Err(e) => {
+                let response = ProducerResponse::from_error(&format!("Publish error: {}", e));
+                let _ = package.sender.send(response.to_value().into());
+                continue;
+            }
+        };
 
         debug!("Published message to {} ({})", config.exchange, routing_key);
 
