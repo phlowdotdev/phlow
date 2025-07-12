@@ -18,7 +18,7 @@ modules:
         vhosts:
           - name: /
         exchanges:
-          - name: striper.exchange
+          - name: striper.exchangexxxx
             vhost: /
             type: direct
             durable: true
