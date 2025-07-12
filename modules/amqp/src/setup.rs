@@ -161,8 +161,6 @@ fn import_definition(
 ) -> Result<(), Box<dyn std::error::Error>> {
     debug!("Starting import_definition function");
 
-    println!("{:?}", definition.to_json(JsonMode::Indented));
-
     if let Some(obj) = definition.as_object() {
         debug!("Definition parsed as object successfully");
         let client = reqwest::blocking::Client::new();
