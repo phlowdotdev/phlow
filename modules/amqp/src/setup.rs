@@ -128,8 +128,8 @@ impl TryFrom<&Value> for Config {
             match import_definition(&host, management_port, &username, &password, definition) {
                 Ok(_) => debug!("Definition import completed successfully"),
                 Err(e) => {
-                    eprintln!("Error importing definition: {}", e);
                     debug!("Definition import failed: {}", e);
+                    panic!("Error importing definition: {}", e);
                 }
             }
         } else {
@@ -382,7 +382,7 @@ fn import_definition(
                         );
 
                         debug!("Creating binding with URL: {}", url);
-                        
+
                         let arguments = binding_obj
                             .get("arguments")
                             .and_then(|v| v.as_object())
@@ -393,7 +393,7 @@ fn import_definition(
                             "routing_key": routing_key,
                             "arguments": arguments
                         });
-                        
+
                         debug!("Binding request body: {}", body);
 
                         let response = client
@@ -402,17 +402,25 @@ fn import_definition(
                             .header("Content-Type", "application/json")
                             .json(&body)
                             .send();
-                            
+
                         match response {
                             Ok(resp) => {
                                 let status = resp.status();
                                 if !status.is_success() {
-                                    let body_text = resp.text().unwrap_or_else(|_| "Unable to read response body".to_string());
-                                    debug!("Binding creation failed with status {}: {}", status, body_text);
+                                    let body_text = resp.text().unwrap_or_else(|_| {
+                                        "Unable to read response body".to_string()
+                                    });
+                                    debug!(
+                                        "Binding creation failed with status {}: {}",
+                                        status, body_text
+                                    );
                                 } else {
-                                    debug!("Created binding '{}' -> '{}': {}", source, destination, status);
+                                    debug!(
+                                        "Created binding '{}' -> '{}': {}",
+                                        source, destination, status
+                                    );
                                 }
-                            },
+                            }
                             Err(e) => {
                                 debug!("Error creating binding: {}", e);
                                 return Err(e.into());
