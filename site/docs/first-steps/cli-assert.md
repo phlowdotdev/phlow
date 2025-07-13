@@ -13,7 +13,7 @@ description: Check if you are a student.
 author: Your Name
 modules: 
   - module: cli
-    version: latest
+    # version: latest (optional - defaults to latest)
     with:
       additional_args: false
       args: 

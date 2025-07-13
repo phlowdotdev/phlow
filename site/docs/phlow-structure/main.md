@@ -8,11 +8,11 @@ The `main.yaml` file defines the flow's metadata and execution logic. By default
 
 | Field        | Description |
 |--------------|-------------|
-| `main`       | Specifies the main module, typically providing initial context (e.g., `cli` for command-line arguments). |
+|| `main`       | **Optional.** Specifies the main module, typically providing initial context (e.g., `cli` for command-line arguments). If not specified, the flow will execute steps directly. |
 | `name`       | A user-friendly name for the flow. |
 | `version`    | The flow's semantic version. |
 | `description`| A brief summary of the flow's purpose. |
-| `modules`    | A list of required modules (loaded using `!include`). |
+|| `modules`    | **Optional.** A list of required modules (loaded using `!include`). If not specified, the flow will run without external modules. |
 | `steps`      | The sequence of steps the flow will execute. |
 
 
@@ -50,3 +50,23 @@ modules: !include modules.yaml
 steps:
     # Flow execution steps
 ```
+
+## Simple Flows Without Main Module
+
+Phlow also supports simple flows that don't require a main module. These flows execute steps directly without waiting for external input:
+
+```yaml
+name: Simple Greeting
+version: 1.0.0
+description: A simple greeting flow.
+steps:
+  - payload:
+      message: "Hello, World!"
+  - payload: !phs `Final result: ${ payload.message }`
+```
+
+This approach is useful for:
+- Batch processing
+- Data transformation
+- Simple automation tasks
+- Testing and prototyping

@@ -61,13 +61,27 @@ The "Are you a student?" flow operates as follows:
 ```
 main.yaml
  ├── Header (main, name, version, etc.)
- ├── modules: !include modules.yaml
+ ├── modules: !include modules.yaml (optional)
  └── steps: conditional execution flow
 
-modules.yaml
+modules.yaml (optional)
  └── CLI arguments definition
 
-scripts/
+scripts/ (optional)
  ├── condition.phs (age validation)
  └── output.phs (error message)
+```
+
+## Simplified Flows
+
+Phlow also supports simplified flows without a main module or external modules, perfect for simple automation:
+
+```yaml
+name: Simple Processing
+version: 1.0.0
+description: Process data without external dependencies
+steps:
+  - payload:
+      data: "Processing this information"
+  - payload: !phs `Result: ${ payload.data } - completed`
 ```
