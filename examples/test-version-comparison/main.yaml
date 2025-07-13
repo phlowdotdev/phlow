@@ -1,0 +1,19 @@
+modules:
+  - module: echo
+    name: echo_sem_versao
+    # Versão omitida - deve usar 'latest'
+    with:
+      prefix: "[SEM VERSÃO]"
+  - module: echo
+    name: echo_com_versao
+    version: latest
+    # Versão explícita
+    with:
+      prefix: "[COM VERSÃO]"
+steps:
+  - payload: "Teste de comparação"
+  - echo_sem_versao:
+      message: !phs `${ payload }`
+  - echo_com_versao:
+      message: !phs `${ payload }`
+  - payload: !phs `Ambos funcionaram com 'latest': ${ payload }`

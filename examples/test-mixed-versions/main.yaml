@@ -1,0 +1,23 @@
+main: cli
+modules:
+  - module: cli
+    # Versão omitida - usará 'latest'
+    with:
+      additional_args: false
+      args: 
+        - name: name
+          description: Nome do usuário
+          index: 1
+          type: string
+          required: true
+  - module: log
+    version: latest
+    # Versão explícita - usará 'latest'
+    with:
+      level: info
+steps:
+  - payload:
+      user_name: !phs main.name
+  - log:
+      message: !phs `Processando dados para usuário: ${ payload.user_name }`
+  - payload: !phs `Processamento concluído para ${ payload.user_name }`
