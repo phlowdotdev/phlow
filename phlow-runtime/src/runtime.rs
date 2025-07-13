@@ -12,7 +12,7 @@ use phlow_sdk::tokio;
 use phlow_sdk::{
     prelude::Value,
     structs::{ModulePackage, ModuleSetup, Modules},
-    tracing::{dispatcher, Dispatch},
+    tracing::{self, dispatcher, Dispatch},
 };
 use std::fmt::Display;
 use std::sync::Arc;
@@ -22,7 +22,6 @@ use tokio::sync::oneshot;
 
 #[derive(Debug)]
 pub enum RuntimeError {
-    MainModuleNotFound,
     ModuleWithError(ScriptError),
     ModuleRegisterError,
     FlowExecutionError(String),
@@ -31,7 +30,6 @@ pub enum RuntimeError {
 impl Display for RuntimeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RuntimeError::MainModuleNotFound => write!(f, "Main module not found"),
             RuntimeError::ModuleRegisterError => write!(f, "Module register error"),
             RuntimeError::FlowExecutionError(err) => write!(f, "Flow execution error: {}", err),
             RuntimeError::ModuleWithError(err) => write!(f, "Module with error: {}", err),
@@ -119,8 +117,24 @@ impl Runtime {
             }
         }
 
+        // Se não há main definido, forçar o início dos steps
         if loader.main == -1 {
-            return Err(RuntimeError::MainModuleNotFound);
+            // Criar um span padrão para o início dos steps
+            let span = tracing::span!(
+                tracing::Level::INFO,
+                "auto_start_steps",
+                otel.name = "phlow auto start"
+            );
+
+            // Enviar um pacote vazio para iniciar os steps
+            let empty_package = Package {
+                response: None,
+                request_data: None,
+                origin: 0,
+                span: Some(span),
+                dispatch: Some(dispatch.clone()),
+            };
+            tx_main_package.send(empty_package).unwrap();
         }
 
         drop(tx_main_package);
@@ -170,15 +184,20 @@ impl Runtime {
                             let rt = tokio::runtime::Handle::current();
 
                             rt.block_on(async {
-                                if let Some(data) = package.get_data() {
-                                    let mut context = Context::from_main(data.clone());
-                                    match flow.execute(&mut context).await {
-                                        Ok(result) => {
-                                            package.send(result.unwrap_or(Value::Null));
+                                // Se há dados, use-os; senão, use um contexto vazio
+                                let data = package.get_data().cloned().unwrap_or(Value::Null);
+                                let mut context = Context::from_main(data);
+                                match flow.execute(&mut context).await {
+                                    Ok(result) => {
+                                        let result_value = result.unwrap_or(Value::Null);
+                                        // Se não há response (módulo principal), imprimir o resultado
+                                        if package.response.is_none() {
+                                            println!("{}", result_value);
                                         }
-                                        Err(err) => {
-                                            error!("Runtime Error Execute Steps: {:?}", err);
-                                        }
+                                        package.send(result_value);
+                                    }
+                                    Err(err) => {
+                                        error!("Runtime Error Execute Steps: {:?}", err);
                                     }
                                 }
                             });

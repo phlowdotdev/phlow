@@ -352,12 +352,6 @@ fn import_definition(
                             .map(|s| s.as_string())
                             .unwrap_or("".to_string());
 
-                        let destination_type = binding_obj
-                            .get("destination_type")
-                            .and_then(|v| v.as_string_b())
-                            .map(|s| s.as_string())
-                            .unwrap_or("queue".to_string());
-
                         let vhost = binding_obj
                             .get("vhost")
                             .and_then(|v| v.as_string_b())

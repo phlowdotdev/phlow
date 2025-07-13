@@ -1,0 +1,3 @@
+steps:
+  - payload: "Teste simples sem módulo principal"
+  - payload: !phs `Resultado: ${ payload }`

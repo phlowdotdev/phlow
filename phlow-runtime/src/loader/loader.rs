@@ -210,7 +210,8 @@ fn resolve_main(file: &str, main_file_path: String, print_yaml: bool) -> Result<
 
         value.insert("modules", modules.clone());
     } else {
-        return Err(Error::ModuleLoaderError("Modules not found".to_string()));
+        // Se modules não foi definido, criar uma lista vazia
+        value.insert("modules", Value::Array(phlow_sdk::prelude::Array::new()));
     }
 
     Ok(value)
