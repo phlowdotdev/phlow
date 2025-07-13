@@ -1,0 +1,10 @@
+modules:
+  - module: log
+    # Versão omitida - deve usar 'latest'
+    with:
+      level: info
+steps:
+  - payload: "Teste com módulo sem versão especificada"
+  - log:
+      message: !phs `Log: ${ payload }`
+  - payload: !phs `Resultado: ${ payload }`

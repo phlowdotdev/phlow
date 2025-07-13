@@ -161,8 +161,6 @@ fn import_definition(
 ) -> Result<(), Box<dyn std::error::Error>> {
     debug!("Starting import_definition function");
 
-    println!("{:?}", definition.to_json(JsonMode::Indented));
-
     if let Some(obj) = definition.as_object() {
         debug!("Definition parsed as object successfully");
         let client = reqwest::blocking::Client::new();
@@ -353,12 +351,6 @@ fn import_definition(
                             .and_then(|v| v.as_string_b())
                             .map(|s| s.as_string())
                             .unwrap_or("".to_string());
-
-                        let destination_type = binding_obj
-                            .get("destination_type")
-                            .and_then(|v| v.as_string_b())
-                            .map(|s| s.as_string())
-                            .unwrap_or("queue".to_string());
 
                         let vhost = binding_obj
                             .get("vhost")

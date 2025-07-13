@@ -13,7 +13,7 @@ version: 1.0
 main: http_server
 modules:
   - module: http_server
-    version: latest
+    # version: latest (optional - defaults to latest)
 steps:
   - return:
       status_code: 200

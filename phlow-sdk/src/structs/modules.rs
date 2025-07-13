@@ -110,7 +110,7 @@ impl TryFrom<Value> for ModuleData {
 
         let version = match value.get("version") {
             Some(version) => version.to_string(),
-            None => return Err(Error::VersionNotFound(module.clone())),
+            None => "latest".to_string(),
         };
 
         let name = match value.get("name") {

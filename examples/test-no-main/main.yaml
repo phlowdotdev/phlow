@@ -1,0 +1,4 @@
+steps:
+  - payload:
+      use_name: John
+  - payload: !phs `Hello, ${ payload.use_name }! Welcome to the Phlow platform.`
