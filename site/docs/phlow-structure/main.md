@@ -1,8 +1,8 @@
 ---
 sidebar_position: 2
-title: Main Flow Structure (main.yaml)
+title: Main Flow Structure (main.phlow)
 ---
-The `main.yaml` file defines the flow's metadata and execution logic. By default, `main.yaml` is the primary file executed in Phlow, serving as the entry point for defining workflows and their associated configurations.
+The `main.phlow` file defines the flow's metadata and execution logic. By default, `main.phlow` is the primary file executed in Phlow, serving as the entry point for defining workflows and their associated configurations.
 
 ## Structure
 
@@ -31,7 +31,7 @@ steps:
 
 ## Custom Fields
 
-It is possible to add custom fields to the `main.yaml` file to better suit your workflow's needs. For example, you can include fields like `tags` to categorize your flow or `author` to specify the creator of the flow.
+It is possible to add custom fields to the `main.phlow` file to better suit your workflow's needs. For example, you can include fields like `tags` to categorize your flow or `author` to specify the creator of the flow.
 
 These fields can help improve the organization and documentation of your workflows.
 
