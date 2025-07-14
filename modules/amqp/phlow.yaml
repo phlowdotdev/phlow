@@ -59,6 +59,10 @@ with:
   type: object
   required: true
   properties:
+    uri: 
+      type: string
+      required: false
+      description: "AMQP URI (e.g., amqp://user:password@host:port/vhost)"
     host:
       type: string
       required: false
