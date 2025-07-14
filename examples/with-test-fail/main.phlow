@@ -1,6 +1,6 @@
 tests: 
   - main:
-      total: 2
+      total: 3
     payload: 10
     assert_eq: Total is 20
   - main:

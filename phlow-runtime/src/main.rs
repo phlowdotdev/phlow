@@ -3,6 +3,7 @@ mod memory;
 mod package;
 mod runtime;
 mod settings;
+mod test_runner;
 mod yaml;
 use loader::Loader;
 use log::debug;
@@ -103,8 +104,25 @@ async fn main() {
         loader.update_info();
 
         if !settings.only_download_modules {
-            if let Err(rr) = Runtime::run(loader, dispatch.clone(), settings).await {
-                error!("Runtime Error: {:?}", rr);
+            if settings.test {
+                // Run tests
+                match test_runner::run_tests(loader).await {
+                    Ok(summary) => {
+                        // Exit with error code if tests failed
+                        if summary.failed > 0 {
+                            std::process::exit(1);
+                        }
+                    }
+                    Err(err) => {
+                        eprintln!("Test execution error: {}", err);
+                        std::process::exit(1);
+                    }
+                }
+            } else {
+                // Run normal workflow
+                if let Err(rr) = Runtime::run(loader, dispatch.clone(), settings).await {
+                    error!("Runtime Error: {:?}", rr);
+                }
             }
         }
     };

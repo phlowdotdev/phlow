@@ -12,6 +12,7 @@ pub struct Settings {
     pub no_run: bool,
     pub download: bool,
     pub print_yaml: bool,
+    pub test: bool,
 
     // envs
     pub package_consumer_count: i32,
@@ -46,6 +47,7 @@ impl Settings {
             default_package_repository_url: envs.default_package_repository_url,
             download: cli.download,
             print_yaml: cli.print_yaml,
+            test: cli.test,
         };
 
         Ok(settings)
