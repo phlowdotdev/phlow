@@ -104,6 +104,11 @@ with:
       type: integer
       required: false
       description: "RabbitMQ Management API port (default: 15672)"
+    definition:
+      type: object
+      required: false
+      aditional_properties: true
+      description: "RabbitMQ definitions to import via Management API (https://www.rabbitmq.com/docs/definitions)"
 input:
   type: object
   required: true
