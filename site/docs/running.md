@@ -5,7 +5,7 @@ hide_title: true
 ---
 #  Running a Flow
 
-By default, Phlow will look for a \`main.yaml\` in the current directory:
+By default, Phlow will look for a \`main.phlow\` in the current directory:
 
 ```bash
 phlow
@@ -14,14 +14,14 @@ phlow
 To run a specific file:
 
 ```bash
-phlow path/to/your-flow.yaml
+phlow path/to/your-flow.phlow
 ```
 
-If you provide a directory path and it contains a \`main.yaml\`, Phlow will automatically run that:
+If you provide a directory path and it contains a \`main.phlow\`, Phlow will automatically run that:
 
 ```bash
 phlow path/to/directory
-# → runs path/to/directory/main.yaml
+# → runs path/to/directory/main.phlow
 ```
 
 ###  Help
