@@ -27,6 +27,17 @@ impl Display for PhlowError {
     }
 }
 
+impl std::error::Error for PhlowError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            PhlowError::TransformError(err) => Some(err),
+            PhlowError::PipelineError(err) => Some(err),
+            PhlowError::PipelineNotFound => None,
+            PhlowError::ParentError => None,
+        }
+    }
+}
+
 pub type PipelineMap = HashMap<usize, Pipeline>;
 
 #[derive(Debug, Default)]

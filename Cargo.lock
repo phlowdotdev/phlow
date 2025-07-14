@@ -2554,6 +2554,8 @@ dependencies = [
  "regex",
  "rhai",
  "serde",
+ "tokio",
+ "valu3",
 ]
 
 [[package]]

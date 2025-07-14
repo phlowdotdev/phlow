@@ -18,6 +18,14 @@ impl Display for PipelineError {
     }
 }
 
+impl std::error::Error for PipelineError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            PipelineError::StepWorkerError(err) => Some(err),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Pipeline {
     pub(crate) steps: Vec<StepWorker>,

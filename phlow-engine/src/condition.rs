@@ -28,6 +28,18 @@ impl Display for ConditionError {
     }
 }
 
+impl std::error::Error for ConditionError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            ConditionError::InvalidOperator(_) => None,
+            ConditionError::RightInvalid(_) => None,
+            ConditionError::LeftInvalid(_) => None,
+            ConditionError::AssertInvalid(_) => None,
+            ConditionError::ScriptError(_) => None, // ScriptError doesn't implement std::error::Error
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum Operator {
     Or,
