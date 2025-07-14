@@ -79,22 +79,6 @@ with:
       type: string
       required: false
       description: "AMQP virtual host (default: /)"
-    use_ssl:
-      type: boolean
-      required: false
-      description: "Use SSL/TLS for connection"
-    ssl_ca_cert:
-      type: string
-      required: false
-      description: "SSL CA certificate file path"
-    ssl_client_cert:
-      type: string
-      required: false
-      description: "SSL client certificate file path"
-    ssl_client_key:
-      type: string
-      required: false
-      description: "SSL client key file path"
     routing_key:
       type: string
       required: true
@@ -112,58 +96,14 @@ with:
       type: string
       required: false
       description: "AMQP consumer tag"
-    declare:
-      type: boolean
-      required: false
-      description: "Declare exchange and queue"
     queue_name:
       type: string
       required: false
       description: "AMQP queue name (if different from routing_key)"
-    auto_bind:
-      type: boolean
-      required: false
-      description: "Automatically bind queue to exchange with routing_key"
-    queue_durable:
-      type: boolean
-      required: false
-      description: "Make queue durable"
-    queue_exclusive:
-      type: boolean
-      required: false
-      description: "Make queue exclusive"
-    queue_auto_delete:
-      type: boolean
-      required: false
-      description: "Auto delete queue when no consumers"
-    exchange_durable:
-      type: boolean
-      required: false
-      description: "Make exchange durable"
     management_port:
       type: integer
       required: false
       description: "RabbitMQ Management API port (default: 15672)"
-    definition:
-      type: object
-      required: false
-      description: "RabbitMQ definitions to import via Management API"
-    connection_timeout:
-      type: integer
-      required: false
-      description: "Connection timeout in seconds"
-    heartbeat:
-      type: integer
-      required: false
-      description: "Heartbeat interval in seconds"
-    channel_max:
-      type: integer
-      required: false
-      description: "Maximum number of channels"
-    frame_max:
-      type: integer
-      required: false
-      description: "Maximum frame size"
 input:
   type: object
   required: true
