@@ -6,8 +6,6 @@ COPY . .
 
 RUN cargo build --release -p phlow-runtime
 
-RUN ls
-
 FROM debian:bookworm-slim
 
 WORKDIR /app
