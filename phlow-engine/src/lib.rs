@@ -16,12 +16,14 @@
 //! This example demonstrates a **decision tree** to determine if a person can become a club member.
 //!
 //! ```rust
-//! use phlow::phlow;
-//! use phlow::Engine;
+//! use phlow_engine::{Phlow, Context};
+//! use phs::build_engine;
+//! use valu3::prelude::*;
 //! use valu3::json;
-//! use phlow::context::Context;
+//! use std::sync::Arc;
 //!
-//! fn main() {
+//! # #[tokio::main]
+//! # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     let decision_tree = json!({
 //!       "steps": [
 //!         {
@@ -54,14 +56,13 @@
 //!       ]
 //!     });
 //!
-//!     let engine = build_engine(None);
-//!     let phlow = phlow::try_from_value(&engine, &decision_tree, None, None).unwrap();
-//!
-//!     let mut context = Context::new(Some(json!({ "age": 20, "income": 6000.0 })));
-//!     let result = phlow.execute_with_context(&mut context).unwrap();
+//!     let phlow = Phlow::try_from_value(&decision_tree, None)?;
+//!     let mut context = Context::from_main(json!({ "age": 20, "income": 6000.0 }));
+//!     let result = phlow.execute(&mut context).await?;
 //!
 //!     println!("Decision: {:?}", result);
-//! }
+//! # Ok(())
+//! # }
 //! ```
 //!
 //! ## Modules
@@ -93,38 +94,40 @@
 //!
 //! ### Adding Custom Plugins
 //!
-//! Users can **extend phlow** by adding custom functions to the execution engine:
+//! Users can **extend phlow** by adding custom functions to the execution engine.
+//! The phlow engine supports extending functionality through custom Rhai functions
+//! and repositories that can be injected into the scripting environment.
 //!
-//! ```rust
-//! use phlow::engine::{build_engine, Plugins, PluginFunction};
-//! use valu3::value::Value;
-//! use std::collections::HashMap;
-//! use std::sync::Arc;
-//!
-//! fn main() {
-//!     let mut plugins = HashMap::new();
-//!
-//!     let custom_function = plugin!(|value| {
-//!         Value::from(format!("Processed: {}", value.to_string()))
-//!     });
-//!     
-//!     plugins.insert("custom_process".to_string(), custom_function);
-//!     let engine = build_engine(Some(Plugins { plugins }));
-//!
-//!     let result: Value = engine.eval("custom_process(\"Hello\")").unwrap();
-//!     println!("Result: {:?}", result);
-//! }
-//! ```
+//! For detailed examples of extending the engine, see the `phs` module documentation
+//! and the `build_engine` function.
 //!
 //! ### Handling Execution Errors
 //!
 //! Errors during workflow execution are returned as `Result<T, PhlowError>`:
 //!
 //! ```rust
-//! match phlow.execute_with_context(&mut context) {
-//!     Ok(result) => println!("Execution succeeded: {:?}", result),
-//!     Err(err) => eprintln!("Execution failed: {:?}", err),
-//! }
+//! use phlow_engine::{Phlow, Context};
+//! use valu3::prelude::*;
+//! use valu3::json;
+//!
+//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//!     let workflow = json!({
+//!       "steps": [
+//!         {
+//!           "return": "Success"
+//!         }
+//!       ]
+//!     });
+//!
+//!     let phlow = Phlow::try_from_value(&workflow, None)?;
+//!     let mut context = Context::from_main(json!({"key": "value"}));
+//!
+//!     match phlow.execute(&mut context).await {
+//!         Ok(result) => println!("Execution succeeded: {:?}", result),
+//!         Err(err) => eprintln!("Execution failed: {:?}", err),
+//!     }
+//! # Ok(())
+//! # }
 //! ```
 //!
 //! ## License
@@ -142,4 +145,4 @@ pub mod transform;
 pub use phs;
 
 pub use context::Context;
-pub use phlow::Phlow;
+pub use phlow::{Phlow, PhlowError};

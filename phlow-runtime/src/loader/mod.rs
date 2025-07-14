@@ -21,6 +21,7 @@ pub struct Loader {
     pub modules: Vec<ModuleData>,
     pub steps: Value,
     pub app_data: ApplicationData,
+    pub tests: Option<Value>,
 }
 
 impl Loader {
@@ -84,11 +85,15 @@ impl Loader {
             homepage,
         };
 
+        // Extract tests if they exist
+        let tests = value.get("tests").cloned();
+
         Ok(Self {
             main,
             modules,
             steps,
             app_data,
+            tests,
         })
     }
 

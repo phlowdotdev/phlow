@@ -3,6 +3,7 @@ mod memory;
 mod package;
 mod runtime;
 mod settings;
+mod test_runner;
 mod yaml;
 use loader::Loader;
 use log::debug;
@@ -46,7 +47,13 @@ async fn main() {
 
     debug!("Starting Phlow Runtime");
 
-    let settings = Settings::try_load().expect("Error loading settings");
+    let settings = match Settings::try_load() {
+        Ok(settings) => settings,
+        Err(err) => {
+            error!("Error loading settings: {:?}", err);
+            std::process::exit(1);
+        }
+    };
 
     if let Some(publish_path) = settings.package_path.clone() {
         match Package::try_from(publish_path) {
@@ -77,23 +84,45 @@ async fn main() {
 
     let guard = init_tracing_subscriber(loader.app_data.clone());
 
-    tracing::dispatcher::set_global_default(guard.dispatch.clone())
-        .expect("failed to set global subscriber"); // ✅ depois aplica global
+    if let Err(err) = tracing::dispatcher::set_global_default(guard.dispatch.clone()) {
+        error!("Failed to set global subscriber: {:?}", err);
+        std::process::exit(1);
+    }
 
     let dispatch = guard.dispatch.clone();
     let fut = async {
         if settings.download {
-            loader
+            if let Err(err) = loader
                 .download(&settings.default_package_repository_url)
                 .await
-                .expect("Download failed");
+            {
+                error!("Download failed: {:?}", err);
+                return;
+            }
         }
 
         loader.update_info();
 
         if !settings.only_download_modules {
-            if let Err(rr) = Runtime::run(loader, dispatch.clone(), settings).await {
-                error!("Runtime Error: {:?}", rr);
+            if settings.test {
+                // Run tests
+                match test_runner::run_tests(loader).await {
+                    Ok(summary) => {
+                        // Exit with error code if tests failed
+                        if summary.failed > 0 {
+                            std::process::exit(1);
+                        }
+                    }
+                    Err(err) => {
+                        eprintln!("Test execution error: {}", err);
+                        std::process::exit(1);
+                    }
+                }
+            } else {
+                // Run normal workflow
+                if let Err(rr) = Runtime::run(loader, dispatch.clone(), settings).await {
+                    error!("Runtime Error: {:?}", rr);
+                }
             }
         }
     };

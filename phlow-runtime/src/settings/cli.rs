@@ -14,6 +14,7 @@ pub struct Cli {
     pub no_run: bool,
     pub download: bool,
     pub print_yaml: bool,
+    pub test: bool,
 }
 
 impl Cli {
@@ -74,11 +75,18 @@ impl Cli {
                     .value_parser(clap::builder::BoolishValueParser::new())
                     .action(ArgAction::SetTrue)
                     .default_value("false"),
+            )
+            .arg(
+                Arg::new("test")
+                    .long("test")
+                    .short('t')
+                    .help("Run tests defined in the phlow file")
+                    .value_parser(clap::builder::BoolishValueParser::new())
+                    .action(ArgAction::SetTrue)
+                    .default_value("false"),
             );
 
         let matches = command
-            .trailing_var_arg(true)
-            .allow_external_subcommands(true)
             .get_matches();
 
         let main = match matches.get_one::<String>("main_path") {
@@ -94,6 +102,7 @@ impl Cli {
         let download = *matches.get_one::<bool>("download").unwrap_or(&true);
 
         let print_yaml = *matches.get_one::<bool>("print_yaml").unwrap_or(&false);
+        let test = *matches.get_one::<bool>("test").unwrap_or(&false);
 
         Ok(Cli {
             main_target: main,
@@ -102,6 +111,7 @@ impl Cli {
             no_run,
             download,
             print_yaml,
+            test,
         })
     }
 }

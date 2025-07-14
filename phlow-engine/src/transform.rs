@@ -24,6 +24,15 @@ impl Display for TransformError {
     }
 }
 
+impl std::error::Error for TransformError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            TransformError::InnerStepError(err) => Some(err),
+            TransformError::Parser(_) => None, // valu3::Error doesn't implement std::error::Error
+        }
+    }
+}
+
 pub(crate) fn value_to_pipelines(
     engine: Arc<Engine>,
     modules: Arc<Modules>,

@@ -35,6 +35,17 @@ impl Display for StepWorkerError {
     }
 }
 
+impl std::error::Error for StepWorkerError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            StepWorkerError::ConditionError(err) => Some(err),
+            StepWorkerError::PayloadError(_) => None, // ScriptError doesn't implement std::error::Error
+            StepWorkerError::ModulesError(_) => None, // ModulesError doesn't implement std::error::Error
+            StepWorkerError::InputError(_) => None, // ScriptError doesn't implement std::error::Error
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum NextStep {
     Pipeline(usize),

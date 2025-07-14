@@ -917,6 +917,7 @@ name = "echo"
 version = "0.1.0"
 dependencies = [
  "phlow-sdk",
+ "serde_json",
 ]
 
 [[package]]
@@ -2553,6 +2554,8 @@ dependencies = [
  "regex",
  "rhai",
  "serde",
+ "tokio",
+ "valu3",
 ]
 
 [[package]]
