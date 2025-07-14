@@ -3,7 +3,7 @@ sidebar_position: 8
 title: Running Remote Projects
 ---
 
-Phlow supports running remote projects directly from URLs or Git repositories. You can pass a `.git`, `.zip`, or `.tar.gz` source — Phlow will automatically download, extract (if needed), and execute the flow from a `main.yaml`.
+Phlow supports running remote projects directly from URLs or Git repositories. You can pass a `.git`, `.zip`, or `.tar.gz` source — Phlow will automatically download, extract (if needed), and execute the flow from a `main.phlow`.
 
 ```bash
 # Git via SSH
@@ -50,6 +50,6 @@ phlow https://github.com/phlowdotdev/phlow-mirror-request/archive/refs/heads/mai
 ```
 
 ###  Auto-detection of inner folder
-If you don’t specify a folder name and the ZIP/GZIP file contains only one directory, Phlow will automatically treat it as the root and search for a `main.yaml` inside it.
+If you don’t specify a folder name and the ZIP/GZIP file contains only one directory, Phlow will automatically treat it as the root and search for a `main.phlow` inside it.
 
 If the archive contains multiple folders or any loose files in the root and no folder is specified, Phlow will return an error.
