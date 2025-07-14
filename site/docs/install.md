@@ -40,7 +40,7 @@ There are two ways to execute Phlow using Docker:
 
     Example:
     ```bash
-    docker run -it --rm -v "$(pwd)/examples/restapi-ping:/data" -e PHLOW_MAIN=/data/main.yaml -p 3000:3000 phlow
+    docker run -it --rm -v "$(pwd)/examples/restapi-ping:/data" -e PHLOW_MAIN=/data/main.phlow -p 3000:3000 phlow
     ```
 
 > ## Extra example:
