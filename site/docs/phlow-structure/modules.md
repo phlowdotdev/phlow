@@ -79,7 +79,7 @@ This simplifies module declarations while maintaining backward compatibility.
 
 ## Good practice
 
-A good practice is to keep the modules in a separate file, such as `modules.yaml`, and reference them in the `main.yaml` using `!include modules.yaml`. This helps maintain organized and easily maintainable code.
+A good practice is to keep the modules in a separate file, such as `modules.yaml`, and reference them in the `main.phlow` using `!include modules.yaml`. This helps maintain organized and easily maintainable code.
 
 #### Example of `modules.yaml`:
 
@@ -113,7 +113,7 @@ A good practice is to keep the modules in a separate file, such as `modules.yaml
     password: !phs envs.POSTGRES_PASSWORD
 ```
 
-#### Example of `main.yaml` referencing `modules.yaml`:
+#### Example of `main.phlow` referencing `modules.yaml`:
 
 ```yaml
 modules: !include modules.yaml

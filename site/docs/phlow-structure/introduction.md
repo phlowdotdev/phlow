@@ -9,7 +9,7 @@ Phlow is a modular runtime for building backends, automations, and orchestration
 
 This document covers:
 
-- Main structure (`main.yaml`)
+- Main structure (`main.phlow`)
 - Modules inclusion (`modules.yaml`)
 - Dynamic scripts (`.phs`)
 - Special commands (`!include`, `!phs`, `!import`)
@@ -59,7 +59,7 @@ The "Are you a student?" flow operates as follows:
 ###  Structure Visualization
 
 ```
-main.yaml
+main.phlow
  ├── Header (main, name, version, etc.)
  ├── modules: !include modules.yaml (optional)
  └── steps: conditional execution flow

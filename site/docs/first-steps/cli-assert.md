@@ -51,16 +51,16 @@ steps:
 ```
 
 ### Run the Phlow
-You can run the Phlow using the command line. By default, Phlow will look for a `main.yaml` in the current directory:
+You can run the Phlow using the command line. By default, Phlow will look for a `main.phlow` in the current directory:
 
 ```bash
-phlow main.yaml
+phlow main.phlow
 ```
 ### Test
 You can test the Phlow by running the command with different arguments. For example, to check if you are a student, you can run:
 
 ```bash
-phlow main.yaml John 20
+phlow main.phlow John 20
 ```
 This command will output:
 
@@ -71,7 +71,7 @@ John is not a student
 When you run the command, the Phlow will check the age and return the appropriate message. For example, if you run:
 
 ```bash
-phlow main.yaml John 20
+phlow main.phlow John 20
 ```
 The output will be:
 
@@ -81,7 +81,7 @@ John is not a student
 If you run:
 
 ```bash
-phlow main.yaml John 15
+phlow main.phlow John 15
 ```
 The output will be:
 
@@ -91,7 +91,7 @@ John is a student
 If you run:
 
 ```bash
-phlow main.yaml John 2
+phlow main.phlow John 2
 ```
 The output will be:
 
@@ -101,7 +101,7 @@ John is a baby
 If you run:
 
 ```bash
-phlow main.yaml John 25 --force
+phlow main.phlow John 25 --force
 ```
 The output will be:
 

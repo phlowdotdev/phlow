@@ -14,7 +14,7 @@ You can inject modules directly into your PHS context via the `modules` section 
 - [✨ Overview](#-overview)
 - [🔌 Module Injection via YAML](#-module-injection-via-yaml)
 - [🧪 Example](#-example)
-  - [main.yaml](#mainyaml)
+  - [main.phlow](#mainphlow)
   - [script.phs](#scriptphs)
   - [💡Output](#output)
 - [📁 File Extensions](#-file-extensions)
@@ -62,7 +62,7 @@ You can inject modules directly into your PHS context via the `modules` section 
 All modules declared in the YAML under `modules:` are automatically available inside your `.phs` script. For example, when you load the `log` module, its functions can be used directly in the script.
 
 ## 🧪 Example
-#### main.yaml
+#### main.phlow
 
 ```yaml
 main: cli
@@ -97,7 +97,7 @@ log("warn", `Hello, ${main.name}`);
 ### 💡Output
 If the user runs:
 ```bash
-phlow run main.yaml --name Philippe
+phlow run main.phlow --name Philippe
 ```
 
 The script will log:
