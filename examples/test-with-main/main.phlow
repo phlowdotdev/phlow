@@ -1,0 +1,15 @@
+main: cli
+modules:
+  - module: cli
+    version: latest
+    with:
+      additional_args: false
+      args: 
+        - name: name
+          index: 1
+          type: string
+          required: true
+steps:
+  - payload:
+      use_name: !phs main.name
+  - payload: !phs `Hello, ${ payload.use_name }! Welcome to the Phlow platform.`

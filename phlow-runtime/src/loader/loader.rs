@@ -272,7 +272,8 @@ fn find_default_file(base: &PathBuf) -> Option<String> {
     }
 
     if base.is_dir() {
-        let files = vec!["main.yaml", "main.yml"];
+        // Prioridade para arquivos .phlow primeiro
+        let files = vec!["main.phlow", "main.yaml", "main.yml"];
 
         for file in files {
             let file_path = base.join(file);

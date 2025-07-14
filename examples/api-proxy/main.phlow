@@ -30,7 +30,7 @@ steps:
       left: !phs main.path
       operator: starts_with
       right: /public
-    then: !include assets/proxy.yaml
+    then: !include assets/proxy.phlow
   - label: auth
     use: http_request
     input:

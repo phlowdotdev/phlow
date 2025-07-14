@@ -1,16 +1,15 @@
 main: cli
 modules:
   - module: cli
-    version: latest
+    # Versão omitida - deve usar 'latest' por padrão
     with:
       additional_args: false
       args: 
         - name: name
-          description: Name of the user
           index: 1
           type: string
           required: true
 steps:
   - payload:
-      use_name: !phs main.name
-  - payload: !phs `Hello, ${ payload.use_name }! Welcome to the Phlow platform.`
+      user_name: !phs main.name
+  - payload: !phs `Olá, ${ payload.user_name }! Versão do módulo: latest (padrão)`

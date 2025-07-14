@@ -47,13 +47,13 @@ modules:
 ### 1. Iniciando o Servidor
 
 ```bash
-phlow run server.yaml
+phlow run server.phlow
 ```
 
 ### 2. Usando o Cliente
 
 ```bash
-phlow run client.yaml
+phlow run client.phlow
 ```
 
 ### 3. Testando com curl

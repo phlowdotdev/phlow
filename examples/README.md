@@ -26,7 +26,7 @@ Example:
 phlow examples/api_proxy
 ```
 
-Phlow will automatically detect the `main.yaml` inside the specified folder.
+Phlow will automatically detect the `main.phlow` inside the specified folder.
 
 ---
 

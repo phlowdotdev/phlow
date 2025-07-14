@@ -10,18 +10,15 @@ modules:
       additional_args: false
       args: 
         - name: name
-          description: Name of the user
           index: 1
           type: string
           required: true
         - name: age
-          description: Age of the user
           index: 2
           type: number
           required: true
         - name: active
           long: active
-          description: Is the user active
           short: a
           type: boolean
           default: false

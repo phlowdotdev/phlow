@@ -10,7 +10,6 @@ modules:
       additional_args: false
       args: 
         - name: name
-          description: Name of the user
           index: 1
           type: string
           required: false

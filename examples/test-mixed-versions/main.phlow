@@ -6,7 +6,6 @@ modules:
       additional_args: false
       args: 
         - name: name
-          description: Nome do usuário
           index: 1
           type: string
           required: true

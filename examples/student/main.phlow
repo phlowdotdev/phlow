@@ -4,7 +4,7 @@ version: 1.0.0
 description: Check if you are a student.
 author: Your Name
 modules: 
-  !include modules.yaml
+  !include modules.phlow
 steps:
   - assert: !phs main.force
     then:

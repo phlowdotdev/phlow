@@ -2,7 +2,7 @@ name: echo
 description: A simple REST API echo service
 version: 1.0
 main: http_server
-modules: !include modules.yaml
+modules: !include modules.phlow
 steps:
   - id: echo
     use: echo
@@ -13,19 +13,19 @@ steps:
     then:
       return:
         status_code: 201
-        body: !include assets/body.yaml
+        body: !include assets/body.phlow
         headers:
           Content-Type: application/json
           X-Transaction-ID: xxxx
     # else:
     #   return:
     #     status_code: 400
-    #     body: !include assets/body.yaml
+    #     body: !include assets/body.phlow
     #     headers:
     #       Content-Type: application/json
   - return:
       status_code: 200
-      body: !include assets/body.yaml
+      body: !include assets/body.phlow
       headers:
         Content-Type: application/json
   
