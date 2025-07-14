@@ -121,6 +121,11 @@ const config: Config = {
           position: 'left',
           label: 'Docs',
         },
+        {
+          href: 'https://marketplace.visualstudio.com/items?itemName=phlow.phlow',
+          label: 'VS Code Extension',
+          position: 'left',
+        },
         { to: '/blog', label: 'Blog', position: 'left' },
         {
           href: 'https://github.com/phlowdotdev/phlow',
@@ -163,6 +168,10 @@ const config: Config = {
             {
               label: 'Blog',
               to: '/blog',
+            },
+            {
+              label: 'VS Code Extension',
+              href: 'https://marketplace.visualstudio.com/items?itemName=phlow.phlow',
             },
             {
               label: 'GitHub',

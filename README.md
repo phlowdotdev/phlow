@@ -21,6 +21,15 @@ If you're ready to rethink how backends are built — **Phlow is the low-code re
 
 The complete documentation is available at [https://phlow.dev](https://phlow.dev).
 
+## 🎨 VS Code Extension
+
+Get syntax highlighting, IntelliSense, and enhanced development experience for Phlow files:
+
+[![Install VS Code Extension](https://img.shields.io/visual-studio-marketplace/v/phlow.phlow?style=flat-square&label=VS%20Code%20Extension)](https://marketplace.visualstudio.com/items?itemName=phlow.phlow)
+
+- **Marketplace**: [phlow.phlow](https://marketplace.visualstudio.com/items?itemName=phlow.phlow)
+- **Repository**: [phlowdotdev/vscode](https://github.com/phlowdotdev/vscode)
+
 ## Quick Start
 
 ### Install Phlow

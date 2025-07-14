@@ -2,3 +2,23 @@ phlow:
   label: Phlow
   permalink: /phlow
   description: Phlow tag description
+
+updates:
+  label: Updates
+  permalink: /updates
+  description: Product updates and new features
+
+vscode:
+  label: VS Code
+  permalink: /vscode
+  description: VS Code extension and IDE support
+
+extension:
+  label: Extension
+  permalink: /extension
+  description: Extensions and plugins
+
+modules:
+  label: Modules
+  permalink: /modules
+  description: Phlow modules and components
