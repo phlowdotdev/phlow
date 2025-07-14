@@ -134,7 +134,10 @@ impl Runtime {
                 span: Some(span),
                 dispatch: Some(dispatch.clone()),
             };
-            tx_main_package.send(empty_package).unwrap();
+            if let Err(err) = tx_main_package.send(empty_package) {
+                error!("Failed to send empty package: {:?}", err);
+                return Err(RuntimeError::FlowExecutionError("Failed to send empty package".to_string()));
+            }
         }
 
         drop(tx_main_package);
@@ -172,11 +175,20 @@ impl Runtime {
             let handle = tokio::task::spawn_blocking(move || {
                 for mut package in rx_pkg {
                     let flow = flow.clone();
-                    let parent = package.span.clone().expect("Span not found in main module");
-                    let dispatch = package
-                        .dispatch
-                        .clone()
-                        .expect("Dispatch not found in main module");
+                    let parent = match package.span.clone() {
+                        Some(span) => span,
+                        None => {
+                            error!("Span not found in main module");
+                            continue;
+                        }
+                    };
+                    let dispatch = match package.dispatch.clone() {
+                        Some(dispatch) => dispatch,
+                        None => {
+                            error!("Dispatch not found in main module");
+                            continue;
+                        }
+                    };
 
                     tokio::task::block_in_place(move || {
                         dispatcher::with_default(&dispatch, || {
