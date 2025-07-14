@@ -1,0 +1,12 @@
+tests: 
+  - main:
+      total: 2
+    payload: !phs 2 * 5
+    assert_eq: Total is 20
+  - main:
+      total: 3
+    payload: 5
+    assert: !phs payload === "Total is 15"
+steps:
+  - payload: !phs main.total * payload 
+  - payload: !phs `Total is ${total}`
