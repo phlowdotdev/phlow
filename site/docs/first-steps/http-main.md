@@ -4,7 +4,7 @@ title: HTTP - Mirror Request
 ---
 This is a simple example of a Phlow that mirrors a request to Phlow. It uses the `http_server` module to handle incoming HTTP requests and returns the request body as a JSON response.
 
-### main.yaml
+### main.phlow
 
 ```yaml
 name: Phlow Mirror Request
@@ -22,10 +22,10 @@ steps:
         Content-Type: application/json
 ```
 
-Now, you can run the Phlow using the command line. By default, Phlow will look for a `main.yaml` in the current directory:
+Now, you can run the Phlow using the command line. By default, Phlow will look for a `main.phlow` in the current directory:
 
 ```bash
-phlow main.yaml
+phlow main.phlow
 ```
 
 ### Test
