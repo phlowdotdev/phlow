@@ -212,7 +212,7 @@ PHLOW_MAIN_FILE='workflows/debug.phlow' phlow git@github.com:your-org/flows-repo
 
 This Git remote execution capability makes Phlow a powerful tool for distributed teams and automated workflows, allowing you to centralize and version control your flow definitions while maintaining flexibility in execution.
 
-For more details on Git repositories, see the [Running Remote Projects](../remote-projects.md#git-repositories) documentation.
+For more details on Git repositories, see the [Running Remote Projects](../remote-projects/remote-projects.md) documentation.
 
 <citations>
 <document>
