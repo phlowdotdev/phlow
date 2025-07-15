@@ -14,6 +14,7 @@ pub struct TestResult {
     pub index: usize,
     pub passed: bool,
     pub message: String,
+    pub describe: Option<String>,
 }
 
 #[derive(Debug)]
@@ -44,7 +45,17 @@ pub async fn run_tests(loader: Loader) -> Result<TestSummary, String> {
 
     for (i, test_case) in test_cases.values.iter().enumerate() {
         let test_index = i + 1;
-        print!("Test {}: ", test_index);
+        
+        // Extract test description if available
+        let test_description = test_case.get("describe")
+            .map(|v| v.as_string());
+        
+        // Print test header with description
+        if let Some(ref desc) = test_description {
+            print!("Test {}: {} - ", test_index, desc);
+        } else {
+            print!("Test {}: ", test_index);
+        }
         
         let result = run_single_test(test_case, steps.clone(), test_index).await;
         
@@ -56,6 +67,7 @@ pub async fn run_tests(loader: Loader) -> Result<TestSummary, String> {
                     index: test_index,
                     passed: true,
                     message: msg,
+                    describe: test_description.clone(),
                 });
             }
             Err(msg) => {
@@ -64,6 +76,7 @@ pub async fn run_tests(loader: Loader) -> Result<TestSummary, String> {
                     index: test_index,
                     passed: false,
                     message: msg,
+                    describe: test_description.clone(),
                 });
             }
         }

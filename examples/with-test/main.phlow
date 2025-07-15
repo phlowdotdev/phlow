@@ -1,9 +1,11 @@
 tests: 
-  - main:
+  - describe: Basic Arithmetic Tests
+    main:
       total: 2
     payload: 10
     assert_eq: Total is 20
-  - main:
+  - describe: String Concatenation Tests     
+    main:
       total: 3
     payload: 5
     assert: !phs payload == "Total is 15"
