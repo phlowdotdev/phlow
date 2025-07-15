@@ -25,6 +25,70 @@ When you run tests, Phlow will:
 3. Execute each test case
 4. Display the results with a summary
 
+### Filtering Tests
+
+You can filter tests by description using the `--test-filter` flag. This will only run tests whose `describe` field contains the specified substring:
+
+```bash
+# Run only tests with "addition" in their description
+phlow --test --test-filter "addition" main.phlow
+
+# Run only tests with "user" in their description
+phlow --test --test-filter "user" main.phlow
+```
+
+Example with test descriptions:
+
+```yaml
+name: Calculator Test Suite
+version: 1.0.0
+description: Comprehensive calculator tests
+
+tests:
+  - describe: "addition with positive numbers"
+    main: { operation: "add", a: 5, b: 3 }
+    payload: null
+    assert: !phs payload == 8
+  - describe: "addition with negative numbers"
+    main: { operation: "add", a: -5, b: 3 }
+    payload: null
+    assert: !phs payload == -2
+  - describe: "subtraction basic test"
+    main: { operation: "subtract", a: 10, b: 4 }
+    payload: null
+    assert: !phs payload == 6
+
+steps:
+  - assert: !phs main.operation == "add"
+    then:
+      payload: !phs main.a + main.b
+  - assert: !phs main.operation == "subtract"
+    then:
+      payload: !phs main.a - main.b
+```
+
+Running with filter:
+
+```bash
+# This will only run the two addition tests
+phlow --test --test-filter "addition" calculator.phlow
+```
+
+Output:
+```
+🧪 Running 2 test(s) matching 'addition' (out of 3 total)...
+
+Test 1: addition with positive numbers - ✅ PASSED - Assertion passed: {{ payload == 8 }}
+Test 2: addition with negative numbers - ✅ PASSED - Assertion passed: {{ payload == -2 }}
+
+📊 Test Results:
+   Total: 2
+   Passed: 2 ✅
+   Failed: 0 ❌
+
+🎉 All tests passed!
+```
+
 ## Test Structure
 
 Tests are defined in the `tests` section of your Phlow file. Each test case consists of:

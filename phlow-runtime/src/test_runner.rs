@@ -26,7 +26,7 @@ pub struct TestSummary {
     pub results: Vec<TestResult>,
 }
 
-pub async fn run_tests(loader: Loader) -> Result<TestSummary, String> {
+pub async fn run_tests(loader: Loader, test_filter: Option<&str>) -> Result<TestSummary, String> {
     // Get tests from loader.tests, not loader.steps
     let tests = loader.tests.as_ref().ok_or("No tests found in the phlow file")?;
     let steps = &loader.steps;
@@ -36,11 +36,44 @@ pub async fn run_tests(loader: Loader) -> Result<TestSummary, String> {
     }
 
     let test_cases = tests.as_array().unwrap();
+    
+    // Filter tests if test_filter is provided
+    let filtered_tests: Vec<_> = if let Some(filter) = test_filter {
+        test_cases.values.iter().enumerate().filter(|(_, test_case)| {
+            if let Some(description) = test_case.get("describe") {
+                if let Some(desc_str) = description.as_string() {
+                    return desc_str.contains(filter);
+                }
+            }
+            false
+        }).collect()
+    } else {
+        test_cases.values.iter().enumerate().collect()
+    };
+    
     let mut results = Vec::new();
     let mut passed = 0;
-    let total = test_cases.len();
+    let total = filtered_tests.len();
+    
+    if total == 0 {
+        if let Some(filter) = test_filter {
+            println!("⚠️  No tests match filter: '{}'", filter);
+        } else {
+            println!("⚠️  No tests to run");
+        }
+        return Ok(TestSummary {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            results: Vec::new(),
+        });
+    }
 
-    println!("🧪 Running {} test(s)...", total);
+    if let Some(filter) = test_filter {
+        println!("🧪 Running {} test(s) matching '{}' (out of {} total)...", total, filter, test_cases.len());
+    } else {
+        println!("🧪 Running {} test(s)...", total);
+    }
     println!();
 
     for (i, test_case) in test_cases.values.iter().enumerate() {

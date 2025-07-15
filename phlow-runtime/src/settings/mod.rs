@@ -13,6 +13,7 @@ pub struct Settings {
     pub download: bool,
     pub print_yaml: bool,
     pub test: bool,
+    pub test_filter: Option<String>,
 
     // envs
     pub package_consumer_count: i32,
@@ -48,6 +49,7 @@ impl Settings {
             download: cli.download,
             print_yaml: cli.print_yaml,
             test: cli.test,
+            test_filter: cli.test_filter,
         };
 
         Ok(settings)

@@ -106,7 +106,7 @@ async fn main() {
         if !settings.only_download_modules {
             if settings.test {
                 // Run tests
-                match test_runner::run_tests(loader).await {
+                match test_runner::run_tests(loader, settings.test_filter.as_deref()).await {
                     Ok(summary) => {
                         // Exit with error code if tests failed
                         if summary.failed > 0 {

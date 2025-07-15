@@ -15,6 +15,7 @@ pub struct Cli {
     pub download: bool,
     pub print_yaml: bool,
     pub test: bool,
+    pub test_filter: Option<String>,
 }
 
 impl Cli {
@@ -84,6 +85,13 @@ impl Cli {
                     .value_parser(clap::builder::BoolishValueParser::new())
                     .action(ArgAction::SetTrue)
                     .default_value("false"),
+            )
+            .arg(
+                Arg::new("test_filter")
+                    .long("test-filter")
+                    .help("Filter tests by description (substring match)")
+                    .requires("test")
+                    .value_name("FILTER"),
             );
 
         let matches = command
@@ -103,6 +111,7 @@ impl Cli {
 
         let print_yaml = *matches.get_one::<bool>("print_yaml").unwrap_or(&false);
         let test = *matches.get_one::<bool>("test").unwrap_or(&false);
+        let test_filter = matches.get_one::<String>("test_filter").map(|s| s.to_string());
 
         Ok(Cli {
             main_target: main,
@@ -112,6 +121,7 @@ impl Cli {
             download,
             print_yaml,
             test,
+            test_filter,
         })
     }
 }
