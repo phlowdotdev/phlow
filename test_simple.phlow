@@ -1,0 +1,7 @@
+steps:
+  - payload: "Hello World"
+tests:
+  - describe: Simple Test
+    main:
+      test: true
+    assert_eq: "Hello World"

@@ -102,8 +102,11 @@ macro_rules! create_step {
             if let Ok(rt) = $crate::tokio::runtime::Runtime::new() {
                 let rx = module_channel!(setup);
 
-                if let Err(e) = rt.block_on($handler(rx)) {
-                    $crate::tracing::error!("Error in plugin: {:?}", e);
+                // During tests, don't run the handler as it would block forever
+                if !setup.is_test_mode {
+                    if let Err(e) = rt.block_on($handler(rx)) {
+                        $crate::tracing::error!("Error in plugin: {:?}", e);
+                    }
                 }
             } else {
                 $crate::tracing::error!("Error creating runtime");

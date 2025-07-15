@@ -27,6 +27,18 @@ pub async fn start_server(
         };
         return Ok(());
     }
+    
+    // If we're in test mode, don't start the actual server
+    if setup.is_test_mode {
+        debug!("Test mode detected, not starting HTTP server");
+        match setup.setup_sender.send(None) {
+            Ok(_) => {}
+            Err(e) => {
+                return Err(format!("{:?}", e).into());
+            }
+        };
+        return Ok(());
+    }
 
     let config: Config = Config::from(setup.with);
     let settings = Arc::new(Settings::load());

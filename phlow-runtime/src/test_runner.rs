@@ -1,12 +1,17 @@
+use crate::loader::Loader;
+use crossbeam::channel;
+use log::{debug, error};
+use phlow_engine::phs::{build_engine, Script};
+use phlow_engine::{Context, Phlow};
+use phlow_sdk::structs::{Package, ModulePackage, ModuleSetup, Modules};
 use phlow_sdk::valu3::prelude::*;
 use phlow_sdk::valu3::value::Value;
 use phlow_sdk::prelude::json;
-use phlow_engine::phs::{build_engine, Script};
-use phlow_engine::{Context, Phlow};
-use phlow_sdk::structs::Modules;
-use std::sync::Arc;
+use phlow_sdk::tracing::{self, dispatcher, Dispatch};
+use phlow_sdk::otel::init_tracing_subscriber;
 use std::collections::HashMap;
-use crate::loader::Loader;
+use std::sync::Arc;
+use tokio::sync::oneshot;
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -26,40 +31,50 @@ pub struct TestSummary {
     pub results: Vec<TestResult>,
 }
 
-pub async fn run_tests(loader: Loader, test_filter: Option<&str>) -> Result<TestSummary, String> {
-    // Get tests from loader.tests, not loader.steps
-    let tests = loader.tests.as_ref().ok_or("No tests found in the phlow file")?;
+pub async fn run_tests(
+    loader: Loader,
+    test_filter: Option<&str>,
+) -> Result<TestSummary, String> {
+    // Get tests from loader.tests
+    let tests = loader
+        .tests
+        .as_ref()
+        .ok_or("No tests found in the phlow file")?;
     let steps = &loader.steps;
-    
+
     if !tests.is_array() {
         return Err(format!("Tests must be an array, got: {:?}", tests));
     }
 
     let test_cases = tests.as_array().unwrap();
-    
+
     // Filter tests if test_filter is provided
     let filtered_tests: Vec<_> = if let Some(filter) = test_filter {
-        test_cases.values.iter().enumerate().filter(|(_, test_case)| {
-            if let Some(description) = test_case.get("describe") {
-                let desc_str = description.as_string();
-                return desc_str.contains(filter);
-            }
-            false
-        }).collect()
+        test_cases
+            .values
+            .iter()
+            .enumerate()
+            .filter(|(_, test_case)| {
+                if let Some(description) = test_case.get("describe") {
+                    let desc_str = description.as_string();
+                    return desc_str.contains(filter);
+                }
+                false
+            })
+            .collect()
     } else {
         test_cases.values.iter().enumerate().collect()
     };
-    
-    let mut results = Vec::new();
-    let mut passed = 0;
+
     let total = filtered_tests.len();
-    
+
     if total == 0 {
         if let Some(filter) = test_filter {
             println!("⚠️  No tests match filter: '{}'", filter);
         } else {
             println!("⚠️  No tests to run");
         }
+
         return Ok(TestSummary {
             total: 0,
             passed: 0,
@@ -69,28 +84,48 @@ pub async fn run_tests(loader: Loader, test_filter: Option<&str>) -> Result<Test
     }
 
     if let Some(filter) = test_filter {
-        println!("🧪 Running {} test(s) matching '{}' (out of {} total)...", total, filter, test_cases.len());
+        println!(
+            "🧪 Running {} test(s) matching '{}' (out of {} total)...",
+            total,
+            filter,
+            test_cases.len()
+        );
     } else {
         println!("🧪 Running {} test(s)...", total);
     }
     println!();
 
+    // Load modules following the same pattern as Runtime::run
+    let modules = load_modules_like_runtime(&loader).await
+        .map_err(|e| format!("Failed to load modules for tests: {}", e))?;
+
+    // Create flow from steps
+    let workflow = json!({
+        "steps": steps
+    });
+    
+    let phlow = Phlow::try_from_value(&workflow, Some(modules))
+        .map_err(|e| format!("Failed to create phlow: {}", e))?;
+
+    // Run tests
+    let mut results = Vec::new();
+    let mut passed = 0;
+
     for (run_index, (original_index, test_case)) in filtered_tests.iter().enumerate() {
         let test_index = run_index + 1;
-        
+
         // Extract test description if available
-        let test_description = test_case.get("describe")
-            .map(|v| v.as_string());
-        
+        let test_description = test_case.get("describe").map(|v| v.as_string());
+
         // Print test header with description
         if let Some(ref desc) = test_description {
             print!("Test {}: {} - ", test_index, desc);
         } else {
             print!("Test {}: ", test_index);
         }
-        
-        let result = run_single_test(test_case, steps.clone(), *original_index + 1).await;
-        
+
+        let result = run_single_test(test_case, &phlow).await;
+
         match result {
             Ok(msg) => {
                 println!("✅ PASSED - {}", msg);
@@ -120,7 +155,7 @@ pub async fn run_tests(loader: Loader, test_filter: Option<&str>) -> Result<Test
     println!("   Total: {}", total);
     println!("   Passed: {} ✅", passed);
     println!("   Failed: {} ❌", failed);
-    
+
     if failed > 0 {
         println!();
         println!("❌ Some tests failed!");
@@ -137,18 +172,33 @@ pub async fn run_tests(loader: Loader, test_filter: Option<&str>) -> Result<Test
     })
 }
 
-async fn run_single_test(test_case: &Value, steps: Value, _test_index: usize) -> Result<String, String> {
+async fn run_single_test(
+    test_case: &Value,
+    phlow: &Phlow,
+) -> Result<String, String> {
     // Extract test inputs
     let main_value = test_case.get("main").cloned().unwrap_or(Value::Null);
     let initial_payload = test_case.get("payload").cloned().unwrap_or(Value::Null);
-    
-    // Execute the steps with the test inputs
-    let result = execute_steps_with_context(steps, main_value, initial_payload).await
-        .map_err(|e| format!("Execution error: {}", e))?;
-    
+
+    // Create context with test data
+    let mut context = Context::from_main(main_value);
+
+    // Set initial payload if provided
+    if !initial_payload.is_null() {
+        context = context.add_module_output(initial_payload);
+    }
+
+    // Execute the workflow
+    let result = phlow
+        .execute(&mut context)
+        .await
+        .map_err(|e| format!("Execution failed: {}", e))?;
+
+    let result = result.unwrap_or(Value::Null);
+
     // Check assertions
     if let Some(assert_eq_value) = test_case.get("assert_eq") {
-        if result == *assert_eq_value {
+        if deep_equals(&result, assert_eq_value) {
             Ok(format!("Expected and got: {}", result))
         } else {
             Err(format!("Expected {}, got {}", assert_eq_value, result))
@@ -157,7 +207,7 @@ async fn run_single_test(test_case: &Value, steps: Value, _test_index: usize) ->
         // For assert expressions, we need to evaluate them
         let assertion_result = evaluate_assertion(assert_expr, &result)
             .map_err(|e| format!("Assertion error: {}", e))?;
-        
+
         if assertion_result {
             Ok(format!("Assertion passed: {}", assert_expr))
         } else {
@@ -168,60 +218,186 @@ async fn run_single_test(test_case: &Value, steps: Value, _test_index: usize) ->
     }
 }
 
-async fn execute_steps_with_context(steps: Value, main: Value, payload: Value) -> Result<Value, String> {
+async fn execute_steps_with_context(
+    steps: Value,
+    main: Value,
+    payload: Value,
+    modules: Arc<Modules>,
+) -> Result<Value, String> {
     // Create a phlow workflow with just the steps
     let workflow = json!({
         "steps": steps
     });
-    
-    // Create modules (empty for now)
-    let modules = Arc::new(Modules::default());
-    
-    // Create phlow instance
+
+    // Create phlow instance with loaded modules
     let phlow = Phlow::try_from_value(&workflow, Some(modules))
         .map_err(|e| format!("Failed to create phlow: {}", e))?;
-    
+
     // Create context with test data
     let mut context = Context::from_main(main);
-    
+
     // Set initial payload if provided
     if !payload.is_null() {
         context = context.add_module_output(payload);
     }
-    
+
     // Execute the workflow
-    let result = phlow.execute(&mut context).await
+    let result = phlow
+        .execute(&mut context)
+        .await
         .map_err(|e| format!("Execution failed: {}", e))?;
-    
+
     Ok(result.unwrap_or(Value::Null))
+}
+
+// Load modules following the exact same pattern as Runtime::run
+// but without creating main_sender channels since we don't need them for tests
+async fn load_modules_like_runtime(loader: &Loader) -> Result<Arc<Modules>, String> {
+    let mut modules = Modules::default();
+    
+    // Initialize tracing subscriber
+    let guard = init_tracing_subscriber(loader.app_data.clone());
+    let dispatch = guard.dispatch.clone();
+    
+    let engine = build_engine(None);
+    
+    // Load modules exactly like Runtime::run does
+    for (id, module) in loader.modules.iter().enumerate() {
+        let (setup_sender, setup_receive) =
+            oneshot::channel::<Option<channel::Sender<ModulePackage>>>();
+        
+        // For tests, we never pass main_sender to prevent modules from starting servers/loops
+        let main_sender = None;
+        
+        let with = {
+            let script = Script::try_build(engine.clone(), &module.with)
+                .map_err(|e| format!("Failed to build script for module {}: {}", module.name, e))?;
+            
+            script.evaluate_without_context()
+                .map_err(|e| format!("Failed to evaluate script for module {}: {}", module.name, e))?
+        };
+        
+        let setup = ModuleSetup {
+            id,
+            setup_sender,
+            main_sender,
+            with,
+            dispatch: dispatch.clone(),
+            app_data: loader.app_data.clone(),
+            is_test_mode: true,
+        };
+        
+        let module_target = module.module.clone();
+        let module_name = module.name.clone();
+        
+        // Load module in separate thread - same as Runtime::run
+        std::thread::spawn(move || {
+            if let Err(err) = Loader::load_module(setup, &module_target) {
+                error!("Test Runtime Error Load Module: {:?}", err)
+            }
+        });
+        
+        debug!("Module {} loaded with name \"{}\"", module.module, module.name);
+        
+        // Wait for module registration - same as Runtime::run
+        match setup_receive.await {
+            Ok(Some(sender)) => {
+                debug!("Module {} registered", module.name);
+                modules.register(module.clone(), sender);
+            }
+            Ok(None) => {
+                debug!("Module {} did not register", module.name);
+            }
+            Err(_) => {
+                return Err(format!("Module {} registration failed", module.name));
+            }
+        }
+    }
+    
+    Ok(Arc::new(modules))
+}
+
+/// Deep equality comparison for JSON values that ignores object property order
+/// and compares structure recursively
+fn deep_equals(a: &Value, b: &Value) -> bool {
+    match (a, b) {
+        // Same type comparisons
+        (Value::Null, Value::Null) => true,
+        (Value::Boolean(a), Value::Boolean(b)) => a == b,
+        (Value::Number(a), Value::Number(b)) => {
+            // Compare numeric values regardless of internal type representation
+            let a_val = a.to_f64().unwrap_or(0.0);
+            let b_val = b.to_f64().unwrap_or(0.0);
+            (a_val - b_val).abs() < f64::EPSILON
+        },
+        (Value::String(a), Value::String(b)) => a == b,
+        
+        // Array comparison - order matters for arrays
+        (Value::Array(a), Value::Array(b)) => {
+            if a.len() != b.len() {
+                return false;
+            }
+            a.values.iter().zip(b.values.iter()).all(|(a_val, b_val)| deep_equals(a_val, b_val))
+        },
+        
+        // Object comparison - order doesn't matter for objects
+        (Value::Object(a), Value::Object(b)) => {
+            if a.len() != b.len() {
+                return false;
+            }
+            
+            // Check if all keys from a exist in b with equal values
+            for (key, a_val) in a.iter() {
+                let key_str = key.to_string();
+                match b.get(key_str.as_str()) {
+                    Some(b_val) => {
+                        if !deep_equals(a_val, b_val) {
+                            return false;
+                        }
+                    },
+                    None => return false,
+                }
+            }
+            
+            true
+        },
+        
+        // Different types are not equal
+        _ => false,
+    }
 }
 
 fn evaluate_assertion(assert_expr: &Value, result: &Value) -> Result<bool, String> {
     // Create a simple evaluation context
     let engine = build_engine(None);
-    
+
     // Convert the assertion expression to a script
     let script = Script::try_build(engine, assert_expr)
         .map_err(|e| format!("Failed to build assertion script: {}", e))?;
-    
+
     // Create a context where 'payload' refers to the result
     let _context = Context::from_main(json!({
         "payload": result
     }));
-    
-    // Evaluate the assertion
-    let context_map: HashMap<String, Value> = [
-        ("payload".to_string(), result.clone()),
-    ].iter().cloned().collect();
 
-    let assertion_result = script.evaluate(&context_map)
+    // Evaluate the assertion
+    let context_map: HashMap<String, Value> = [("payload".to_string(), result.clone())]
+        .iter()
+        .cloned()
+        .collect();
+
+    let assertion_result = script
+        .evaluate(&context_map)
         .map_err(|e| format!("Failed to evaluate assertion: {}", e))?;
-    
+
     // Check if result is boolean true
     match assertion_result {
         Value::Boolean(b) => Ok(b),
         Value::String(s) if s == "true".into() => Ok(true),
         Value::String(s) if s == "false".into() => Ok(false),
-        _ => Err(format!("Assertion must return boolean, got: {}", assertion_result)),
+        _ => Err(format!(
+            "Assertion must return boolean, got: {}",
+            assertion_result
+        )),
     }
 }

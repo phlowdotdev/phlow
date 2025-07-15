@@ -35,3 +35,13 @@ script = [
     "./scripts/local-packages.sh ${@}",
 ]
 args = []
+
+[tasks.install_local]
+workspace = false
+description = "Compila o phlow-runtime, remove o binário antigo e copia o novo para ~/.phlow/phlow"
+script = [
+    "cargo build --release -p phlow-runtime",
+    "rm -f ~/.phlow/phlow",
+    "mkdir -p ~/.phlow",
+    "cp ./target/release/phlow ~/.phlow/phlow",
+]

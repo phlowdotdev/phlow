@@ -1,0 +1,13 @@
+modules: 
+  - module: log
+    version: latest
+steps:
+  - use: log
+    input:
+      message: "Test message"
+  - payload: "Test completed"
+tests:
+  - describe: Log Test
+    main:
+      test: true
+    assert_eq: "Test completed"

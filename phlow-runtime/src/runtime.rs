@@ -87,6 +87,7 @@ impl Runtime {
                 with,
                 dispatch: dispatch.clone(),
                 app_data: loader.app_data.clone(),
+                is_test_mode: false,
             };
 
             let module_target = module.module.clone();

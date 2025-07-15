@@ -32,11 +32,12 @@ pub struct ModuleSetup {
     pub with: Value,
     pub dispatch: tracing::Dispatch,
     pub app_data: ApplicationData,
+    pub is_test_mode: bool,
 }
 
 impl ModuleSetup {
     pub fn is_main(&self) -> bool {
-        self.main_sender.is_some()
+        self.main_sender.is_some() || self.is_test_mode
     }
 }
 
