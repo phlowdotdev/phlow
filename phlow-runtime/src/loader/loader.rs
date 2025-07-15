@@ -104,8 +104,20 @@ fn clone_git_repo(url: &str, branch: Option<&str>) -> Result<String, Error> {
             .map_err(|e| Error::ModuleLoaderError(format!("Checkout failed: {}", e)))?;
     }
 
-    let file_path =
-        find_default_file(&remote_path).ok_or_else(|| Error::MainNotFound(url.to_string()))?;
+    // Check if a specific file is requested via environment variable
+    let file_path = if let Ok(main_file) = std::env::var("PHLOW_MAIN_FILE") {
+        let specific_file_path = remote_path.join(&main_file);
+        if specific_file_path.exists() {
+            specific_file_path.to_str().unwrap_or_default().to_string()
+        } else {
+            return Err(Error::MainNotFound(format!(
+                "Specified file '{}' not found in repository '{}'",
+                main_file, url
+            )));
+        }
+    } else {
+        find_default_file(&remote_path).ok_or_else(|| Error::MainNotFound(url.to_string()))?
+    };
 
     Ok(file_path)
 }
@@ -150,8 +162,20 @@ async fn download_file(url: &str, inner_folder: Option<&str>) -> Result<String, 
         }
     };
 
-    let main_path =
-        find_default_file(&effective_path).ok_or_else(|| Error::MainNotFound(url.to_string()))?;
+    // Check if a specific file is requested via environment variable
+    let main_path = if let Ok(main_file) = std::env::var("PHLOW_MAIN_FILE") {
+        let specific_file_path = effective_path.join(&main_file);
+        if specific_file_path.exists() {
+            specific_file_path.to_str().unwrap_or_default().to_string()
+        } else {
+            return Err(Error::MainNotFound(format!(
+                "Specified file '{}' not found in downloaded archive '{}'",
+                main_file, url
+            )));
+        }
+    } else {
+        find_default_file(&effective_path).ok_or_else(|| Error::MainNotFound(url.to_string()))?
+    };
 
     Ok(main_path)
 }
