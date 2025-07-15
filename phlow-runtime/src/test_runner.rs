@@ -41,9 +41,8 @@ pub async fn run_tests(loader: Loader, test_filter: Option<&str>) -> Result<Test
     let filtered_tests: Vec<_> = if let Some(filter) = test_filter {
         test_cases.values.iter().enumerate().filter(|(_, test_case)| {
             if let Some(description) = test_case.get("describe") {
-                if let Some(desc_str) = description.as_string() {
-                    return desc_str.contains(filter);
-                }
+                let desc_str = description.as_string();
+                return desc_str.contains(filter);
             }
             false
         }).collect()
@@ -76,8 +75,8 @@ pub async fn run_tests(loader: Loader, test_filter: Option<&str>) -> Result<Test
     }
     println!();
 
-    for (i, test_case) in test_cases.values.iter().enumerate() {
-        let test_index = i + 1;
+    for (run_index, (original_index, test_case)) in filtered_tests.iter().enumerate() {
+        let test_index = run_index + 1;
         
         // Extract test description if available
         let test_description = test_case.get("describe")
@@ -90,7 +89,7 @@ pub async fn run_tests(loader: Loader, test_filter: Option<&str>) -> Result<Test
             print!("Test {}: ", test_index);
         }
         
-        let result = run_single_test(test_case, steps.clone(), test_index).await;
+        let result = run_single_test(test_case, steps.clone(), *original_index + 1).await;
         
         match result {
             Ok(msg) => {
