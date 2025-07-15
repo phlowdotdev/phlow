@@ -5,9 +5,3 @@ with:
   exchange: my.exchange
   queue_name: "my.queue"
   exchange_type: direct
-  declare: true
-  auto_bind: true
-  queue_durable: true
-  exchange_durable: true
-  queue_exclusive: false
-  queue_auto_delete: false
