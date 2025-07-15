@@ -1,0 +1,8 @@
+{
+  "label": "Examples",
+  "position": 9,
+  "link": {
+    "type": "generated-index",
+    "description": "Practical examples of Phlow workflows for different use cases and scenarios."
+  }
+}
