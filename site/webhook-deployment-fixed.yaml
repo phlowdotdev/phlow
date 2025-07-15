@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook
+  namespace: studio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webhook
+  template:
+    metadata:
+      labels:
+        app: webhook
+    spec:
+      containers:
+        - name: phlow
+          image: ghcr.io/phlowdotdev/phlow:latest
+          imagePullPolicy: Always
+          env:
+            - name: PHLOW_MAIN
+              value: "git@github.com:cogup/studio-server.git#main"
+            - name: PHLOW_MAIN_FILE
+              value: "webhook/webhook.phlow"
+            - name: PHLOW_REMOTE_ID_RSA_PATH
+              value: "/root/.ssh/id_rsa"
+            - name: OTEL_METRICS_EXPORTER
+              value: "otlp"
+            - name: PHLOW_OTEL
+              value: "true"
+            - name: PHLOW_LOG_LEVEL
+              value: "debug"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "http/protobuf"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_LOGS_EXPORTER
+              value: "otlp"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://grafana-k8s-monitoring-alloy-receiver.kube-system.svc.cluster.local:4318"
+            - name: OTEL_NODE_RESOURCE_DETECTORS
+              value: "env,host,os,serviceinstance"
+            - name: OTEL_SERVICE_NAME 
+              value: "webhook"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment=production,service.namespace=studio,service.version=latest,service.instance.id=webhook"
+          ports:
+            - containerPort: 3000
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+          volumeMounts:
+            - name: ssh-key
+              mountPath: /root/.ssh
+              readOnly: true
+      volumes:
+        - name: ssh-key
+          secret:
+            secretName: phlow-ssh-key
+            defaultMode: 0600

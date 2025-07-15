@@ -20,6 +20,8 @@ pub async fn start_server(
         None => config.to_connection_string(),
     };
 
+    debug!("Connecting to RabbitMQ at {}", uri);
+
     let conn = Connection::connect(&uri, ConnectionProperties::default()).await?;
 
     debug!("Connected to RabbitMQ");
