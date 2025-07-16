@@ -1,7 +1,11 @@
 modules:
   - module: log
 steps:
+  - payload: Ok payload!
   - use: log
     input:
       level: info
       message: "Test log message"
+  - use: log
+    input:
+      message: !phs payload

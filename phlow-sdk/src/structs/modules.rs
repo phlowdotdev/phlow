@@ -189,12 +189,17 @@ impl ModuleResponse {
 #[derive(Debug)]
 pub struct ModulePackage {
     pub input: Option<Value>,
+    pub payload: Option<Value>,
     pub sender: oneshot::Sender<ModuleResponse>,
 }
 
 impl ModulePackage {
     pub fn input(&self) -> Option<Value> {
         self.input.clone()
+    }
+
+    pub fn payload(&self) -> Option<Value> {
+        self.payload.clone()
     }
 }
 
@@ -213,10 +218,11 @@ pub struct Module {
 }
 
 impl Module {
-    pub fn send(&self, input: Option<Value>) -> Receiver<ModuleResponse> {
+    pub fn send(&self, input: Option<Value>, payload: Option<Value>) -> Receiver<ModuleResponse> {
         let (package_sender, package_receiver) = oneshot::channel();
         let package = ModulePackage {
             input,
+            payload,
             sender: package_sender,
         };
 
@@ -262,9 +268,10 @@ impl Modules {
         &self,
         name: &str,
         input: &Option<Value>,
+        payload: &Option<Value>,
     ) -> Result<ModuleResponse, ModulesError> {
         if let Some(module) = self.modules.get(name) {
-            let package_receiver = module.send(input.clone());
+            let package_receiver = module.send(input.clone(), payload.clone());
 
             let value = package_receiver.await.unwrap_or(ModuleResponse::from_error(
                 "Module response channel closed".to_string(),
@@ -282,7 +289,7 @@ impl Modules {
         for (name, module) in self.modules.clone() {
             let args = module.params.input_order.clone();
             let func = move |value: Value| {
-                let package_receiver = module.send(Some(value));
+                let package_receiver = module.send(Some(value), None);
 
                 async move {
                     let result = package_receiver.await.unwrap_or(ModuleResponse::from_error(

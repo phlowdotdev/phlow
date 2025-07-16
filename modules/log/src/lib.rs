@@ -41,7 +41,7 @@ pub async fn log(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + S
     log::debug!("Log module started, waiting for messages");
 
     listen!(rx, move |package: ModulePackage| async {
-        let value = package.input.unwrap_or(Value::Null);
+        let value = package.input().unwrap_or(Value::Null);
         log::debug!("Log module received input: {:?}", value);
 
         let log_value = Log::from(&value);
@@ -54,7 +54,8 @@ pub async fn log(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + S
             LogLevel::Error => log::error!("{}", log_value.message),
         }
 
-        sender_safe!(package.sender, Value::Null.into());
+        let payload = package.payload().unwrap_or(Value::Null);
+        sender_safe!(package.sender, payload.into());
     });
 
     Ok(())

@@ -28,6 +28,7 @@ mod tests {
         // Criar pacote com input string
         let package = ModulePackage {
             input: Some(Value::from("test message")),
+            payload: None,
             sender: result_tx,
         };
 
@@ -56,6 +57,7 @@ mod tests {
         // Criar pacote sem input
         let package = ModulePackage {
             input: None,
+            payload: None,
             sender: result_tx,
         };
 
@@ -86,6 +88,7 @@ mod tests {
         // Criar pacote com input array
         let package = ModulePackage {
             input: Some(input.clone()),
+            payload: None,
             sender: result_tx,
         };
 
