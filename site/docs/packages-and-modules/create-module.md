@@ -69,13 +69,6 @@ impl From<&Value> for Log {
 }
 
 pub async fn log(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    env_logger::Builder::from_env(
-        env_logger::Env::new()
-            .default_filter_or("info")
-            .filter_or("PHLOW_LOG", "info"),
-    )
-    .init();
-
     debug!("PHLOW_OTEL is set to false, using default subscriber");
 
     listen!(rx, move |package: ModulePackage| async {

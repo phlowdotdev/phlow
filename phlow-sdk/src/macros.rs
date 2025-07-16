@@ -19,6 +19,18 @@ macro_rules! listen {
 }
 
 #[macro_export]
+macro_rules! use_log {
+    () => {
+        env_logger::Builder::from_env(
+            env_logger::Env::new()
+                .default_filter_or("info")
+                .filter_or("PHLOW_LOG", "info"),
+        )
+        .init();
+    };
+}
+
+#[macro_export]
 macro_rules! span_enter {
     ($span:expr) => {
         let span_enter_clone = $span.clone();
@@ -81,18 +93,6 @@ macro_rules! module_channel {
 }
 
 #[macro_export]
-macro_rules! use_log {
-    () => {
-        env_logger::Builder::from_env(
-            env_logger::Env::new()
-                .default_filter_or("info")
-                .filter_or("PHLOW_LOG", "info"),
-        )
-        .try_init()
-    };
-}
-
-#[macro_export]
 macro_rules! create_step {
     ($handler:ident(setup)) => {
         #[no_mangle]
@@ -111,19 +111,22 @@ macro_rules! create_step {
     ($handler:ident(rx)) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: $crate::structs::ModuleSetup) {
-            if let Ok(rt) = $crate::tokio::runtime::Runtime::new() {
-                let rx = module_channel!(setup);
+            let dispatch = setup.dispatch.clone();
+            $crate::tracing::dispatcher::with_default(&dispatch, || {
+                if let Ok(rt) = $crate::tokio::runtime::Runtime::new() {
+                    let rx = module_channel!(setup);
 
-                // During tests, don't run the handler as it would block forever
-                if !setup.is_test_mode {
-                    if let Err(e) = rt.block_on($handler(rx)) {
-                        $crate::tracing::error!("Error in plugin: {:?}", e);
+                    // During tests, don't run the handler as it would block forever
+                    if !setup.is_test_mode {
+                        if let Err(e) = rt.block_on($handler(rx)) {
+                            $crate::tracing::error!("Error in plugin: {:?}", e);
+                        }
                     }
-                }
-            } else {
-                $crate::tracing::error!("Error creating runtime");
-                return;
-            };
+                } else {
+                    $crate::tracing::error!("Error creating runtime");
+                    return;
+                };
+            });
         }
     };
 }

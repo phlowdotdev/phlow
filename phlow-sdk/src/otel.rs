@@ -24,6 +24,7 @@ use tracing_subscriber::fmt;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::Registry;
+use tracing_log::LogTracer;
 
 use crate::prelude::ApplicationData;
 // otel active
@@ -148,6 +149,11 @@ pub fn get_otel_active() -> bool {
 }
 
 pub fn init_tracing_subscriber(app_data: ApplicationData) -> OtelGuard {
+    // Initialize the log-tracing bridge to capture log! macros
+    LogTracer::init().unwrap_or_else(|_| {
+        // Bridge already initialized, ignore
+    });
+
     if !get_otel_active() {
         let subscriber = Registry::default()
             .with(fmt::layer().with_filter(LevelFilter::from_level(get_log_level())));

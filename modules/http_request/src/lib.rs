@@ -12,8 +12,6 @@ create_step!(http_request(setup));
 pub async fn http_request(
     setup: ModuleSetup,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let _ = use_log!();
-
     let rx = module_channel!(setup);
     let config = Config::from(setup.with);
 
@@ -40,7 +38,7 @@ pub async fn http_request(
     {
         Ok(client) => client,
         Err(e) => {
-            tracing::error!("Error creating client: {:?}", e);
+            tracing::log::error!("Error creating client: {:?}", e);
             return Err(Box::new(e));
         }
     };
@@ -62,7 +60,7 @@ pub async fn resolve(package: ModulePackage, default_user_agent: Option<String>,
                     ("message", "Request successful".to_value()),
                 ]),
                 Err(e) => {
-                    tracing::error!("Error: {:?}", e);
+                    tracing::log::error!("Error: {:?}", e);
                     HashMap::from([
                         ("response", Value::Undefined),
                         ("is_success", false.to_value()),

@@ -158,7 +158,7 @@ impl TryFrom<&Value> for Config {
             .get("max_retry")
             .map(|v| v.to_i64().unwrap_or(3))
             .unwrap_or(3);
-        
+
         let dlq_enable = value
             .get("dlq_enable")
             .and_then(|v| v.as_bool())

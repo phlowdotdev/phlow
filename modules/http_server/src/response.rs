@@ -2,7 +2,6 @@ use http_body_util::Full;
 use hyper::body::Bytes;
 use hyper::Response;
 use phlow_sdk::prelude::*;
-use phlow_sdk::tracing::error;
 use std::collections::HashMap;
 
 #[derive(ToValue)]
@@ -25,7 +24,7 @@ impl ResponseHandler {
         match response_builder.body(Full::new(Bytes::from(self.body.clone()))) {
             Ok(response) => response,
             Err(e) => {
-                error!("Error creating response: {:?}", e);
+                log::error!("Error creating response: {:?}", e);
                 Response::builder()
                     .status(500)
                     .body(Full::new(Bytes::from(

@@ -38,7 +38,7 @@ pub const RUNTIME_ARCH: &str = "linux-amd64";
 
 #[tokio::main]
 async fn main() {
-    env_logger::Builder::from_env(
+    let _ = env_logger::Builder::from_env(
         env_logger::Env::new()
             .default_filter_or("info")
             .filter_or("PHLOW_LOG", "info"),

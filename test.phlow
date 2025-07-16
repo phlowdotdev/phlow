@@ -1,0 +1,7 @@
+modules:
+  - module: log
+steps:
+  - use: log
+    input:
+      level: info
+      message: "Test log message"

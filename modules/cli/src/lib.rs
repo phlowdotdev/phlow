@@ -3,7 +3,10 @@ mod resolve;
 use std::env;
 
 use args::Args;
-use phlow_sdk::prelude::*;
+use phlow_sdk::{
+    prelude::*,
+    tracing::{field, Level},
+};
 use resolve::resolve;
 
 create_main!(cli(setup));

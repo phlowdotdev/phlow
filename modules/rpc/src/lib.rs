@@ -20,7 +20,7 @@ pub async fn start_rpc_module(
     log::debug!("Starting RPC module with config: {:?}", config);
 
     if setup.is_main() {
-        info!("Starting RPC server as main module");
+        log::info!("Starting RPC server as main module");
         let dispatch = setup.dispatch.clone();
         let config_clone = config.clone();
         let main_sender = match setup.main_sender.clone() {
@@ -34,7 +34,7 @@ pub async fn start_rpc_module(
         // Start RPC server in background
         tokio::task::spawn(async move {
             if let Err(e) = start_rpc_server(config_clone, dispatch, main_sender, id).await {
-                error!("RPC server error: {}", e);
+                log::error!("RPC server error: {}", e);
             }
         });
     }
@@ -75,7 +75,7 @@ async fn handle_rpc_client(
                 },
                 None => {
                     let error_msg = "No input provided";
-                    error!("RPC client error: {}", error_msg);
+                    log::error!("RPC client error: {}", error_msg);
                     Ok(format!("{{\"error\": \"{}\", \"success\": false}}", error_msg).to_value())
                 }
             };
@@ -86,7 +86,7 @@ async fn handle_rpc_client(
                     sender_safe!(package.sender, response.into());
                 }
                 Err(e) => {
-                    error!("RPC client error: {}", e);
+                    log::error!("RPC client error: {}", e);
                     let error_response =
                         format!("{{\"error\": \"{}\", \"success\": false}}", e.to_string())
                             .to_value();

@@ -11,12 +11,7 @@ create_main!(start_server(setup));
 pub async fn start_server(
     setup: ModuleSetup,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let _ = env_logger::Builder::from_env(
-        env_logger::Env::new()
-            .default_filter_or("info")
-            .filter_or("PHLOW_LOG", "info"),
-    )
-    .try_init();
+    let _ = use_log!();
 
     log::debug!("AMQP start_server called");
     let config = Config::try_from(&setup.with).map_err(|e| format!("{:?}", e))?;
@@ -36,7 +31,7 @@ pub async fn start_server(
     let channel = conn.create_channel().await?;
 
     if setup.is_main() {
-        info!("Main module started");
+        log::info!("Main module started");
         let dispatch = setup.dispatch.clone();
         let channel = conn.create_channel().await?;
         let main_sender = match setup.main_sender.clone() {

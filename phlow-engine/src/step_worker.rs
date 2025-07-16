@@ -5,7 +5,7 @@ use crate::{
     script::Script,
 };
 use once_cell::sync::Lazy;
-use phlow_sdk::prelude::*;
+use phlow_sdk::{prelude::*, tracing::field};
 use rhai::Engine;
 use serde::Serialize;
 use std::{fmt::Display, sync::Arc};

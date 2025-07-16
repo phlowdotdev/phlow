@@ -2,6 +2,7 @@ use crate::setup::Config;
 use lapin::message::DeliveryResult;
 use lapin::{options::*, types::FieldTable, BasicProperties};
 use phlow_sdk::prelude::*;
+use phlow_sdk::tracing::{field, Dispatch, Level};
 
 use std::sync::Arc;
 

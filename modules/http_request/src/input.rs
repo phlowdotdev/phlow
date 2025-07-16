@@ -37,10 +37,10 @@ impl Input {
                     if let Ok(header_value) = header::HeaderValue::from_str(&value) {
                         headers.insert(header_name, header_value);
                     } else {
-                        tracing::error!("Invalid header value: {}", value);
+                        tracing::log::error!("Invalid header value: {}", value);
                     }
                 } else {
-                    tracing::error!("Invalid header name: {}", key);
+                    tracing::log::error!("Invalid header name: {}", key);
                 }
             }
         }

@@ -1,6 +1,9 @@
 use crate::settings::AuthorizationSpanMode;
 use hyper::{body::Incoming, service::Service, Request};
-use phlow_sdk::prelude::*;
+use phlow_sdk::{
+    prelude::*,
+    tracing::{field, Dispatch, Level},
+};
 
 use std::{future::Future, pin::Pin};
 

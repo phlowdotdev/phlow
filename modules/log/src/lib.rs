@@ -38,11 +38,14 @@ impl From<&Value> for Log {
 pub async fn log(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let _ = use_log!();
 
-    log::debug!("PHLOW_OTEL is set to false, using default subscriber");
+    log::debug!("Log module started, waiting for messages");
 
     listen!(rx, move |package: ModulePackage| async {
         let value = package.input.unwrap_or(Value::Null);
+        log::debug!("Log module received input: {:?}", value);
+
         let log_value = Log::from(&value);
+        log::debug!("Parsed log: {:?}", log_value);
 
         match log_value.level {
             LogLevel::Info => log::info!("{}", log_value.message),
