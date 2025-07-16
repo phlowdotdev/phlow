@@ -254,17 +254,18 @@ async fn load_modules_like_runtime(loader: &Loader) -> Result<Arc<Modules>, Stri
         };
 
         let module_target = module.module.clone();
+        let module_version = module.version.clone();
 
         // Load module in separate thread - same as Runtime::run
         std::thread::spawn(move || {
-            if let Err(err) = Loader::load_module(setup, &module_target) {
+            if let Err(err) = Loader::load_module(setup, &module_target, &module_version) {
                 error!("Test Runtime Error Load Module: {:?}", err)
             }
         });
 
         debug!(
-            "Module {} loaded with name \"{}\"",
-            module.module, module.name
+            "Module {} loaded with name \"{}\" and version \"{}\"",
+            module.module, module.name, module.version
         );
 
         // Wait for module registration - same as Runtime::run

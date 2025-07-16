@@ -91,16 +91,17 @@ impl Runtime {
             };
 
             let module_target = module.module.clone();
+            let module_version = module.version.clone();
 
             std::thread::spawn(move || {
-                if let Err(err) = Loader::load_module(setup, &module_target) {
+                if let Err(err) = Loader::load_module(setup, &module_target, &module_version) {
                     error!("Runtime Error Load Module: {:?}", err)
                 }
             });
 
             debug!(
-                "Module {} loaded with name \"{}\"",
-                module.module, module.name
+                "Module {} loaded with name \"{}\" and version \"{}\"",
+                module.module, module.name, module.version
             );
 
             match setup_receive.await {
@@ -137,7 +138,9 @@ impl Runtime {
             };
             if let Err(err) = tx_main_package.send(empty_package) {
                 error!("Failed to send empty package: {:?}", err);
-                return Err(RuntimeError::FlowExecutionError("Failed to send empty package".to_string()));
+                return Err(RuntimeError::FlowExecutionError(
+                    "Failed to send empty package".to_string(),
+                ));
             }
         }
 

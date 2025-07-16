@@ -97,10 +97,17 @@ impl Loader {
         })
     }
 
-    pub fn load_module(setup: ModuleSetup, module_name: &str) -> Result<(), Error> {
+    pub fn load_module(
+        setup: ModuleSetup,
+        module_name: &str,
+        module_version: &str,
+    ) -> Result<(), Error> {
         unsafe {
             let path = format!("phlow_packages/{}/module.{}", module_name, MODULE_EXTENSION);
-            info!("🧪 Load Module: {}", path);
+            info!(
+                "🧪 Load Module: {} ({}), in {}",
+                module_name, module_version, path
+            );
 
             let lib = match Library::new(&path) {
                 Ok(lib) => lib,
@@ -143,8 +150,8 @@ impl Loader {
             );
             if Path::new(&module_so_path).exists() {
                 info!(
-                    "Module {} already exists at {}, skipping download",
-                    module.name, module_so_path
+                    "Module {} ({}) already exists at {}, skipping download",
+                    module.name, module.version, module_so_path
                 );
                 continue;
             }
