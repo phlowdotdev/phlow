@@ -3,12 +3,11 @@ use crossbeam::channel;
 use log::{debug, error};
 use phlow_engine::phs::{build_engine, Script};
 use phlow_engine::{Context, Phlow};
-use phlow_sdk::structs::{Package, ModulePackage, ModuleSetup, Modules};
+use phlow_sdk::otel::init_tracing_subscriber;
+use phlow_sdk::prelude::json;
+use phlow_sdk::structs::{ModulePackage, ModuleSetup, Modules};
 use phlow_sdk::valu3::prelude::*;
 use phlow_sdk::valu3::value::Value;
-use phlow_sdk::prelude::json;
-use phlow_sdk::tracing::{self, dispatcher, Dispatch};
-use phlow_sdk::otel::init_tracing_subscriber;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::oneshot;
@@ -31,10 +30,7 @@ pub struct TestSummary {
     pub results: Vec<TestResult>,
 }
 
-pub async fn run_tests(
-    loader: Loader,
-    test_filter: Option<&str>,
-) -> Result<TestSummary, String> {
+pub async fn run_tests(loader: Loader, test_filter: Option<&str>) -> Result<TestSummary, String> {
     // Get tests from loader.tests
     let tests = loader
         .tests
@@ -96,14 +92,15 @@ pub async fn run_tests(
     println!();
 
     // Load modules following the same pattern as Runtime::run
-    let modules = load_modules_like_runtime(&loader).await
+    let modules = load_modules_like_runtime(&loader)
+        .await
         .map_err(|e| format!("Failed to load modules for tests: {}", e))?;
 
     // Create flow from steps
     let workflow = json!({
         "steps": steps
     });
-    
+
     let phlow = Phlow::try_from_value(&workflow, Some(modules))
         .map_err(|e| format!("Failed to create phlow: {}", e))?;
 
@@ -111,7 +108,7 @@ pub async fn run_tests(
     let mut results = Vec::new();
     let mut passed = 0;
 
-    for (run_index, (original_index, test_case)) in filtered_tests.iter().enumerate() {
+    for (run_index, (_, test_case)) in filtered_tests.iter().enumerate() {
         let test_index = run_index + 1;
 
         // Extract test description if available
@@ -172,10 +169,7 @@ pub async fn run_tests(
     })
 }
 
-async fn run_single_test(
-    test_case: &Value,
-    phlow: &Phlow,
-) -> Result<String, String> {
+async fn run_single_test(test_case: &Value, phlow: &Phlow) -> Result<String, String> {
     // Extract test inputs
     let main_value = test_case.get("main").cloned().unwrap_or(Value::Null);
     let initial_payload = test_case.get("payload").cloned().unwrap_or(Value::Null);
@@ -218,65 +212,37 @@ async fn run_single_test(
     }
 }
 
-async fn execute_steps_with_context(
-    steps: Value,
-    main: Value,
-    payload: Value,
-    modules: Arc<Modules>,
-) -> Result<Value, String> {
-    // Create a phlow workflow with just the steps
-    let workflow = json!({
-        "steps": steps
-    });
-
-    // Create phlow instance with loaded modules
-    let phlow = Phlow::try_from_value(&workflow, Some(modules))
-        .map_err(|e| format!("Failed to create phlow: {}", e))?;
-
-    // Create context with test data
-    let mut context = Context::from_main(main);
-
-    // Set initial payload if provided
-    if !payload.is_null() {
-        context = context.add_module_output(payload);
-    }
-
-    // Execute the workflow
-    let result = phlow
-        .execute(&mut context)
-        .await
-        .map_err(|e| format!("Execution failed: {}", e))?;
-
-    Ok(result.unwrap_or(Value::Null))
-}
-
 // Load modules following the exact same pattern as Runtime::run
 // but without creating main_sender channels since we don't need them for tests
 async fn load_modules_like_runtime(loader: &Loader) -> Result<Arc<Modules>, String> {
     let mut modules = Modules::default();
-    
+
     // Initialize tracing subscriber
     let guard = init_tracing_subscriber(loader.app_data.clone());
     let dispatch = guard.dispatch.clone();
-    
+
     let engine = build_engine(None);
-    
+
     // Load modules exactly like Runtime::run does
     for (id, module) in loader.modules.iter().enumerate() {
         let (setup_sender, setup_receive) =
             oneshot::channel::<Option<channel::Sender<ModulePackage>>>();
-        
+
         // For tests, we never pass main_sender to prevent modules from starting servers/loops
         let main_sender = None;
-        
+
         let with = {
             let script = Script::try_build(engine.clone(), &module.with)
                 .map_err(|e| format!("Failed to build script for module {}: {}", module.name, e))?;
-            
-            script.evaluate_without_context()
-                .map_err(|e| format!("Failed to evaluate script for module {}: {}", module.name, e))?
+
+            script.evaluate_without_context().map_err(|e| {
+                format!(
+                    "Failed to evaluate script for module {}: {}",
+                    module.name, e
+                )
+            })?
         };
-        
+
         let setup = ModuleSetup {
             id,
             setup_sender,
@@ -286,19 +252,21 @@ async fn load_modules_like_runtime(loader: &Loader) -> Result<Arc<Modules>, Stri
             app_data: loader.app_data.clone(),
             is_test_mode: true,
         };
-        
+
         let module_target = module.module.clone();
-        let module_name = module.name.clone();
-        
+
         // Load module in separate thread - same as Runtime::run
         std::thread::spawn(move || {
             if let Err(err) = Loader::load_module(setup, &module_target) {
                 error!("Test Runtime Error Load Module: {:?}", err)
             }
         });
-        
-        debug!("Module {} loaded with name \"{}\"", module.module, module.name);
-        
+
+        debug!(
+            "Module {} loaded with name \"{}\"",
+            module.module, module.name
+        );
+
         // Wait for module registration - same as Runtime::run
         match setup_receive.await {
             Ok(Some(sender)) => {
@@ -313,7 +281,7 @@ async fn load_modules_like_runtime(loader: &Loader) -> Result<Arc<Modules>, Stri
             }
         }
     }
-    
+
     Ok(Arc::new(modules))
 }
 
@@ -329,23 +297,26 @@ fn deep_equals(a: &Value, b: &Value) -> bool {
             let a_val = a.to_f64().unwrap_or(0.0);
             let b_val = b.to_f64().unwrap_or(0.0);
             (a_val - b_val).abs() < f64::EPSILON
-        },
+        }
         (Value::String(a), Value::String(b)) => a == b,
-        
+
         // Array comparison - order matters for arrays
         (Value::Array(a), Value::Array(b)) => {
             if a.len() != b.len() {
                 return false;
             }
-            a.values.iter().zip(b.values.iter()).all(|(a_val, b_val)| deep_equals(a_val, b_val))
-        },
-        
+            a.values
+                .iter()
+                .zip(b.values.iter())
+                .all(|(a_val, b_val)| deep_equals(a_val, b_val))
+        }
+
         // Object comparison - order doesn't matter for objects
         (Value::Object(a), Value::Object(b)) => {
             if a.len() != b.len() {
                 return false;
             }
-            
+
             // Check if all keys from a exist in b with equal values
             for (key, a_val) in a.iter() {
                 let key_str = key.to_string();
@@ -354,14 +325,14 @@ fn deep_equals(a: &Value, b: &Value) -> bool {
                         if !deep_equals(a_val, b_val) {
                             return false;
                         }
-                    },
+                    }
                     None => return false,
                 }
             }
-            
+
             true
-        },
-        
+        }
+
         // Different types are not equal
         _ => false,
     }
