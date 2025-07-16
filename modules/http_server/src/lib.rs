@@ -18,7 +18,7 @@ pub async fn start_server(
     setup: ModuleSetup,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if !setup.is_main() {
-        debug!("This module is not the main module, exiting");
+        log::debug!("This module is not the main module, exiting");
         match setup.setup_sender.send(None) {
             Ok(_) => {}
             Err(e) => {
@@ -27,10 +27,10 @@ pub async fn start_server(
         };
         return Ok(());
     }
-    
+
     // If we're in test mode, don't start the actual server
     if setup.is_test_mode {
-        debug!("Test mode detected, not starting HTTP server");
+        log::debug!("Test mode detected, not starting HTTP server");
         match setup.setup_sender.send(None) {
             Ok(_) => {}
             Err(e) => {
@@ -52,7 +52,7 @@ pub async fn start_server(
 
     let listener = TcpListener::bind(addr).await?;
 
-    debug!("Listening on {}", listener.local_addr()?);
+    log::debug!("Listening on {}", listener.local_addr()?);
 
     sender_safe!(setup.setup_sender, None);
 
@@ -86,7 +86,7 @@ pub async fn start_server(
                 .serve_connection(io, middleware)
                 .await
             {
-                debug!("Error serving connection: {}", e);
+                log::debug!("Error serving connection: {}", e);
             }
         });
     }

@@ -5,7 +5,6 @@ use http_body_util::{BodyExt, Full};
 use hyper::body::Body;
 use hyper::{HeaderMap, Request, Response};
 use phlow_sdk::span_enter;
-use phlow_sdk::tracing::debug;
 use phlow_sdk::{prelude::*, tracing::Span};
 use std::{collections::HashMap, convert::Infallible};
 
@@ -122,7 +121,7 @@ async fn resolve_body(req: Request<hyper::body::Incoming>) -> Value {
     let body_bytes: Bytes = match req.into_body().collect().await {
         Ok(full_body) => full_body.to_bytes(),
         Err(e) => {
-            debug!("Error reading request body: {:?}", e);
+            log::debug!("Error reading request body: {:?}", e);
             Bytes::new()
         }
     };
@@ -137,7 +136,7 @@ async fn resolve_body(req: Request<hyper::body::Incoming>) -> Value {
             }
         }
         Err(e) => {
-            debug!("Error parsing request body: {:?}", e);
+            log::debug!("Error parsing request body: {:?}", e);
             Value::Undefined
         }
     };
@@ -180,7 +179,7 @@ async fn resolve_headers(
                 Some((key.as_str().to_string(), val_str.to_string()))
             }
             Err(e) => {
-                debug!("Header value is not a valid UTF-8 string: {:?}", e);
+                log::debug!("Header value is not a valid UTF-8 string: {:?}", e);
                 None
             }
         })

@@ -29,3 +29,5 @@ tracing-subscriber = { workspace = true }
 tracing = { workspace = true }
 once_cell = { workspace = true }
 phs = { workspace = true }
+log = { workspace = true }
+env_logger = { workspace = true }

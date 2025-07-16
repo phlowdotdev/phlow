@@ -32,10 +32,10 @@ pub async fn sleep(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error +
         };
 
         if sleep.time > 0 {
-            debug!("Sleeping for {} milliseconds", sleep.time);
+            log::debug!("Sleeping for {} milliseconds", sleep.time);
             std::thread::sleep(std::time::Duration::from_millis(sleep.time));
         } else {
-            debug!("No sleep time provided, skipping sleep");
+            log::debug!("No sleep time provided, skipping sleep");
         }
 
         sender_safe!(package.sender, Value::Null.into());

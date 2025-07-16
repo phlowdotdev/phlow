@@ -65,7 +65,7 @@ pub async fn producer(
         .send(Some(tx))
         .map_err(|e| format!("{:?}", e))?;
 
-    debug!("Producer started");
+    log::debug!("Producer started");
 
     // Create connection for potential channel recreation
     let uri = match config.uri.clone() {
@@ -75,7 +75,7 @@ pub async fn producer(
     let conn = lapin::Connection::connect(&uri, lapin::ConnectionProperties::default()).await?;
 
     for package in rx {
-        debug!("Received package");
+        log::debug!("Received package");
 
         let input = match package.input {
             Some(input) => Input::from(&input),
@@ -93,14 +93,15 @@ pub async fn producer(
 
         // Check if channel is closed and recreate if needed
         if !channel.status().connected() {
-            debug!("Channel is closed, recreating...");
+            log::debug!("Channel is closed, recreating...");
             match conn.create_channel().await {
                 Ok(new_channel) => {
                     channel = new_channel;
-                    debug!("Channel recreated successfully");
+                    log::debug!("Channel recreated successfully");
                 }
                 Err(e) => {
-                    let response = ProducerResponse::from_error(&format!("Failed to recreate channel: {}", e));
+                    let response =
+                        ProducerResponse::from_error(&format!("Failed to recreate channel: {}", e));
                     let _ = package.sender.send(response.to_value().into());
                     continue;
                 }
@@ -118,16 +119,15 @@ pub async fn producer(
             .await;
 
         let confirm = match publish_result {
-            Ok(confirm_future) => {
-                match confirm_future.await {
-                    Ok(confirm) => confirm,
-                    Err(e) => {
-                        let response = ProducerResponse::from_error(&format!("Publish confirmation error: {}", e));
-                        let _ = package.sender.send(response.to_value().into());
-                        continue;
-                    }
+            Ok(confirm_future) => match confirm_future.await {
+                Ok(confirm) => confirm,
+                Err(e) => {
+                    let response =
+                        ProducerResponse::from_error(&format!("Publish confirmation error: {}", e));
+                    let _ = package.sender.send(response.to_value().into());
+                    continue;
                 }
-            }
+            },
             Err(e) => {
                 let response = ProducerResponse::from_error(&format!("Publish error: {}", e));
                 let _ = package.sender.send(response.to_value().into());
@@ -135,20 +135,20 @@ pub async fn producer(
             }
         };
 
-        debug!("Published message to {} ({})", config.exchange, routing_key);
+        log::debug!("Published message to {} ({})", config.exchange, routing_key);
 
         let (success, error_message) = match confirm {
             Confirmation::NotRequested => {
-                debug!("Published message without ack");
+                log::debug!("Published message without ack");
                 (true, None)
             }
             Confirmation::Ack(msg) => {
-                debug!("Ack: {:?}", msg);
+                log::debug!("Ack: {:?}", msg);
                 (true, None)
             }
             Confirmation::Nack(msg) => {
                 let err = format!("Nack: {:?}", msg);
-                debug!("{}", err);
+                log::debug!("{}", err);
                 (false, Some(err))
             }
         };

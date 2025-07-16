@@ -118,7 +118,7 @@ impl TryFrom<&Value> for Config {
 
         // Parse RabbitMQ definition if available and import
         if let Some(definition) = value.get("definition") {
-            debug!("Found definition in config, importing...");
+            log::debug!("Found definition in config, importing...");
             let management_port = value
                 .get("management_port")
                 .map(|v| v.to_i64().unwrap_or(15672) as u16)
@@ -126,14 +126,14 @@ impl TryFrom<&Value> for Config {
 
             // Execute import synchronously to ensure it completes before module use
             match import_definition(&host, management_port, &username, &password, definition) {
-                Ok(_) => debug!("Definition import completed successfully"),
+                Ok(_) => log::debug!("Definition import completed successfully"),
                 Err(e) => {
-                    debug!("Definition import failed: {}", e);
+                    log::debug!("Definition import failed: {}", e);
                     panic!("Error importing definition: {}", e);
                 }
             }
         } else {
-            debug!("No definition found in config");
+            log::debug!("No definition found in config");
         }
 
         Ok(Self {
@@ -159,10 +159,10 @@ fn import_definition(
     password: &str,
     definition: &Value,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    debug!("Starting import_definition function");
+    log::debug!("Starting import_definition function");
 
     if let Some(obj) = definition.as_object() {
-        debug!("Definition parsed as object successfully");
+        log::debug!("Definition parsed as object successfully");
         let client = reqwest::blocking::Client::new();
 
         // Import vhosts
@@ -187,7 +187,7 @@ fn import_definition(
                             .json(&serde_json::json!({}))
                             .send()?;
 
-                        debug!("Created vhost '{}': {}", vhost_name, response.status());
+                        log::debug!("Created vhost '{}': {}", vhost_name, response.status());
                     }
                 }
             }
@@ -263,7 +263,7 @@ fn import_definition(
                             .json(&body)
                             .send()?;
 
-                        debug!(
+                        log::debug!(
                             "Created exchange '{}': {}",
                             exchange_name,
                             response.status()
@@ -329,7 +329,7 @@ fn import_definition(
                             .json(&body)
                             .send()?;
 
-                        debug!("Created queue '{}': {}", queue_name, response.status());
+                        log::debug!("Created queue '{}': {}", queue_name, response.status());
                     }
                 }
             }
@@ -373,7 +373,7 @@ fn import_definition(
                             urlencoding::encode(&destination)
                         );
 
-                        debug!("Creating binding with URL: {}", url);
+                        log::debug!("Creating binding with URL: {}", url);
 
                         let arguments = binding_obj
                             .get("arguments")
@@ -386,7 +386,7 @@ fn import_definition(
                             "arguments": arguments
                         });
 
-                        debug!("Binding request body: {}", body);
+                        log::debug!("Binding request body: {}", body);
 
                         let response = client
                             .post(&url)
@@ -402,19 +402,22 @@ fn import_definition(
                                     let body_text = resp.text().unwrap_or_else(|_| {
                                         "Unable to read response body".to_string()
                                     });
-                                    debug!(
+                                    log::debug!(
                                         "Binding creation failed with status {}: {}",
-                                        status, body_text
+                                        status,
+                                        body_text
                                     );
                                 } else {
-                                    debug!(
+                                    log::debug!(
                                         "Created binding '{}' -> '{}': {}",
-                                        source, destination, status
+                                        source,
+                                        destination,
+                                        status
                                     );
                                 }
                             }
                             Err(e) => {
-                                debug!("Error creating binding: {}", e);
+                                log::debug!("Error creating binding: {}", e);
                                 return Err(e.into());
                             }
                         }
@@ -423,7 +426,7 @@ fn import_definition(
             }
         }
     } else {
-        debug!("Definition is not an object, skipping import");
+        log::debug!("Definition is not an object, skipping import");
     }
 
     Ok(())

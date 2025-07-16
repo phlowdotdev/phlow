@@ -2609,6 +2609,8 @@ name = "phlow-sdk"
 version = "0.0.36"
 dependencies = [
  "crossbeam",
+ "env_logger",
+ "log 0.4.27",
  "once_cell",
  "opentelemetry 0.30.0",
  "opentelemetry-otlp",

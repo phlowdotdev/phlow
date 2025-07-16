@@ -12,7 +12,7 @@ pub async fn consumer(
     channel: lapin::Channel,
     dispatch: Dispatch,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    debug!("Starting consumer");
+    log::debug!("Starting consumer");
 
     let config = Arc::new(config);
     let main_sender = Arc::new(main_sender);
@@ -88,14 +88,14 @@ pub async fn consumer(
                     span.record("messaging.message.payload_size_bytes", delivery.data.len());
                     span.record("messaging.message.conversation_id", &id.to_string());
 
-                    debug!("Received message: {:?}", data);
+                    log::debug!("Received message: {:?}", data);
 
                     let response_value =
                         sender_package!(span.clone(), dispatch.clone(), id, sender, Some(data))
                             .await
                             .unwrap_or(Value::Null);
 
-                    debug!("Response: {:?}", response_value);
+                    log::debug!("Response: {:?}", response_value);
 
                     delivery
                         .ack(BasicAckOptions::default())
