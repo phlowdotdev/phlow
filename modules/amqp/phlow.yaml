@@ -113,6 +113,14 @@ with:
       required: false
       aditional_properties: true
       description: "RabbitMQ definitions to import via Management API (https://www.rabbitmq.com/docs/definitions)"
+    max_retry:
+      type: integer
+      required: false
+      description: "Maximum number of retry attempts before sending to DLQ (default: 3)"
+    dlq_enable:
+      type: boolean
+      required: false
+      description: "Enable Dead Letter Queue functionality (default: true)"
 input:
   type: object
   required: true

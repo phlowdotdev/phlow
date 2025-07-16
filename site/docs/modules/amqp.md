@@ -27,6 +27,8 @@ The AMQP module provides a comprehensive interface for sending and receiving mes
 - ✅ Full observability with OpenTelemetry tracing
 - ✅ Import RabbitMQ definitions via Management API
 - ✅ Automatic reconnection in case of channel failure
+- ✅ Dead Letter Queue (DLQ) support with configurable retry attempts
+- ✅ Error handling with retry mechanisms
 
 ## 📋 Configuration
 
@@ -36,7 +38,7 @@ The AMQP module provides a comprehensive interface for sending and receiving mes
 modules:
   - name: "message_processor"
     module: "amqp"
-    version: "0.0.1"
+    version: "0.0.2"
     with:
       host: "localhost"
       port: 5672
@@ -112,6 +114,10 @@ modules:
 ### Management
 - `management_port` (integer, optional): Management API port (default: 15672)
 - `definition` (object, optional): RabbitMQ definitions for automatic import
+
+### Error Handling
+- `max_retry` (integer, optional): Maximum number of retry attempts before sending to DLQ (default: 3)
+- `dlq_enable` (boolean, optional): Enable Dead Letter Queue functionality (default: true)
 
 ## 📨 Usage as Consumer (Main Module)
 
@@ -324,7 +330,7 @@ steps:
 
 ---
 
-**Version**: 0.0.1  
+**Version**: 0.0.2  
 **Author**: Philippe Assis `<codephilippe@gmail.com>`
 **License**: MIT  
 **Repository**: https://github.com/phlowdotdev/phlow

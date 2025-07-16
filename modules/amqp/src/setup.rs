@@ -35,6 +35,8 @@ pub struct Config {
     pub queue_name: String,
     pub uri: Option<String>,
     pub vhost: String,
+    pub max_retry: i64,
+    pub dlq_enable: bool,
 }
 
 impl Config {
@@ -151,6 +153,18 @@ impl TryFrom<&Value> for Config {
             (username, password, host, port, vhost)
         };
 
+        // Parse new retry and DLQ configuration
+        let max_retry = value
+            .get("max_retry")
+            .map(|v| v.to_i64().unwrap_or(3))
+            .unwrap_or(3);
+        
+        let dlq_enable = value
+            .get("dlq_enable")
+            .and_then(|v| v.as_bool())
+            .copied()
+            .unwrap_or(true);
+
         // Parse RabbitMQ definition if available and import
         if let Some(definition) = value.get("definition") {
             log::debug!("Found definition in config, importing...");
@@ -183,6 +197,8 @@ impl TryFrom<&Value> for Config {
             queue_name,
             vhost,
             uri,
+            max_retry,
+            dlq_enable,
         })
     }
 }
