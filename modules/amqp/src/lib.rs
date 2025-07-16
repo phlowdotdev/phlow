@@ -11,11 +11,16 @@ create_main!(start_server(setup));
 pub async fn start_server(
     setup: ModuleSetup,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let _ = use_log!();
+    let _ = env_logger::Builder::from_env(
+        env_logger::Env::new()
+            .default_filter_or("info")
+            .filter_or("PHLOW_LOG", "info"),
+    )
+    .try_init();
 
     log::debug!("AMQP start_server called");
     let config = Config::try_from(&setup.with).map_err(|e| format!("{:?}", e))?;
-    log::debug!("Config created successfully");
+    log::debug!("Config created successfully: {:?}", config);
 
     let uri: String = match config.uri.clone() {
         Some(uri) => uri,
