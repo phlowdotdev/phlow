@@ -12,7 +12,7 @@ use tokio_postgres::types::ToSql;
 create_step!(postgres(setup));
 
 pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    use_log!();
+    let _ = use_log!();
 
     let rx = module_channel!(setup);
     let config = PostgresConfig::try_from(setup.with.clone())?;

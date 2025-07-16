@@ -36,7 +36,7 @@ impl From<&Value> for Log {
 }
 
 pub async fn log(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    use_log!();
+    let _ = use_log!();
 
     log::debug!("PHLOW_OTEL is set to false, using default subscriber");
 

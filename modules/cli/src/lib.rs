@@ -9,7 +9,7 @@ use resolve::resolve;
 create_main!(cli(setup));
 
 pub async fn cli(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    use_log!();
+    let _ = use_log!();
     sender_safe!(setup.setup_sender, None);
 
     let _ = phlow_sdk::tracing::dispatcher::with_default(&setup.dispatch.clone(), || async move {
