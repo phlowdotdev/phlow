@@ -17,6 +17,8 @@ create_main!(start_server(setup));
 pub async fn start_server(
     setup: ModuleSetup,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let _ = use_log!();
+
     if !setup.is_main() {
         log::debug!("This module is not the main module, exiting");
         match setup.setup_sender.send(None) {

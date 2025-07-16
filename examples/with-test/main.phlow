@@ -1,3 +1,5 @@
+modules:
+  - module: log
 tests: 
   - describe: Basic Arithmetic Tests
     main:
@@ -12,3 +14,7 @@ tests:
 steps:
   - payload: !phs main.total * payload 
   - payload: !phs `Total is ${payload}`
+  - use: log
+    input:
+      level: info
+      message: !phs payload

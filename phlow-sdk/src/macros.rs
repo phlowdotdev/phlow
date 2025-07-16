@@ -81,17 +81,22 @@ macro_rules! module_channel {
 }
 
 #[macro_export]
+macro_rules! use_log {
+    () => {
+        env_logger::Builder::from_env(
+            env_logger::Env::new()
+                .default_filter_or("info")
+                .filter_or("PHLOW_LOG", "info"),
+        )
+        .try_init()
+    };
+}
+
+#[macro_export]
 macro_rules! create_step {
     ($handler:ident(setup)) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: $crate::structs::ModuleSetup) {
-            let _ = env_logger::Builder::from_env(
-                env_logger::Env::new()
-                    .default_filter_or("info")
-                    .filter_or("PHLOW_LOG", "info"),
-            )
-            .try_init();
-
             if let Ok(rt) = $crate::tokio::runtime::Runtime::new() {
                 if let Err(e) = rt.block_on($handler(setup)) {
                     $crate::tracing::error!("Error in plugin: {:?}", e);

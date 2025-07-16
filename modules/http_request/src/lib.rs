@@ -12,6 +12,8 @@ create_step!(http_request(setup));
 pub async fn http_request(
     setup: ModuleSetup,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let _ = use_log!();
+
     let rx = module_channel!(setup);
     let config = Config::from(setup.with);
 

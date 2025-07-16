@@ -1,0 +1,10 @@
+modules:
+  - module: log
+steps:
+  - payload: 10
+  - payload: !phs 0 * payload
+  - payload: !phs `Total is ${payload}`
+  - use: log
+    input:
+      level: info
+      message: !phs payload
