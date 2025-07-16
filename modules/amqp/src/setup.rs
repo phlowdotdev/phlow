@@ -39,15 +39,9 @@ pub struct Config {
 
 impl Config {
     pub fn to_connection_string(&self) -> String {
-        let encoded_vhost = if self.vhost == "/" {
-            "%2F".to_string()
-        } else {
-            urlencoding::encode(&self.vhost).to_string()
-        };
-
         format!(
             "amqp://{}:{}@{}:{}/{}",
-            self.username, self.password, self.host, &self.port, encoded_vhost
+            self.username, self.password, self.host, &self.port, &self.vhost
         )
     }
 }
@@ -56,23 +50,6 @@ impl TryFrom<&Value> for Config {
     type Error = Error;
 
     fn try_from(value: &Value) -> Result<Self, Error> {
-        let username = value
-            .get("username")
-            .map(|v| v.to_string())
-            .unwrap_or("guest".to_string());
-
-        let password = value
-            .get("password")
-            .map(|v| v.to_string())
-            .unwrap_or("guest".to_string());
-
-        let port = value.get("port").map(|v| v.to_i64().unwrap_or(5672) as u16);
-
-        let host = value
-            .get("host")
-            .map(|v| v.to_string())
-            .unwrap_or("localhost".to_string());
-
         let exchange = value
             .get("exchange")
             .map(|v| v.to_string())
@@ -105,16 +82,74 @@ impl TryFrom<&Value> for Config {
                 routing_key.clone()
             });
 
-        let vhost = value
-            .get("vhost")
-            .and_then(|v| v.as_string_b())
-            .map(|s| s.as_string())
-            .unwrap_or("/".to_string());
-
         let uri: Option<String> = value
             .get("uri")
             .and_then(|v| v.as_string_b())
             .map(|s| s.as_string());
+
+        let (username, password, host, port, vhost) = if let Some(uri_str) = &uri {
+            log::debug!("Using URI from config: {}", uri_str);
+
+            if uri_str.starts_with("amqp://") {
+                match url::Url::parse(uri_str) {
+                    Ok(parsed) => {
+                        let host = parsed.host_str().unwrap_or("localhost").to_string();
+                        let port = parsed.port().map(|p| p as u16);
+                        let username = if !parsed.username().is_empty() {
+                            parsed.username().to_string()
+                        } else {
+                            "guest".to_string()
+                        };
+                        let password = parsed.password().unwrap_or("guest").to_string();
+                        let vhost = parsed.path().trim_start_matches('/').to_string();
+                        (username, password, host, port, vhost)
+                    }
+                    Err(e) => {
+                        log::warn!("Failed to parse AMQP URI: {} ({})", uri_str, e);
+                        (
+                            "guest".to_string(),
+                            "guest".to_string(),
+                            "localhost".to_string(),
+                            None,
+                            "/".to_string(),
+                        )
+                    }
+                }
+            } else {
+                (
+                    "guest".to_string(),
+                    "guest".to_string(),
+                    "localhost".to_string(),
+                    None,
+                    "/".to_string(),
+                )
+            }
+        } else {
+            let username = value
+                .get("username")
+                .map(|v| v.to_string())
+                .unwrap_or_else(|| "guest".to_string());
+
+            let password = value
+                .get("password")
+                .map(|v| v.to_string())
+                .unwrap_or_else(|| "guest".to_string());
+
+            let host = value
+                .get("host")
+                .map(|v| v.to_string())
+                .unwrap_or_else(|| "localhost".to_string());
+
+            let port = value.get("port").map(|v| v.to_i64().unwrap_or(5672) as u16);
+
+            let vhost = value
+                .get("vhost")
+                .and_then(|v| v.as_string_b())
+                .map(|s| s.as_string())
+                .unwrap_or_else(|| "/".to_string());
+
+            (username, password, host, port, vhost)
+        };
 
         // Parse RabbitMQ definition if available and import
         if let Some(definition) = value.get("definition") {

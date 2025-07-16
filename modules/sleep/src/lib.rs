@@ -7,8 +7,6 @@ struct Sleep {
 }
 
 impl From<&Value> for Sleep {
-    let _ = use_log!();
-
     fn from(value: &Value) -> Self {
         let time = if let Some(value) = value.get("milliseconds") {
             value.to_u64().unwrap_or(0)

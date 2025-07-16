@@ -110,6 +110,7 @@ dependencies = [
  "phlow-sdk",
  "reqwest",
  "serde_json",
+ "url",
  "urlencoding",
 ]
 
