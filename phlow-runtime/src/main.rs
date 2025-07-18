@@ -6,7 +6,6 @@ mod settings;
 mod test_runner;
 mod yaml;
 use loader::Loader;
-use log::debug;
 use package::Package;
 use phlow_sdk::otel::init_tracing_subscriber;
 use phlow_sdk::tracing::error;
