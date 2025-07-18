@@ -27,6 +27,13 @@ description = "Executa cargo run -p phlow-runtime -- examples/ARG"
 script = ["cargo run -p phlow-runtime -- examples/${@}"]
 args = []
 
+[tasks.all-local-packages]
+workspace = false
+description = "Executa ./scripts/local-packages.sh"
+script = [
+    "chmod +x ./scripts/local-packages.sh",
+    "./scripts/local-packages.sh ${@}",
+]
 
 [tasks.local]
 workspace = false

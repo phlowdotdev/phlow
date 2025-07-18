@@ -1,78 +1,21 @@
-main: http_server
 modules:
-  - module: http_server
-    with:
-      port: 3000
   - module: log
-  - module: amqp
-    with:
-      uri: !phs envs.RABBITMQ_URI
-      routing_key: stripe.routing.key
-      queue_name: stripe.queue
-      exchange: stripe.exchange
-      definition:
-        vhosts:
-          - name: studio
-            arguments: {}
-        exchanges:
-          - name: stripe.exchange
-            vhost: studio
-            type: direct
-            durable: true
-            auto_delete: true
-            internal: false
-            arguments: {}
-        queues:
-          - name: stripe.queue
-            vhost: studio
-            durable: true
-            auto_delete: false
-            arguments: {}
-        bindings:
-          - source: stripe.exchange
-            vhost: studio
-            destination: stripe.queue
-            destination_type: queue
-            routing_key: stripe.routing.key
-            arguments: {}
 steps:
   - use: log
     input:
-      message: !phs main
+      message: Hello, this is a log module test.
       level: info
-  - condition:
-      assert: !phs main.method == "POST" && main.path == "/stripe"
-    then:
-      - id: queue
-        use: amqp
-        input:
-          message: !phs main
-      - return:
-          status_code: 201
-          body: !phs steps.queue
-          headers:
-            Content-Type: application/json
-    else:
-      return:
-        status_code: 400
-        body:
-          message: "Invalid contract"
-        headers:
-          Content-Type: application/json
+  - use: log
+    input:
+      message: This is an error log message.
+      level: error
+  - use: log
+    input:
+      message: Debugging information here.
+      level: debug
+  - use: log
+    input:
+      message: Warning! Something might be wrong.
+      level: warning
 tests:
-  - describe: Webhook Phlow Tests
-    main:
-      method: POST
-      path: /stripe
-      body:
-        key: value
-    assert_eq: {
-        "headers": {
-                "Content-Type": "application/json"
-        },
-        "body": {
-                "error_message": null,
-                "success": true
-        },
-        "status_code": 201
-    }
+  - describe: All logs

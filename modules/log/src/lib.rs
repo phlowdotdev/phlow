@@ -36,8 +36,6 @@ impl From<&Value> for Log {
 }
 
 pub async fn log(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let _ = use_log!();
-
     log::debug!("Log module started, waiting for messages");
 
     listen!(rx, move |package: ModulePackage| async {

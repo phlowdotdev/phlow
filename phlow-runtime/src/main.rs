@@ -9,8 +9,8 @@ use loader::Loader;
 use log::debug;
 use package::Package;
 use phlow_sdk::otel::init_tracing_subscriber;
-use phlow_sdk::tracing;
 use phlow_sdk::tracing::error;
+use phlow_sdk::{tracing, use_log};
 use runtime::Runtime;
 use settings::Settings;
 
@@ -38,14 +38,8 @@ pub const RUNTIME_ARCH: &str = "linux-amd64";
 
 #[tokio::main]
 async fn main() {
-    let _ = env_logger::Builder::from_env(
-        env_logger::Env::new()
-            .default_filter_or("info")
-            .filter_or("PHLOW_LOG", "info"),
-    )
-    .init();
-
-    debug!("Starting Phlow Runtime");
+    use_log!();
+    log::debug!("Starting Phlow Runtime");
 
     let settings = match Settings::try_load() {
         Ok(settings) => settings,

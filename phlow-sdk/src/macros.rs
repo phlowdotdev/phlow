@@ -20,14 +20,14 @@ macro_rules! listen {
 
 #[macro_export]
 macro_rules! use_log {
-    () => {
-        env_logger::Builder::from_env(
+    () => {{
+        let _ = env_logger::Builder::from_env(
             env_logger::Env::new()
                 .default_filter_or("info")
                 .filter_or("PHLOW_LOG", "info"),
         )
-        .init();
-    };
+        .try_init();
+    }};
 }
 
 #[macro_export]
@@ -97,6 +97,8 @@ macro_rules! create_step {
     ($handler:ident(setup)) => {
         #[no_mangle]
         pub extern "C" fn plugin(setup: $crate::structs::ModuleSetup) {
+            use_log!();
+
             if let Ok(rt) = $crate::tokio::runtime::Runtime::new() {
                 if let Err(e) = rt.block_on($handler(setup)) {
                     $crate::tracing::error!("Error in plugin: {:?}", e);
@@ -113,6 +115,8 @@ macro_rules! create_step {
         pub extern "C" fn plugin(setup: $crate::structs::ModuleSetup) {
             let dispatch = setup.dispatch.clone();
             $crate::tracing::dispatcher::with_default(&dispatch, || {
+                use_log!();
+
                 if let Ok(rt) = $crate::tokio::runtime::Runtime::new() {
                     let rx = module_channel!(setup);
 
@@ -139,12 +143,7 @@ macro_rules! create_main {
             let dispatch = setup.dispatch.clone();
             $crate::tracing::dispatcher::with_default(&dispatch, || {
                 let _guard = $crate::otel::init_tracing_subscriber(setup.app_data.clone());
-                let _ = env_logger::Builder::from_env(
-                    env_logger::Env::new()
-                        .default_filter_or("info")
-                        .filter_or("PHLOW_LOG", "info"),
-                )
-                .try_init();
+                use_log!();
 
                 if let Ok(rt) = $crate::tokio::runtime::Runtime::new() {
                     rt.block_on($handler(setup)).unwrap_or_else(|e| {
