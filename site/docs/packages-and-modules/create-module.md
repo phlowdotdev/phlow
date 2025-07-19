@@ -979,7 +979,7 @@ phlow test.phlow
 |-------|---------|-------|
 | `create_step!()` | Register step function | `create_step!(my_function(rx));` |
 | `create_main!()` | Register main function | `create_main!(start_app(setup));` |
-| `listen!()` | Handle incoming messages | `listen!(rx, |pkg| async { ... });` |
+| `listen!()` | Handle incoming messages | `listen!(rx, \|pkg\| async { ... });` |
 | `sender_safe!()` | Send response safely | `sender_safe!(sender, response);` |
 | `sender_package!()` | Send to pipeline | `sender_package!(dispatch, id, sender, data);` |
 
