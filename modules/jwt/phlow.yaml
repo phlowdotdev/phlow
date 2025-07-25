@@ -1,0 +1,81 @@
+name: jwt
+description: JSON Web Token (JWT) creation and validation module.
+version: 0.0.1
+author: Philippe Assis <codephilippe@gmail.com>
+repository: https://github.com/phlowdotdev/phlow
+license: MIT
+type: step
+tags:
+  - jwt
+  - auth
+  - authentication
+  - authorization
+  - token
+  - security
+
+with:
+  type: object
+  required: true
+  properties:
+    secret:
+      type: string
+      description: Secret key for signing and verifying JWT tokens.
+      required: true
+
+input:
+  type: object
+  required: true
+  properties:
+    action:
+      type: string
+      description: Action to perform (create or verify).
+      required: true
+      enum:
+        - create
+        - verify
+    data:
+      type: object
+      description: Data to include in the token payload (for create action).
+      required: false
+    token:
+      type: string
+      description: JWT token to verify (for verify action).
+      required: false
+    expires_in:
+      type: integer
+      description: Token expiration time in seconds.
+      default: 3600
+      required: false
+
+output:
+  type: object
+  required: true
+  properties:
+    token:
+      type: string
+      description: Generated JWT token (for create action).
+      required: false
+    expires_at:
+      type: string
+      description: Token expiration timestamp in ISO 8601 format (for create action).
+      required: false
+    issued_at:
+      type: string
+      description: Token issue timestamp in ISO 8601 format (for create action).
+      required: false
+    valid:
+      type: boolean
+      description: Whether the token is valid (for verify action).
+      required: false
+    data:
+      type: object
+      description: Decoded token data (for verify action).
+      required: false
+    error:
+      type: string
+      description: Error message if token validation fails.
+      required: false
+    expired:
+      type: boolean
+      description: Whether the token has expired (for verify action).
+      required: false

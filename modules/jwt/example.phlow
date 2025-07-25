@@ -1,0 +1,22 @@
+name: jwt-example
+version: 1.0.0
+description: Exemplo de uso do módulo JWT
+
+modules:
+  - module: jwt
+    with:
+      secret: "minha-chave-secreta-super-segura" # !phs envs.SECRET_JWT
+  - module: log
+
+steps:
+  - use: jwt
+    input:
+      action: create
+      data:
+        user_id: 12345
+        role: admin
+      expires_in: 3600
+
+  - use: log
+    input:
+      message: !phs payload
