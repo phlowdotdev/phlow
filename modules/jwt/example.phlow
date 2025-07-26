@@ -7,6 +7,7 @@ modules:
     with:
       secret: "minha-chave-secreta-super-segura" # !phs envs.SECRET_JWT
   - module: log
+  - module: sleep
 
 steps:
   - use: jwt
@@ -15,8 +16,20 @@ steps:
       data:
         user_id: 12345
         role: admin
-      expires_in: 3600
+      expires_in: 1
 
-  - use: log
+
+  - use: sleep
     input:
-      message: !phs payload
+      seconds: 2
+
+  - use: jwt
+    input:
+      action: verify
+      token: !phs payload.token
+
+  # - assert: !phs payload.valid
+  #   then:
+  #     return: Successfully created and verified JWT token
+  #   else:
+  #     return: Failed to verify JWT token

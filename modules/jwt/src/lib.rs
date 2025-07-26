@@ -17,7 +17,7 @@ pub async fn jwt(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + S
     let config = match JwtConfig::try_from(setup.with) {
         Ok(config) => config,
         Err(e) => {
-            eprintln!("JWT module configuration error: {}", e);
+            log::debug!("JWT module configuration error: {}", e);
             return Err(e.into());
         }
     };

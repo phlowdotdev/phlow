@@ -33,7 +33,7 @@ impl TryFrom<Option<Value>> for JwtInput {
 
         match action.as_str() {
             "create" => {
-                let data = input_value.get("data").cloned();
+                let data: Option<Value> = input_value.get("data").cloned();
                 let expires_in = input_value.get("expires_in").and_then(|v| v.to_u64());
                 Ok(JwtInput::Create { data, expires_in })
             }
