@@ -13,12 +13,12 @@ O módulo JWT fornece funcionalidades completas para criação e validação de 
 ### Características Principais
 
 - ✅ **Criação de tokens JWT**: Geração de tokens com dados customizados
-- ✅ **Validação de tokens**: Verificação de assinatura e expiração
+- ✅ **Validação de tokens**: Verificação automática de assinatura e expiração
 - ✅ **Secret configurável**: Chave secreta definida por módulo
 - ✅ **Claims customizados**: Suporte a dados arbitrários no payload
-- ✅ **Expiração automática**: Configuração de TTL para tokens
+- ✅ **Expiração automática**: Configuração de TTL para tokens com validação rigorosa
 - ✅ **Algoritmo HS256**: Padrão da indústria para assinatura
-- ✅ **Observabilidade**: Integração completa com OpenTelemetry
+- ✅ **Validação dupla**: Biblioteca jsonwebtoken + validação manual de expiração
 - ✅ **Tratamento de erros**: Respostas estruturadas para falhas
 
 ## 📋 Configuração
@@ -113,6 +113,58 @@ steps:
       return:
         error: "Token inválido"
         message: "{{ $verify_token.error }}"
+```
+
+### Teste de Expiração de Token
+
+```yaml
+name: jwt-expiration-test
+version: 1.0.0
+description: Demonstração de expiração automática de token JWT
+
+modules:
+  - module: jwt
+    with:
+      secret: "minha-chave-secreta-super-segura"
+  - module: sleep
+
+steps:
+  # Criar token com expiração de 1 segundo
+  - use: jwt
+    input:
+      action: create
+      data:
+        user_id: 12345
+        role: admin
+      expires_in: 1
+
+  # Aguardar 5 segundos (token expira durante este período)
+  - use: sleep
+    input:
+      seconds: 5
+
+  # Tentar verificar o token expirado
+  - use: jwt
+    input:
+      action: verify
+      token: !phs payload.token
+
+  # Validar que o token está expirado
+  - assert: !phs payload.valid
+    then:
+      return: "❌ Token ainda válido - Erro!"
+    else:
+      return: "✅ Token expirado corretamente - Sucesso!"
+```
+
+**Resultado esperado:**
+```json
+{
+  "valid": false,
+  "expired": true,
+  "error": "Token has expired",
+  "data": null
+}
 ```
 
 ## 🌐 Exemplo Completo - Sistema de Autenticação
@@ -328,6 +380,41 @@ steps:
   "roles": ["user", "admin"]
 }
 ```
+
+## 🔧 Implementação Técnica
+
+### Validação Dupla de Expiração
+
+O módulo implementa uma estratégia de validação dupla para garantir que tokens expirados sejam sempre detectados:
+
+1. **Validação da biblioteca jsonwebtoken**: Utiliza `validate_exp = true`
+2. **Validação manual adicional**: Compara timestamp atual com `exp` claim
+
+```rust
+// Validação manual como backup
+if current_timestamp > claims.exp {
+    return Ok(jwt_error_response("Token has expired", true));
+}
+```
+
+### Logging de Debug
+
+O módulo fornece logging detalhado para debugging:
+
+```
+[DEBUG] Creating JWT token with data: {...}, expires_in: 1
+[DEBUG] Token expiration time: 2025-01-01T10:00:01Z
+[DEBUG] Verifying JWT token with value: eyJ0eXAi...
+[DEBUG] Current timestamp: 1640998806
+[DEBUG] Token claims - iat: 1640998800, exp: 1640998801, current: 1640998806
+[WARN]  Token manually detected as expired: 1640998806 > 1640998801
+```
+
+### Gestão de Timestamps
+
+- **Criação**: `iat` = timestamp atual, `exp` = iat + expires_in
+- **Validação**: Compara timestamp atual com `exp` claim
+- **Precisão**: Utiliza chrono::Utc para timestamps UTC precisos
 
 ## 📊 Observabilidade
 

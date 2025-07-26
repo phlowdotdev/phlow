@@ -104,16 +104,36 @@ impl JwtHandler {
         token: String,
     ) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
         log::debug!("Verifying JWT token with value: {}", token);
+        
+        let current_timestamp = Utc::now().timestamp();
+        log::debug!("Current timestamp: {}", current_timestamp);
 
         let mut validation = Validation::new(Algorithm::HS256);
         validation.validate_exp = true;
         validation.validate_nbf = false;
+        
+        log::debug!("Validation settings - validate_exp: {}, validate_nbf: {}", validation.validate_exp, validation.validate_nbf);
 
         match decode::<Claims>(&token, &self.decoding_key, &validation) {
             Ok(token_data) => {
                 log::debug!("JWT token verified successfully");
 
                 let claims = token_data.claims;
+                log::debug!("Token claims - iat: {}, exp: {}, current: {}", claims.iat, claims.exp, current_timestamp);
+                
+                // Manual expiration check as backup
+                if current_timestamp > claims.exp {
+                    log::warn!("Token manually detected as expired: {} > {}", current_timestamp, claims.exp);
+                    let result = HashMap::from([
+                        ("valid", false.to_value()),
+                        ("data", Value::Null),
+                        ("error", "Token has expired".to_value()),
+                        ("expired", true.to_value()),
+                    ])
+                    .to_value();
+                    return Ok(result);
+                }
+                
                 let mut data_map = claims.data;
 
                 // Add standard claims if they don't exist

@@ -15,7 +15,7 @@ steps:
       data:
         user_id: 12345
         role: admin
-      expires_in: 1
+      expires_in: 10
 
   - use: sleep
     input:
