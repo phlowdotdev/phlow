@@ -15,19 +15,25 @@ steps:
       data:
         user_id: 12345
         role: admin
-      expires_in: 10
+      expires_in: !phs main.expires_in
 
   - use: sleep
     input:
-      seconds: 5
+      seconds: 2
 
   - use: jwt
     input:
       action: verify
       token: !phs payload.token
 
-  - assert: !phs payload.valid
-    then:
-      return: "❌ Token is valid - This should NOT happen!"
-    else:
-      return: "✅ Token is invalid (expired) - SUCCESS!"
+  - return: !phs payload.valid
+
+tests:
+  - describe: JWT valid
+    main:
+      expires_in: 10
+    assert_eq: true
+  - describe: JWT expired
+    main:
+      expires_in: 1
+    assert_eq: false

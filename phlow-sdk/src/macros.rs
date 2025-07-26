@@ -120,8 +120,18 @@ macro_rules! create_step {
                 if let Ok(rt) = $crate::tokio::runtime::Runtime::new() {
                     let rx = module_channel!(setup);
 
-                    // During tests, don't run the handler as it would block forever
-                    if !setup.is_test_mode {
+                    if setup.is_test_mode {
+                        // During tests, run handler in a detached thread
+                        std::thread::spawn(move || {
+                            if let Err(e) = rt.block_on($handler(rx)) {
+                                $crate::tracing::error!("Error in plugin during test: {:?}", e);
+                            }
+                        });
+                        
+                        // Give the thread a moment to start
+                        std::thread::sleep(std::time::Duration::from_millis(50));
+                    } else {
+                        // In normal mode, block on the handler
                         if let Err(e) = rt.block_on($handler(rx)) {
                             $crate::tracing::error!("Error in plugin: {:?}", e);
                         }
