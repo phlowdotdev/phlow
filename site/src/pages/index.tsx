@@ -10,6 +10,7 @@ import CodespaceSvg from '@site/static/img/codespace.svg';
 import styles from './index.module.css';
 import OceanBackground from '../components/Backgrounds/OceanBackground';
 import { HomeButton } from '../components/Buttons';
+import VersionBadge from '@site/src/components/VersionBadge';
 
 function HomepageHeader() {
   const { siteConfig } = useDocusaurusContext();
@@ -27,6 +28,7 @@ function HomepageHeader() {
           {siteConfig.title}
         </Heading>
         <p className="hero__subtitle">{siteConfig.tagline}</p>
+        <VersionBadge />
         <div className='buttons--home'>
           <HomeButton
             className="button button--secondary button--lg button--start-tutorial"

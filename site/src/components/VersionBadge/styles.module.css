@@ -1,0 +1,39 @@
+.versionContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 2rem;
+}
+
+.versionLink {
+  text-decoration: none;
+  transition: transform 0.2s ease;
+}
+
+.versionLink:hover {
+  transform: scale(1.05);
+  text-decoration: none;
+}
+
+.versionLink:hover .badge {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.versionText {
+  font-size: 0.875rem;
+  color: var(--ifm-color-emphasis-600);
+  font-weight: 500;
+}
+
+@media screen and (max-width: 768px) {
+  .versionContainer {
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 1.5rem;
+  }
+  
+  .versionText {
+    font-size: 0.8rem;
+  }
+}
