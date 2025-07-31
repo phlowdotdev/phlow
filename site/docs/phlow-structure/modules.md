@@ -77,6 +77,79 @@ Starting from recent versions, the `version` field is optional. If not specified
 
 This simplifies module declarations while maintaining backward compatibility.
 
+## Local Module Paths
+
+Starting from recent versions, Phlow supports loading modules from local paths instead of downloading them from remote repositories. This is particularly useful for:
+
+- **Development**: Testing modules during development without publishing
+- **Custom modules**: Using private or organization-specific modules
+- **Debugging**: Working with local modifications of existing modules
+
+### Path Formats
+
+Phlow automatically detects local paths based on these prefixes:
+
+- `./` - Relative path from current directory
+- `../` - Relative path to parent directory
+- `/` - Absolute path
+
+### Examples
+
+```yaml
+modules:
+  # Local module in current directory
+  - module: ./my_custom_module
+    with:
+      config: "development"
+
+  # Local module in parent directory
+  - module: ../shared_modules/auth
+    with:
+      secret_key: !phs envs.AUTH_SECRET
+
+  # Absolute path
+  - module: /opt/phlow/modules/custom_logger
+    with:
+      log_level: "debug"
+
+  # Regular remote module (for comparison)
+  - module: postgres
+    version: latest
+    with:
+      host: localhost
+```
+
+### Local Module Structure
+
+Local modules must follow the same structure as remote modules:
+
+```
+my_custom_module/
+├── module.so          # Compiled module binary
+└── phlow.yaml         # Module metadata (optional)
+```
+
+The `phlow.yaml` file should contain module information:
+
+```yaml
+module: my_custom_module
+version: "1.0.0"
+input:
+  type: object
+  properties:
+    data:
+      type: string
+output:
+  type: string
+```
+
+### Benefits
+
+- **No Download**: Local modules skip the download process, improving startup time
+- **Development Workflow**: Test changes immediately without publishing
+- **Version Control**: Keep custom modules alongside your project
+- **Offline Support**: Work without internet connectivity
+
 ## Good practice
 
 A good practice is to keep the modules in a separate file, such as `modules.yaml`, and reference them in the `main.phlow` using `!include modules.yaml`. This helps maintain organized and easily maintainable code.

@@ -1,0 +1,9 @@
+{
+  "label": "Advanced",
+  "position": 6,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "description": "Advanced features and techniques for Phlow power users."
+  }
+}

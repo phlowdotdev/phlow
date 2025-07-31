@@ -1,0 +1,17 @@
+name: test-var-main
+version: 1.0.0
+description: Teste do parâmetro --var-main
+
+modules:
+  - module: ./jwt
+    with:
+      secret: "test-secret"
+
+steps:
+  - use: jwt
+    input:
+      action: create
+      data: !phs main
+      expires_in: 60
+
+  - return: !phs payload.token

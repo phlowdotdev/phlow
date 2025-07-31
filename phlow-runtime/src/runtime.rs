@@ -61,7 +61,8 @@ impl Runtime {
             let (setup_sender, setup_receive) =
                 oneshot::channel::<Option<channel::Sender<ModulePackage>>>();
 
-            let main_sender = if loader.main == id as i32 {
+            // Se --var-main foi especificado, não permitir que módulos principais sejam executados
+            let main_sender = if loader.main == id as i32 && settings.var_main.is_none() {
                 Some(tx_main_package.clone())
             } else {
                 None
@@ -133,8 +134,8 @@ impl Runtime {
             }
         }
 
-        // Se não há main definido, forçar o início dos steps
-        if loader.main == -1 {
+        // Se não há main definido ou --var-main foi especificado, forçar o início dos steps
+        if loader.main == -1 || settings.var_main.is_some() {
             // Criar um span padrão para o início dos steps
             let span = tracing::span!(
                 tracing::Level::INFO,
@@ -142,19 +143,40 @@ impl Runtime {
                 otel.name = "phlow auto start"
             );
 
-            // Enviar um pacote vazio para iniciar os steps
-            let empty_package = Package {
+            // Se --var-main foi especificado, processar o valor usando valu3
+            let request_data = if let Some(var_main_str) = &settings.var_main {
+                // Usar valu3 para processar o valor da mesma forma que outros valores
+                match Value::json_to_value(var_main_str) {
+                    Ok(value) => Some(value),
+                    Err(err) => {
+                        error!("Failed to parse --var-main value '{}': {:?}", var_main_str, err);
+                        return Err(RuntimeError::FlowExecutionError(
+                            format!("Failed to parse --var-main value: {:?}", err)
+                        ));
+                    }
+                }
+            } else {
+                None
+            };
+
+            // Enviar um pacote com os dados do --var-main para iniciar os steps
+            let package = Package {
                 response: None,
-                request_data: None,
+                request_data,
                 origin: 0,
                 span: Some(span),
                 dispatch: Some(dispatch.clone()),
             };
-            if let Err(err) = tx_main_package.send(empty_package) {
-                error!("Failed to send empty package: {:?}", err);
+            
+            if let Err(err) = tx_main_package.send(package) {
+                error!("Failed to send package: {:?}", err);
                 return Err(RuntimeError::FlowExecutionError(
-                    "Failed to send empty package".to_string(),
+                    "Failed to send package".to_string(),
                 ));
+            }
+
+            if settings.var_main.is_some() {
+                info!("Using --var-main to simulate main module output");
             }
         }
 

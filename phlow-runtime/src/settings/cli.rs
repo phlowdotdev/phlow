@@ -16,6 +16,7 @@ pub struct Cli {
     pub print_yaml: bool,
     pub test: bool,
     pub test_filter: Option<String>,
+    pub var_main: Option<String>,
 }
 
 impl Cli {
@@ -92,6 +93,12 @@ impl Cli {
                     .help("Filter tests by description (substring match)")
                     .requires("test")
                     .value_name("FILTER"),
+            )
+            .arg(
+                Arg::new("var_main")
+                    .long("var-main")
+                    .help("Set the main variable value (simulates main module output)")
+                    .value_name("VALUE"),
             );
 
         let matches = command
@@ -112,6 +119,7 @@ impl Cli {
         let print_yaml = *matches.get_one::<bool>("print_yaml").unwrap_or(&false);
         let test = *matches.get_one::<bool>("test").unwrap_or(&false);
         let test_filter = matches.get_one::<String>("test_filter").map(|s| s.to_string());
+        let var_main = matches.get_one::<String>("var_main").map(|s| s.to_string());
 
         Ok(Cli {
             main_target: main,
@@ -122,6 +130,7 @@ impl Cli {
             print_yaml,
             test,
             test_filter,
+            var_main,
         })
     }
 }

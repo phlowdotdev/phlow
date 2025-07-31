@@ -14,6 +14,7 @@ pub struct Settings {
     pub print_yaml: bool,
     pub test: bool,
     pub test_filter: Option<String>,
+    pub var_main: Option<String>,
 
     // envs
     pub package_consumer_count: i32,
@@ -50,6 +51,7 @@ impl Settings {
             print_yaml: cli.print_yaml,
             test: cli.test,
             test_filter: cli.test_filter,
+            var_main: cli.var_main,
         };
 
         Ok(settings)

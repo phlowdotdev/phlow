@@ -3,7 +3,7 @@ version: 1.0.0
 description: Exemplo de uso do módulo JWT
 
 modules:
-  - module: ./jwt
+  - module: jwt
     with:
       secret: "minha-chave-secreta-super-segura"
   - module: sleep
@@ -15,7 +15,7 @@ steps:
       data:
         user_id: 12345
         role: admin
-      expires_in: !phs payload.expires_in
+      expires_in: !phs main.expires_in
 
   - use: sleep
     input:
@@ -30,10 +30,10 @@ steps:
 
 tests:
   - describe: JWT valid
-    payload:
+    main:
       expires_in: 10
     assert_eq: true
   - describe: JWT expired
-    payload:
+    main:
       expires_in: 1
     assert_eq: false
