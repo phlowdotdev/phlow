@@ -290,6 +290,55 @@ pub fn load_external_module_info(module: &str) -> Value {
     value
 }
 
+pub fn load_local_module_info(local_path: &str) -> Value {
+    let module_path = format!("{}/phlow.yaml", local_path);
+
+    if !Path::new(&module_path).exists() {
+        return Value::Null;
+    }
+
+    let file = match std::fs::read_to_string(&module_path) {
+        Ok(file) => file,
+        Err(_) => return Value::Null,
+    };
+
+    let mut input_order = Vec::new();
+
+    {
+        let value: serde_yaml::Value = serde_yaml::from_str::<serde_yaml::Value>(&file)
+            .map_err(Error::LoaderErrorYaml)
+            .unwrap();
+
+        if let Some(input) = value.get("input") {
+            if let serde_yaml::Value::Mapping(input) = input {
+                if let Some(serde_yaml::Value::String(input_type)) = input.get("type") {
+                    if input_type == "object" {
+                        if let Some(serde_yaml::Value::Mapping(properties)) =
+                            input.get(&serde_yaml::Value::String("properties".to_string()))
+                        {
+                            for (key, _) in properties {
+                                if let serde_yaml::Value::String(key) = key {
+                                    input_order.push(key.clone());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        drop(value)
+    }
+
+    let mut value: Value = serde_yaml::from_str::<Value>(&file)
+        .map_err(Error::LoaderErrorYaml)
+        .unwrap();
+
+    value.insert("input_order".to_string(), input_order.to_value());
+
+    value
+}
+
 fn find_default_file(base: &PathBuf) -> Option<String> {
     if base.is_file() {
         return Some(base.to_str().unwrap_or_default().to_string());

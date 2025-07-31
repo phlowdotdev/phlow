@@ -2,7 +2,7 @@ mod error;
 pub mod loader;
 use error::{Error, ModuleError};
 use libloading::{Library, Symbol};
-use loader::{load_external_module_info, load_main};
+use loader::{load_external_module_info, load_local_module_info, load_main};
 use log::info;
 use phlow_sdk::prelude::ToValueBehavior;
 use phlow_sdk::prelude::Value;
@@ -125,6 +125,42 @@ impl Loader {
         }
     }
 
+    pub fn load_local_module(
+        setup: ModuleSetup,
+        module_name: &str,
+        local_path: &str,
+    ) -> Result<(), Error> {
+        unsafe {
+            let path = format!("{}/module.{}", local_path, MODULE_EXTENSION);
+            info!(
+                "🧪 Load Local Module: {} from {} (local_path: {})",
+                module_name, path, local_path
+            );
+
+            // Check if the module file exists
+            if !Path::new(&path).exists() {
+                return Err(Error::ModuleNotFound(format!(
+                    "Local module file not found: {}",
+                    path
+                )));
+            }
+
+            let lib = match Library::new(&path) {
+                Ok(lib) => lib,
+                Err(err) => return Err(Error::LibLoadingError(err)),
+            };
+
+            let func: Symbol<unsafe extern "C" fn(ModuleSetup)> = match lib.get(b"plugin") {
+                Ok(func) => func,
+                Err(err) => return Err(Error::LibLoadingError(err)),
+            };
+
+            func(setup);
+
+            Ok(())
+        }
+    }
+
     pub fn get_steps(&self) -> Value {
         let steps = self.steps.clone();
         json!({
@@ -144,6 +180,15 @@ impl Loader {
         let mut downloads = Vec::new();
 
         for module in &self.modules {
+            // Skip local path modules - they don't need to be downloaded
+            if module.is_local_path {
+                info!(
+                    "Module {} is a local path module, skipping download",
+                    module.name
+                );
+                continue;
+            }
+
             let module_so_path = format!(
                 "phlow_packages/{}/module.{}",
                 module.module, MODULE_EXTENSION
@@ -286,7 +331,15 @@ impl Loader {
 
     pub fn update_info(&mut self) {
         for module in &mut self.modules {
-            let value = load_external_module_info(&module.module);
+            let value = if module.is_local_path {
+                if let Some(local_path) = &module.local_path {
+                    load_local_module_info(local_path)
+                } else {
+                    Value::Null
+                }
+            } else {
+                load_external_module_info(&module.module)
+            };
             module.set_info(value);
         }
     }

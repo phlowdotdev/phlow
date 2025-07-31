@@ -42,6 +42,8 @@ pub struct ModuleData {
     pub input: Value,
     pub output: Value,
     pub input_order: Value,
+    pub is_local_path: bool,
+    pub local_path: Option<String>,
 }
 
 impl ModuleData {
@@ -91,7 +93,15 @@ impl TryFrom<Value> for ModuleData {
         };
         let repository = value.get("repository").map(|v| v.to_string());
 
-        let repository_path = if repository.is_none() {
+        // Check if module is a local path
+        let is_local_path = module.starts_with("./") || module.starts_with("../") || module.starts_with("/");
+        let local_path = if is_local_path {
+            Some(module.clone())
+        } else {
+            None
+        };
+
+        let repository_path = if repository.is_none() && !is_local_path {
             let mut padded = module.to_string();
             while padded.len() < 4 {
                 padded.push('_');
@@ -115,7 +125,18 @@ impl TryFrom<Value> for ModuleData {
 
         let name = match value.get("name") {
             Some(name) => name.to_string(),
-            None => module.clone(),
+            None => {
+                if is_local_path {
+                    // Extract module name from path
+                    std::path::Path::new(&module)
+                        .file_name()
+                        .and_then(|os_str| os_str.to_str())
+                        .unwrap_or(&module)
+                        .to_string()
+                } else {
+                    module.clone()
+                }
+            },
         };
 
         let with = match value.get("with") {
@@ -134,6 +155,8 @@ impl TryFrom<Value> for ModuleData {
             repository_path,
             repository_raw_content,
             input_order: Value::Null,
+            is_local_path,
+            local_path,
         })
     }
 }

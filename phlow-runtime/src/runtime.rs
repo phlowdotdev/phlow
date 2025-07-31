@@ -92,9 +92,23 @@ impl Runtime {
 
             let module_target = module.module.clone();
             let module_version = module.version.clone();
+            let is_local_path = module.is_local_path;
+            let local_path = module.local_path.clone();
+            let module_name = module.name.clone();
 
             std::thread::spawn(move || {
-                if let Err(err) = Loader::load_module(setup, &module_target, &module_version) {
+                let result = if is_local_path {
+                    if let Some(local_path) = local_path {
+                        Loader::load_local_module(setup, &module_name, &local_path)
+                    } else {
+                        error!("Local path module missing path: {}", module_name);
+                        return;
+                    }
+                } else {
+                    Loader::load_module(setup, &module_target, &module_version)
+                };
+
+                if let Err(err) = result {
                     error!("Runtime Error Load Module: {:?}", err)
                 }
             });

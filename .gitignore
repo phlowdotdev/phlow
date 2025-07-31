@@ -8,3 +8,4 @@ phlow_remote
 raw
 node_modules
 *.egg-info
+my_packages
