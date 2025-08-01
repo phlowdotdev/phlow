@@ -10,18 +10,18 @@ use std::path::{Path, PathBuf};
 use tar::Archive;
 use zip::ZipArchive;
 
-pub async fn load_main(main_target: &str, print_yaml: bool) -> Result<Value, Error> {
-    let main_file_path = match load_remote_main(main_target).await {
+pub async fn load_script(script_target: &str, print_yaml: bool) -> Result<Value, Error> {
+    let script_file_path = match load_remote_main(script_target).await {
         Ok(path) => path,
         Err(err) => return Err(err),
     };
 
-    let file: String = match std::fs::read_to_string(&main_file_path) {
+    let file: String = match std::fs::read_to_string(&script_file_path) {
         Ok(file) => file,
-        Err(_) => return Err(Error::ModuleNotFound(main_file_path.to_string())),
+        Err(_) => return Err(Error::ModuleNotFound(script_file_path.to_string())),
     };
 
-    resolve_main(&file, main_file_path, print_yaml)
+    resolve_script(&file, script_file_path, print_yaml)
         .map_err(|_| Error::ModuleLoaderError("Module not found".to_string()))
 }
 
@@ -207,20 +207,20 @@ async fn load_remote_main(main_target: &str) -> Result<String, Error> {
     Err(Error::MainNotFound(main_target.to_string()))
 }
 
-fn resolve_main(file: &str, main_file_path: String, print_yaml: bool) -> Result<Value, Error> {
+fn resolve_script(file: &str, main_file_path: String, print_yaml: bool) -> Result<Value, Error> {
     let mut value: Value = {
-        let yaml_path = Path::new(&main_file_path)
+        let script_path = Path::new(&main_file_path)
             .parent()
             .unwrap_or_else(|| Path::new("."));
-        let yaml: String = yaml_helpers_transform(&file, yaml_path, print_yaml);
+        let script: String = yaml_helpers_transform(&file, script_path, print_yaml);
 
-        if let Ok(yaml_show) = std::env::var("PHLOW_YAML_SHOW") {
+        if let Ok(yaml_show) = std::env::var("PHLOW_SCRIPT_SHOW") {
             if yaml_show == "true" {
-                println!("YAML: {}", yaml);
+                println!("YAML: {}", script);
             }
         }
 
-        serde_yaml::from_str(&yaml).map_err(Error::LoaderErrorYaml)?
+        serde_yaml::from_str(&script).map_err(Error::LoaderErrorYaml)?
     };
 
     if value.get("steps").is_none() {

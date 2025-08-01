@@ -12,6 +12,7 @@ use phlow_sdk::tracing::error;
 use phlow_sdk::{tracing, use_log};
 use runtime::Runtime;
 use settings::Settings;
+mod wrapper_module;
 
 #[cfg(all(feature = "mimalloc", target_env = "musl"))]
 #[global_allocator]

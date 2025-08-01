@@ -2,7 +2,7 @@ mod error;
 pub mod loader;
 use error::{Error, ModuleError};
 use libloading::{Library, Symbol};
-use loader::{load_external_module_info, load_local_module_info, load_main};
+use loader::{load_external_module_info, load_local_module_info, load_script};
 use log::info;
 use phlow_sdk::prelude::ToValueBehavior;
 use phlow_sdk::prelude::Value;
@@ -25,8 +25,8 @@ pub struct Loader {
 }
 
 impl Loader {
-    pub async fn load(main_path: &str, print_yaml: bool) -> Result<Self, Error> {
-        let value = load_main(main_path, print_yaml).await?;
+    pub async fn load(script_path: &str, print_yaml: bool) -> Result<Self, Error> {
+        let value = load_script(script_path, print_yaml).await?;
 
         let (main, modules) = match value.get("modules") {
             Some(modules) => {
@@ -125,25 +125,50 @@ impl Loader {
         }
     }
 
+    fn find_module_path(module_relative_path: &str) -> Result<String, Error> {
+        let path = format!("{}/module.{}", module_relative_path, MODULE_EXTENSION);
+        if Path::new(&path).exists() {
+            Ok(path)
+        } else {
+            let path = format!("{}/module{}", module_relative_path, ".phlow");
+
+            if Path::new(&path).exists() {
+                Ok(path)
+            } else {
+                let path = format!("{}{}", module_relative_path, ".phlow");
+
+                if Path::new(&path).exists() {
+                    Ok(path)
+                } else {
+                    Err(Error::ModuleNotFound(format!(
+                        "Module not found at path: {}",
+                        module_relative_path
+                    )))
+                }
+            }
+        }
+    }
+
     pub fn load_local_module(
         setup: ModuleSetup,
         module_name: &str,
-        local_path: &str,
+        module_version: &str,
+        local_path: Option<String>,
     ) -> Result<(), Error> {
         unsafe {
-            let path = format!("{}/module.{}", local_path, MODULE_EXTENSION);
-            info!(
-                "🧪 Load Local Module: {} from {} (local_path: {})",
-                module_name, path, local_path
-            );
-
-            // Check if the module file exists
-            if !Path::new(&path).exists() {
-                return Err(Error::ModuleNotFound(format!(
-                    "Local module file not found: {}",
-                    path
-                )));
-            }
+            let path = {
+                match local_path {
+                    Some(local_path) => {
+                        // If a local path is provided, use it directly
+                        Loader::find_module_path(&local_path)?
+                    }
+                    None => {
+                        // Otherwise, construct the path based on the module name
+                        let local_path = format!("phlow_packages/{}", module_name);
+                        Loader::find_module_path(&local_path)?
+                    }
+                }
+            };
 
             let lib = match Library::new(&path) {
                 Ok(lib) => lib,

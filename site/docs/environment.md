@@ -25,7 +25,7 @@ Below is a list of all environment variables used by the application, combining 
 | PHLOW_MAIN_FILE | Specify exact file path within remote repositories. When set, Phlow will use this file instead of searching for default files (`main.phlow`, `main.yaml`, `main.yml`). | _None_ | `str` |
 | PHLOW_REMOTE_ID_RSA_PATH | Custom SSH private key path for Git authentication. | `~/.ssh/id_rsa` | `str` |
 | PHLOW_REMOTE_HEADER_AUTHORIZATION | Authorization header for ZIP/GZIP downloads. Used for downloading from private servers requiring authentication. | _None_ | `str` |
-| PHLOW_YAML_SHOW | Show processed YAML before execution. Useful for debugging flow definitions. | `false` | `bool` |
+| PHLOW_SCRIPT_SHOW | Show processed YAML before execution. Useful for debugging flow definitions. | `false` | `bool` |
 
 
 ## Additional Notes

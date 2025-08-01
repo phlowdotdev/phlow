@@ -197,7 +197,7 @@ PHLOW_MAIN_FILE='tests/integration.phlow' phlow git@github.com:your-org/flows-re
 ```bash
 # Enable debug logging to troubleshoot issues
 export PHLOW_LOG=DEBUG
-export PHLOW_YAML_SHOW=true
+export PHLOW_SCRIPT_SHOW=true
 PHLOW_MAIN_FILE='workflows/debug.phlow' phlow git@github.com:your-org/flows-repo.git
 ```
 
