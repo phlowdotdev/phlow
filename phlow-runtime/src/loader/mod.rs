@@ -130,12 +130,12 @@ impl Loader {
         if Path::new(&path).exists() {
             Ok(path)
         } else {
-            let path = format!("{}/module{}", module_relative_path, ".phlow");
+            let path = format!("{}/module.{}", module_relative_path, "phlow");
 
             if Path::new(&path).exists() {
                 Ok(path)
             } else {
-                let path = format!("{}{}", module_relative_path, ".phlow");
+                let path = format!("{}.{}", module_relative_path, "phlow");
 
                 if Path::new(&path).exists() {
                     Ok(path)
@@ -158,12 +158,8 @@ impl Loader {
         unsafe {
             let path = {
                 match local_path {
-                    Some(local_path) => {
-                        // If a local path is provided, use it directly
-                        Loader::find_module_path(&local_path)?
-                    }
+                    Some(local_path) => Loader::find_module_path(&local_path)?,
                     None => {
-                        // Otherwise, construct the path based on the module name
                         let local_path = format!("phlow_packages/{}", module_name);
                         Loader::find_module_path(&local_path)?
                     }
