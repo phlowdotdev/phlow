@@ -97,34 +97,6 @@ impl Loader {
         })
     }
 
-    pub fn load_module(
-        setup: ModuleSetup,
-        module_name: &str,
-        module_version: &str,
-    ) -> Result<(), Error> {
-        unsafe {
-            let path = format!("phlow_packages/{}/module.{}", module_name, MODULE_EXTENSION);
-            info!(
-                "🧪 Load Module: {} ({}), in {}",
-                module_name, module_version, path
-            );
-
-            let lib = match Library::new(&path) {
-                Ok(lib) => lib,
-                Err(err) => return Err(Error::LibLoadingError(err)),
-            };
-
-            let func: Symbol<unsafe extern "C" fn(ModuleSetup)> = match lib.get(b"plugin") {
-                Ok(func) => func,
-                Err(err) => return Err(Error::LibLoadingError(err)),
-            };
-
-            func(setup);
-
-            Ok(())
-        }
-    }
-
     fn find_module_path(module_relative_path: &str) -> Result<String, Error> {
         let path = format!("{}/module.{}", module_relative_path, MODULE_EXTENSION);
         if Path::new(&path).exists() {
@@ -149,7 +121,7 @@ impl Loader {
         }
     }
 
-    pub fn load_local_module(
+    pub fn load_module(
         setup: ModuleSetup,
         module_name: &str,
         module_version: &str,

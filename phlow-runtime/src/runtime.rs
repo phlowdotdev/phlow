@@ -97,7 +97,7 @@ impl Runtime {
 
             std::thread::spawn(move || {
                 let result =
-                    Loader::load_local_module(setup, &module_target, &module_version, local_path);
+                    Loader::load_module(setup, &module_target, &module_version, local_path);
 
                 if let Err(err) = result {
                     error!("Runtime Error Load Module: {:?}", err)
