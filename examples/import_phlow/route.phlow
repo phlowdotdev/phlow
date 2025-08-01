@@ -1,0 +1,6 @@
+
+steps:
+  - assert: !phs main.path == input.path && method.path == input.method
+    return:
+      status_code: !phs if method.method == "GET" { 200 } else if method.method == "POST" { 201 } else { 204 }
+      body: !phs main.response
