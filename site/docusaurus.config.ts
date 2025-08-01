@@ -128,6 +128,11 @@ const config: Config = {
         },
         { to: '/blog', label: 'Blog', position: 'left' },
         {
+          href: 'https://github.com/codespaces/new?repo=phlowdotdev/phlow-mirror-request',
+          label: 'Run now in codespace',
+          position: 'left',
+        },
+        {
           href: 'https://github.com/phlowdotdev/phlow',
           label: 'GitHub',
           position: 'right',

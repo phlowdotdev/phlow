@@ -35,7 +35,7 @@ function HomepageHeader() {
             to="/docs/intro"
           >Phlow Tutorial - 5min <ClockSvg /></HomeButton>
           <HomeButton
-            className="button button--secondary button--lg button--start-codespace"
+            className="button button--secondary button--lg button--start-codespace hero-codespace-button"
             target='_blank'
             to="https://github.com/codespaces/new?repo=phlowdotdev/phlow-mirror-request">
             Run now in codespace <CodespaceSvg /></HomeButton>

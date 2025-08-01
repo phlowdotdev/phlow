@@ -140,3 +140,26 @@ header.heroBanner_qdFl {
 .button--start-codespace svg {
   margin-left: 5px;
 }
+
+/* Responsividade para o botão "Run now in codespace" */
+/* No desktop: botão aparece no Hero, some do navbar */
+@media (min-width: 997px) {
+  .navbar-codespace-link {
+    display: none !important;
+  }
+  
+  .hero-codespace-button {
+    display: flex !important;
+  }
+}
+
+/* No mobile: botão some do Hero, aparece no navbar */
+@media (max-width: 996px) {
+  .navbar-codespace-link {
+    display: block !important;
+  }
+  
+  .hero-codespace-button {
+    display: none !important;
+  }
+}
