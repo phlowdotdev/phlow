@@ -6,6 +6,7 @@ mod settings;
 mod test_runner;
 mod yaml;
 use loader::Loader;
+use log::debug;
 use package::Package;
 use phlow_sdk::otel::init_tracing_subscriber;
 use phlow_sdk::tracing::error;
@@ -64,13 +65,14 @@ async fn main() {
         }
     }
 
-    let mut loader = match Loader::load(&settings.main_target, settings.print_yaml).await {
-        Ok(main) => main,
-        Err(err) => {
-            eprintln!("Runtime Error Main File: {:?}", err);
-            return;
-        }
-    };
+    let mut loader =
+        match Loader::load("./".to_string(), &settings.main_target, settings.print_yaml).await {
+            Ok(main) => main,
+            Err(err) => {
+                eprintln!("Runtime Error Main File: {:?}", err);
+                return;
+            }
+        };
 
     if settings.no_run {
         return;
@@ -99,6 +101,7 @@ async fn main() {
 
         if !settings.only_download_modules {
             if settings.test {
+                debug!("Run test");
                 // Run tests
                 match test_runner::run_tests(
                     loader,
@@ -119,6 +122,7 @@ async fn main() {
                     }
                 }
             } else {
+                debug!("Run application");
                 // Run normal workflow
                 if let Err(rr) = Runtime::run(loader, dispatch.clone(), settings).await {
                     error!("Runtime Error: {:?}", rr);

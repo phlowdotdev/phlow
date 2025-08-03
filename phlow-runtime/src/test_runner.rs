@@ -36,6 +36,7 @@ pub async fn run_tests(
     test_filter: Option<&str>,
     settings: Settings,
 ) -> Result<TestSummary, String> {
+    debug!("run_tests");
     // Get tests from loader.tests
     let tests = loader
         .tests
@@ -66,6 +67,8 @@ pub async fn run_tests(
     } else {
         test_cases.values.iter().enumerate().collect()
     };
+
+    debug!("filtered_tests");
 
     let total = filtered_tests.len();
 
@@ -231,6 +234,8 @@ async fn load_modules_like_runtime(
 
     let engine = build_engine(None);
 
+    let base_path = loader.base_path.clone();
+
     // Load modules exactly like Runtime::run does
     for (id, module) in loader.modules.iter().enumerate() {
         let (setup_sender, setup_receive) =
@@ -267,6 +272,7 @@ async fn load_modules_like_runtime(
         let local_path = module.local_path.clone();
         let module_name = module.name.clone();
         let settings = settings.clone();
+        let base_path = base_path.clone();
 
         debug!(
             "Module debug: name={}, is_local_path={}, local_path={:?}",
@@ -275,8 +281,14 @@ async fn load_modules_like_runtime(
 
         // Load module in separate thread - same as Runtime::run
         std::thread::spawn(move || {
-            let result =
-                Loader::load_module(setup, &module_target, &module_version, local_path, settings);
+            let result = Loader::load_module(
+                base_path,
+                setup,
+                &module_target,
+                &module_version,
+                local_path,
+                settings,
+            );
 
             if let Err(err) = result {
                 error!("Test runtime Error Load Module: {:?}", err)
@@ -291,14 +303,17 @@ async fn load_modules_like_runtime(
         // Wait for module registration - same as Runtime::run
         match setup_receive.await {
             Ok(Some(sender)) => {
-                debug!("Module {} registered", module.name);
+                debug!("Module \"{}\" registered", module.name);
                 modules.register(module.clone(), sender);
             }
             Ok(None) => {
-                debug!("Module {} did not register", module.name);
+                debug!("Module \"{}\" did not register", module.name);
             }
-            Err(_) => {
-                return Err(format!("Module {} registration failed", module.name));
+            Err(err) => {
+                return Err(format!(
+                    "Module \"{}\" registration failed: {}",
+                    module.name, err
+                ));
             }
         }
     }

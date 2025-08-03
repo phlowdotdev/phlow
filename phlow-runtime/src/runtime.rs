@@ -51,12 +51,16 @@ impl Runtime {
         // -------------------------
         // Load the modules
         // -------------------------
+        let app_data = loader.app_data.clone();
+        let loader_main_id = loader.main.clone();
+        let base_path = loader.base_path.clone();
+
         for (id, module) in loader.modules.into_iter().enumerate() {
             let (setup_sender, setup_receive) =
                 oneshot::channel::<Option<channel::Sender<ModulePackage>>>();
 
             // Se --var-main foi especificado, não permitir que módulos principais sejam executados
-            let main_sender = if loader.main == id as i32 && settings.var_main.is_none() {
+            let main_sender = if loader_main_id == id as i32 && settings.var_main.is_none() {
                 Some(tx_main_package.clone())
             } else {
                 None
@@ -81,7 +85,7 @@ impl Runtime {
                 main_sender,
                 with,
                 dispatch: dispatch.clone(),
-                app_data: loader.app_data.clone(),
+                app_data: app_data.clone(),
                 is_test_mode: false,
             };
 
@@ -89,9 +93,11 @@ impl Runtime {
             let module_version = module.version.clone();
             let local_path = module.local_path.clone();
             let settings = settings.clone();
+            let base_path = base_path.clone();
 
             std::thread::spawn(move || {
                 let result = Loader::load_module(
+                    base_path,
                     setup,
                     &module_target,
                     &module_version,
@@ -307,6 +313,7 @@ impl Runtime {
         settings: Settings,
     ) -> Result<(), RuntimeError> {
         let steps = loader.get_steps();
+        println!("here");
         let modules = Self::load_modules(
             loader,
             dispatch.clone(),

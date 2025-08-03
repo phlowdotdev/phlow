@@ -47,6 +47,10 @@ pub struct ModuleData {
 
 impl ModuleData {
     pub fn set_info(&mut self, info: Value) {
+        if info.is_null() || info.is_null() {
+            return;
+        }
+
         let input = match info.get("input") {
             Some(input) => {
                 if let Value::Object(obj) = input {

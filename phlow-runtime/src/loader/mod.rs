@@ -7,6 +7,7 @@ use crate::RUNTIME_ARCH;
 use error::{Error, ModuleError};
 use libloading::{Library, Symbol};
 use loader::{load_external_module_info, load_local_module_info, load_script};
+use log::debug;
 use log::info;
 use phlow_sdk::prelude::ToValueBehavior;
 use phlow_sdk::prelude::Value;
@@ -33,10 +34,15 @@ pub struct Loader {
     pub steps: Value,
     pub app_data: ApplicationData,
     pub tests: Option<Value>,
+    pub base_path: String,
 }
 
 impl Loader {
-    pub async fn load(script_path: &str, print_yaml: bool) -> Result<Self, Error> {
+    pub async fn load(
+        base_path: String,
+        script_path: &str,
+        print_yaml: bool,
+    ) -> Result<Self, Error> {
         let value = load_script(script_path, print_yaml).await?;
 
         let (main, modules) = match value.get("modules") {
@@ -105,11 +111,15 @@ impl Loader {
             steps,
             app_data,
             tests,
+            base_path,
         })
     }
 
     fn find_module_path(module_relative_path: &str) -> Result<ModuleTarget, Error> {
         let path = format!("{}/module.{}", module_relative_path, MODULE_EXTENSION);
+
+        debug!("Find {}...", path);
+
         if Path::new(&path).exists() {
             Ok(ModuleTarget {
                 path,
@@ -118,6 +128,8 @@ impl Loader {
         } else {
             let path = format!("{}/module.{}", module_relative_path, "phlow");
 
+            debug!("Find {}...", path);
+
             if Path::new(&path).exists() {
                 Ok(ModuleTarget {
                     path,
@@ -125,6 +137,8 @@ impl Loader {
                 })
             } else {
                 let path = format!("{}.{}", module_relative_path, "phlow");
+
+                debug!("Find {}...", path);
 
                 if Path::new(&path).exists() {
                     Ok(ModuleTarget {
@@ -142,53 +156,51 @@ impl Loader {
     }
 
     pub fn load_module(
+        base_path: String,
         setup: ModuleSetup,
         module_name: &str,
         module_version: &str,
         local_path: Option<String>,
         settings: Settings,
     ) -> Result<(), Error> {
-        unsafe {
-            let target = {
-                let module_relative_path = match local_path {
-                    Some(local_path) => local_path,
-                    None => format!("phlow_packages/{}", module_name),
-                };
-
-                let target = Loader::find_module_path(&module_relative_path)?;
-
-                info!(
-                    "🧪 Load Module: {} ({}), in {}",
-                    module_name, module_version, target.path
-                );
-
-                target
+        let target = {
+            let module_relative_path = match local_path {
+                Some(local_path) => local_path,
+                None => format!("phlow_packages/{}", module_name),
             };
 
-            match target.module_type {
-                ModuleType::Script => {
-                    info!("Loading script module: {}", target.path);
-                    run_script(&target.path, setup, &settings);
-                }
-                ModuleType::Binary => {
-                    info!("Loading binary module: {}", target.path);
+            let target = Loader::find_module_path(&module_relative_path)?;
 
-                    let lib: Library = match Library::new(&target.path) {
-                        Ok(lib) => lib,
-                        Err(err) => return Err(Error::LibLoadingError(err)),
-                    };
+            info!(
+                "🧪 Load Module: {} ({}), in {}",
+                module_name, module_version, target.path
+            );
 
-                    let func: Symbol<unsafe extern "C" fn(ModuleSetup)> = match lib.get(b"plugin") {
-                        Ok(func) => func,
-                        Err(err) => return Err(Error::LibLoadingError(err)),
-                    };
+            target
+        };
 
-                    func(setup);
-                }
+        match target.module_type {
+            ModuleType::Script => {
+                run_script(base_path, &target.path, setup, &settings);
             }
+            ModuleType::Binary => unsafe {
+                info!("Loading binary module: {}", target.path);
 
-            Ok(())
+                let lib: Library = match Library::new(&target.path) {
+                    Ok(lib) => lib,
+                    Err(err) => return Err(Error::LibLoadingError(err)),
+                };
+
+                let func: Symbol<unsafe extern "C" fn(ModuleSetup)> = match lib.get(b"plugin") {
+                    Ok(func) => func,
+                    Err(err) => return Err(Error::LibLoadingError(err)),
+                };
+
+                func(setup);
+            },
         }
+
+        Ok(())
     }
 
     pub fn get_steps(&self) -> Value {
@@ -360,6 +372,8 @@ impl Loader {
     }
 
     pub fn update_info(&mut self) {
+        debug!("update_info");
+
         for module in &mut self.modules {
             let value = if let Some(local_path) = &module.local_path {
                 load_local_module_info(local_path)
@@ -367,6 +381,7 @@ impl Loader {
                 load_external_module_info(&module.module)
             };
 
+            debug!("module info loaded");
             module.set_info(value);
         }
     }

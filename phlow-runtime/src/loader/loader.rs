@@ -1,6 +1,7 @@
 use super::Error;
 use crate::yaml::yaml_helpers_transform;
 use flate2::read::GzDecoder;
+use log::debug;
 use phlow_sdk::prelude::*;
 use reqwest::header::AUTHORIZATION;
 use reqwest::Client;
@@ -291,9 +292,11 @@ pub fn load_external_module_info(module: &str) -> Value {
 }
 
 pub fn load_local_module_info(local_path: &str) -> Value {
+    debug!("load_local_module_info");
     let module_path = format!("{}/phlow.yaml", local_path);
 
     if !Path::new(&module_path).exists() {
+        debug!("phlow.yaml not exists");
         return Value::Null;
     }
 
