@@ -180,7 +180,7 @@ impl Loader {
 
         for module in &self.modules {
             // Skip local path modules - they don't need to be downloaded
-            if module.is_local_path {
+            if module.local_path.is_some() {
                 info!(
                     "Module {} is a local path module, skipping download",
                     module.name
@@ -330,15 +330,12 @@ impl Loader {
 
     pub fn update_info(&mut self) {
         for module in &mut self.modules {
-            let value = if module.is_local_path {
-                if let Some(local_path) = &module.local_path {
-                    load_local_module_info(local_path)
-                } else {
-                    Value::Null
-                }
+            let value = if let Some(local_path) = &module.local_path {
+                load_local_module_info(local_path)
             } else {
                 load_external_module_info(&module.module)
             };
+
             module.set_info(value);
         }
     }

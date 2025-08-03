@@ -255,7 +255,7 @@ async fn load_modules_like_runtime(loader: &Loader) -> Result<Arc<Modules>, Stri
 
         let module_target = module.module.clone();
         let module_version = module.version.clone();
-        let is_local_path = module.is_local_path;
+        let is_local_path = module.local_path.is_some();
         let local_path = module.local_path.clone();
         let module_name = module.name.clone();
 

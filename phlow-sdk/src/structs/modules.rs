@@ -42,7 +42,6 @@ pub struct ModuleData {
     pub input: Value,
     pub output: Value,
     pub input_order: Value,
-    pub is_local_path: bool,
     pub local_path: Option<String>,
 }
 
@@ -94,7 +93,8 @@ impl TryFrom<Value> for ModuleData {
         let repository = value.get("repository").map(|v| v.to_string());
 
         // Check if module is a local path
-        let is_local_path = module.starts_with("./") || module.starts_with("../") || module.starts_with("/");
+        let is_local_path =
+            module.starts_with("./") || module.starts_with("../") || module.starts_with("/");
         let local_path = if is_local_path {
             Some(module.clone())
         } else {
@@ -136,7 +136,7 @@ impl TryFrom<Value> for ModuleData {
                 } else {
                     module.clone()
                 }
-            },
+            }
         };
 
         let with = match value.get("with") {
@@ -155,7 +155,6 @@ impl TryFrom<Value> for ModuleData {
             repository_path,
             repository_raw_content,
             input_order: Value::Null,
-            is_local_path,
             local_path,
         })
     }
