@@ -1,7 +1,5 @@
 modules:
   - module: http_server
-    with:
-      port: 8080
   - module: ./route
 
 main: http_server
