@@ -6,24 +6,24 @@ use phlow_sdk::{otel, prelude::*};
 
 use crate::loader::Loader;
 
-pub async fn run_script(path: &str, setup: ModuleSetup, settings: &Settings) {
-    let loader = Loader::load(&path, settings.print_yaml).await.unwrap();
-
-    let rx = module_channel!(setup);
-
-    let (tx_main_package, rx_main_package) = channel::unbounded::<Package>();
-
-    let app_data = loader.app_data.clone();
+pub fn run_script(path: &str, setup: ModuleSetup, settings: &Settings) {
     let dispatch = setup.dispatch.clone();
 
     tracing::dispatcher::with_default(&dispatch, || {
         let _guard = otel::init_tracing_subscriber(setup.app_data.clone());
         use_log!();
 
-        let dispatch = dispatch.clone();
-
         if let Ok(rt) = tokio::runtime::Runtime::new() {
             rt.block_on(async move {
+                let loader = Loader::load(&path, settings.print_yaml).await.unwrap();
+
+                let rx = module_channel!(setup);
+
+                let (tx_main_package, rx_main_package) = channel::unbounded::<Package>();
+
+                let app_data = loader.app_data.clone();
+                let dispatch = setup.dispatch.clone();
+
                 let runtime = Runtime::run_script(
                     tx_main_package.clone(),
                     rx_main_package,
@@ -63,5 +63,3 @@ pub async fn run_script(path: &str, setup: ModuleSetup, settings: &Settings) {
         }
     });
 }
-
-fn handler(setup: ModuleSetup) {}
