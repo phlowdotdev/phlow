@@ -129,20 +129,19 @@ impl Loader {
     ) -> Result<(), Error> {
         unsafe {
             let path = {
-                match local_path {
-                    Some(local_path) => Loader::find_module_path(&local_path)?,
-                    None => {
-                        let local_path = format!("phlow_packages/{}", module_name);
-                        let path = Loader::find_module_path(&local_path)?;
+                let module_relative_path = match local_path {
+                    Some(local_path) => local_path,
+                    None => format!("phlow_packages/{}", module_name),
+                };
 
-                        info!(
-                            "🧪 Load Module: {} ({}), in {}",
-                            module_name, module_version, path
-                        );
+                let path = Loader::find_module_path(&module_relative_path)?;
 
-                        path
-                    }
-                }
+                info!(
+                    "🧪 Load Module: {} ({}), in {}",
+                    module_name, module_version, path
+                );
+
+                path
             };
 
             let lib = match Library::new(&path) {

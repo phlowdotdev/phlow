@@ -266,19 +266,10 @@ async fn load_modules_like_runtime(loader: &Loader) -> Result<Arc<Modules>, Stri
 
         // Load module in separate thread - same as Runtime::run
         std::thread::spawn(move || {
-            let result = if is_local_path {
-                if let Some(local_path) = local_path {
-                    Loader::load_module(setup, &module_name, &local_path)
-                } else {
-                    error!("Local path module missing path: {}", module_name);
-                    return;
-                }
-            } else {
-                Loader::load_module(setup, &module_target, &module_version)
-            };
+            let result = Loader::load_module(setup, &module_target, &module_version, local_path);
 
             if let Err(err) = result {
-                error!("Test Runtime Error Load Module: {:?}", err)
+                error!("Test runtime Error Load Module: {:?}", err)
             }
         });
 
