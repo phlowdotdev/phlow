@@ -12,7 +12,7 @@ use phlow_sdk::tracing::error;
 use phlow_sdk::{tracing, use_log};
 use runtime::Runtime;
 use settings::Settings;
-mod wrapper_module;
+mod scripts;
 
 #[cfg(all(feature = "mimalloc", target_env = "musl"))]
 #[global_allocator]
@@ -100,7 +100,13 @@ async fn main() {
         if !settings.only_download_modules {
             if settings.test {
                 // Run tests
-                match test_runner::run_tests(loader, settings.test_filter.as_deref()).await {
+                match test_runner::run_tests(
+                    loader,
+                    settings.test_filter.as_deref(),
+                    settings.clone(),
+                )
+                .await
+                {
                     Ok(summary) => {
                         // Exit with error code if tests failed
                         if summary.failed > 0 {

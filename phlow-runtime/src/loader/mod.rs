@@ -1,5 +1,9 @@
-mod error;
+pub mod error;
 pub mod loader;
+use crate::scripts::run_script;
+use crate::settings::Settings;
+use crate::MODULE_EXTENSION;
+use crate::RUNTIME_ARCH;
 use error::{Error, ModuleError};
 use libloading::{Library, Symbol};
 use loader::{load_external_module_info, load_local_module_info, load_script};
@@ -12,8 +16,15 @@ use reqwest::Client;
 use std::io::Write;
 use std::{fs::File, path::Path};
 
-use crate::MODULE_EXTENSION;
-use crate::RUNTIME_ARCH;
+enum ModuleType {
+    Binary,
+    Script,
+}
+
+struct ModuleTarget {
+    pub path: String,
+    pub module_type: ModuleType,
+}
 
 #[derive(Debug, Clone)]
 pub struct Loader {
@@ -97,20 +108,29 @@ impl Loader {
         })
     }
 
-    fn find_module_path(module_relative_path: &str) -> Result<String, Error> {
+    fn find_module_path(module_relative_path: &str) -> Result<ModuleTarget, Error> {
         let path = format!("{}/module.{}", module_relative_path, MODULE_EXTENSION);
         if Path::new(&path).exists() {
-            Ok(path)
+            Ok(ModuleTarget {
+                path,
+                module_type: ModuleType::Binary,
+            })
         } else {
             let path = format!("{}/module.{}", module_relative_path, "phlow");
 
             if Path::new(&path).exists() {
-                Ok(path)
+                Ok(ModuleTarget {
+                    path,
+                    module_type: ModuleType::Script,
+                })
             } else {
                 let path = format!("{}.{}", module_relative_path, "phlow");
 
                 if Path::new(&path).exists() {
-                    Ok(path)
+                    Ok(ModuleTarget {
+                        path,
+                        module_type: ModuleType::Script,
+                    })
                 } else {
                     Err(Error::ModuleNotFound(format!(
                         "Module not found at path: {}",
@@ -126,35 +146,46 @@ impl Loader {
         module_name: &str,
         module_version: &str,
         local_path: Option<String>,
+        settings: Settings,
     ) -> Result<(), Error> {
         unsafe {
-            let path = {
+            let target = {
                 let module_relative_path = match local_path {
                     Some(local_path) => local_path,
                     None => format!("phlow_packages/{}", module_name),
                 };
 
-                let path = Loader::find_module_path(&module_relative_path)?;
+                let target = Loader::find_module_path(&module_relative_path)?;
 
                 info!(
                     "🧪 Load Module: {} ({}), in {}",
-                    module_name, module_version, path
+                    module_name, module_version, target.path
                 );
 
-                path
+                target
             };
 
-            let lib = match Library::new(&path) {
-                Ok(lib) => lib,
-                Err(err) => return Err(Error::LibLoadingError(err)),
-            };
+            match target.module_type {
+                ModuleType::Script => {
+                    info!("Loading script module: {}", target.path);
+                    run_script(&target.path, setup, &settings);
+                }
+                ModuleType::Binary => {
+                    info!("Loading binary module: {}", target.path);
 
-            let func: Symbol<unsafe extern "C" fn(ModuleSetup)> = match lib.get(b"plugin") {
-                Ok(func) => func,
-                Err(err) => return Err(Error::LibLoadingError(err)),
-            };
+                    let lib: Library = match Library::new(&target.path) {
+                        Ok(lib) => lib,
+                        Err(err) => return Err(Error::LibLoadingError(err)),
+                    };
 
-            func(setup);
+                    let func: Symbol<unsafe extern "C" fn(ModuleSetup)> = match lib.get(b"plugin") {
+                        Ok(func) => func,
+                        Err(err) => return Err(Error::LibLoadingError(err)),
+                    };
+
+                    func(setup);
+                }
+            }
 
             Ok(())
         }

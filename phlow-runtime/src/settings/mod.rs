@@ -4,7 +4,7 @@ use envs::Envs;
 pub mod cli;
 pub mod envs;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Settings {
     pub main_target: String,
     pub only_download_modules: bool,

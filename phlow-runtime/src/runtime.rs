@@ -1,7 +1,7 @@
 use crate::loader::Loader;
 #[cfg(target_env = "gnu")]
 use crate::memory::force_memory_release;
-use crate::settings::Settings;
+use crate::settings::{self, Settings};
 use crossbeam::channel;
 use futures::future::join_all;
 use log::{debug, error, info};
@@ -40,19 +40,13 @@ impl Display for RuntimeError {
 pub struct Runtime {}
 
 impl Runtime {
-    pub async fn run(
+    async fn load_modules(
         loader: Loader,
         dispatch: Dispatch,
         settings: Settings,
-    ) -> Result<(), RuntimeError> {
+        tx_main_package: channel::Sender<Package>,
+    ) -> Result<Modules, RuntimeError> {
         let mut modules = Modules::default();
-        let steps: Value = loader.get_steps();
-
-        // -------------------------
-        // Create the channels
-        // -------------------------
-        let (tx_main_package, rx_main_package) = channel::unbounded::<Package>();
-
         let engine = build_engine(None);
         // -------------------------
         // Load the modules
@@ -94,10 +88,16 @@ impl Runtime {
             let module_target = module.module.clone();
             let module_version = module.version.clone();
             let local_path = module.local_path.clone();
+            let settings = settings.clone();
 
             std::thread::spawn(move || {
-                let result =
-                    Loader::load_module(setup, &module_target, &module_version, local_path);
+                let result = Loader::load_module(
+                    setup,
+                    &module_target,
+                    &module_version,
+                    local_path,
+                    settings,
+                );
 
                 if let Err(err) = result {
                     error!("Runtime Error Load Module: {:?}", err)
@@ -124,8 +124,106 @@ impl Runtime {
             }
         }
 
+        Ok(modules)
+    }
+
+    async fn listener(
+        rx_main_package: channel::Receiver<Package>,
+        steps: Value,
+        modules: Modules,
+        settings: Settings,
+    ) -> Result<(), RuntimeError> {
+        let flow = Arc::new({
+            match Phlow::try_from_value(&steps, Some(Arc::new(modules))) {
+                Ok(flow) => flow,
+                Err(err) => return Err(RuntimeError::FlowExecutionError(err.to_string())),
+            }
+        });
+
+        drop(steps);
+
+        let mut handles = Vec::new();
+
+        for _i in 0..settings.package_consumer_count {
+            let rx_pkg = rx_main_package.clone();
+            let flow = flow.clone();
+
+            let handle = tokio::task::spawn_blocking(move || {
+                for mut package in rx_pkg {
+                    let flow = flow.clone();
+                    let parent = match package.span.clone() {
+                        Some(span) => span,
+                        None => {
+                            error!("Span not found in main module");
+                            continue;
+                        }
+                    };
+                    let dispatch = match package.dispatch.clone() {
+                        Some(dispatch) => dispatch,
+                        None => {
+                            error!("Dispatch not found in main module");
+                            continue;
+                        }
+                    };
+
+                    tokio::task::block_in_place(move || {
+                        dispatcher::with_default(&dispatch, || {
+                            let _enter = parent.enter();
+                            let rt = tokio::runtime::Handle::current();
+
+                            rt.block_on(async {
+                                // Se há dados, use-os; senão, use um contexto vazio
+                                let data = package.get_data().cloned().unwrap_or(Value::Null);
+                                let mut context = Context::from_main(data);
+                                match flow.execute(&mut context).await {
+                                    Ok(result) => {
+                                        let result_value = result.unwrap_or(Value::Null);
+                                        // Se não há response (módulo principal), imprimir o resultado
+                                        if package.response.is_none() {
+                                            println!("{}", result_value);
+                                        }
+                                        package.send(result_value);
+                                    }
+                                    Err(err) => {
+                                        error!("Runtime Error Execute Steps: {:?}", err);
+                                    }
+                                }
+                            });
+                        });
+                    });
+                }
+            });
+
+            handles.push(handle);
+        }
+
+        join_all(handles).await;
+
+        Ok(())
+    }
+
+    pub async fn run(
+        loader: Loader,
+        dispatch: Dispatch,
+        settings: Settings,
+    ) -> Result<(), RuntimeError> {
+        // -------------------------
+        // Create the channels
+        // -------------------------
+        let (tx_main_package, rx_main_package) = channel::unbounded::<Package>();
+
+        let no_main = loader.main == -1 || settings.var_main.is_some();
+        let steps = loader.get_steps();
+        let modules = Self::load_modules(
+            loader,
+            dispatch.clone(),
+            settings.clone(),
+            tx_main_package.clone(),
+        )
+        .await?;
+
         // Se não há main definido ou --var-main foi especificado, forçar o início dos steps
-        if loader.main == -1 || settings.var_main.is_some() {
+        if no_main {
             // Criar um span padrão para o início dos steps
             let span = tracing::span!(
                 tracing::Level::INFO,
@@ -186,76 +284,43 @@ impl Runtime {
             });
         }
 
+        info!("Phlow!");
+
         // -------------------------
         // Create the flow
         // -------------------------
-        let flow = Arc::new({
-            match Phlow::try_from_value(&steps, Some(Arc::new(modules))) {
-                Ok(flow) => flow,
-                Err(err) => return Err(RuntimeError::FlowExecutionError(err.to_string())),
-            }
-        });
+        Self::listener(rx_main_package, steps, modules, settings)
+            .await
+            .map_err(|err| {
+                error!("Runtime Error: {:?}", err);
+                err
+            })?;
 
-        drop(steps);
+        Ok(())
+    }
 
-        let mut handles = Vec::new();
+    pub async fn run_script(
+        tx_main_package: channel::Sender<Package>,
+        rx_main_package: channel::Receiver<Package>,
+        loader: Loader,
+        dispatch: Dispatch,
+        settings: Settings,
+    ) -> Result<(), RuntimeError> {
+        let steps = loader.get_steps();
+        let modules = Self::load_modules(
+            loader,
+            dispatch.clone(),
+            settings.clone(),
+            tx_main_package.clone(),
+        )
+        .await?;
 
-        info!("Phlow!");
-
-        for _i in 0..settings.package_consumer_count {
-            let rx_pkg = rx_main_package.clone();
-            let flow = flow.clone();
-
-            let handle = tokio::task::spawn_blocking(move || {
-                for mut package in rx_pkg {
-                    let flow = flow.clone();
-                    let parent = match package.span.clone() {
-                        Some(span) => span,
-                        None => {
-                            error!("Span not found in main module");
-                            continue;
-                        }
-                    };
-                    let dispatch = match package.dispatch.clone() {
-                        Some(dispatch) => dispatch,
-                        None => {
-                            error!("Dispatch not found in main module");
-                            continue;
-                        }
-                    };
-
-                    tokio::task::block_in_place(move || {
-                        dispatcher::with_default(&dispatch, || {
-                            let _enter = parent.enter();
-                            let rt = tokio::runtime::Handle::current();
-
-                            rt.block_on(async {
-                                // Se há dados, use-os; senão, use um contexto vazio
-                                let data = package.get_data().cloned().unwrap_or(Value::Null);
-                                let mut context = Context::from_main(data);
-                                match flow.execute(&mut context).await {
-                                    Ok(result) => {
-                                        let result_value = result.unwrap_or(Value::Null);
-                                        // Se não há response (módulo principal), imprimir o resultado
-                                        if package.response.is_none() {
-                                            println!("{}", result_value);
-                                        }
-                                        package.send(result_value);
-                                    }
-                                    Err(err) => {
-                                        error!("Runtime Error Execute Steps: {:?}", err);
-                                    }
-                                }
-                            });
-                        });
-                    });
-                }
-            });
-
-            handles.push(handle);
-        }
-
-        join_all(handles).await;
+        Self::listener(rx_main_package, steps, modules, settings)
+            .await
+            .map_err(|err| {
+                error!("Runtime Error: {:?}", err);
+                err
+            })?;
 
         Ok(())
     }

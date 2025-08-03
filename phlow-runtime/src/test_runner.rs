@@ -1,4 +1,5 @@
 use crate::loader::Loader;
+use crate::settings::{self, Settings};
 use crossbeam::channel;
 use log::{debug, error};
 use phlow_engine::phs::{build_engine, Script};
@@ -30,7 +31,11 @@ pub struct TestSummary {
     pub results: Vec<TestResult>,
 }
 
-pub async fn run_tests(loader: Loader, test_filter: Option<&str>) -> Result<TestSummary, String> {
+pub async fn run_tests(
+    loader: Loader,
+    test_filter: Option<&str>,
+    settings: Settings,
+) -> Result<TestSummary, String> {
     // Get tests from loader.tests
     let tests = loader
         .tests
@@ -92,7 +97,7 @@ pub async fn run_tests(loader: Loader, test_filter: Option<&str>) -> Result<Test
     println!();
 
     // Load modules following the same pattern as Runtime::run
-    let modules = load_modules_like_runtime(&loader)
+    let modules = load_modules_like_runtime(&loader, settings)
         .await
         .map_err(|e| format!("Failed to load modules for tests: {}", e))?;
 
@@ -214,7 +219,10 @@ async fn run_single_test(test_case: &Value, phlow: &Phlow) -> Result<String, Str
 
 // Load modules following the exact same pattern as Runtime::run
 // but without creating main_sender channels since we don't need them for tests
-async fn load_modules_like_runtime(loader: &Loader) -> Result<Arc<Modules>, String> {
+async fn load_modules_like_runtime(
+    loader: &Loader,
+    settings: Settings,
+) -> Result<Arc<Modules>, String> {
     let mut modules = Modules::default();
 
     // Initialize tracing subscriber
@@ -258,6 +266,7 @@ async fn load_modules_like_runtime(loader: &Loader) -> Result<Arc<Modules>, Stri
         let is_local_path = module.local_path.is_some();
         let local_path = module.local_path.clone();
         let module_name = module.name.clone();
+        let settings = settings.clone();
 
         debug!(
             "Module debug: name={}, is_local_path={}, local_path={:?}",
@@ -266,7 +275,8 @@ async fn load_modules_like_runtime(loader: &Loader) -> Result<Arc<Modules>, Stri
 
         // Load module in separate thread - same as Runtime::run
         std::thread::spawn(move || {
-            let result = Loader::load_module(setup, &module_target, &module_version, local_path);
+            let result =
+                Loader::load_module(setup, &module_target, &module_version, local_path, settings);
 
             if let Err(err) = result {
                 error!("Test runtime Error Load Module: {:?}", err)
