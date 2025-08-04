@@ -3,14 +3,13 @@ steps:
   - condition:
       assert: !phs main == "ok"
     then:
-      payload: ok
+      payload: yes
     else:
       payload: other
-
 tests:
   - describe: "Test Phlow Runtime"
     main: ok
-    assert_eq: ok
+    assert_eq: yes
   - describe: "Test Phlow Runtime with condition"
     main: other
     assert_eq: other

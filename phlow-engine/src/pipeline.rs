@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use phlow_sdk::prelude::log::debug;
+
 use crate::{
     context::Context,
     step_worker::{NextStep, StepOutput, StepWorker, StepWorkerError},
@@ -37,7 +39,7 @@ impl Pipeline {
         context: &mut Context,
         skip: usize,
     ) -> Result<Option<StepOutput>, PipelineError> {
-        for (i, step) in self.steps.iter().enumerate().skip(skip) {
+        for (step_index, step) in self.steps.iter().enumerate().skip(skip) {
             match step.execute(&context).await {
                 Ok(step_output) => {
                     context.add_step_payload(step_output.output.clone());
@@ -57,7 +59,11 @@ impl Pipeline {
                             }));
                         }
                         NextStep::Next => {
-                            if i == self.steps.len() - 1 {
+                            if step_index == self.steps.len() - 1 {
+                                debug!(
+                                    "Reached the end of the pipeline. Step index: {}",
+                                    step_index
+                                );
                                 return Ok(Some(step_output));
                             }
                         }

@@ -9,7 +9,6 @@ use phlow_engine::phs::{build_engine, Script, ScriptError};
 use phlow_engine::{Context, Phlow};
 use phlow_sdk::structs::Package;
 use phlow_sdk::tokio;
-use phlow_sdk::tracing_subscriber::field::debug;
 use phlow_sdk::{
     prelude::Value,
     structs::{ModulePackage, ModuleSetup, Modules},

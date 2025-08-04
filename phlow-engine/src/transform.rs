@@ -3,7 +3,10 @@ use crate::{
     pipeline::Pipeline,
     step_worker::{StepReference, StepWorker, StepWorkerError},
 };
-use phlow_sdk::{prelude::*, valu3};
+use phlow_sdk::{
+    prelude::{log::debug, *},
+    valu3,
+};
 use rhai::Engine;
 use std::sync::Arc;
 use std::{collections::HashMap, fmt::Display};
@@ -41,6 +44,7 @@ pub(crate) fn value_to_pipelines(
     let mut map = Vec::new();
 
     process_raw_steps(input, &mut map);
+    debug!("{}", map.to_value().to_json(JsonMode::Indented));
     value_to_structs(engine, modules, &map)
 }
 

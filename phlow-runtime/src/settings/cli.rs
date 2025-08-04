@@ -53,14 +53,6 @@ impl Cli {
                     .help("Path to the package file"),
             )
             .arg(
-                Arg::new("steps")
-                    .long("show-steps")
-                    .help("Show steps")
-                    .value_parser(clap::builder::BoolishValueParser::new())
-                    .action(ArgAction::SetTrue)
-                    .default_value("false"),
-            )
-            .arg(
                 Arg::new("no_run")
                     .long("no-run")
                     .short('n')
@@ -101,8 +93,7 @@ impl Cli {
                     .value_name("VALUE"),
             );
 
-        let matches = command
-            .get_matches();
+        let matches = command.get_matches();
 
         let main = match matches.get_one::<String>("main_path") {
             Some(target) => Some(target.clone()),
@@ -117,8 +108,13 @@ impl Cli {
         let download = *matches.get_one::<bool>("download").unwrap_or(&true);
 
         let print_yaml = *matches.get_one::<bool>("print_yaml").unwrap_or(&false);
+
         let test = *matches.get_one::<bool>("test").unwrap_or(&false);
-        let test_filter = matches.get_one::<String>("test_filter").map(|s| s.to_string());
+
+        let test_filter = matches
+            .get_one::<String>("test_filter")
+            .map(|s| s.to_string());
+
         let var_main = matches.get_one::<String>("var_main").map(|s| s.to_string());
 
         Ok(Cli {
