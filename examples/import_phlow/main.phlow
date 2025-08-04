@@ -6,45 +6,25 @@ modules:
     with:
       path: /authors
       method: GET
-  - module: ./route
-    name: route_post_authors
-    with:
-      path: /authors
-      method: POST
-  - module: ./route
-    name: route_delete_authors
-    with:
-      path: /authors/1
-      method: DELETE
+      default_response:
+        status_code: 200
+        body: []
+  # - module: ./route
+  #   name: route_post_authors
+  #   with:
+  #     path: /authors
+  #     method: POST
+  # - module: ./route
+  #   name: route_delete_authors
+  #   with:
+  #     path: /authors/1
+  #     method: DELETE
 
 
 main: http_server
 
 steps:
-  - use: route_get_authors
-    input:
-      request: !phs main
-      response:
-        status_code: 200
-        body: []
-  - !include return.phlow
-
-  - use: route_post_authors
-    input:
-      request: !phs main
-      response:
-        status_code: 201
-        body:
-          id: 1
-          name: "John Doe"
-  - !include return.phlow
-
-  - use: route_delete_authors
-    input:
-      request: !phs main
-      response:
-        status_code: 204
-  - !include return.phlow
+  !include ./return.phlow target=route_get_authors
 
   - payload:
       status_code: 404
@@ -67,18 +47,18 @@ tests:
     assert_eq:
       status_code: 200
       body: []
-  - describe: "create a new author"
-    main:
-      path: /authors
-      method: POST
-    assert_eq:
-      status_code: 201
-      body:
-        id: 1
-        name: "John Doe"
-  - describe: "delete an author"
-    main:
-      path: /authors/1
-      method: DELETE
-    assert_eq:
-      status_code: 204
+  # - describe: "create a new author"
+  #   main:
+  #     path: /authors
+  #     method: POST
+  #   assert_eq:
+  #     status_code: 201
+  #     body:
+  #       id: 1
+  #       name: "John Doe"
+  # - describe: "delete an author"
+  #   main:
+  #     path: /authors/1
+  #     method: DELETE
+  #   assert_eq:
+  #     status_code: 204

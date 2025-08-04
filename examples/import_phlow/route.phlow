@@ -54,6 +54,6 @@ output:
       required: false
 
 steps:
-  - assert: !phs setup.path == main.request.path && setup.method == main.request.method
+  - assert: !phs setup.path == main.path && setup.method == main.method
     then:
-      payload: !phs main.response
+      payload: !phs setup.default_response

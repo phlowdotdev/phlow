@@ -1,6 +1,4 @@
-use phlow_sdk::prelude::Value;
 use regex::Regex;
-use serde_yaml;
 use std::fs;
 use std::path::Path;
 
@@ -157,23 +155,10 @@ fn yaml_helpers_eval(yaml: &str) -> String {
 }
 
 fn process_include_file(path: &Path) -> Result<String, String> {
-    let extension = path
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("")
-        .to_lowercase();
-
     let raw = fs::read_to_string(path).map_err(|e| e.to_string())?;
 
-    let value: Value = match extension.as_str() {
-        "phlow" | "yaml" | "yml" => {
-            let parent = path.parent().unwrap_or_else(|| Path::new("."));
-            let transformed = yaml_helpers_transform(&raw, parent, false);
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    let transformed = yaml_helpers_transform(&raw, parent, false);
 
-            serde_yaml::from_str(&transformed).map_err(|e| e.to_string())?
-        }
-        _ => return Err("Unsupported file extension".into()),
-    };
-
-    Ok(value.to_string())
+    Ok(transformed)
 }
