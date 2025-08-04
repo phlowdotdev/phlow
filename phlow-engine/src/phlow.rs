@@ -4,7 +4,7 @@ use crate::{
     step_worker::NextStep,
     transform::{value_to_pipelines, TransformError},
 };
-use phlow_sdk::prelude::*;
+use phlow_sdk::prelude::{log::debug, *};
 use phs::build_engine;
 use std::{collections::HashMap, fmt::Display, sync::Arc};
 
@@ -70,7 +70,11 @@ impl Phlow {
         Ok(Self { pipelines })
     }
 
-    pub async fn execute(&self, context: &mut Context) -> Result<Option<Value>, PhlowError> {
+    pub async fn execute(
+        &self,
+        context: &mut Context,
+        oneshot: bool,
+    ) -> Result<Option<Value>, PhlowError> {
         if self.pipelines.is_empty() {
             return Ok(None);
         }
@@ -88,22 +92,27 @@ impl Phlow {
                 Ok(step_output) => match step_output {
                     Some(step_output) => match step_output.next_step {
                         NextStep::Next | NextStep::Stop => {
+                            debug!("Step output: {:?}", step_output.output);
                             return Ok(step_output.output);
                         }
                         NextStep::Pipeline(id) => {
+                            debug!("Switching to pipeline: {}", id);
                             current_pipeline = id;
                             current_step = 0;
                         }
                         NextStep::GoToStep(to) => {
+                            debug!("Switching to step: {}", to.step);
                             current_pipeline = to.pipeline;
                             current_step = to.step;
                         }
                     },
                     None => {
+                        debug!("No step output, continuing to next step");
                         return Ok(None);
                     }
                 },
                 Err(err) => {
+                    debug!("Error executing step: {:?}", err);
                     return Err(PhlowError::PipelineError(err));
                 }
             }

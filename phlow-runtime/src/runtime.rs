@@ -6,9 +6,10 @@ use crossbeam::channel;
 use futures::future::join_all;
 use log::{debug, error, info};
 use phlow_engine::phs::{build_engine, Script, ScriptError};
-use phlow_engine::{context, Context, Phlow};
+use phlow_engine::{Context, Phlow};
 use phlow_sdk::structs::Package;
 use phlow_sdk::tokio;
+use phlow_sdk::tracing_subscriber::field::debug;
 use phlow_sdk::{
     prelude::Value,
     structs::{ModulePackage, ModuleSetup, Modules},
@@ -131,6 +132,7 @@ impl Runtime {
         modules: Modules,
         settings: Settings,
         default_context: Context,
+        oneshot: bool,
     ) -> Result<(), RuntimeError> {
         debug!("Starting main loop with steps: {:?}", steps);
         let flow = Arc::new({
@@ -180,13 +182,12 @@ impl Runtime {
                                 let data = main_package.get_data().cloned().unwrap_or(Value::Null);
                                 context.main = Some(data);
 
-                                match flow.execute(&mut context).await {
+                                debug!("Executing flow with context: {:?}", context);
+
+                                match flow.execute(&mut context, oneshot).await {
                                     Ok(result) => {
                                         let result_value = result.unwrap_or(Value::Null);
-                                        // Se não há response (módulo principal), imprimir o resultado
-                                        if main_package.response.is_none() {
-                                            println!("{}", result_value);
-                                        }
+                                        debug!("Flow execution result: {:?}", result_value);
                                         main_package.send(result_value);
                                     }
                                     Err(err) => {
@@ -300,6 +301,7 @@ impl Runtime {
             modules,
             settings,
             Context::default(),
+            false,
         )
         .await
         .map_err(|err| {
@@ -329,7 +331,7 @@ impl Runtime {
         )
         .await?;
 
-        Self::listener(rx_main_package, steps, modules, settings, context)
+        Self::listener(rx_main_package, steps, modules, settings, context, true)
             .await
             .map_err(|err| {
                 error!("Runtime Error: {:?}", err);

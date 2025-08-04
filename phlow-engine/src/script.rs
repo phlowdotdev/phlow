@@ -23,11 +23,13 @@ impl Script {
         let payload: Dynamic =
             to_dynamic(context.payload.clone()).map_err(ScriptError::EvalError)?;
         let input: Dynamic = to_dynamic(context.input.clone()).map_err(ScriptError::EvalError)?;
+        let setup: Dynamic = to_dynamic(context.setup.clone()).map_err(ScriptError::EvalError)?;
 
         scope.push_constant("steps", steps);
         scope.push_constant("main", main);
         scope.push_constant("payload", payload);
         scope.push_constant("input", input);
+        scope.push_constant("setup", setup);
 
         self.script.evaluate_from_scope(&mut scope)
     }

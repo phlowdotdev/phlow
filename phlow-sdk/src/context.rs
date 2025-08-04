@@ -1,6 +1,6 @@
 use crate::id::ID;
 use serde::Serialize;
-use std::{collections::HashMap, default};
+use std::collections::HashMap;
 use valu3::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Default)]
@@ -9,7 +9,7 @@ pub struct Context {
     pub main: Option<Value>,
     pub payload: Option<Value>,
     pub input: Option<Value>,
-    pub with: Option<Value>,
+    pub setup: Option<Value>,
 }
 
 impl Context {
@@ -40,9 +40,9 @@ impl Context {
         }
     }
 
-    pub fn from_with(with: Value) -> Self {
+    pub fn from_setup(setup: Value) -> Self {
         Self {
-            with: Some(with),
+            setup: Some(setup),
             ..Default::default()
         }
     }
@@ -53,7 +53,7 @@ impl Context {
             steps: self.steps.clone(),
             payload: self.payload.clone(),
             input: Some(output),
-            with: self.with.clone(),
+            setup: self.setup.clone(),
         }
     }
 
@@ -63,7 +63,7 @@ impl Context {
             steps: self.steps.clone(),
             payload: Some(output),
             input: self.input.clone(),
-            with: self.with.clone(),
+            setup: self.setup.clone(),
         }
     }
 

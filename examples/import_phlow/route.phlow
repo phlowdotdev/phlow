@@ -16,19 +16,13 @@ with:
       required: true
 
 steps:
+  - condition:
+      assert: !phs main.path == setup.path && main.method == setup.method
+    then:
+      - payload: !phs setup.response
+      - use: log
+        message:
+          payload: !phs payload
   - use: log
-    input:
-      message:
-        main: !phs main
-        with: !phs with
-  # - condition:
-  #     assert: !phs main.path == with.path && main.method == with.method
-  #   then:
-  #     payload:
-  #       status_code: !phs if main.method == "GET" { 200 } else if main.method == "POST" { 201 } else { 204 }
-  #       body: !phs main.response
-  #   else:
-  #     payload:
-  #       status_code: 404
-  #       body:
-  #         error: "Not Found"
+    message:
+      payload: !phs payload

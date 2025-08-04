@@ -29,7 +29,7 @@ pub fn run_script(path: &str, setup: ModuleSetup, settings: &Settings) {
 
                 // Criar uma task para o runtime que não irá dropar o tx_main_package
                 let tx_for_runtime = tx_main_package.clone();
-                let context = Context::from_with(setup.with.clone());
+                let context = Context::from_setup(setup.with.clone());
 
                 let runtime_handle = tokio::task::spawn(async move {
                     Runtime::run_script(
@@ -76,12 +76,9 @@ pub fn run_script(path: &str, setup: ModuleSetup, settings: &Settings) {
 
                     debug!("Package sent to main loop, waiting for response");
 
-                    // Aguardar a resposta do runtime com timeout
-                    let timeout_result =
-                        tokio::time::timeout(std::time::Duration::from_secs(10), response_rx).await;
-
-                    match timeout_result {
-                        Ok(Ok(result)) => {
+                    // Aguardar a resposta do runtime sem timeout
+                    match response_rx.await {
+                        Ok(result) => {
                             debug!("Received response from runtime: {:?}", result);
                             // Enviar a resposta de volta para o módulo original usando ModuleResponse
                             let response = ModuleResponse::from_success(result);
@@ -89,23 +86,13 @@ pub fn run_script(path: &str, setup: ModuleSetup, settings: &Settings) {
                                 error!("Failed to send response back to module: {:?}", err);
                             }
                         }
-                        Ok(Err(err)) => {
+                        Err(err) => {
                             error!("Failed to receive response from runtime: {:?}", err);
                             // Enviar uma resposta de erro
                             let response =
                                 ModuleResponse::from_error(format!("Runtime error: {}", err));
                             if let Err(err) = package.sender.send(response) {
                                 error!("Failed to send error response back to module: {:?}", err);
-                            }
-                        }
-                        Err(_timeout_err) => {
-                            error!("Timeout waiting for response from runtime");
-                            // Enviar uma resposta de timeout
-                            let response = ModuleResponse::from_error(
-                                "Timeout waiting for runtime response".to_string(),
-                            );
-                            if let Err(err) = package.sender.send(response) {
-                                error!("Failed to send timeout response back to module: {:?}", err);
                             }
                         }
                     }
