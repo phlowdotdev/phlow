@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use phlow_sdk::prelude::log::debug;
+use phlow_sdk::{prelude::log::debug, tracing_subscriber::field::debug};
 
 use crate::{
     context::Context,
@@ -31,15 +31,28 @@ impl std::error::Error for PipelineError {
 #[derive(Debug, Clone)]
 pub struct Pipeline {
     pub(crate) steps: Vec<StepWorker>,
+    pub(crate) id: usize,
 }
 
 impl Pipeline {
+    pub fn get_id(&self) -> usize {
+        self.id
+    }
+
     pub async fn execute(
         &self,
         context: &mut Context,
         skip: usize,
     ) -> Result<Option<StepOutput>, PipelineError> {
         for (step_index, step) in self.steps.iter().enumerate().skip(skip) {
+            debug!(
+                "Executing step {} of {}: {}. Pipeline ID: {}",
+                step_index + 1,
+                self.steps.len(),
+                step.get_id(),
+                self.get_id()
+            );
+
             match step.execute(&context).await {
                 Ok(step_output) => {
                     context.add_step_payload(step_output.output.clone());
@@ -51,8 +64,19 @@ impl Pipeline {
                     }
 
                     match step_output.next_step {
-                        NextStep::Pipeline(_) | NextStep::Stop => return Ok(Some(step_output)),
+                        NextStep::Pipeline(pipeline_id) => {
+                            debug!(
+                                "Reached the end of the pipeline. Pipeline id {}",
+                                pipeline_id
+                            );
+                            return Ok(Some(step_output));
+                        }
+                        NextStep::Stop => {
+                            debug!("Reached the end of the stop command");
+                            return Ok(Some(step_output));
+                        }
                         NextStep::GoToStep(to) => {
+                            debug!("GoToStep pipeline {} and step {}", to.pipeline, to.step);
                             return Ok(Some(StepOutput {
                                 output: step_output.output,
                                 next_step: NextStep::GoToStep(to),
@@ -66,6 +90,8 @@ impl Pipeline {
                                 );
                                 return Ok(Some(step_output));
                             }
+
+                            debug!("Continuing to next step");
                         }
                     }
                 }
@@ -75,6 +101,9 @@ impl Pipeline {
             }
         }
 
-        Ok(None)
+        Ok(Some(StepOutput {
+            output: context.payload.clone(),
+            next_step: NextStep::Stop,
+        }))
     }
 }

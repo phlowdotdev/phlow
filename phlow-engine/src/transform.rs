@@ -156,17 +156,27 @@ fn value_to_structs(
                         }
                     }
 
+                    // Use para debugar a saida do step
+                    // println!("{}", new_step.to_value().to_json(JsonMode::Indented));
+
                     let step_worker = StepWorker::try_from_value(
                         engine.clone(),
                         modules.clone(),
                         &new_step.to_value(),
                     )
                     .map_err(TransformError::InnerStepError)?;
+
                     steps.push(step_worker);
                 }
             }
 
-            pipelines.insert(pipeline_index, Pipeline { steps });
+            pipelines.insert(
+                pipeline_index,
+                Pipeline {
+                    steps,
+                    id: pipeline_index,
+                },
+            );
         }
     }
 
@@ -188,7 +198,7 @@ fn get_next_step(pipelines: &Vec<Value>, target: &StepReference) -> StepReferenc
 
     return StepReference {
         pipeline: target.pipeline,
-        step: target.step,
+        step: target.step + 1,
     };
 }
 

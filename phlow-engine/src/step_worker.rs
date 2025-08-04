@@ -5,7 +5,10 @@ use crate::{
     script::Script,
 };
 use once_cell::sync::Lazy;
-use phlow_sdk::{prelude::*, tracing::field};
+use phlow_sdk::{
+    prelude::{log::debug, *},
+    tracing::field,
+};
 use rhai::Engine;
 use serde::Serialize;
 use std::{fmt::Display, sync::Arc};
@@ -381,6 +384,10 @@ impl StepWorker {
         }
 
         if let Some(to) = &self.to {
+            debug!(
+                "Define switching to step {} in pipeline {}",
+                to.step, to.pipeline
+            );
             return Ok(StepOutput {
                 next_step: NextStep::GoToStep(to.clone()),
                 output,
