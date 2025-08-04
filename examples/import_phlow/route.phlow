@@ -56,4 +56,4 @@ output:
 steps:
   - assert: !phs setup.path == main.request.path && setup.method == main.request.method
     then:
-      return: !phs main.response
+      payload: !phs main.response
