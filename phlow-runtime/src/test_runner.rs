@@ -10,6 +10,7 @@ use phlow_sdk::structs::{ModulePackage, ModuleSetup, Modules};
 use phlow_sdk::valu3::prelude::*;
 use phlow_sdk::valu3::value::Value;
 use std::collections::HashMap;
+use std::fmt::Write;
 use std::sync::Arc;
 use tokio::sync::oneshot;
 
@@ -210,10 +211,18 @@ async fn run_single_test(test_case: &Value, phlow: &Phlow) -> Result<String, Str
 
     // Check assertions
     if let Some(assert_eq_value) = test_case.get("assert_eq") {
+        // ANSI escape code for red: \x1b[31m ... \x1b[0m
         if deep_equals(&result, assert_eq_value) {
             Ok(format!("Expected and got: {}", result))
         } else {
-            Err(format!("Expected {}, got {}", assert_eq_value, result))
+            let mut msg = String::new();
+            write!(
+                &mut msg,
+                "Expected \x1b[34m{}\x1b[0m, got \x1b[31m{}\x1b[0m",
+                assert_eq_value, result
+            )
+            .unwrap();
+            Err(msg)
         }
     } else if let Some(assert_expr) = test_case.get("assert") {
         // For assert expressions, we need to evaluate them

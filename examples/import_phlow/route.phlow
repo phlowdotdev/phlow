@@ -16,4 +16,4 @@ steps:
   - condition:
       assert: !phs main.path == setup.path && main.method == setup.method
     then:
-      return: !phs setup.response
+      payload: !phs setup.response

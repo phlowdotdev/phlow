@@ -6,9 +6,6 @@ modules:
     with:
       path: /authors
       method: GET
-      response:
-        status_code: 200
-        body: []
   - module: ./route
     name: route_post_authors
     with:
@@ -39,11 +36,10 @@ steps:
         error: "Not Found"
   - use: route_get_authors
     input: !phs main
-  # - use: log
-  #   message:
-  #     payload: !phs payload
-  # - use: route_post_authors
-  #   input: !phs main
+  - use: route_post_authors
+    input: !phs main
+  - use: route_delete_authors
+    input: !phs main
 
 tests:
   - describe: "return 404 for unknown path"
@@ -61,3 +57,22 @@ tests:
     assert_eq:
       status_code: 200
       body: []
+  - describe: "create a new author"
+    main:
+      path: /authors
+      method: POST
+      body:
+        name: "John Doe"
+    assert_eq:
+      status_code: 201
+      body:
+        id: 1
+        name: "John Doe"
+  - describe: "delete an author"
+    main:
+      path: /authors/1
+      method: DELETE
+    assert_eq:
+      status_code: 204
+      body:
+        success: true
