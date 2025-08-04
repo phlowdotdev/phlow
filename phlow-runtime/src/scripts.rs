@@ -78,8 +78,15 @@ pub fn run_script(path: &str, setup: ModuleSetup, settings: &Settings) {
 
                     // Aguardar a resposta do runtime sem timeout
                     match response_rx.await {
+                        Ok(result) if result.is_undefined() => {
+                            let response = ModuleResponse::from_success(
+                                package.payload().unwrap_or(Value::Undefined),
+                            );
+                            if let Err(err) = package.sender.send(response) {
+                                error!("Failed to send response back to module: {:?}", err);
+                            }
+                        }
                         Ok(result) => {
-                            println!("Received response: {:?}", result);
                             let response = ModuleResponse::from_success(result);
                             if let Err(err) = package.sender.send(response) {
                                 error!("Failed to send response back to module: {:?}", err);
