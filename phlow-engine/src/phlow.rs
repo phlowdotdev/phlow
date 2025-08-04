@@ -70,11 +70,7 @@ impl Phlow {
         Ok(Self { pipelines })
     }
 
-    pub async fn execute(
-        &self,
-        context: &mut Context,
-        oneshot: bool,
-    ) -> Result<Option<Value>, PhlowError> {
+    pub async fn execute(&self, context: &mut Context) -> Result<Option<Value>, PhlowError> {
         if self.pipelines.is_empty() {
             return Ok(None);
         }

@@ -192,7 +192,7 @@ async fn run_single_test(test_case: &Value, phlow: &Phlow) -> Result<String, Str
 
     // Execute the workflow
     let result = phlow
-        .execute(&mut context, false)
+        .execute(&mut context)
         .await
         .map_err(|e| format!("Execution failed: {}", e))?;
 

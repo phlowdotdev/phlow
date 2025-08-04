@@ -132,7 +132,6 @@ impl Runtime {
         modules: Modules,
         settings: Settings,
         default_context: Context,
-        oneshot: bool,
     ) -> Result<(), RuntimeError> {
         debug!("Starting main loop with steps: {:?}", steps);
         let flow = Arc::new({
@@ -184,7 +183,7 @@ impl Runtime {
 
                                 debug!("Executing flow with context: {:?}", context);
 
-                                match flow.execute(&mut context, oneshot).await {
+                                match flow.execute(&mut context).await {
                                     Ok(result) => {
                                         let result_value = result.unwrap_or(Value::Null);
                                         debug!("Flow execution result: {:?}", result_value);
@@ -301,7 +300,6 @@ impl Runtime {
             modules,
             settings,
             Context::default(),
-            false,
         )
         .await
         .map_err(|err| {
@@ -331,7 +329,7 @@ impl Runtime {
         )
         .await?;
 
-        Self::listener(rx_main_package, steps, modules, settings, context, true)
+        Self::listener(rx_main_package, steps, modules, settings, context)
             .await
             .map_err(|err| {
                 error!("Runtime Error: {:?}", err);
