@@ -1,6 +1,3 @@
-modules:
-  - module: log
-
 with:
   type: object
   required: true
@@ -19,6 +16,4 @@ steps:
   - condition:
       assert: !phs main.path == setup.path && main.method == setup.method
     then:
-      payload: !phs setup.response
-    else:
-      payload: ok
+      return: !phs setup.response

@@ -4,10 +4,7 @@ use crate::{
     step_worker::NextStep,
     transform::{value_to_pipelines, TransformError},
 };
-use phlow_sdk::{
-    prelude::{log::debug, *},
-    tracing_subscriber::field::debug,
-};
+use phlow_sdk::prelude::{log::error, *};
 use phs::build_engine;
 use std::{collections::HashMap, fmt::Display, sync::Arc};
 
@@ -81,22 +78,7 @@ impl Phlow {
         let mut current_pipeline = self.pipelines.len() - 1;
         let mut current_step = 0;
 
-        debug!(
-            "Starting execution with {} pipelines. In pipeline {} and step {}",
-            self.pipelines.len(),
-            current_pipeline,
-            current_step
-        );
-
-        // let mut total = 0;
-
         loop {
-            // if total >= self.pipelines.len() {
-            //     debug!("Reached the end of all pipelines.");
-            //     return Ok(None);
-            // }
-            // total += 1;
-
             let pipeline = self
                 .pipelines
                 .get(&current_pipeline)
@@ -106,27 +88,23 @@ impl Phlow {
                 Ok(step_output) => match step_output {
                     Some(step_output) => match step_output.next_step {
                         NextStep::Next | NextStep::Stop => {
-                            debug!("Step output: {:?}", step_output.output);
                             return Ok(step_output.output);
                         }
                         NextStep::Pipeline(id) => {
-                            debug!("Switching to pipeline {} and step 0", id);
                             current_pipeline = id;
                             current_step = 0;
                         }
                         NextStep::GoToStep(to) => {
-                            debug!("Switching to pipeline {} and step {}", to.pipeline, to.step);
                             current_pipeline = to.pipeline;
                             current_step = to.step;
                         }
                     },
                     None => {
-                        debug!("No step output, continuing to next step");
                         return Ok(None);
                     }
                 },
                 Err(err) => {
-                    debug!("Error executing step: {:?}", err);
+                    error!("Error executing step: {:?}", err);
                     return Err(PhlowError::PipelineError(err));
                 }
             }

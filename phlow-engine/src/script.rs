@@ -18,12 +18,16 @@ impl Script {
     pub fn evaluate(&self, context: &Context) -> Result<Value, ScriptError> {
         let mut scope = Scope::new();
 
-        let steps: Dynamic = to_dynamic(context.steps.clone()).map_err(ScriptError::EvalError)?;
-        let main: Dynamic = to_dynamic(context.main.clone()).map_err(ScriptError::EvalError)?;
+        let steps: Dynamic =
+            to_dynamic(context.get_steps().clone()).map_err(ScriptError::EvalError)?;
+        let main: Dynamic =
+            to_dynamic(context.get_main().clone()).map_err(ScriptError::EvalError)?;
         let payload: Dynamic =
-            to_dynamic(context.payload.clone()).map_err(ScriptError::EvalError)?;
-        let input: Dynamic = to_dynamic(context.input.clone()).map_err(ScriptError::EvalError)?;
-        let setup: Dynamic = to_dynamic(context.setup.clone()).map_err(ScriptError::EvalError)?;
+            to_dynamic(context.get_payload().clone()).map_err(ScriptError::EvalError)?;
+        let input: Dynamic =
+            to_dynamic(context.get_input().clone()).map_err(ScriptError::EvalError)?;
+        let setup: Dynamic =
+            to_dynamic(context.get_setup().clone()).map_err(ScriptError::EvalError)?;
 
         scope.push_constant("steps", steps);
         scope.push_constant("main", main);

@@ -110,7 +110,6 @@ impl Runtime {
             match setup_receive.await {
                 Ok(Some(sender)) => {
                     debug!("Module {} registered", module.name);
-
                     modules.register(module, sender);
                 }
                 Ok(None) => {
@@ -130,9 +129,8 @@ impl Runtime {
         steps: Value,
         modules: Modules,
         settings: Settings,
-        default_context: Context,
+        default_context: Option<Context>,
     ) -> Result<(), RuntimeError> {
-        debug!("Starting main loop with steps: {:?}", steps);
         let flow = Arc::new({
             match Phlow::try_from_value(&steps, Some(Arc::new(modules))) {
                 Ok(flow) => flow,
@@ -152,7 +150,6 @@ impl Runtime {
 
             let handle = tokio::task::spawn_blocking(move || {
                 for mut main_package in rx_main_pkg {
-                    debug!("Processing package: {:?}", main_package);
                     let flow = flow.clone();
                     let parent = match main_package.span.clone() {
                         Some(span) => span,
@@ -168,7 +165,16 @@ impl Runtime {
                             continue;
                         }
                     };
-                    let default_context = default_context.clone();
+
+                    let mut context = {
+                        let data = main_package.get_data().cloned().unwrap_or(Value::Null);
+                        if let Some(mut context) = default_context.clone() {
+                            context.set_main(data);
+                            context
+                        } else {
+                            Context::from_main(data)
+                        }
+                    };
 
                     tokio::task::block_in_place(move || {
                         dispatcher::with_default(&dispatch, || {
@@ -176,16 +182,9 @@ impl Runtime {
                             let rt = tokio::runtime::Handle::current();
 
                             rt.block_on(async {
-                                let mut context = default_context.clone();
-                                let data = main_package.get_data().cloned().unwrap_or(Value::Null);
-                                context.main = Some(data);
-
-                                debug!("Executing flow with context: {:?}", context);
-
                                 match flow.execute(&mut context).await {
                                     Ok(result) => {
-                                        let result_value = result.unwrap_or(Value::Null);
-                                        debug!("Flow execution result: {:?}", result_value);
+                                        let result_value = result.unwrap_or(Value::Undefined);
                                         main_package.send(result_value);
                                     }
                                     Err(err) => {
@@ -293,18 +292,12 @@ impl Runtime {
         // -------------------------
         // Create the flow
         // -------------------------
-        Self::listener(
-            rx_main_package,
-            steps,
-            modules,
-            settings,
-            Context::default(),
-        )
-        .await
-        .map_err(|err| {
-            error!("Runtime Error: {:?}", err);
-            err
-        })?;
+        Self::listener(rx_main_package, steps, modules, settings, None)
+            .await
+            .map_err(|err| {
+                error!("Runtime Error: {:?}", err);
+                err
+            })?;
 
         Ok(())
     }
@@ -317,7 +310,6 @@ impl Runtime {
         settings: Settings,
         context: Context,
     ) -> Result<(), RuntimeError> {
-        debug!("Running script with loader: {:?}", loader);
         let steps = loader.get_steps();
 
         let modules = Self::load_modules(
@@ -328,7 +320,7 @@ impl Runtime {
         )
         .await?;
 
-        Self::listener(rx_main_package, steps, modules, settings, context)
+        Self::listener(rx_main_package, steps, modules, settings, Some(context))
             .await
             .map_err(|err| {
                 error!("Runtime Error: {:?}", err);

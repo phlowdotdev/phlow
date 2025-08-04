@@ -79,16 +79,13 @@ pub fn run_script(path: &str, setup: ModuleSetup, settings: &Settings) {
                     // Aguardar a resposta do runtime sem timeout
                     match response_rx.await {
                         Ok(result) => {
-                            debug!("Received response from runtime: {:?}", result);
-                            // Enviar a resposta de volta para o módulo original usando ModuleResponse
+                            println!("Received response: {:?}", result);
                             let response = ModuleResponse::from_success(result);
                             if let Err(err) = package.sender.send(response) {
                                 error!("Failed to send response back to module: {:?}", err);
                             }
                         }
                         Err(err) => {
-                            error!("Failed to receive response from runtime: {:?}", err);
-                            // Enviar uma resposta de erro
                             let response =
                                 ModuleResponse::from_error(format!("Runtime error: {}", err));
                             if let Err(err) = package.sender.send(response) {

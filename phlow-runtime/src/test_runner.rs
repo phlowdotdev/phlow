@@ -133,7 +133,7 @@ pub async fn run_tests(
 
         match result {
             Ok(msg) => {
-                println!("✅ PASSED - {}", msg);
+                println!("✅ PASSED");
                 passed += 1;
                 results.push(TestResult {
                     index: test_index,
@@ -179,24 +179,34 @@ pub async fn run_tests(
 
 async fn run_single_test(test_case: &Value, phlow: &Phlow) -> Result<String, String> {
     // Extract test inputs
-    let main_value = test_case.get("main").cloned().unwrap_or(Value::Null);
-    let initial_payload = test_case.get("payload").cloned().unwrap_or(Value::Null);
+    let main_value = test_case.get("main").cloned().unwrap_or(Value::Undefined);
+    let initial_payload = test_case
+        .get("payload")
+        .cloned()
+        .unwrap_or(Value::Undefined);
+
+    debug!(
+        "Running test with main: {:?}, payload: {:?}",
+        main_value, initial_payload
+    );
 
     // Create context with test data
     let mut context = Context::from_main(main_value);
 
     // Set initial payload if provided
-    if !initial_payload.is_null() {
+    if !initial_payload.is_undefined() {
         context = context.add_module_output(initial_payload);
     }
 
     // Execute the workflow
-    let result = phlow
-        .execute(&mut context)
-        .await
-        .map_err(|e| format!("Execution failed: {}", e))?;
+    let result = {
+        let result = phlow
+            .execute(&mut context)
+            .await
+            .map_err(|e| format!("Execution failed: {}", e))?;
 
-    let result = result.unwrap_or(Value::Null);
+        result.unwrap_or(Value::Undefined)
+    };
 
     // Check assertions
     if let Some(assert_eq_value) = test_case.get("assert_eq") {

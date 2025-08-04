@@ -1,7 +1,5 @@
 use std::fmt::Display;
 
-use phlow_sdk::{prelude::log::debug, tracing_subscriber::field::debug};
-
 use crate::{
     context::Context,
     step_worker::{NextStep, StepOutput, StepWorker, StepWorkerError},
@@ -45,14 +43,6 @@ impl Pipeline {
         skip: usize,
     ) -> Result<Option<StepOutput>, PipelineError> {
         for (step_index, step) in self.steps.iter().enumerate().skip(skip) {
-            debug!(
-                "Executing step {} of {}: {}. Pipeline ID: {}",
-                step_index + 1,
-                self.steps.len(),
-                step.get_id(),
-                self.get_id()
-            );
-
             match step.execute(&context).await {
                 Ok(step_output) => {
                     context.add_step_payload(step_output.output.clone());
@@ -64,19 +54,10 @@ impl Pipeline {
                     }
 
                     match step_output.next_step {
-                        NextStep::Pipeline(pipeline_id) => {
-                            debug!(
-                                "Reached the end of the pipeline. Pipeline id {}",
-                                pipeline_id
-                            );
-                            return Ok(Some(step_output));
-                        }
-                        NextStep::Stop => {
-                            debug!("Reached the end of the stop command");
+                        NextStep::Pipeline(_) | NextStep::Stop => {
                             return Ok(Some(step_output));
                         }
                         NextStep::GoToStep(to) => {
-                            debug!("GoToStep pipeline {} and step {}", to.pipeline, to.step);
                             return Ok(Some(StepOutput {
                                 output: step_output.output,
                                 next_step: NextStep::GoToStep(to),
@@ -84,14 +65,8 @@ impl Pipeline {
                         }
                         NextStep::Next => {
                             if step_index == self.steps.len() - 1 {
-                                debug!(
-                                    "Reached the end of the pipeline. Step index: {}",
-                                    step_index
-                                );
                                 return Ok(Some(step_output));
                             }
-
-                            debug!("Continuing to next step");
                         }
                     }
                 }
@@ -102,8 +77,8 @@ impl Pipeline {
         }
 
         Ok(Some(StepOutput {
-            output: context.payload.clone(),
-            next_step: NextStep::Stop,
+            output: context.get_payload().clone(),
+            next_step: NextStep::Next,
         }))
     }
 }
