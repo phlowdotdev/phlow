@@ -11,7 +11,7 @@ Phlow supports asynchronous messaging through AMQP (RabbitMQ) and RPC (Remote Pr
 
 Send messages to a RabbitMQ queue:
 
-```yaml title="amqp-producer.phlow"
+```phlow title="amqp-producer.phlow"
 name: AMQP Producer
 version: 1.0.0
 description: Send messages to RabbitMQ queue
@@ -96,7 +96,7 @@ steps:
 
 Consume messages from a RabbitMQ queue:
 
-```yaml title="amqp-consumer.phlow"
+```phlow title="amqp-consumer.phlow"
 name: AMQP Consumer
 version: 1.0.0
 description: Consume messages from RabbitMQ queue
@@ -155,7 +155,7 @@ steps:
 
 Create an RPC server that handles remote procedure calls:
 
-```yaml title="rpc-server.phlow"
+```phlow title="rpc-server.phlow"
 name: RPC Server
 version: 1.0.0
 description: Handle RPC calls for mathematical operations
@@ -267,7 +267,7 @@ steps:
 
 Create an RPC client to call remote procedures:
 
-```yaml title="rpc-client.phlow"
+```phlow title="rpc-client.phlow"
 name: RPC Client
 version: 1.0.0
 description: Call remote procedures
@@ -344,7 +344,7 @@ phlow rpc-client.phlow fibonacci '{"n": 10}'
 
 Implement a work queue for distributed task processing:
 
-```yaml title="work-queue.phlow"
+```phlow title="work-queue.phlow"
 name: Work Queue
 version: 1.0.0
 description: Distribute tasks across multiple workers
@@ -474,7 +474,7 @@ steps:
 
 Implement publish-subscribe messaging:
 
-```yaml title="pubsub.phlow"
+```phlow title="pubsub.phlow"
 name: Pub/Sub Pattern
 version: 1.0.0
 description: Publish-subscribe messaging pattern
@@ -603,7 +603,7 @@ steps:
 
 Test messaging and RPC functionality:
 
-```yaml title="messaging-tests.phlow"
+```phlow title="messaging-tests.phlow"
 name: Messaging Tests
 version: 1.0.0
 description: Test messaging and RPC functionality

@@ -6,7 +6,7 @@ This is a simple example of a Phlow that mirrors a request to Phlow. It uses the
 
 ### main.phlow
 
-```yaml
+```phlow
 name: Phlow Mirror Request
 description: Mirror request to Phlow.
 version: 1.0

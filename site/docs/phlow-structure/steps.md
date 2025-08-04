@@ -6,7 +6,7 @@ Steps control the logic and flow of execution.
 
 Example:
 
-```yaml
+```phlow
 steps:
   - assert: !phs main.force
     then:
@@ -25,7 +25,7 @@ Each step may have:
 ### id
 A unique identifier for the step, used for tracking or referencing. This allows the step's output to be accessed using the `steps` variable. For example:
 
-```yaml
+```phlow
 steps:
   - id: my_step
     payload:
@@ -37,7 +37,7 @@ steps:
 ### label
 A descriptive label for the step, often used as the span name in OpenTelemetry for tracing and monitoring purposes. This label helps in identifying and analyzing the step during distributed tracing. For example:
 
-```yaml
+```phlow
 steps:
   - label: Validate User Age
     assert: !phs main.age > 18
@@ -49,7 +49,7 @@ steps:
 ### assert
 Evaluates a boolean expression to control the flow. If the `assert` is true, it executes the `then` block. If false, it executes the `else` block, if defined. If the `else` block is not present, the flow proceeds to the next step. For example:
 
-```yaml
+```phlow
 steps:
   - assert: !phs main.age > 18
     then:
@@ -60,7 +60,7 @@ steps:
 ### payload
 Represents the data that the step sends forward and can also receive from the previous step. By declaring `payload`, you define the data to be passed to the next step. The subsequent step can capture it using `!phs payload`. For example:
 
-```yaml
+```phlow
 steps:
   - payload:
       key: value
@@ -75,7 +75,7 @@ For example:
 
 1. **Using the `log` module**:  
    Logs a message for tracing or debugging purposes.
-   ```yaml
+   ```phlow
    steps:
      - use: log
        input:
@@ -84,7 +84,7 @@ For example:
 
 2. **Using the `producer` module**:  
    Sends a message to an AMQP queue.
-   ```yaml
+   ```phlow
    steps:
      - use: producer
        input:
@@ -94,7 +94,7 @@ For example:
 
 3. **Using the `query` module**:  
    Executes a SQL query on a PostgreSQL database.
-   ```yaml
+   ```phlow
    steps:
      - use: postgres
        input:
@@ -104,7 +104,7 @@ For example:
 ### to
 The to represents the ID of a step that is identified as the next step to be executed in sequence, effectively linking the current step to the subsequent one.
 
-  ```yaml
+  ```phlow
   steps:
     - to: step4
     - id: step2
@@ -122,7 +122,7 @@ The to represents the ID of a step that is identified as the next step to be exe
 ### steps
 It is possible to use `steps` to execute a sequence of steps within the context of another step. This is particularly useful in scenarios where you want to define additional logic inside `then` or `else` blocks. For example:
 
-```yaml
+```phlow
 steps:
   - assert: !phs main.age > 18
     then:
@@ -143,7 +143,7 @@ steps:
 ### return
 Similar to the `return` statement in any programming language, it halts the flow of execution and returns the specified data to the main context. For example:
 
-```yaml
+```phlow
 steps:
   - assert: !phs main.age > 18
     then:

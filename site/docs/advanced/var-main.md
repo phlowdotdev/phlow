@@ -65,7 +65,7 @@ phlow --var-main '{
 
 Consider a flow that expects CLI input:
 
-```yaml
+```phlow
 # user-processor.phflow
 name: user-processor
 version: 1.0.0
@@ -136,7 +136,7 @@ phlow user-processor.phflow --var-main '{"user_id": 999999, "action": "archive"}
 
 You can combine `--var-main` with the `--test` parameter for comprehensive testing:
 
-```yaml
+```phlow
 # user-processor.phlow
 tests:
   - description: "Should process valid user data"

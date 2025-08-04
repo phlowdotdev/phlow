@@ -25,7 +25,7 @@ O módulo JWT fornece funcionalidades completas para criação e validação de 
 
 ### Configuração Básica
 
-```yaml
+```phlow
 modules:
   - name: "jwt_handler"
     module: "jwt"
@@ -42,7 +42,7 @@ modules:
 export JWT_SECRET="minha-chave-secreta-do-ambiente"
 ```
 
-```yaml
+```phlow
 modules:
   - name: "jwt_handler"
     module: "jwt"
@@ -79,7 +79,7 @@ modules:
 
 ### Criação de Token
 
-```yaml
+```phlow
 steps:
   - name: "create_user_token"
     use: "jwt_handler"
@@ -94,7 +94,7 @@ steps:
 
 ### Validação de Token
 
-```yaml
+```phlow
 steps:
   - name: "verify_token"
     use: "jwt_handler"
@@ -117,7 +117,7 @@ steps:
 
 ### Teste de Expiração de Token
 
-```yaml
+```phlow
 name: jwt-expiration-test
 version: 1.0.0
 description: Demonstração de expiração automática de token JWT
@@ -169,7 +169,7 @@ steps:
 
 ## 🌐 Exemplo Completo - Sistema de Autenticação
 
-```yaml
+```phlow
 name: "auth-system"
 version: "1.0.0"
 description: "Sistema de autenticação com JWT"
@@ -273,7 +273,7 @@ steps:
 
 ## 🔐 Middleware de Autenticação
 
-```yaml
+```phlow
 name: "auth-middleware"
 version: "1.0.0"
 description: "Middleware para validação de JWT"

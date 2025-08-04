@@ -39,7 +39,7 @@ phlow git@github.com:phlowdotdev/phlow-mirror-request.git#feature/new-functional
 
 By default, Phlow looks for these files in the repository root (in order of priority):
 1. `main.phlow`
-2. `main.yaml`
+2. `main.phlow`
 3. `main.yml`
 
 ### Using PHLOW_MAIN_FILE
@@ -65,7 +65,7 @@ PHLOW_MAIN_FILE='flows/api/webhook.phlow' phlow git@github.com:your-org/flows-re
 PHLOW_MAIN_FILE='deployment/prod.phlow' phlow git@github.com:your-org/flows-repo.git#production
 
 # Execute a flow with a different extension
-PHLOW_MAIN_FILE='workflows/data-processing.yaml' phlow git@github.com:your-org/flows-repo.git
+PHLOW_MAIN_FILE='workflows/data-processing.phlow' phlow git@github.com:your-org/flows-repo.git
 ```
 
 ## Authentication

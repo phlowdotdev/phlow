@@ -6,13 +6,13 @@ hide_title: true
 
 # CLI Module
 
-The CLI module provides a complete command-line interface for Phlow applications, allowing declarative definition, parsing and validation of arguments through YAML configuration.
+The CLI module provides a complete command-line interface for Phlow applications, allowing declarative definition, parsing and validation of arguments through Phlow configuration.
 
 ## 🚀 Features
 
 ### Key Features
 
-- ✅ **Declarative definition** of arguments via YAML
+- ✅ **Declarative definition** of arguments via Phlow
 - ✅ **Automatic parsing** of positional and optional arguments
 - ✅ **Type validation** (string, integer, boolean)
 - ✅ **Support for flags** long (--flag) and short (-f)
@@ -28,7 +28,7 @@ The CLI module provides a complete command-line interface for Phlow applications
 
 ### Basic Configuration
 
-```yaml
+```phlow
 name: "my-cli-app"
 version: "1.0.0"
 description: "A sample CLI application"
@@ -76,7 +76,7 @@ modules:
 
 ### Configuration with Positional Arguments
 
-```yaml
+```phlow
 modules:
   - name: "cli_handler"
     module: "cli"
@@ -241,7 +241,7 @@ Error:
 
 ## 🌐 Complete Example
 
-```yaml
+```phlow
 name: "file-processor"
 version: "2.1.0"
 description: "File processor with multiple options"
@@ -494,7 +494,7 @@ Error:
 
 ## 🌐 Exemplo Completo
 
-```yaml
+```phlow
 name: "file-processor"
 version: "2.1.0"
 description: "Processador de arquivos com múltiplas opções"

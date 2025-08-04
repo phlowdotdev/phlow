@@ -5,26 +5,26 @@ hide_title: true
 ---
 # Phlow Structure
 
-Phlow is a modular runtime for building backends, automations, and orchestrations using YAML to define **flows**. Each flow is descriptive and structured into **modules**, **steps**, and **scripts**.
+Phlow is a modular runtime for building backends, automations, and orchestrations using Phlow format to define **flows**. Each flow is descriptive and structured into **modules**, **steps**, and **scripts**.
 
 This document covers:
 
 - Main structure (`main.phlow`)
-- Modules inclusion (`modules.yaml`)
+- Modules inclusion (`modules.phlow`)
 - Dynamic scripts (`.phs`)
-- Special commands (`!include`, `!phs`, `!import`)
+- Special commands (`!include`, `!phs`, `!import`, `!arg`)
 
 ### Example: Student Flow
 
 To better understand the concepts, refer to the [Student Flow example](https://github.com/phlowdotdev/phlow/examples/students). This example demonstrates how to implement a flow that evaluates whether someone is a student based on their age and other parameters.
 
-```yaml
+```phlow
 main: cli
 name: Are you a student?
 version: 1.0.0
 description: Check if you are a student.
 author: Your Name
-modules: !include modules.yaml
+modules: !include modules.phlow
 steps:
   - assert: !phs main.force
     then:
@@ -61,10 +61,10 @@ The "Are you a student?" flow operates as follows:
 ```
 main.phlow
  ├── Header (main, name, version, etc.)
- ├── modules: !include modules.yaml (optional)
+ ├── modules: !include modules.phlow (optional)
  └── steps: conditional execution flow
 
-modules.yaml (optional)
+modules.phlow (optional)
  └── CLI arguments definition
 
 scripts/ (optional)
@@ -76,7 +76,7 @@ scripts/ (optional)
 
 Phlow also supports simplified flows without a main module or external modules, perfect for simple automation:
 
-```yaml
+```phlow
 name: Simple Processing
 version: 1.0.0
 description: Process data without external dependencies

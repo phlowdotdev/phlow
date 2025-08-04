@@ -34,7 +34,7 @@ The AMQP module provides a comprehensive interface for sending and receiving mes
 
 ### Basic Configuration
 
-```yaml
+```phlow
 modules:
   - name: "message_processor"
     module: "amqp"
@@ -54,7 +54,7 @@ modules:
 
 ### Configuration with URI
 
-```yaml
+```phlow
 modules:
   - name: "message_processor"
     module: "amqp"
@@ -66,7 +66,7 @@ modules:
 
 ### Configuration with RabbitMQ Definitions
 
-```yaml
+```phlow
 modules:
   - name: "message_processor"
     module: "amqp"
@@ -121,7 +121,7 @@ modules:
 
 ## 📨 Usage as Consumer (Main Module)
 
-```yaml
+```phlow
 name: "message-consumer"
 main: "amqp_consumer"
 
@@ -142,7 +142,7 @@ steps:
 
 ## 📤 Usage as Producer (in Steps)
 
-```yaml
+```phlow
 steps:
   - name: "send_message"
     use: "amqp_producer"
@@ -158,7 +158,7 @@ steps:
 ## 🔄 Exchange Types
 
 ### Direct Exchange
-```yaml
+```phlow
 with:
   exchange: "direct_exchange"
   exchange_type: "direct"
@@ -166,7 +166,7 @@ with:
 ```
 
 ### Fanout Exchange
-```yaml
+```phlow
 with:
   exchange: "fanout_exchange"
   exchange_type: "fanout"
@@ -174,7 +174,7 @@ with:
 ```
 
 ### Topic Exchange
-```yaml
+```phlow
 with:
   exchange: "topic_exchange"
   exchange_type: "topic"
@@ -182,7 +182,7 @@ with:
 ```
 
 ### Headers Exchange
-```yaml
+```phlow
 with:
   exchange: "headers_exchange"
   exchange_type: "headers"
@@ -209,7 +209,7 @@ The module automatically generates OpenTelemetry traces with the following attri
 
 The module supports automatic import of RabbitMQ definitions via Management API:
 
-```yaml
+```phlow
 with:
   definition:
     vhosts:
@@ -249,7 +249,7 @@ In case of error:
 
 ## 🌐 Complete Example
 
-```yaml
+```phlow
 name: "order-processing-system"
 version: "1.0.0"
 main: "order_consumer"

@@ -24,7 +24,7 @@ modules:
 main: http_server
 
 steps:
-  !include ./return.phlow target=route_get_authors
+  !include ./return.phlow target=route_get_authors output='!phs payload'
 
   - payload:
       status_code: 404

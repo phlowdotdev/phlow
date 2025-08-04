@@ -11,7 +11,7 @@ Phlow provides robust database connectivity through the `postgres` module, enabl
 
 Start with a simple database connection and query:
 
-```yaml title="basic-db.phlow"
+```phlow title="basic-db.phlow"
 name: Basic Database Operations
 version: 1.0.0
 description: Connect to PostgreSQL and perform basic operations
@@ -43,7 +43,7 @@ steps:
 
 Complete Create, Read, Update, Delete operations:
 
-```yaml title="crud-operations.phlow"
+```phlow title="crud-operations.phlow"
 name: CRUD Operations
 version: 1.0.0
 description: Complete CRUD operations with PostgreSQL
@@ -121,7 +121,7 @@ steps:
 
 Build queries dynamically based on input:
 
-```yaml title="dynamic-queries.phlow"
+```phlow title="dynamic-queries.phlow"
 name: Dynamic Query Builder
 version: 1.0.0
 description: Build database queries dynamically
@@ -251,7 +251,7 @@ phlow dynamic-queries.phlow update users --data '{"age": 29}' --where "email = '
 
 Create a simple migration system:
 
-```yaml title="migration-system.phlow"
+```phlow title="migration-system.phlow"
 name: Database Migration System
 version: 1.0.0
 description: Simple database migration system
@@ -408,7 +408,7 @@ steps:
 
 Manage database connections efficiently:
 
-```yaml title="connection-pool.phlow"
+```phlow title="connection-pool.phlow"
 name: Database Connection Pool
 version: 1.0.0
 description: Efficient database connection management
@@ -483,7 +483,7 @@ steps:
 
 Create comprehensive tests for database operations:
 
-```yaml title="database-tests.phlow"
+```phlow title="database-tests.phlow"
 name: Database Tests
 version: 1.0.0
 description: Testing database operations

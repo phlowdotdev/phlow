@@ -148,7 +148,7 @@ pub async fn log(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + S
 
 ### Step 4: Create Module Metadata (phlow.yaml)
 
-```yaml
+```phlow
 # Module identification
 name: log
 description: |
@@ -399,7 +399,7 @@ async fn handle_request(
 
 ### Step 4: Create Main Module Metadata (phlow.yaml)
 
-```yaml
+```phlow
 name: simple_server
 description: |
   Simple HTTP server that can serve as the main entry point for Phlow applications.
@@ -803,7 +803,7 @@ impl TryFrom<&Value> for Config {
 
 ### Step 7: Create Hybrid Module Metadata (phlow.yaml)
 
-```yaml
+```phlow
 name: messaging
 description: |
   Hybrid AMQP messaging module that can act as both main and step module.
@@ -933,7 +933,7 @@ cargo build --release
 
 1. **Create a test Phlow file**:
 
-```yaml
+```phlow
 # test.phlow
 main: your_module
 modules:

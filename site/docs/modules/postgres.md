@@ -23,7 +23,7 @@ O módulo Postgres fornece operações completas de banco de dados PostgreSQL co
 
 ### Configuração Básica
 
-```yaml
+```phlow
 modules:
   - name: "db"
     module: "postgres"
@@ -66,7 +66,7 @@ modules:
 
 ### SELECT Básico
 
-```yaml
+```phlow
 steps:
   - name: "get_users"
     use: "db"
@@ -77,7 +77,7 @@ steps:
 
 ### INSERT com Retorno
 
-```yaml
+```phlow
 steps:
   - name: "create_user"
     use: "db"
@@ -88,7 +88,7 @@ steps:
 
 ### Batch Insert
 
-```yaml
+```phlow
 steps:
   - name: "batch_insert"
     use: "db"
@@ -104,7 +104,7 @@ steps:
 
 ## 🌐 Exemplo Completo
 
-```yaml
+```phlow
 name: "user-management"
 version: "1.0.0"
 

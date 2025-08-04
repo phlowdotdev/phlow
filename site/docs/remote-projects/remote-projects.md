@@ -101,7 +101,7 @@ phlow https://private-server.com/archive.zip
 
 By default, Phlow searches for these files in order:
 1. `main.phlow`
-2. `main.yaml`
+2. `main.phlow`
 3. `main.yml`
 
 ### Custom Files

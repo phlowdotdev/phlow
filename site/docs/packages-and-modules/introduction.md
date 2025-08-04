@@ -1,5 +1,5 @@
 ---
-sidebar_position: 1
+sidebar_positiYou don't need to worry about building or installing them manually — just describe the modules in your Phlow files, and Phlow takes care of the rest.n: 1
 title: Introduction
 hide_title: true
 ---
@@ -24,7 +24,7 @@ To use a module in your flow, you only need to declare it under the `modules` se
 
 Here’s a minimal working example that uses the official `log` module:
 
-```yaml
+```phlow
 main: log_example
 modules:
   - module: log

@@ -22,7 +22,7 @@ O módulo Sleep fornece funcionalidade para pausar a execução por um período 
 
 ### Configuração Básica
 
-```yaml
+```phlow
 steps:
   - name: "wait_5_seconds"
     use: "sleep_module"
@@ -45,7 +45,7 @@ steps:
 
 ### Sleep em Diferentes Unidades
 
-```yaml
+```phlow
 steps:
   - name: "quick_pause"
     use: "sleep_module"
@@ -70,7 +70,7 @@ steps:
 
 ### Throttling de API
 
-```yaml
+```phlow
 steps:
   - name: "api_call_1"
     use: "http_client"
@@ -92,7 +92,7 @@ steps:
 
 ### Retry com Backoff
 
-```yaml
+```phlow
 steps:
   - name: "attempt_operation"
     use: "some_module"
@@ -115,7 +115,7 @@ steps:
 
 ## 🌐 Exemplo Completo
 
-```yaml
+```phlow
 name: "batch-processor"
 version: "1.0.0"
 description: "Processamento em lote com delays"
@@ -186,7 +186,7 @@ steps:
 
 ### Rate Limiting Example
 
-```yaml
+```phlow
 name: "api-rate-limiter"
 version: "1.0.0"
 
@@ -228,7 +228,7 @@ steps:
 ## 📊 Casos de Uso Comuns
 
 ### 1. Debouncing
-```yaml
+```phlow
 steps:
   - name: "user_input"
     # Captura entrada do usuário
@@ -243,7 +243,7 @@ steps:
 ```
 
 ### 2. Scheduling
-```yaml
+```phlow
 steps:
   - name: "schedule_check"
     script: |
@@ -261,7 +261,7 @@ steps:
 ```
 
 ### 3. Circuit Breaker
-```yaml
+```phlow
 steps:
   - name: "service_call"
     use: "external_service"
@@ -281,7 +281,7 @@ steps:
 ## 🔧 Configuração Avançada
 
 ### Combinação de Unidades
-```yaml
+```phlow
 # Note: Apenas a primeira unidade encontrada é usada
 steps:
   - name: "complex_sleep"
@@ -294,7 +294,7 @@ steps:
 ```
 
 ### Sleep Dinâmico
-```yaml
+```phlow
 steps:
   - name: "calculate_delay"
     script: |

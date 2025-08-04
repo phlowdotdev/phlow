@@ -17,7 +17,7 @@ Phlow supports simple flows that don't require a main module or complex module d
 
 The simplest Phlow flow contains only `steps`:
 
-```yaml
+```phlow
 steps:
   - payload: "Hello, World!"
   - payload: !phs `Result: ${ payload }`
@@ -29,7 +29,7 @@ This flow will output: `Result: Hello, World!`
 
 You can add metadata to better describe your flow:
 
-```yaml
+```phlow
 name: Simple Greeting
 version: 1.0.0
 description: A simple greeting flow
@@ -45,7 +45,7 @@ steps:
 
 Here's a more complex example that processes data:
 
-```yaml
+```phlow
 name: Data Processor
 version: 1.0.0
 description: Process and transform data
@@ -70,7 +70,7 @@ steps:
 
 You can still use modules without specifying versions:
 
-```yaml
+```phlow
 name: Simple Logging
 description: Process data with logging
 modules:
@@ -93,11 +93,48 @@ All simple flows are executed the same way:
 
 ```bash
 # Run the flow
-phlow simple-flow.yaml
+phlow simple-flow.phlow
 
 # With debug logging
-PHLOW_LOG=debug phlow simple-flow.yaml
+PHLOW_LOG=debug phlow simple-flow.phlow
 ```
+
+## Modular Flows with Include and Arguments
+
+You can make your flows more modular by using `!include` with arguments to create reusable components:
+
+**main.phlow:**
+```phlow
+name: Modular Processing
+version: 1.0.0
+description: Example of using !include with arguments
+steps:
+  !include ./process.phlow input_data='{"user": "john", "score": 85}' threshold=80
+```
+
+**process.phlow:**
+```phlow
+- payload: !phs JSON.parse('!arg input_data')
+- assert: !phs payload.score >= !arg threshold
+  then:
+    payload:
+      result: "passed"
+      user: !phs payload.user
+      score: !phs payload.score
+      message: "User !arg input_data passed with score above !arg threshold"
+  else:
+    payload:
+      result: "failed"
+      user: !phs payload.user
+      score: !phs payload.score
+      message: "User failed to meet the threshold of !arg threshold"
+```
+
+This approach enables:
+- **Reusability**: The same processing logic can be used with different parameters
+- **Maintainability**: Changes to logic only need to be made in one place
+- **Flexibility**: Different thresholds and input data can be easily provided
+- **Organization**: Complex flows can be broken into smaller, focused files
 
 ## Benefits of Simple Flows
 

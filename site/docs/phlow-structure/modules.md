@@ -1,6 +1,6 @@
 ---
 sidebar_position: 3
-title: Modules (modules.yaml)
+title: Modules (phlow.yaml)
 ---
 Modules define components or services needed by the flow.
 
@@ -14,7 +14,7 @@ Modules define components or services needed by the flow.
 
 Example CLI module definition:
 
-```yaml
+```phlow
 - module: cli
   version: latest
   with:
@@ -42,7 +42,7 @@ Example CLI module definition:
 
 Each module can accept any property within `with`. It is also possible to execute `!phs` within `with` to run scripts or declare environment variables, as shown in the example:
 
-```yaml
+```phlow
 - module: postgres
   version: latest
   with:
@@ -55,7 +55,7 @@ Each module can accept any property within `with`. It is also possible to execut
 
 Starting from recent versions, the `version` field is optional. If not specified, Phlow will automatically use `latest`:
 
-```yaml
+```phlow
 # Both declarations are equivalent
 - module: cli
   # version omitted - will use 'latest'
@@ -95,7 +95,7 @@ Phlow automatically detects local paths based on these prefixes:
 
 ### Examples
 
-```yaml
+```phlow
 modules:
   # Local module in current directory
   - module: ./my_custom_module
@@ -152,11 +152,11 @@ output:
 
 ## Good practice
 
-A good practice is to keep the modules in a separate file, such as `modules.yaml`, and reference them in the `main.phlow` using `!include modules.yaml`. This helps maintain organized and easily maintainable code.
+A good practice is to keep the modules in a separate file, such as `modules.phlow`, and reference them in the `main.phlow` using `!include modules.phlow`. This helps maintain organized and easily maintainable code.
 
-#### Example of `modules.yaml`:
+#### Example of `modules.phlow`:
 
-```yaml
+```phlow
 - module: cli
   version: latest
   with:
@@ -186,10 +186,10 @@ A good practice is to keep the modules in a separate file, such as `modules.yaml
     password: !phs envs.POSTGRES_PASSWORD
 ```
 
-#### Example of `main.phlow` referencing `modules.yaml`:
+#### Example of `main.phlow` referencing `modules.phlow`:
 
-```yaml
-modules: !include modules.yaml
+```phlow
+modules: !include modules.phlow
 steps:
   - step: initialize
     description: Initialize the environment

@@ -26,7 +26,7 @@ O módulo HTTP Request fornece funcionalidades completas para realizar requisiç
 
 ### Configuração Básica
 
-```yaml
+```phlow
 modules:
   - name: "http_client"
     module: "http_request"
@@ -70,7 +70,7 @@ export PHLOW_HTTP_REQUEST_USER_AGENT_DISABLE="true"
 
 ### Requisição GET Simples
 
-```yaml
+```phlow
 steps:
   - name: "get_users"
     use: "http_client"
@@ -81,7 +81,7 @@ steps:
 
 ### Requisição POST com JSON
 
-```yaml
+```phlow
 steps:
   - name: "create_user"
     use: "http_client"
@@ -101,7 +101,7 @@ steps:
 
 ### Requisição PUT com Headers Customizados
 
-```yaml
+```phlow
 steps:
   - name: "update_user"
     use: "http_client"
@@ -122,7 +122,7 @@ steps:
 
 ### Requisição DELETE
 
-```yaml
+```phlow
 steps:
   - name: "delete_user"
     use: "http_client"
@@ -135,7 +135,7 @@ steps:
 
 ### Requisição com Timeout Customizado
 
-```yaml
+```phlow
 modules:
   - name: "slow_api_client"
     module: "http_request"
@@ -155,7 +155,7 @@ steps:
 ## 🔍 Métodos HTTP Suportados
 
 ### GET - Buscar Dados
-```yaml
+```phlow
 input:
   method: "GET"
   url: "https://api.example.com/users"
@@ -164,7 +164,7 @@ input:
 ```
 
 ### POST - Criar Recurso
-```yaml
+```phlow
 input:
   method: "POST"
   url: "https://api.example.com/users"
@@ -174,7 +174,7 @@ input:
 ```
 
 ### PUT - Atualizar Recurso Completo
-```yaml
+```phlow
 input:
   method: "PUT"
   url: "https://api.example.com/users/123"
@@ -182,7 +182,7 @@ input:
 ```
 
 ### PATCH - Atualizar Recurso Parcial
-```yaml
+```phlow
 input:
   method: "PATCH"
   url: "https://api.example.com/users/123"
@@ -190,21 +190,21 @@ input:
 ```
 
 ### DELETE - Remover Recurso
-```yaml
+```phlow
 input:
   method: "DELETE"
   url: "https://api.example.com/users/123"
 ```
 
 ### OPTIONS - Verificar Opções
-```yaml
+```phlow
 input:
   method: "OPTIONS"
   url: "https://api.example.com/users"
 ```
 
 ### HEAD - Buscar Headers
-```yaml
+```phlow
 input:
   method: "HEAD"
   url: "https://api.example.com/users"
@@ -267,7 +267,7 @@ input:
 
 ## 🌐 Exemplo Completo - API Client
 
-```yaml
+```phlow
 name: "user-api-client"
 version: "1.0.0"
 description: "Cliente completo para API de usuários"
@@ -379,7 +379,7 @@ steps:
 ## 🔒 Configuração de Segurança
 
 ### SSL/TLS
-```yaml
+```phlow
 modules:
   - name: "secure_client"
     module: "http_request"
@@ -393,7 +393,7 @@ modules:
 ```
 
 ### Headers de Segurança
-```yaml
+```phlow
 input:
   headers:
     "Authorization": "Bearer {{ $jwt_token }}"
@@ -405,7 +405,7 @@ input:
 ## 🚨 Tratamento de Erros
 
 ### Verificação de Status
-```yaml
+```phlow
 steps:
   - name: "api_call"
     use: "http_client"
@@ -427,7 +427,7 @@ steps:
 ```
 
 ### Diferentes Tipos de Erro
-```yaml
+```phlow
 steps:
   - name: "check_error_type"
     condition:
@@ -450,7 +450,7 @@ steps:
 ## 📈 Performance e Timeouts
 
 ### Configuração de Timeouts
-```yaml
+```phlow
 modules:
   - name: "fast_api"
     module: "http_request"
