@@ -51,7 +51,7 @@ with:
             required: true
             enum:
               - string
-              - integer
+              - number
               - boolean
             default: string
           default:
@@ -62,6 +62,3 @@ output:
   type: object
   description: Map arguments to the command
   required: true
-
-      
-
