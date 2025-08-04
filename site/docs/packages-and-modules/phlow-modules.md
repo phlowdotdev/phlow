@@ -71,7 +71,7 @@ with:
       required: false
       properties:
         status_code:
-          type: integer
+          type: number
           default: 200
         body:
           type: object
@@ -121,7 +121,7 @@ output:
       required: false
       properties:
         status_code:
-          type: integer
+          type: number
           required: true
         body:
           type: object
@@ -359,7 +359,7 @@ with:
       description: "PostgreSQL connection string"
       required: true
     timeout_seconds:
-      type: integer
+      type: number
       description: "Query timeout in seconds"
       default: 30
       required: false

@@ -97,7 +97,7 @@ with:
         - "0.0.0.0"
         - "rpc.example.com"
     port:
-      type: integer
+      type: number
       required: false
       default: 8080
       minimum: 1
@@ -108,7 +108,7 @@ with:
         - 8090
         - 9000
     timeout_ms:
-      type: integer
+      type: number
       required: false
       default: 5000
       minimum: 100
@@ -119,7 +119,7 @@ with:
         - 10000
         - 30000
     max_connections:
-      type: integer
+      type: number
       required: false
       default: 100
       minimum: 1

@@ -186,7 +186,7 @@ input:
     response:
       type: object
       properties:
-        status_code: { type: integer, required: true }
+        status_code: { type: number, required: true }
         body: { type: object, required: false }
 
 # Output schema - defines what the module returns
@@ -194,7 +194,7 @@ output:
   type: object
   required: true
   properties:
-    status_code: { type: integer, required: true }
+    status_code: { type: number, required: true }
     body: { type: object, required: false }
     headers: { type: object, required: false }
 

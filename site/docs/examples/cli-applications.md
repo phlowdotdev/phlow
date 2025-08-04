@@ -183,7 +183,7 @@ modules:
           help: User email address
         - index: 2
           long: age
-          type: integer
+          type: number
           required: true
           help: User age
         - long: role

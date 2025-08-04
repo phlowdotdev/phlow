@@ -30,7 +30,7 @@ input:
       required: true
       properties:
         status_code:
-          type: integer
+          type: number
           required: true
         body:
           type: object
@@ -44,7 +44,7 @@ output:
   required: true
   properties:
     status_code:
-      type: integer
+      type: number
       required: true
     body:
       type: object

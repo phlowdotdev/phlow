@@ -21,7 +21,7 @@ with:
       default: localhost
       required: true
     port:
-      type: integer
+      type: number
       description: The port number of the PostgreSQL server.
       default: 5432
       required: false
@@ -47,7 +47,7 @@ with:
         - prefer
         - require
     max_pool_size:
-      type: integer
+      type: number
       description: The maximum number of connections in the connection pool.
       required: false
       default: 10
@@ -97,7 +97,7 @@ output:
           description: The rows returned by the query.
           required: true
         - name: count
-          type: integer
+          type: number
           description: The number of rows returned by the query.
           required: true
     message:
