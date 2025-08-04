@@ -121,7 +121,10 @@ modules:
 
 ### Local Module Structure
 
-Local modules must follow the same structure as remote modules:
+Local modules can be either **compiled Rust modules** or **Phlow modules**:
+
+#### Compiled Rust Modules
+Traditional modules follow this structure:
 
 ```
 my_custom_module/
@@ -143,8 +146,105 @@ output:
   type: string
 ```
 
+#### Phlow Modules (.phlow files)
+
+**New Feature**: Phlow now supports modules written entirely in Phlow format. These are `.phlow` files that define reusable logic without requiring Rust compilation.
+
+```
+route.phlow            # Single file module
+```
+
+A Phlow module consists of four main sections:
+
+```phlow
+# Configuration schema - defines what parameters the module accepts
+with:
+  type: object
+  required: true
+  properties:
+    path:
+      type: string
+      required: true
+    method:
+      type: enum
+      enum: [GET, POST, DELETE, PUT, PATCH, OPTIONS]
+      required: true
+    default_response:
+      type: object
+      required: false
+
+# Input schema - defines the structure of runtime input data
+input:
+  type: object
+  required: true
+  properties:
+    request:
+      type: object
+      properties:
+        path: { type: string, required: true }
+        method: { type: string, required: true }
+    response:
+      type: object
+      properties:
+        status_code: { type: integer, required: true }
+        body: { type: object, required: false }
+
+# Output schema - defines what the module returns
+output:
+  type: object
+  required: true
+  properties:
+    status_code: { type: integer, required: true }
+    body: { type: object, required: false }
+    headers: { type: object, required: false }
+
+# Module logic - actual behavior implementation
+steps:
+  - assert: !phs setup.path == main.path && setup.method == main.method
+    then:
+      payload: !phs setup.default_response
+```
+
+**Variables available in Phlow modules:**
+- **`setup`**: Contains the configuration from the `with` section
+- **`main`**: Contains the runtime input data
+- **`payload`**: Data passed between steps
+
+**Usage example:**
+
+```phlow
+modules:
+  - module: ./route         # References route.phlow
+    name: route_get_users   # Instance name
+    with:                   # Configuration (becomes 'setup')
+      path: /users
+      method: GET
+      default_response:
+        status_code: 200
+        body: []
+
+steps:
+  - use: route_get_users    # Uses the configured module instance
+    input: !phs main        # Runtime data (becomes 'main')
+```
+
 ### Benefits
 
+#### Compiled Rust Modules
+- **Maximum Performance**: Native speed and memory efficiency
+- **System Integration**: Full access to system APIs and libraries
+- **Type Safety**: Rust's compile-time guarantees
+
+#### Phlow Modules
+- **Rapid Development**: No compilation step required
+- **Simplicity**: Pure Phlow syntax, no Rust knowledge needed
+- **Portability**: Works across all platforms without recompilation
+- **Live Editing**: Changes take effect immediately
+- **Debugging**: Easy to debug with standard Phlow tools
+- **Schema Validation**: Automatic input/output validation
+- **Composability**: Can use all Phlow features (PHS, includes, etc.)
+
+#### General Benefits (Both Types)
 - **No Download**: Local modules skip the download process, improving startup time
 - **Development Workflow**: Test changes immediately without publishing
 - **Version Control**: Keep custom modules alongside your project
