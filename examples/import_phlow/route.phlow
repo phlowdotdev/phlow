@@ -39,6 +39,20 @@ input:
           type: object
           required: false
 
+output:
+  type: object
+  required: true
+  properties:
+    status_code:
+      type: integer
+      required: true
+    body:
+      type: object
+      required: false
+    headers:
+      type: object
+      required: false
+
 steps:
   - condition:
       assert: !phs setup.path == main.request.path && setup.method == main.request.method
