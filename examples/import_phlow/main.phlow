@@ -31,8 +31,8 @@ modules:
 main: http_server
 
 steps:
-  !include ./return.phlow target=route_get_authors
-  !include ./return.phlow target=route_post_authors
+  !include ./return target=route_get_authors
+  !include ./return target=route_post_authors
   !include ./return.phlow target=route_delete_authors
 
   - payload:

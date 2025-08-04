@@ -235,7 +235,15 @@ fn process_args_in_content(content: &str, args: &HashMap<String, String>) -> (St
 }
 
 fn process_include_file(path: &Path, args: &HashMap<String, String>) -> Result<String, String> {
-    let raw = fs::read_to_string(path).map_err(|e| e.to_string())?;
+    let path = if path.extension().is_none() {
+        let mut new_path = path.to_path_buf();
+        new_path.set_extension("phlow");
+        new_path
+    } else {
+        path.to_path_buf()
+    };
+
+    let raw = fs::read_to_string(&path).map_err(|e| e.to_string())?;
 
     // First, process !arg directives with the provided arguments
     let (with_args, arg_errors) = process_args_in_content(&raw, args);
