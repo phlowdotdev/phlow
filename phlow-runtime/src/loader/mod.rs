@@ -146,6 +146,7 @@ impl Loader {
                         module_type: ModuleType::Script,
                     })
                 } else {
+                    debug!("Module not found: {}", module_relative_path);
                     Err(Error::ModuleNotFound(format!(
                         "Module not found at path: {}",
                         module_relative_path
