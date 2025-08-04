@@ -44,6 +44,7 @@ impl Context {
     }
 
     pub fn add_module_output(&self, output: Value) -> Self {
+        println!("Adding module output: {:?}", output);
         Self {
             main: self.main.clone(),
             steps: self.steps.clone(),
@@ -54,7 +55,9 @@ impl Context {
     }
 
     pub fn add_step_payload(&mut self, output: Option<Value>) {
-        self.payload = output
+        if let Some(output) = output {
+            self.payload = Some(output);
+        }
     }
 
     pub fn get_payload(&self) -> Option<Value> {

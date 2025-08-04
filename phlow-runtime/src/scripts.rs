@@ -76,32 +76,16 @@ pub fn run_script(path: &str, setup: ModuleSetup, settings: &Settings) {
 
                     debug!("Package sent to main loop, waiting for response");
 
-                    // Aguardar a resposta do runtime sem timeout
-                    match response_rx.await {
-                        Ok(result) if result.is_undefined() => {
-                            let response = ModuleResponse::from_success(
-                                package.payload().unwrap_or(Value::Undefined),
-                            );
+                    let response = match response_rx.await {
+                        Ok(result) if result.is_undefined() => ModuleResponse::from_success(
+                            package.payload().unwrap_or(Value::Undefined),
+                        ),
+                        Ok(result) => ModuleResponse::from_success(result),
+                        Err(err) => ModuleResponse::from_error(format!("Runtime error: {}", err)),
+                    };
 
-                            if let Err(err) = package.sender.send(response) {
-                                error!("Failed to send response back to module: {:?}", err);
-                            }
-                        }
-                        Ok(result) => {
-                            let response = ModuleResponse::from_success(result);
-
-                            if let Err(err) = package.sender.send(response) {
-                                error!("Failed to send response back to module: {:?}", err);
-                            }
-                        }
-                        Err(err) => {
-                            let response =
-                                ModuleResponse::from_error(format!("Runtime error: {}", err));
-
-                            if let Err(err) = package.sender.send(response) {
-                                error!("Failed to send error response back to module: {:?}", err);
-                            }
-                        }
+                    if let Err(err) = package.sender.send(response) {
+                        error!("Failed to send response back to module: {:?}", err);
                     }
 
                     debug!("Response sent back to module");

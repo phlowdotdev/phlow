@@ -29,6 +29,18 @@ pub fn build_functions() -> Engine {
         }
     };
 
+    engine.register_fn("is_null", |x: rhai::Dynamic| x.is_unit());
+
+    engine.register_fn("is_empty", |x: rhai::Dynamic| {
+        if x.is_unit() {
+            true
+        } else if let Some(s) = x.clone().try_cast::<String>() {
+            s.trim().is_empty()
+        } else {
+            false
+        }
+    });
+
     match engine.register_custom_syntax(
         ["iff", "$expr$", "?", "$expr$", ":", "$expr$"],
         false,

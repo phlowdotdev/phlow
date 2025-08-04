@@ -69,7 +69,7 @@ async fn main() {
         match Loader::load(&settings.script_main_absolute_path, settings.print_yaml).await {
             Ok(main) => main,
             Err(err) => {
-                eprintln!("Runtime Error Main File: {:?}", err);
+                error!("Runtime Error Main File: {:?}", err);
                 return;
             }
         };
@@ -117,7 +117,7 @@ async fn main() {
                         }
                     }
                     Err(err) => {
-                        eprintln!("Test execution error: {}", err);
+                        error!("Test execution error: {}", err);
                         std::process::exit(1);
                     }
                 }

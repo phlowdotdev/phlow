@@ -88,6 +88,10 @@ impl Phlow {
                 Ok(step_output) => match step_output {
                     Some(step_output) => match step_output.next_step {
                         NextStep::Next | NextStep::Stop => {
+                            println!(
+                                "Step output: {:?}",
+                                step_output.output.to_value().to_json(JsonMode::Indented)
+                            );
                             return Ok(step_output.output);
                         }
                         NextStep::Pipeline(id) => {

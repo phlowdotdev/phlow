@@ -1,9 +1,8 @@
-use std::fmt::Display;
-
 use crate::{
     context::Context,
     step_worker::{NextStep, StepOutput, StepWorker, StepWorkerError},
 };
+use std::fmt::Display;
 
 #[derive(Debug)]
 pub enum PipelineError {
