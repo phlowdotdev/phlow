@@ -9,6 +9,19 @@ with:
       type: enum
       enum: [GET, POST, DELETE, PUT, PATCH, OPTIONS]
       required: true
+    default_response:
+      type: object
+      required: true
+      properties:
+        status_code:
+          type: number
+          required: true
+        body:
+          type: object
+          required: false
+        headers:
+          type: object
+          required: false
 
 input:
   type: object
