@@ -31,6 +31,19 @@ steps:
       response:
         status_code: 200
         body: []
+  - use: route_post_authors
+    input:
+      request: !phs main
+      response:
+        status_code: 201
+        body:
+          id: 1
+          name: "John Doe"
+  - use: route_delete_authors
+    input:
+      request: !phs main
+      response:
+        status_code: 204
 
 tests:
   - describe: "return 404 for unknown path"
@@ -48,3 +61,18 @@ tests:
     assert_eq:
       status_code: 200
       body: []
+  - describe: "create a new author"
+    main:
+      path: /authors
+      method: POST
+    assert_eq:
+      status_code: 201
+      body:
+        id: 1
+        name: "John Doe"
+  - describe: "delete an author"
+    main:
+      path: /authors/1
+      method: DELETE
+    assert_eq:
+      status_code: 204
