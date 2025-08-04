@@ -39,7 +39,7 @@ regex = "1.11.1"
 futures = "0.3"
 libc = "0.2.174"
 valu3 = "0.8"
-tokio = { version = "1.47.0", features = ["full", "tracing"] }
+tokio = { version = "1.47.1", features = ["full", "tracing"] }
 serde = { version = "1.0.219", features = ["derive"] }
 crossbeam = "0.8"
 reqwest = { version = "0.12.22", features = ["blocking", "rustls-tls"] }
