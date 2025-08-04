@@ -1,9 +1,34 @@
 modules:
-  - module: http_request
+  - module: log
+
+with:
+  type: object
+  required: true
+  properties:
+    path:
+      type: string
+      required: true
+    method:
+      type: string
+      required: true
+    response:
+      type: object
+      required: true
 
 steps:
-  - condition:
-      assert: !phs main.path == input.path && method.path == input.method
-    return:
-      status_code: !phs if method.method == "GET" { 200 } else if method.method == "POST" { 201 } else { 204 }
-      body: !phs main.response
+  - use: log
+    input:
+      message:
+        main: !phs main
+        with: !phs with
+  # - condition:
+  #     assert: !phs main.path == with.path && main.method == with.method
+  #   then:
+  #     payload:
+  #       status_code: !phs if main.method == "GET" { 200 } else if main.method == "POST" { 201 } else { 204 }
+  #       body: !phs main.response
+  #   else:
+  #     payload:
+  #       status_code: 404
+  #       body:
+  #         error: "Not Found"

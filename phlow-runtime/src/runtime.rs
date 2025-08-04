@@ -6,7 +6,7 @@ use crossbeam::channel;
 use futures::future::join_all;
 use log::{debug, error, info};
 use phlow_engine::phs::{build_engine, Script, ScriptError};
-use phlow_engine::{Context, Phlow};
+use phlow_engine::{context, Context, Phlow};
 use phlow_sdk::structs::Package;
 use phlow_sdk::tokio;
 use phlow_sdk::{
@@ -130,7 +130,9 @@ impl Runtime {
         steps: Value,
         modules: Modules,
         settings: Settings,
+        default_context: Context,
     ) -> Result<(), RuntimeError> {
+        debug!("Starting main loop with steps: {:?}", steps);
         let flow = Arc::new({
             match Phlow::try_from_value(&steps, Some(Arc::new(modules))) {
                 Ok(flow) => flow,
@@ -141,28 +143,32 @@ impl Runtime {
         drop(steps);
 
         let mut handles = Vec::new();
+        let default_context = default_context.clone();
 
         for _i in 0..settings.package_consumer_count {
-            let rx_pkg = rx_main_package.clone();
+            let rx_main_pkg = rx_main_package.clone();
             let flow = flow.clone();
+            let default_context = default_context.clone();
 
             let handle = tokio::task::spawn_blocking(move || {
-                for mut package in rx_pkg {
+                for mut main_package in rx_main_pkg {
+                    debug!("Processing package: {:?}", main_package);
                     let flow = flow.clone();
-                    let parent = match package.span.clone() {
+                    let parent = match main_package.span.clone() {
                         Some(span) => span,
                         None => {
                             error!("Span not found in main module");
                             continue;
                         }
                     };
-                    let dispatch = match package.dispatch.clone() {
+                    let dispatch = match main_package.dispatch.clone() {
                         Some(dispatch) => dispatch,
                         None => {
                             error!("Dispatch not found in main module");
                             continue;
                         }
                     };
+                    let default_context = default_context.clone();
 
                     tokio::task::block_in_place(move || {
                         dispatcher::with_default(&dispatch, || {
@@ -170,17 +176,18 @@ impl Runtime {
                             let rt = tokio::runtime::Handle::current();
 
                             rt.block_on(async {
-                                // Se há dados, use-os; senão, use um contexto vazio
-                                let data = package.get_data().cloned().unwrap_or(Value::Null);
-                                let mut context = Context::from_main(data);
+                                let mut context = default_context.clone();
+                                let data = main_package.get_data().cloned().unwrap_or(Value::Null);
+                                context.main = Some(data);
+
                                 match flow.execute(&mut context).await {
                                     Ok(result) => {
                                         let result_value = result.unwrap_or(Value::Null);
                                         // Se não há response (módulo principal), imprimir o resultado
-                                        if package.response.is_none() {
+                                        if main_package.response.is_none() {
                                             println!("{}", result_value);
                                         }
-                                        package.send(result_value);
+                                        main_package.send(result_value);
                                     }
                                     Err(err) => {
                                         error!("Runtime Error Execute Steps: {:?}", err);
@@ -287,12 +294,18 @@ impl Runtime {
         // -------------------------
         // Create the flow
         // -------------------------
-        Self::listener(rx_main_package, steps, modules, settings)
-            .await
-            .map_err(|err| {
-                error!("Runtime Error: {:?}", err);
-                err
-            })?;
+        Self::listener(
+            rx_main_package,
+            steps,
+            modules,
+            settings,
+            Context::default(),
+        )
+        .await
+        .map_err(|err| {
+            error!("Runtime Error: {:?}", err);
+            err
+        })?;
 
         Ok(())
     }
@@ -303,9 +316,11 @@ impl Runtime {
         loader: Loader,
         dispatch: Dispatch,
         settings: Settings,
+        context: Context,
     ) -> Result<(), RuntimeError> {
+        debug!("Running script with loader: {:?}", loader);
         let steps = loader.get_steps();
-        println!("here");
+
         let modules = Self::load_modules(
             loader,
             dispatch.clone(),
@@ -314,7 +329,7 @@ impl Runtime {
         )
         .await?;
 
-        Self::listener(rx_main_package, steps, modules, settings)
+        Self::listener(rx_main_package, steps, modules, settings, context)
             .await
             .map_err(|err| {
                 error!("Runtime Error: {:?}", err);

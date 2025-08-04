@@ -13,8 +13,6 @@ create_main!(start_rpc_module(setup));
 pub async fn start_rpc_module(
     setup: ModuleSetup,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    
-
     let config = Config::try_from(&setup.with).map_err(|e| format!("{:?}", e))?;
 
     log::debug!("Starting RPC module with config: {:?}", config);

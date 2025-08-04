@@ -1,6 +1,6 @@
 use crate::id::ID;
 use serde::Serialize;
-use std::collections::HashMap;
+use std::{collections::HashMap, default};
 use valu3::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Default)]
@@ -9,42 +9,41 @@ pub struct Context {
     pub main: Option<Value>,
     pub payload: Option<Value>,
     pub input: Option<Value>,
+    pub with: Option<Value>,
 }
 
 impl Context {
     pub fn new() -> Self {
         Self {
-            main: None,
-            steps: HashMap::new(),
-            payload: None,
-            input: None,
+            ..Default::default()
         }
     }
 
     pub fn from_payload(payload: Value) -> Self {
         Self {
-            main: None,
-            steps: HashMap::new(),
             payload: Some(payload),
-            input: None,
+            ..Default::default()
         }
     }
 
     pub fn from_main(main: Value) -> Self {
         Self {
             main: Some(main),
-            steps: HashMap::new(),
-            payload: None,
-            input: None,
+            ..Default::default()
         }
     }
 
     pub fn from_input(input: Value) -> Self {
         Self {
-            main: None,
-            steps: HashMap::new(),
-            payload: None,
             input: Some(input),
+            ..Default::default()
+        }
+    }
+
+    pub fn from_with(with: Value) -> Self {
+        Self {
+            with: Some(with),
+            ..Default::default()
         }
     }
 
@@ -54,6 +53,7 @@ impl Context {
             steps: self.steps.clone(),
             payload: self.payload.clone(),
             input: Some(output),
+            with: self.with.clone(),
         }
     }
 
@@ -63,6 +63,7 @@ impl Context {
             steps: self.steps.clone(),
             payload: Some(output),
             input: self.input.clone(),
+            with: self.with.clone(),
         }
     }
 

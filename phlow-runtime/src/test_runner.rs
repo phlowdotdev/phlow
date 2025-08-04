@@ -1,5 +1,5 @@
 use crate::loader::{load_module, Loader};
-use crate::settings::{self, Settings};
+use crate::settings::Settings;
 use crossbeam::channel;
 use log::{debug, error};
 use phlow_engine::phs::{build_engine, Script};

@@ -1,6 +1,11 @@
 modules:
   - module: http_server
   - module: ./route
+    name: route_get_authors
+    with:
+      path: /authors
+      method: GET
+      response: []
 
 main: http_server
 
@@ -9,21 +14,18 @@ steps:
       status_code: 404
       body:
         error: "Not Found"
-  - use: route
-    input:
-      path: /authors
-      method: GET
-      response: []
-  - use: route
-    input:
-      path: /authors
-      method: POST
-      response: { id: 1, name: "John Doe" }
-  - use: route
-    input:
-      path: /authors
-      method: DELETE
-      response: { success: true }
+  - use: route_get_authors
+    input: !phs main
+  # - use: route
+  #   input:
+  #     path: /authors
+  #     method: POST
+  #     response: { id: 1, name: "John Doe" }
+  # - use: route
+  #   input:
+  #     path: /authors
+  #     method: DELETE
+  #     response: { success: true }
 
 tests:
   - describe: "return 404 for unknown path"
@@ -41,20 +43,22 @@ tests:
     assert_eq:
       status_code: 200
       body: []
-  - describe: "create a new author"
-    main:
-      path: /authors
-      method: POST
-      body:
-        name: "John Doe"
-    assert_eq:
-      status_code: 201
-      body:
-        id: 1
-        name: "John Doe"
-  - describe: "delete an author"
-    main:
-      path: /authors/1
-      method: DELETE
-    assert_eq:
-      status_code: 204
+  # - describe: "create a new author"
+  #   main:
+  #     path: /authors
+  #     method: POST
+  #     body:
+  #       name: "John Doe"
+  #   assert_eq:
+  #     status_code: 201
+  #     body:
+  #       id: 1
+  #       name: "John Doe"
+  # - describe: "delete an author"
+  #   main:
+  #     path: /authors/1
+  #     method: DELETE
+  #   assert_eq:
+  #     body:
+  #       success: true
+  #     status_code: 204

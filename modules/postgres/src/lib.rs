@@ -12,8 +12,6 @@ use tokio_postgres::types::ToSql;
 create_step!(postgres(setup));
 
 pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    
-
     let rx = module_channel!(setup);
     let config = PostgresConfig::try_from(setup.with.clone())?;
     let pool = Arc::new(config.create_pool()?);
