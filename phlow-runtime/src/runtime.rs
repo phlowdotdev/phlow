@@ -1,7 +1,7 @@
-use crate::loader::Loader;
+use crate::loader::{load_module, Loader};
 #[cfg(target_env = "gnu")]
 use crate::memory::force_memory_release;
-use crate::settings::{self, Settings};
+use crate::settings::Settings;
 use crossbeam::channel;
 use futures::future::join_all;
 use log::{debug, error, info};
@@ -53,7 +53,6 @@ impl Runtime {
         // -------------------------
         let app_data = loader.app_data.clone();
         let loader_main_id = loader.main.clone();
-        let base_path = loader.base_path.clone();
 
         for (id, module) in loader.modules.into_iter().enumerate() {
             let (setup_sender, setup_receive) =
@@ -93,17 +92,10 @@ impl Runtime {
             let module_version = module.version.clone();
             let local_path = module.local_path.clone();
             let settings = settings.clone();
-            let base_path = base_path.clone();
 
             std::thread::spawn(move || {
-                let result = Loader::load_module(
-                    base_path,
-                    setup,
-                    &module_target,
-                    &module_version,
-                    local_path,
-                    settings,
-                );
+                let result =
+                    load_module(setup, &module_target, &module_version, local_path, settings);
 
                 if let Err(err) = result {
                     error!("Runtime Error Load Module: {:?}", err)

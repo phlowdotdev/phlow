@@ -34,24 +34,24 @@ pub struct Loader {
     pub steps: Value,
     pub app_data: ApplicationData,
     pub tests: Option<Value>,
-    pub base_path: String,
 }
 
 impl Loader {
-    pub async fn load(
-        base_path: String,
-        script_path: &str,
-        print_yaml: bool,
-    ) -> Result<Self, Error> {
-        let value = load_script(script_path, print_yaml).await?;
+    pub async fn load(script_absolute_path: &str, print_yaml: bool) -> Result<Self, Error> {
+        let script_loaded = load_script(script_absolute_path, print_yaml).await?;
 
-        let (main, modules) = match value.get("modules") {
+        let base_path = Path::new(&script_loaded.script_file_path)
+            .parent()
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|| "./".to_string());
+
+        let (main, modules) = match script_loaded.script.get("modules") {
             Some(modules) => {
                 if !modules.is_array() {
                     return Err(Error::ModuleLoaderError("Modules not an array".to_string()));
                 }
 
-                let main_name = match value.get("main") {
+                let main_name = match script_loaded.script.get("main") {
                     Some(main) => Some(main.to_string()),
                     None => None,
                 };
@@ -62,11 +62,16 @@ impl Loader {
                 let modules_array = modules.as_array().unwrap();
 
                 for module in modules_array {
-                    let module = ModuleData::try_from(module.clone())
+                    let mut module = ModuleData::try_from(module.clone())
                         .map_err(|_| Error::ModuleLoaderError("Module not found".to_string()))?;
 
                     if Some(module.name.clone()) == main_name {
                         main = modules_vec.len() as i32;
+                    }
+
+                    if let Some(local_path) = module.local_path {
+                        let local_path_fix = format!("{}/{}", base_path, &local_path);
+                        module.local_path = Some(local_path_fix);
                     }
 
                     modules_vec.push(module);
@@ -77,19 +82,28 @@ impl Loader {
             None => (-1, Vec::new()),
         };
 
-        let steps = match value.get("steps") {
+        let steps = match script_loaded.script.get("steps") {
             Some(steps) => steps.clone(),
             None => return Err(Error::StepsNotDefined),
         };
 
-        let name = value.get("name").map(|v| v.to_string());
-        let version = value.get("version").map(|v| v.to_string());
-        let environment = value.get("environment").map(|v| v.to_string());
-        let author = value.get("author").map(|v| v.to_string());
-        let description = value.get("description").map(|v| v.to_string());
-        let license = value.get("license").map(|v| v.to_string());
-        let repository = value.get("repository").map(|v| v.to_string());
-        let homepage = value.get("homepage").map(|v| v.to_string());
+        let name = script_loaded.script.get("name").map(|v| v.to_string());
+        let version = script_loaded.script.get("version").map(|v| v.to_string());
+        let environment = script_loaded
+            .script
+            .get("environment")
+            .map(|v| v.to_string());
+        let author = script_loaded.script.get("author").map(|v| v.to_string());
+        let description = script_loaded
+            .script
+            .get("description")
+            .map(|v| v.to_string());
+        let license = script_loaded.script.get("license").map(|v| v.to_string());
+        let repository = script_loaded
+            .script
+            .get("repository")
+            .map(|v| v.to_string());
+        let homepage = script_loaded.script.get("homepage").map(|v| v.to_string());
 
         let app_data = ApplicationData {
             name,
@@ -103,7 +117,7 @@ impl Loader {
         };
 
         // Extract tests if they exist
-        let tests = value.get("tests").cloned();
+        let tests = script_loaded.script.get("tests").cloned();
 
         Ok(Self {
             main,
@@ -111,7 +125,6 @@ impl Loader {
             steps,
             app_data,
             tests,
-            base_path,
         })
     }
 
@@ -154,54 +167,6 @@ impl Loader {
                 }
             }
         }
-    }
-
-    pub fn load_module(
-        base_path: String,
-        setup: ModuleSetup,
-        module_name: &str,
-        module_version: &str,
-        local_path: Option<String>,
-        settings: Settings,
-    ) -> Result<(), Error> {
-        let target = {
-            let module_relative_path = match local_path {
-                Some(local_path) => local_path,
-                None => format!("phlow_packages/{}", module_name),
-            };
-
-            let target = Loader::find_module_path(&module_relative_path)?;
-
-            info!(
-                "🧪 Load Module: {} ({}), in {}",
-                module_name, module_version, target.path
-            );
-
-            target
-        };
-
-        match target.module_type {
-            ModuleType::Script => {
-                run_script(base_path, &target.path, setup, &settings);
-            }
-            ModuleType::Binary => unsafe {
-                info!("Loading binary module: {}", target.path);
-
-                let lib: Library = match Library::new(&target.path) {
-                    Ok(lib) => lib,
-                    Err(err) => return Err(Error::LibLoadingError(err)),
-                };
-
-                let func: Symbol<unsafe extern "C" fn(ModuleSetup)> = match lib.get(b"plugin") {
-                    Ok(func) => func,
-                    Err(err) => return Err(Error::LibLoadingError(err)),
-                };
-
-                func(setup);
-            },
-        }
-
-        Ok(())
     }
 
     pub fn get_steps(&self) -> Value {
@@ -386,4 +351,51 @@ impl Loader {
             module.set_info(value);
         }
     }
+}
+
+pub fn load_module(
+    setup: ModuleSetup,
+    module_name: &str,
+    module_version: &str,
+    local_path: Option<String>,
+    settings: Settings,
+) -> Result<(), Error> {
+    let target = {
+        let module_relative_path = match local_path {
+            Some(local_path) => local_path,
+            None => format!("phlow_packages/{}", module_name),
+        };
+
+        let target = Loader::find_module_path(&module_relative_path)?;
+
+        info!(
+            "🧪 Load Module: {} ({}), in {}",
+            module_name, module_version, target.path
+        );
+
+        target
+    };
+
+    match target.module_type {
+        ModuleType::Script => {
+            run_script(&target.path, setup, &settings);
+        }
+        ModuleType::Binary => unsafe {
+            info!("Loading binary module: {}", target.path);
+
+            let lib: Library = match Library::new(&target.path) {
+                Ok(lib) => lib,
+                Err(err) => return Err(Error::LibLoadingError(err)),
+            };
+
+            let func: Symbol<unsafe extern "C" fn(ModuleSetup)> = match lib.get(b"plugin") {
+                Ok(func) => func,
+                Err(err) => return Err(Error::LibLoadingError(err)),
+            };
+
+            func(setup);
+        },
+    }
+
+    Ok(())
 }

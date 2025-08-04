@@ -11,8 +11,13 @@ use std::path::{Path, PathBuf};
 use tar::Archive;
 use zip::ZipArchive;
 
-pub async fn load_script(script_target: &str, print_yaml: bool) -> Result<Value, Error> {
-    let script_file_path = match load_remote_main(script_target).await {
+pub struct ScriptLoaded {
+    pub script: Value,
+    pub script_file_path: String,
+}
+
+pub async fn load_script(script_target: &str, print_yaml: bool) -> Result<ScriptLoaded, Error> {
+    let script_file_path = match resolve_script_path(script_target).await {
         Ok(path) => path,
         Err(err) => return Err(err),
     };
@@ -22,8 +27,13 @@ pub async fn load_script(script_target: &str, print_yaml: bool) -> Result<Value,
         Err(_) => return Err(Error::ModuleNotFound(script_file_path.to_string())),
     };
 
-    resolve_script(&file, script_file_path, print_yaml)
-        .map_err(|_| Error::ModuleLoaderError("Module not found".to_string()))
+    let script = resolve_script(&file, script_file_path.clone(), print_yaml)
+        .map_err(|_| Error::ModuleLoaderError("Module not found".to_string()))?;
+
+    Ok(ScriptLoaded {
+        script,
+        script_file_path,
+    })
 }
 
 fn get_remote_path() -> Result<PathBuf, Error> {
@@ -181,12 +191,12 @@ async fn download_file(url: &str, inner_folder: Option<&str>) -> Result<String, 
     Ok(main_path)
 }
 
-async fn load_remote_main(main_target: &str) -> Result<String, Error> {
-    let (target, branch) = if main_target.contains('#') {
-        let parts: Vec<&str> = main_target.split('#').collect();
+async fn resolve_script_path(script_path: &str) -> Result<String, Error> {
+    let (target, branch) = if script_path.contains('#') {
+        let parts: Vec<&str> = script_path.split('#').collect();
         (parts[0], Some(parts[1]))
     } else {
-        (main_target, None)
+        (script_path, None)
     };
 
     if target.trim_end().ends_with(".git") {
@@ -200,12 +210,12 @@ async fn load_remote_main(main_target: &str) -> Result<String, Error> {
     let target_path = PathBuf::from(target);
     if target_path.is_dir() {
         return find_default_file(&target_path)
-            .ok_or_else(|| Error::MainNotFound(main_target.to_string()));
+            .ok_or_else(|| Error::MainNotFound(script_path.to_string()));
     } else if target_path.exists() {
         return Ok(target.to_string());
     }
 
-    Err(Error::MainNotFound(main_target.to_string()))
+    Err(Error::MainNotFound(script_path.to_string()))
 }
 
 fn resolve_script(file: &str, main_file_path: String, print_yaml: bool) -> Result<Value, Error> {
@@ -348,8 +358,16 @@ fn find_default_file(base: &PathBuf) -> Option<String> {
     }
 
     if base.is_dir() {
-        // Prioridade para arquivos .phlow primeiro
-        let files = vec!["main.phlow", "main.yaml", "main.yml"];
+        {
+            let mut base_path = base.clone();
+            base_path.set_extension("phlow");
+
+            if base_path.exists() {
+                return Some(base_path.to_str().unwrap_or_default().to_string());
+            }
+        }
+
+        let files = vec!["main.phlow", "mod.phlow", "module.phlow"];
 
         for file in files {
             let file_path = base.join(file);

@@ -66,7 +66,7 @@ async fn main() {
     }
 
     let mut loader =
-        match Loader::load("./".to_string(), &settings.main_target, settings.print_yaml).await {
+        match Loader::load(&settings.script_main_absolute_path, settings.print_yaml).await {
             Ok(main) => main,
             Err(err) => {
                 eprintln!("Runtime Error Main File: {:?}", err);

@@ -1,4 +1,4 @@
-use crate::loader::Loader;
+use crate::loader::{load_module, Loader};
 use crate::settings::{self, Settings};
 use crossbeam::channel;
 use log::{debug, error};
@@ -234,8 +234,6 @@ async fn load_modules_like_runtime(
 
     let engine = build_engine(None);
 
-    let base_path = loader.base_path.clone();
-
     // Load modules exactly like Runtime::run does
     for (id, module) in loader.modules.iter().enumerate() {
         let (setup_sender, setup_receive) =
@@ -272,7 +270,6 @@ async fn load_modules_like_runtime(
         let local_path = module.local_path.clone();
         let module_name = module.name.clone();
         let settings = settings.clone();
-        let base_path = base_path.clone();
 
         debug!(
             "Module debug: name={}, is_local_path={}, local_path={:?}",
@@ -281,14 +278,7 @@ async fn load_modules_like_runtime(
 
         // Load module in separate thread - same as Runtime::run
         std::thread::spawn(move || {
-            let result = Loader::load_module(
-                base_path,
-                setup,
-                &module_target,
-                &module_version,
-                local_path,
-                settings,
-            );
+            let result = load_module(setup, &module_target, &module_version, local_path, settings);
 
             if let Err(err) = result {
                 error!("Test runtime Error Load Module: {:?}", err)

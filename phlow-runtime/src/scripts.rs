@@ -6,8 +6,7 @@ use phlow_sdk::{otel, prelude::*};
 
 use crate::loader::Loader;
 
-pub fn run_script(base_path: String, path: &str, setup: ModuleSetup, settings: &Settings) {
-    println!("run_script");
+pub fn run_script(path: &str, setup: ModuleSetup, settings: &Settings) {
     let dispatch = setup.dispatch.clone();
 
     tracing::dispatcher::with_default(&dispatch, || {
@@ -16,9 +15,7 @@ pub fn run_script(base_path: String, path: &str, setup: ModuleSetup, settings: &
 
         if let Ok(rt) = tokio::runtime::Runtime::new() {
             rt.block_on(async move {
-                let loader = Loader::load(base_path, &path, settings.print_yaml)
-                    .await
-                    .unwrap();
+                let loader = Loader::load(&path, settings.print_yaml).await.unwrap();
 
                 let rx = module_channel!(setup);
 
