@@ -44,7 +44,6 @@ impl Context {
     }
 
     pub fn add_module_output(&self, output: Value) -> Self {
-        println!("Adding module output: {:?}", output);
         Self {
             main: self.main.clone(),
             steps: self.steps.clone(),

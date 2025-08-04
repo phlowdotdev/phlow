@@ -1,0 +1,3 @@
+assert: !phs !is_empty(payload)
+then:
+  return: !phs payload

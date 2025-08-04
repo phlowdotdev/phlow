@@ -27,14 +27,8 @@ steps:
       response:
         status_code: 200
         body: []
-  - condition:
-      assert: !phs !is_empty(payload)
-    then:
-      return: !phs payload
-  - payload:
-      status_code: 404
-      body:
-        error: "Not Found"
+  - !include return.phlow
+
   - use: route_post_authors
     input:
       request: !phs main
@@ -43,11 +37,19 @@ steps:
         body:
           id: 1
           name: "John Doe"
+  - !include return.phlow
+
   - use: route_delete_authors
     input:
       request: !phs main
       response:
         status_code: 204
+  - !include return.phlow
+
+  - payload:
+      status_code: 404
+      body:
+        error: "Not Found"
 
 tests:
   - describe: "return 404 for unknown path"

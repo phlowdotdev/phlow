@@ -166,9 +166,10 @@ fn process_include_file(path: &Path) -> Result<String, String> {
     let raw = fs::read_to_string(path).map_err(|e| e.to_string())?;
 
     let value: Value = match extension.as_str() {
-        "yaml" | "yml" => {
+        "phlow" | "yaml" | "yml" => {
             let parent = path.parent().unwrap_or_else(|| Path::new("."));
             let transformed = yaml_helpers_transform(&raw, parent, false);
+
             serde_yaml::from_str(&transformed).map_err(|e| e.to_string())?
         }
         _ => return Err("Unsupported file extension".into()),
