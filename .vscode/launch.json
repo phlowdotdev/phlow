@@ -22,6 +22,23 @@
             },
             "args": [],
             "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Run phlow-runtime with current file",
+            "args": [
+                "${relativeFile}",
+                "--test"
+            ],
+            "cwd": "${workspaceFolder}",
+            "cargo": {
+                "args": [
+                    "run",
+                    "-p",
+                    "phlow-runtime"
+                ]
+            }
         }
     ]
 }

@@ -29,7 +29,7 @@ code --install-extension phlow.phlow
 The extension provides comprehensive syntax highlighting for Phlow files (`.phlow` extension):
 
 - **Keywords**: `main`, `modules`, `steps`, `use`, `input`, `condition`, `then`, `else`, `return`
-- **Directives**: `!include`, `!phs`, `!import`
+- **Directives**: `!include`, `!phs`, `!import`, `!arg`
 - **Operators**: `==`, `!=`, `>`, `<`, `>=`, `<=`, `&&`, `||`
 - **Functions**: Built-in Phlow functions and expressions
 - **Comments**: Single-line and multi-line comments
@@ -69,7 +69,7 @@ The extension automatically associates `.phlow` files with Phlow syntax highligh
 
 ### Example
 
-```yaml
+```phlow
 main: http_server
 modules:
   - module: http_server

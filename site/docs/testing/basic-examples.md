@@ -11,7 +11,7 @@ This section provides practical examples of testing in Phlow, showing different 
 
 Here's a simple example testing string concatenation:
 
-```yaml title="string-test.phlow"
+```phlow title="string-test.phlow"
 name: String Test
 version: 1.0.0
 description: Testing string operations
@@ -63,7 +63,7 @@ Test 3: ✅ PASSED - Expected and got: Hey Bob
 
 Here's an example testing basic arithmetic operations:
 
-```yaml title="math-test.phlow"
+```phlow title="math-test.phlow"
 name: Basic Math Test
 version: 1.0.0
 description: Testing basic arithmetic operations
@@ -118,7 +118,7 @@ Test 3: ✅ PASSED - Assertion passed: {{ payload > 0 }}
 
 Here's an example showing what happens when tests fail:
 
-```yaml title="fail-test.phlow"
+```phlow title="fail-test.phlow"
 name: Failing Test Example
 version: 1.0.0
 description: Example showing test failures
@@ -170,7 +170,7 @@ Test 3: ❌ FAILED - Assertion failed: {{ payload == "Something else" }}
 
 ### Using `assert` (Expression-based)
 
-```yaml
+```phlow
 tests:
   - main:
       value: 42
@@ -188,7 +188,7 @@ tests:
 
 ### Using `assert_eq` (Direct comparison)
 
-```yaml
+```phlow
 tests:
   - main:
       multiplier: 2
@@ -206,7 +206,7 @@ steps:
 
 ## Testing Conditional Logic
 
-```yaml title="conditional-test.phlow"
+```phlow title="conditional-test.phlow"
 name: Conditional Logic Test
 version: 1.0.0
 description: Testing conditional logic
@@ -237,7 +237,7 @@ This example tests different age values and ensures the conditional logic works 
 
 ## Testing with Initial Payload
 
-```yaml title="payload-test.phlow"
+```phlow title="payload-test.phlow"
 name: Payload Test
 version: 1.0.0
 description: Testing with initial payload values

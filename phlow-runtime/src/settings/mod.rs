@@ -4,9 +4,9 @@ use envs::Envs;
 pub mod cli;
 pub mod envs;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Settings {
-    pub main_target: String,
+    pub script_main_absolute_path: String,
     pub only_download_modules: bool,
     pub package_path: Option<String>,
     pub no_run: bool,
@@ -34,8 +34,13 @@ impl Settings {
 
         let main_target = cli.main_target.unwrap_or(envs.main.clone());
 
+        let current_path = std::env::current_dir()
+            .unwrap_or_else(|_| "./".into())
+            .to_string_lossy()
+            .to_string();
+
         let settings = Self {
-            main_target,
+            script_main_absolute_path: format!("{}/{}", current_path, main_target),
             only_download_modules: cli.only_download_modules,
             package_path: cli.package_path,
             no_run: cli.no_run,

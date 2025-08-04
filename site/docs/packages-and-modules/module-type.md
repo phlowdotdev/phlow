@@ -14,7 +14,7 @@ Step modules can also be executed directly from Phlow Script (PHS), making it ea
 
 ### Example: Step Module with Phlow Script (PHS)
 #### main.phlow
-```yaml
+```phlow
 main: cli
 name: Example Cli
 version: 1.0.0
@@ -53,7 +53,7 @@ This will evaluate the imported .phs file and run the steps using the declared m
 
 > ℹ️ **Note:** In Phlow Script (PHS), function calls respect the **order of parameters** defined in the module's package. For example, if your `phlow.yaml` for the `log` module defines inputs like:
 >
-> ```yaml
+> ```phlow
 > input: 
 >   type: object
 >   required: true

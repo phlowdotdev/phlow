@@ -1,6 +1,0 @@
-name: test-var-main-simple
-version: 1.0.0
-description: Teste simples do parâmetro --var-main
-
-steps:
-  - return: !phs main.user_id

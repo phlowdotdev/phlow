@@ -16,6 +16,7 @@ Need more flexibility? Simply extend with lightweight scripts or Rust-based modu
 Whether you’re running locally, on the edge, or across the cloud, Phlow delivers extreme speed, effortless scalability, and full-stack visibility.
 If you're ready to rethink how backends are built — **Phlow is the low-code revolution you’ve been waiting for**.
 
+> ⚠️ **Warning:** Phlow is currently under active development and is not recommended for use in production environments at this time.
 
 ## 📚 Documentation
 

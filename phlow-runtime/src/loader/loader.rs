@@ -1,6 +1,7 @@
 use super::Error;
 use crate::yaml::yaml_helpers_transform;
 use flate2::read::GzDecoder;
+use log::debug;
 use phlow_sdk::prelude::*;
 use reqwest::header::AUTHORIZATION;
 use reqwest::Client;
@@ -10,19 +11,29 @@ use std::path::{Path, PathBuf};
 use tar::Archive;
 use zip::ZipArchive;
 
-pub async fn load_main(main_target: &str, print_yaml: bool) -> Result<Value, Error> {
-    let main_file_path = match load_remote_main(main_target).await {
+pub struct ScriptLoaded {
+    pub script: Value,
+    pub script_file_path: String,
+}
+
+pub async fn load_script(script_target: &str, print_yaml: bool) -> Result<ScriptLoaded, Error> {
+    let script_file_path = match resolve_script_path(script_target).await {
         Ok(path) => path,
         Err(err) => return Err(err),
     };
 
-    let file: String = match std::fs::read_to_string(&main_file_path) {
+    let file: String = match std::fs::read_to_string(&script_file_path) {
         Ok(file) => file,
-        Err(_) => return Err(Error::ModuleNotFound(main_file_path.to_string())),
+        Err(_) => return Err(Error::ModuleNotFound(script_file_path.to_string())),
     };
 
-    resolve_main(&file, main_file_path, print_yaml)
-        .map_err(|_| Error::ModuleLoaderError("Module not found".to_string()))
+    let script = resolve_script(&file, script_file_path.clone(), print_yaml)
+        .map_err(|_| Error::ModuleLoaderError("Module not found".to_string()))?;
+
+    Ok(ScriptLoaded {
+        script,
+        script_file_path,
+    })
 }
 
 fn get_remote_path() -> Result<PathBuf, Error> {
@@ -180,12 +191,12 @@ async fn download_file(url: &str, inner_folder: Option<&str>) -> Result<String, 
     Ok(main_path)
 }
 
-async fn load_remote_main(main_target: &str) -> Result<String, Error> {
-    let (target, branch) = if main_target.contains('#') {
-        let parts: Vec<&str> = main_target.split('#').collect();
+async fn resolve_script_path(script_path: &str) -> Result<String, Error> {
+    let (target, branch) = if script_path.contains('#') {
+        let parts: Vec<&str> = script_path.split('#').collect();
         (parts[0], Some(parts[1]))
     } else {
-        (main_target, None)
+        (script_path, None)
     };
 
     if target.trim_end().ends_with(".git") {
@@ -199,28 +210,35 @@ async fn load_remote_main(main_target: &str) -> Result<String, Error> {
     let target_path = PathBuf::from(target);
     if target_path.is_dir() {
         return find_default_file(&target_path)
-            .ok_or_else(|| Error::MainNotFound(main_target.to_string()));
+            .ok_or_else(|| Error::MainNotFound(script_path.to_string()));
     } else if target_path.exists() {
         return Ok(target.to_string());
     }
 
-    Err(Error::MainNotFound(main_target.to_string()))
+    Err(Error::MainNotFound(script_path.to_string()))
 }
 
-fn resolve_main(file: &str, main_file_path: String, print_yaml: bool) -> Result<Value, Error> {
+fn resolve_script(file: &str, main_file_path: String, print_yaml: bool) -> Result<Value, Error> {
     let mut value: Value = {
-        let yaml_path = Path::new(&main_file_path)
+        let script_path = Path::new(&main_file_path)
             .parent()
             .unwrap_or_else(|| Path::new("."));
-        let yaml: String = yaml_helpers_transform(&file, yaml_path, print_yaml);
+        let script: String =
+            yaml_helpers_transform(&file, script_path, print_yaml).map_err(|errors| {
+                eprintln!("❌ Failed to transform YAML file: {}", main_file_path);
+                Error::ModuleLoaderError(format!(
+                    "YAML transformation failed with {} error(s)",
+                    errors.len()
+                ))
+            })?;
 
-        if let Ok(yaml_show) = std::env::var("PHLOW_YAML_SHOW") {
+        if let Ok(yaml_show) = std::env::var("PHLOW_SCRIPT_SHOW") {
             if yaml_show == "true" {
-                println!("YAML: {}", yaml);
+                println!("YAML: {}", script);
             }
         }
 
-        serde_yaml::from_str(&yaml).map_err(Error::LoaderErrorYaml)?
+        serde_yaml::from_str(&script).map_err(Error::LoaderErrorYaml)?
     };
 
     if value.get("steps").is_none() {
@@ -291,9 +309,11 @@ pub fn load_external_module_info(module: &str) -> Value {
 }
 
 pub fn load_local_module_info(local_path: &str) -> Value {
+    debug!("load_local_module_info");
     let module_path = format!("{}/phlow.yaml", local_path);
 
     if !Path::new(&module_path).exists() {
+        debug!("phlow.yaml not exists");
         return Value::Null;
     }
 
@@ -345,8 +365,16 @@ fn find_default_file(base: &PathBuf) -> Option<String> {
     }
 
     if base.is_dir() {
-        // Prioridade para arquivos .phlow primeiro
-        let files = vec!["main.phlow", "main.yaml", "main.yml"];
+        {
+            let mut base_path = base.clone();
+            base_path.set_extension("phlow");
+
+            if base_path.exists() {
+                return Some(base_path.to_str().unwrap_or_default().to_string());
+            }
+        }
+
+        let files = vec!["main.phlow", "mod.phlow", "module.phlow"];
 
         for file in files {
             let file_path = base.join(file);

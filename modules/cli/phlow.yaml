@@ -26,7 +26,7 @@ with:
         description: The arguments to pass to the command.
         properties:
           index:
-            type: integer
+            type: number
             description: The index of the argument.
             required: false
           required:

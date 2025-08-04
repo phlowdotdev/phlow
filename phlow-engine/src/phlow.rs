@@ -4,7 +4,7 @@ use crate::{
     step_worker::NextStep,
     transform::{value_to_pipelines, TransformError},
 };
-use phlow_sdk::prelude::*;
+use phlow_sdk::prelude::{log::error, *};
 use phs::build_engine;
 use std::{collections::HashMap, fmt::Display, sync::Arc};
 
@@ -104,6 +104,7 @@ impl Phlow {
                     }
                 },
                 Err(err) => {
+                    error!("Error executing step: {:?}", err);
                     return Err(PhlowError::PipelineError(err));
                 }
             }

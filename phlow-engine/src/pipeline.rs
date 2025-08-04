@@ -1,9 +1,8 @@
-use std::fmt::Display;
-
 use crate::{
     context::Context,
     step_worker::{NextStep, StepOutput, StepWorker, StepWorkerError},
 };
+use std::fmt::Display;
 
 #[derive(Debug)]
 pub enum PipelineError {
@@ -29,15 +28,20 @@ impl std::error::Error for PipelineError {
 #[derive(Debug, Clone)]
 pub struct Pipeline {
     pub(crate) steps: Vec<StepWorker>,
+    pub(crate) id: usize,
 }
 
 impl Pipeline {
+    pub fn get_id(&self) -> usize {
+        self.id
+    }
+
     pub async fn execute(
         &self,
         context: &mut Context,
         skip: usize,
     ) -> Result<Option<StepOutput>, PipelineError> {
-        for (i, step) in self.steps.iter().enumerate().skip(skip) {
+        for (step_index, step) in self.steps.iter().enumerate().skip(skip) {
             match step.execute(&context).await {
                 Ok(step_output) => {
                     context.add_step_payload(step_output.output.clone());
@@ -49,7 +53,9 @@ impl Pipeline {
                     }
 
                     match step_output.next_step {
-                        NextStep::Pipeline(_) | NextStep::Stop => return Ok(Some(step_output)),
+                        NextStep::Pipeline(_) | NextStep::Stop => {
+                            return Ok(Some(step_output));
+                        }
                         NextStep::GoToStep(to) => {
                             return Ok(Some(StepOutput {
                                 output: step_output.output,
@@ -57,7 +63,7 @@ impl Pipeline {
                             }));
                         }
                         NextStep::Next => {
-                            if i == self.steps.len() - 1 {
+                            if step_index == self.steps.len() - 1 {
                                 return Ok(Some(step_output));
                             }
                         }
@@ -69,6 +75,9 @@ impl Pipeline {
             }
         }
 
-        Ok(None)
+        Ok(Some(StepOutput {
+            output: context.get_payload().clone(),
+            next_step: NextStep::Next,
+        }))
     }
 }

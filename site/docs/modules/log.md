@@ -22,7 +22,7 @@ O módulo Log fornece funcionalidades de logging estruturado para aplicações P
 
 ### Configuração Básica
 
-```yaml
+```phlow
 steps:
   - name: "log_info"
     use: "logger"
@@ -51,7 +51,7 @@ export PHLOW_LOG="debug"  # info, debug, warn, error
 
 ### Logs de Diferentes Níveis
 
-```yaml
+```phlow
 steps:
   - name: "log_info"
     use: "logger"
@@ -80,7 +80,7 @@ steps:
 
 ### Logging em Pipeline
 
-```yaml
+```phlow
 steps:
   - name: "start_log"
     use: "logger"
@@ -108,7 +108,7 @@ steps:
 
 ## 🌐 Exemplo Completo
 
-```yaml
+```phlow
 name: "logging-example"
 version: "1.0.0"
 description: "Exemplo de uso do módulo Log"

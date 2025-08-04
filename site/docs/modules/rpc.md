@@ -24,7 +24,7 @@ O módulo RPC fornece funcionalidade de Remote Procedure Call (RPC) usando tarpc
 
 ### Servidor RPC (Main)
 
-```yaml
+```phlow
 name: "rpc-server"
 main: "rpc_server"
 
@@ -52,7 +52,7 @@ steps:
 
 ### Cliente RPC (Steps)
 
-```yaml
+```phlow
 modules:
   - name: "rpc_client"
     module: "rpc"
@@ -100,7 +100,7 @@ steps:
 
 ### Servidor RPC Completo
 
-```yaml
+```phlow
 name: "user-rpc-server"
 version: "1.0.0"
 main: "rpc_server"
@@ -160,7 +160,7 @@ steps:
 
 ### Cliente RPC com Health Check
 
-```yaml
+```phlow
 name: "rpc-client-example"
 version: "1.0.0"
 
@@ -206,7 +206,7 @@ steps:
 
 ### Microserviços com RPC
 
-```yaml
+```phlow
 name: "order-processing"
 version: "1.0.0"
 

@@ -7,9 +7,9 @@ title: Phlow Scripts (.phs)
 
 ## ✨ Overview
 
-PHS (Phlow Script) brings the power of embedded scripting to YAML-based workflows. It's designed to let you inject dynamic logic through readable scripts, while preserving Phlow's declarative style.
+PHS (Phlow Script) brings the power of embedded scripting to Phlow-based workflows. It's designed to let you inject dynamic logic through readable scripts, while preserving Phlow's declarative style.
 
-You can inject modules directly into your PHS context via the `modules` section of your `.yaml` configuration. Each module declared becomes globally accessible in the `.phs` script, making it easy to mix scripting with orchestrated steps.
+You can inject modules directly into your PHS context via the `modules` section of your `.phlow` configuration. Each module declared becomes globally accessible in the `.phs` script, making it easy to mix scripting with orchestrated steps.
 
 ## 📚 Learn More
 

@@ -1,0 +1,5 @@
+- use: !arg target
+  input: !phs main
+- assert: !phs !is_empty(payload)
+  then:
+    return: !phs payload

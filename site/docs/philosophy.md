@@ -16,7 +16,7 @@ This modularity boosts maintainability, scalability, and innovation — enabling
 ### 2. Code-Free Composition (Low Code)  
 **Principle**: The flow is the product, not the code.
 
-Instead of hardcoding behaviors, Phlow empowers you to compose them declaratively through simple YAML files. Business logic becomes readable, portable, and editable — accessible to developers, analysts, and architects alike.
+Instead of hardcoding behaviors, Phlow empowers you to compose them declaratively through simple Phlow files. Business logic becomes readable, portable, and editable — accessible to developers, analysts, and architects alike.
 By shifting focus from coding to composing, Phlow democratizes backend creation and shortens the path from idea to production.
 
 ---

@@ -11,7 +11,7 @@ This section demonstrates how to create HTTP APIs using Phlow's `http_server` mo
 
 Create a basic HTTP server that responds to requests:
 
-```yaml title="simple-server.phlow"
+```phlow title="simple-server.phlow"
 name: Simple HTTP Server
 version: 1.0.0
 description: A basic HTTP server example
@@ -110,7 +110,7 @@ curl -X POST http://localhost:8080/api/users \
 
 Make HTTP requests to external APIs:
 
-```yaml title="weather-client.phlow"
+```phlow title="weather-client.phlow"
 name: Weather Client
 version: 1.0.0
 description: Fetch weather information from an external API
@@ -145,7 +145,7 @@ steps:
 
 A more complete REST API example:
 
-```yaml title="crud-api.phlow"
+```phlow title="crud-api.phlow"
 name: CRUD API Example
 version: 1.0.0
 description: Complete CRUD API with in-memory storage
@@ -284,7 +284,7 @@ steps:
 
 Create a proxy that forwards requests to another API:
 
-```yaml title="api-proxy.phlow"
+```phlow title="api-proxy.phlow"
 name: API Proxy
 version: 1.0.0
 description: Proxy requests to external APIs
@@ -343,7 +343,7 @@ steps:
 
 Create tests for your HTTP APIs:
 
-```yaml title="api-test.phlow"
+```phlow title="api-test.phlow"
 name: API Test Suite
 version: 1.0.0
 description: Testing HTTP API endpoints

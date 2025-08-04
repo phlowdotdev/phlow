@@ -39,7 +39,7 @@ phlow --test --test-filter "user" main.phlow
 
 Example with test descriptions:
 
-```yaml
+```phlow
 name: Calculator Test Suite
 version: 1.0.0
 description: Comprehensive calculator tests
@@ -100,7 +100,7 @@ Tests are defined in the `tests` section of your Phlow file. Each test case cons
 
 ### Basic Test Example
 
-```yaml
+```phlow
 name: Basic Math Test
 version: 1.0.0
 description: Testing basic arithmetic operations
@@ -153,7 +153,7 @@ Test 3: ✅ PASSED - Assertion passed: {{ payload > 0 }}
 
 Expression assertions use PHS (Phlow Scripting) to evaluate conditions:
 
-```yaml
+```phlow
 tests:
   - main:
       name: "John"
@@ -174,7 +174,7 @@ tests:
 
 Direct value assertions compare the final payload with an expected value:
 
-```yaml
+```phlow
 tests:
   - main:
       multiplier: 2
@@ -194,7 +194,7 @@ steps:
 
 You can test workflows that use modules:
 
-```yaml
+```phlow
 name: HTTP Request Test
 version: 1.0.0
 description: Testing HTTP requests
@@ -219,7 +219,7 @@ steps:
 
 ### Testing Conditional Logic
 
-```yaml
+```phlow
 name: Age Verification Test
 version: 1.0.0
 description: Testing age verification logic
@@ -248,7 +248,7 @@ steps:
 
 ### Testing Data Transformation
 
-```yaml
+```phlow
 name: Data Processing Test
 version: 1.0.0
 description: Testing data transformation
@@ -294,7 +294,7 @@ Test 2: ✅ PASSED - Assertion passed: {{ payload == "Total is 15" }}
 
 ### 1. Use Descriptive Test Names
 
-```yaml
+```phlow
 name: User Registration Validation
 description: Tests for user registration validation rules
 
@@ -308,7 +308,7 @@ tests:
 
 ### 2. Test Edge Cases
 
-```yaml
+```phlow
 tests:
   - main:
       value: 0
@@ -326,7 +326,7 @@ tests:
 
 ### 3. Test Error Conditions
 
-```yaml
+```phlow
 tests:
   - main:
       input: ""
@@ -342,7 +342,7 @@ tests:
 
 ### Testing Asynchronous Operations
 
-```yaml
+```phlow
 name: Async Operation Test
 version: 1.0.0
 description: Testing asynchronous operations
@@ -367,7 +367,7 @@ steps:
 
 ### Testing Multiple Scenarios
 
-```yaml
+```phlow
 name: Calculator Test Suite
 version: 1.0.0
 description: Comprehensive calculator tests
@@ -419,7 +419,7 @@ When tests fail, you can debug them by:
    ```
 
 2. **Adding debug information** to your steps:
-   ```yaml
+   ```phlow
    steps:
      - log: !phs `Debug: main = ${JSON.stringify(main)}`
      - log: !phs `Debug: payload = ${JSON.stringify(payload)}`
@@ -435,7 +435,7 @@ When tests fail, you can debug them by:
 
 For CLI applications, you can test argument processing:
 
-```yaml
+```phlow
 name: CLI Application Test
 version: 1.0.0
 description: Testing CLI argument processing
@@ -496,7 +496,7 @@ echo "All tests passed!"
 
 ### Setup and Teardown
 
-```yaml
+```phlow
 name: Database Test
 version: 1.0.0
 description: Testing database operations

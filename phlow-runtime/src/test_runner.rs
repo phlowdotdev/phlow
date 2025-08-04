@@ -1,4 +1,5 @@
-use crate::loader::Loader;
+use crate::loader::{load_module, Loader};
+use crate::settings::Settings;
 use crossbeam::channel;
 use log::{debug, error};
 use phlow_engine::phs::{build_engine, Script};
@@ -9,6 +10,7 @@ use phlow_sdk::structs::{ModulePackage, ModuleSetup, Modules};
 use phlow_sdk::valu3::prelude::*;
 use phlow_sdk::valu3::value::Value;
 use std::collections::HashMap;
+use std::fmt::Write;
 use std::sync::Arc;
 use tokio::sync::oneshot;
 
@@ -30,7 +32,12 @@ pub struct TestSummary {
     pub results: Vec<TestResult>,
 }
 
-pub async fn run_tests(loader: Loader, test_filter: Option<&str>) -> Result<TestSummary, String> {
+pub async fn run_tests(
+    loader: Loader,
+    test_filter: Option<&str>,
+    settings: Settings,
+) -> Result<TestSummary, String> {
+    debug!("run_tests");
     // Get tests from loader.tests
     let tests = loader
         .tests
@@ -62,6 +69,8 @@ pub async fn run_tests(loader: Loader, test_filter: Option<&str>) -> Result<Test
         test_cases.values.iter().enumerate().collect()
     };
 
+    debug!("filtered_tests");
+
     let total = filtered_tests.len();
 
     if total == 0 {
@@ -92,7 +101,7 @@ pub async fn run_tests(loader: Loader, test_filter: Option<&str>) -> Result<Test
     println!();
 
     // Load modules following the same pattern as Runtime::run
-    let modules = load_modules_like_runtime(&loader)
+    let modules = load_modules_like_runtime(&loader, settings)
         .await
         .map_err(|e| format!("Failed to load modules for tests: {}", e))?;
 
@@ -125,7 +134,7 @@ pub async fn run_tests(loader: Loader, test_filter: Option<&str>) -> Result<Test
 
         match result {
             Ok(msg) => {
-                println!("✅ PASSED - {}", msg);
+                println!("✅ PASSED");
                 passed += 1;
                 results.push(TestResult {
                     index: test_index,
@@ -171,31 +180,49 @@ pub async fn run_tests(loader: Loader, test_filter: Option<&str>) -> Result<Test
 
 async fn run_single_test(test_case: &Value, phlow: &Phlow) -> Result<String, String> {
     // Extract test inputs
-    let main_value = test_case.get("main").cloned().unwrap_or(Value::Null);
-    let initial_payload = test_case.get("payload").cloned().unwrap_or(Value::Null);
+    let main_value = test_case.get("main").cloned().unwrap_or(Value::Undefined);
+    let initial_payload = test_case
+        .get("payload")
+        .cloned()
+        .unwrap_or(Value::Undefined);
+
+    debug!(
+        "Running test with main: {:?}, payload: {:?}",
+        main_value, initial_payload
+    );
 
     // Create context with test data
     let mut context = Context::from_main(main_value);
 
     // Set initial payload if provided
-    if !initial_payload.is_null() {
+    if !initial_payload.is_undefined() {
         context = context.add_module_output(initial_payload);
     }
 
     // Execute the workflow
-    let result = phlow
-        .execute(&mut context)
-        .await
-        .map_err(|e| format!("Execution failed: {}", e))?;
+    let result = {
+        let result = phlow
+            .execute(&mut context)
+            .await
+            .map_err(|e| format!("Execution failed: {}", e))?;
 
-    let result = result.unwrap_or(Value::Null);
+        result.unwrap_or(Value::Undefined)
+    };
 
     // Check assertions
     if let Some(assert_eq_value) = test_case.get("assert_eq") {
+        // ANSI escape code for red: \x1b[31m ... \x1b[0m
         if deep_equals(&result, assert_eq_value) {
             Ok(format!("Expected and got: {}", result))
         } else {
-            Err(format!("Expected {}, got {}", assert_eq_value, result))
+            let mut msg = String::new();
+            write!(
+                &mut msg,
+                "Expected \x1b[34m{}\x1b[0m, got \x1b[31m{}\x1b[0m",
+                assert_eq_value, result
+            )
+            .unwrap();
+            Err(msg)
         }
     } else if let Some(assert_expr) = test_case.get("assert") {
         // For assert expressions, we need to evaluate them
@@ -214,7 +241,10 @@ async fn run_single_test(test_case: &Value, phlow: &Phlow) -> Result<String, Str
 
 // Load modules following the exact same pattern as Runtime::run
 // but without creating main_sender channels since we don't need them for tests
-async fn load_modules_like_runtime(loader: &Loader) -> Result<Arc<Modules>, String> {
+async fn load_modules_like_runtime(
+    loader: &Loader,
+    settings: Settings,
+) -> Result<Arc<Modules>, String> {
     let mut modules = Modules::default();
 
     // Initialize tracing subscriber
@@ -255,27 +285,22 @@ async fn load_modules_like_runtime(loader: &Loader) -> Result<Arc<Modules>, Stri
 
         let module_target = module.module.clone();
         let module_version = module.version.clone();
-        let is_local_path = module.is_local_path;
+        let is_local_path = module.local_path.is_some();
         let local_path = module.local_path.clone();
         let module_name = module.name.clone();
-        
-        debug!("Module debug: name={}, is_local_path={}, local_path={:?}", module_name, is_local_path, local_path);
+        let settings = settings.clone();
+
+        debug!(
+            "Module debug: name={}, is_local_path={}, local_path={:?}",
+            module_name, is_local_path, local_path
+        );
 
         // Load module in separate thread - same as Runtime::run
         std::thread::spawn(move || {
-            let result = if is_local_path {
-                if let Some(local_path) = local_path {
-                    Loader::load_local_module(setup, &module_name, &local_path)
-                } else {
-                    error!("Local path module missing path: {}", module_name);
-                    return;
-                }
-            } else {
-                Loader::load_module(setup, &module_target, &module_version)
-            };
+            let result = load_module(setup, &module_target, &module_version, local_path, settings);
 
             if let Err(err) = result {
-                error!("Test Runtime Error Load Module: {:?}", err)
+                error!("Test runtime Error Load Module: {:?}", err)
             }
         });
 
@@ -287,14 +312,17 @@ async fn load_modules_like_runtime(loader: &Loader) -> Result<Arc<Modules>, Stri
         // Wait for module registration - same as Runtime::run
         match setup_receive.await {
             Ok(Some(sender)) => {
-                debug!("Module {} registered", module.name);
+                debug!("Module \"{}\" registered", module.name);
                 modules.register(module.clone(), sender);
             }
             Ok(None) => {
-                debug!("Module {} did not register", module.name);
+                debug!("Module \"{}\" did not register", module.name);
             }
-            Err(_) => {
-                return Err(format!("Module {} registration failed", module.name));
+            Err(err) => {
+                return Err(format!(
+                    "Module \"{}\" registration failed: {}",
+                    module.name, err
+                ));
             }
         }
     }

@@ -127,7 +127,7 @@ macro_rules! create_step {
                                 $crate::tracing::error!("Error in plugin during test: {:?}", e);
                             }
                         });
-                        
+
                         // Give the thread a moment to start
                         std::thread::sleep(std::time::Duration::from_millis(50));
                     } else {

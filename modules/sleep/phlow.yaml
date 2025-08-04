@@ -15,22 +15,22 @@ input:
   required: false
   properties:
     milliseconds:
-      type: integer
+      type: number
       description: The number of milliseconds to sleep.
       required: false
       default: 0  
     seconds:
-      type: integer
+      type: number
       description: The number of seconds to sleep.
       required: false
       default: 0
     minutes:
-      type: integer
+      type: number
       description: The number of minutes to sleep.
       required: false
       default: 0
     hours:
-      type: integer
+      type: number
       description: The number of hours to sleep.
       required: false
       default: 0

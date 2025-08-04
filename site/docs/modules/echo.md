@@ -23,7 +23,7 @@ O módulo Echo é um módulo simples e fundamental que retorna exatamente o que 
 
 ### Configuração Básica
 
-```yaml
+```phlow
 steps:
   - name: "echo_step"
     use: "echo_module"
@@ -32,7 +32,7 @@ steps:
 
 ### Configuração com Dados Estruturados
 
-```yaml
+```phlow
 steps:
   - name: "echo_object"
     use: "echo_module"
@@ -62,7 +62,7 @@ steps:
 
 ### Echo de String Simples
 
-```yaml
+```phlow
 steps:
   - name: "simple_echo"
     use: "echo_module"
@@ -73,7 +73,7 @@ steps:
 
 ### Echo de Número
 
-```yaml
+```phlow
 steps:
   - name: "number_echo"
     use: "echo_module"
@@ -84,7 +84,7 @@ steps:
 
 ### Echo de Boolean
 
-```yaml
+```phlow
 steps:
   - name: "boolean_echo"
     use: "echo_module"
@@ -95,7 +95,7 @@ steps:
 
 ### Echo de Array
 
-```yaml
+```phlow
 steps:
   - name: "array_echo"
     use: "echo_module"
@@ -106,7 +106,7 @@ steps:
 
 ### Echo de Objeto Complexo
 
-```yaml
+```phlow
 steps:
   - name: "object_echo"
     use: "echo_module"
@@ -130,7 +130,7 @@ steps:
 
 ### Echo com Dados Dinâmicos
 
-```yaml
+```phlow
 steps:
   - name: "process_user"
     # Algum processamento que retorna dados do usuário
@@ -146,7 +146,7 @@ steps:
 
 ### 1. Debug de Pipeline
 
-```yaml
+```phlow
 steps:
   - name: "fetch_data"
     use: "http_request"
@@ -164,7 +164,7 @@ steps:
 
 ### 2. Passagem de Dados
 
-```yaml
+```phlow
 steps:
   - name: "calculate_result"
     script: |
@@ -181,7 +181,7 @@ steps:
 
 ### 3. Validação de Estruturas
 
-```yaml
+```phlow
 steps:
   - name: "create_user_object"
     script: |
@@ -204,7 +204,7 @@ steps:
 
 ### 4. Testes e Desenvolvimento
 
-```yaml
+```phlow
 steps:
   - name: "mock_api_response"
     use: "echo_module"
@@ -224,7 +224,7 @@ steps:
 
 ## 🌐 Exemplo Completo
 
-```yaml
+```phlow
 name: "echo-demo"
 version: "1.0.0"
 description: "Demonstração do módulo Echo"

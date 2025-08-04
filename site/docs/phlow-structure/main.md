@@ -18,13 +18,13 @@ The `main.phlow` file defines the flow's metadata and execution logic. By defaul
 
 ### Example
 
-```yaml
+```phlow
 main: cli
 name: Are you a student?
 version: 1.0.0
 description: Check if you are a student.
 author: Your Name
-modules: !include modules.yaml
+modules: !include modules.phlow
 steps:
   # Flow execution steps
 ```
@@ -37,7 +37,7 @@ These fields can help improve the organization and documentation of your workflo
 
 Example with custom fields:
 
-```yaml
+```phlow
 main: cli
 name: Are you a student?
 version: 1.0.0
@@ -46,7 +46,7 @@ author: Your Name
 tags:
     - education
     - student
-modules: !include modules.yaml
+modules: !include modules.phlow
 steps:
     # Flow execution steps
 ```
@@ -55,7 +55,7 @@ steps:
 
 Phlow also supports simple flows that don't require a main module. These flows execute steps directly without waiting for external input:
 
-```yaml
+```phlow
 name: Simple Greeting
 version: 1.0.0
 description: A simple greeting flow.

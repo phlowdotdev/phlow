@@ -3,7 +3,10 @@ use crate::{
     pipeline::Pipeline,
     step_worker::{StepReference, StepWorker, StepWorkerError},
 };
-use phlow_sdk::{prelude::*, valu3};
+use phlow_sdk::{
+    prelude::{log::debug, *},
+    valu3,
+};
 use rhai::Engine;
 use std::sync::Arc;
 use std::{collections::HashMap, fmt::Display};
@@ -41,6 +44,7 @@ pub(crate) fn value_to_pipelines(
     let mut map = Vec::new();
 
     process_raw_steps(input, &mut map);
+    debug!("{}", map.to_value().to_json(JsonMode::Indented));
     value_to_structs(engine, modules, &map)
 }
 
@@ -152,17 +156,27 @@ fn value_to_structs(
                         }
                     }
 
+                    // Use para debugar a saida do step
+                    // println!("{}", new_step.to_value().to_json(JsonMode::Indented));
+
                     let step_worker = StepWorker::try_from_value(
                         engine.clone(),
                         modules.clone(),
                         &new_step.to_value(),
                     )
                     .map_err(TransformError::InnerStepError)?;
+
                     steps.push(step_worker);
                 }
             }
 
-            pipelines.insert(pipeline_index, Pipeline { steps });
+            pipelines.insert(
+                pipeline_index,
+                Pipeline {
+                    steps,
+                    id: pipeline_index,
+                },
+            );
         }
     }
 
@@ -184,7 +198,7 @@ fn get_next_step(pipelines: &Vec<Value>, target: &StepReference) -> StepReferenc
 
     return StepReference {
         pipeline: target.pipeline,
-        step: target.step,
+        step: target.step + 1,
     };
 }
 

@@ -42,7 +42,7 @@ input:
       description: JWT token to verify (for verify action).
       required: false
     expires_in:
-      type: integer
+      type: number
       description: Token expiration time in seconds.
       default: 3600
       required: false

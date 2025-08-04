@@ -5,7 +5,7 @@ title: CLI - Are you a student?
 This is a simple example of a Phlow that uses the `cli` module to ask the user if they are a student. It uses the `assert` step to check the user's input and return different messages based on their response.
 
 
-```yaml
+```phlow
 main: cli
 name: Are you a student?
 version: 1.0.0

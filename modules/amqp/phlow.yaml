@@ -68,7 +68,7 @@ with:
       required: false
       description: "AMQP host"
     port:
-      type: integer
+      type: number
       required: false
       description: "AMQP port"
     username:
@@ -105,7 +105,7 @@ with:
       required: false
       description: "AMQP queue name (if different from routing_key)"
     management_port:
-      type: integer
+      type: number
       required: false
       description: "RabbitMQ Management API port (default: 15672)"
     definition:
@@ -114,7 +114,7 @@ with:
       aditional_properties: true
       description: "RabbitMQ definitions to import via Management API (https://www.rabbitmq.com/docs/definitions)"
     max_retry:
-      type: integer
+      type: number
       required: false
       description: "Maximum number of retry attempts before sending to DLQ (default: 3)"
     dlq_enable:

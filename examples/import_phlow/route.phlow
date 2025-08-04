@@ -1,0 +1,59 @@
+with:
+  type: object
+  required: true
+  properties:
+    path:
+      type: string
+      required: true
+    method:
+      type: enum
+      enum: [GET, POST, DELETE, PUT, PATCH, OPTIONS]
+      required: true
+
+input:
+  type: object
+  required: true
+  properties:
+    request:
+      type: object
+      required: true
+      properties:
+        path:
+          type: string
+          required: true
+        method:
+          type: enum
+          enum: [GET, POST, DELETE, PUT, PATCH, OPTIONS]
+          required: true
+    response:
+      type: object
+      required: true
+      properties:
+        status_code:
+          type: number
+          required: true
+        body:
+          type: object
+          required: false
+        headers:
+          type: object
+          required: false
+
+output:
+  type: object
+  required: true
+  properties:
+    status_code:
+      type: number
+      required: true
+    body:
+      type: object
+      required: false
+    headers:
+      type: object
+      required: false
+
+steps:
+  - assert: !phs setup.path == main.path && setup.method == main.method
+    then:
+      payload: !phs setup.default_response

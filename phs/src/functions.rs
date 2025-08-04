@@ -1,5 +1,5 @@
 use regex::Regex;
-use rhai::Engine;
+use rhai::{Engine, EvalAltResult};
 
 pub fn build_functions() -> Engine {
     let mut engine = Engine::new();
@@ -26,6 +26,37 @@ pub fn build_functions() -> Engine {
         }),
         Err(_) => {
             panic!("Error on register custom operator search");
+        }
+    };
+
+    engine.register_fn("is_null", |x: rhai::Dynamic| x.is_unit());
+
+    engine.register_fn("is_empty", |x: rhai::Dynamic| {
+        if x.is_unit() {
+            true
+        } else if let Some(s) = x.clone().try_cast::<String>() {
+            s.trim().is_empty()
+        } else {
+            false
+        }
+    });
+
+    match engine.register_custom_syntax(
+        ["iff", "$expr$", "?", "$expr$", ":", "$expr$"],
+        false,
+        |context, inputs| match context.eval_expression_tree(&inputs[0])?.as_bool() {
+            Ok(true) => context.eval_expression_tree(&inputs[1]),
+            Ok(false) => context.eval_expression_tree(&inputs[2]),
+            Err(typ) => Err(Box::new(EvalAltResult::ErrorMismatchDataType(
+                "bool".to_string(),
+                typ.to_string(),
+                inputs[0].position(),
+            ))),
+        },
+    ) {
+        Ok(engine) => engine,
+        Err(_) => {
+            panic!("Error on register custom syntax iff");
         }
     };
 

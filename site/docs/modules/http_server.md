@@ -28,7 +28,7 @@ O módulo HTTP Server fornece um servidor web completo e de alta performance par
 
 ### Configuração Básica
 
-```yaml
+```phlow
 name: "my-api-server"
 version: "1.0.0"
 main: "api_server"
@@ -74,7 +74,7 @@ export PHLOW_AUTHORIZATION_SPAN_MODE="prefix"  # none, hidden, prefix, suffix, a
 
 ### API REST Básica
 
-```yaml
+```phlow
 name: "users-api"
 version: "1.0.0"
 main: "web_server"
@@ -165,7 +165,7 @@ steps:
 
 ### API com Autenticação
 
-```yaml
+```phlow
 name: "secure-api"
 version: "1.0.0"
 main: "secure_server"
@@ -235,7 +235,7 @@ steps:
 
 ### Webhook Receiver
 
-```yaml
+```phlow
 name: "webhook-receiver"
 version: "1.0.0"
 main: "webhook_server"
@@ -318,7 +318,7 @@ steps:
 
 ### API com CORS
 
-```yaml
+```phlow
 name: "cors-api"
 version: "1.0.0"
 main: "cors_server"
@@ -475,7 +475,7 @@ curl http://localhost:8080/health
 
 ### Códigos de Status HTTP
 
-```yaml
+```phlow
 steps:
   - name: "error_handler"
     condition:
@@ -518,7 +518,7 @@ steps:
 
 ### Headers de Segurança
 
-```yaml
+```phlow
 steps:
   - name: "secure_response"
     return:
@@ -534,7 +534,7 @@ steps:
 
 ### Validação de Input
 
-```yaml
+```phlow
 steps:
   - name: "validate_input"
     condition:

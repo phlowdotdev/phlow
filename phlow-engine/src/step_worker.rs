@@ -5,7 +5,10 @@ use crate::{
     script::Script,
 };
 use once_cell::sync::Lazy;
-use phlow_sdk::{prelude::*, tracing::field};
+use phlow_sdk::{
+    prelude::{log::debug, *},
+    tracing::field,
+};
 use rhai::Engine;
 use serde::Serialize;
 use std::{fmt::Display, sync::Arc};
@@ -248,7 +251,7 @@ impl StepWorker {
 
             match self
                 .modules
-                .execute(module, &context.input, &context.payload)
+                .execute(module, &context.get_input(), &context.get_payload())
                 .await
             {
                 Ok(response) => {
@@ -288,15 +291,15 @@ impl StepWorker {
             let step_name = self.label.clone().unwrap_or(self.id.to_string());
             span.record("otel.name", format!("step {}", step_name));
 
-            if let Some(ref input) = context.input {
+            if let Some(ref input) = context.get_input() {
                 span.record("context.input", input.to_string());
             }
 
-            if let Some(ref payload) = context.payload {
+            if let Some(ref payload) = context.get_payload() {
                 span.record("context.payload", truncate_string(&payload));
             }
 
-            if let Some(ref main) = context.main {
+            if let Some(ref main) = context.get_main() {
                 span.record("context.main", truncate_string(&main));
             }
 
@@ -381,6 +384,10 @@ impl StepWorker {
         }
 
         if let Some(to) = &self.to {
+            debug!(
+                "Define switching to step {} in pipeline {}",
+                to.step, to.pipeline
+            );
             return Ok(StepOutput {
                 next_step: NextStep::GoToStep(to.clone()),
                 output,

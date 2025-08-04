@@ -6,12 +6,14 @@ mod settings;
 mod test_runner;
 mod yaml;
 use loader::Loader;
+use log::debug;
 use package::Package;
 use phlow_sdk::otel::init_tracing_subscriber;
 use phlow_sdk::tracing::error;
 use phlow_sdk::{tracing, use_log};
 use runtime::Runtime;
 use settings::Settings;
+mod scripts;
 
 #[cfg(all(feature = "mimalloc", target_env = "musl"))]
 #[global_allocator]
@@ -63,13 +65,14 @@ async fn main() {
         }
     }
 
-    let mut loader = match Loader::load(&settings.main_target, settings.print_yaml).await {
-        Ok(main) => main,
-        Err(err) => {
-            eprintln!("Runtime Error Main File: {:?}", err);
-            return;
-        }
-    };
+    let mut loader =
+        match Loader::load(&settings.script_main_absolute_path, settings.print_yaml).await {
+            Ok(main) => main,
+            Err(err) => {
+                error!("Runtime Error Main File: {:?}", err);
+                return;
+            }
+        };
 
     if settings.no_run {
         return;
@@ -98,8 +101,15 @@ async fn main() {
 
         if !settings.only_download_modules {
             if settings.test {
+                debug!("Run test");
                 // Run tests
-                match test_runner::run_tests(loader, settings.test_filter.as_deref()).await {
+                match test_runner::run_tests(
+                    loader,
+                    settings.test_filter.as_deref(),
+                    settings.clone(),
+                )
+                .await
+                {
                     Ok(summary) => {
                         // Exit with error code if tests failed
                         if summary.failed > 0 {
@@ -107,11 +117,12 @@ async fn main() {
                         }
                     }
                     Err(err) => {
-                        eprintln!("Test execution error: {}", err);
+                        error!("Test execution error: {}", err);
                         std::process::exit(1);
                     }
                 }
             } else {
+                debug!("Run application");
                 // Run normal workflow
                 if let Err(rr) = Runtime::run(loader, dispatch.clone(), settings).await {
                     error!("Runtime Error: {:?}", rr);

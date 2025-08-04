@@ -11,7 +11,7 @@ Phlow makes it easy to create command-line interfaces (CLI) applications with ar
 
 Create a simple CLI tool that greets users:
 
-```yaml title="greet-cli.phlow"
+```phlow title="greet-cli.phlow"
 name: Greeting CLI
 version: 1.0.0
 description: A simple greeting CLI application
@@ -72,7 +72,7 @@ phlow greet-cli.phlow John "Hey" -u
 
 Create a CLI tool that processes files:
 
-```yaml title="file-processor.phlow"
+```phlow title="file-processor.phlow"
 name: File Processor
 version: 1.0.0
 description: Process text files with various operations
@@ -165,7 +165,7 @@ steps:
 
 Create an interactive CLI with input validation:
 
-```yaml title="user-registration.phlow"
+```phlow title="user-registration.phlow"
 name: User Registration CLI
 version: 1.0.0
 description: Interactive user registration with validation
@@ -183,7 +183,7 @@ modules:
           help: User email address
         - index: 2
           long: age
-          type: integer
+          type: number
           required: true
           help: User age
         - long: role
@@ -248,7 +248,7 @@ steps:
 
 Create a CLI with multiple subcommands:
 
-```yaml title="project-manager.phlow"
+```phlow title="project-manager.phlow"
 name: Project Manager CLI
 version: 1.0.0
 description: Manage projects with subcommands
@@ -385,7 +385,7 @@ phlow project-manager.phlow status
 
 Create tests for your CLI applications:
 
-```yaml title="cli-test.phlow"
+```phlow title="cli-test.phlow"
 name: CLI Test Suite
 version: 1.0.0
 description: Testing CLI applications
