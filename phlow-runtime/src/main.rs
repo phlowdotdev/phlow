@@ -6,10 +6,8 @@ mod settings;
 mod test_runner;
 mod yaml;
 use loader::Loader;
-use log::debug;
 use package::Package;
 use phlow_sdk::otel::init_tracing_subscriber;
-use phlow_sdk::tracing::error;
 use phlow_sdk::{tracing, use_log};
 use runtime::Runtime;
 use settings::Settings;
@@ -45,7 +43,7 @@ async fn main() {
     let settings = match Settings::try_load() {
         Ok(settings) => settings,
         Err(err) => {
-            error!("Error loading settings: {:?}", err);
+            log::error!("Error loading settings: {:?}", err);
             std::process::exit(1);
         }
     };
@@ -54,12 +52,12 @@ async fn main() {
         match Package::try_from(publish_path) {
             Ok(publish) => {
                 if let Err(err) = publish.run() {
-                    error!("Error publishing module: {:?}", err);
+                    log::error!("Error publishing module: {:?}", err);
                     return;
                 }
             }
             Err(err) => {
-                error!("Error creating publish instance: {:?}", err);
+                log::error!("Error creating publish instance: {:?}", err);
                 return;
             }
         }
@@ -69,7 +67,7 @@ async fn main() {
         match Loader::load(&settings.script_main_absolute_path, settings.print_yaml).await {
             Ok(main) => main,
             Err(err) => {
-                error!("Runtime Error Main File: {:?}", err);
+                log::error!("Runtime Error Main File: {:?}", err);
                 return;
             }
         };
@@ -81,7 +79,7 @@ async fn main() {
     let guard = init_tracing_subscriber(loader.app_data.clone());
 
     if let Err(err) = tracing::dispatcher::set_global_default(guard.dispatch.clone()) {
-        error!("Failed to set global subscriber: {:?}", err);
+        log::error!("Failed to set global subscriber: {:?}", err);
         std::process::exit(1);
     }
 
@@ -92,7 +90,7 @@ async fn main() {
                 .download(&settings.default_package_repository_url)
                 .await
             {
-                error!("Download failed: {:?}", err);
+                log::error!("Download failed: {:?}", err);
                 return;
             }
         }
@@ -101,7 +99,7 @@ async fn main() {
 
         if !settings.only_download_modules {
             if settings.test {
-                debug!("Run test");
+                log::debug!("Run test");
                 // Run tests
                 match test_runner::run_tests(
                     loader,
@@ -117,15 +115,15 @@ async fn main() {
                         }
                     }
                     Err(err) => {
-                        error!("Test execution error: {}", err);
+                        log::error!("Test execution error: {}", err);
                         std::process::exit(1);
                     }
                 }
             } else {
-                debug!("Run application");
+                log::debug!("Run application");
                 // Run normal workflow
                 if let Err(rr) = Runtime::run(loader, dispatch.clone(), settings).await {
-                    error!("Runtime Error: {:?}", rr);
+                    log::error!("Runtime Error: {:?}", rr);
                 }
             }
         }

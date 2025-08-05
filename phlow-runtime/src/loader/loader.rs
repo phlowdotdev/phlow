@@ -60,9 +60,13 @@ fn clone_git_repo(url: &str, branch: Option<&str>) -> Result<String, Error> {
     let mut callbacks = RemoteCallbacks::new();
 
     if url.contains("@") {
+        debug!("Using SSH authentication for Git: {}", url);
         if let Some(ssh_user) = url.split('@').next() {
-            let id_rsa_path = std::env::var("PHLOW_REMOTE_ID_RSA_PATH")
+            let id_rsa_path: String = std::env::var("PHLOW_REMOTE_ID_RSA_PATH")
                 .unwrap_or_else(|_| format!("{}/.ssh/id_rsa", std::env::var("HOME").unwrap()));
+
+            debug!("Using SSH user: {}", ssh_user);
+            debug!("Using SSH key path: {}", id_rsa_path);
 
             if !Path::new(&id_rsa_path).exists() {
                 return Err(Error::ModuleLoaderError(format!(
@@ -76,9 +80,9 @@ fn clone_git_repo(url: &str, branch: Option<&str>) -> Result<String, Error> {
             callbacks.credentials(move |_url, username_from_url, _allowed_types| {
                 git2::Cred::ssh_key(
                     username_from_url.unwrap_or(ssh_user),
-                    None, // usa ~/.ssh/id_rsa.pub
+                    None,
                     std::path::Path::new(&id_rsa_path),
-                    None, // sem passphrase
+                    None,
                 )
             });
         }

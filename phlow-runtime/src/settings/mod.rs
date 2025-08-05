@@ -39,8 +39,14 @@ impl Settings {
             .to_string_lossy()
             .to_string();
 
+        let script_main_absolute_path = if main_target.starts_with(".") {
+            format!("{}/{}", current_path, main_target)
+        } else {
+            main_target.clone()
+        };
+
         let settings = Self {
-            script_main_absolute_path: format!("{}/{}", current_path, main_target),
+            script_main_absolute_path,
             only_download_modules: cli.only_download_modules,
             package_path: cli.package_path,
             no_run: cli.no_run,
