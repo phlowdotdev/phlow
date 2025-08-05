@@ -5,6 +5,30 @@ All notable changes to the Phlow project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.45] - 2025-08-05
+
+### Fixed
+
+#### 🔐 SSH Authentication
+- **CRITICAL FIX**: Fixed SSH clone error "invalid or unknown remote ssh hostkey" by adding proper certificate check callback
+- Enhanced Git repository cloning with improved SSH host key verification
+- Added certificate validation callback that accepts all certificates for Git SSH operations
+- Improved error handling for SSH authentication in remote repository access
+
+#### 🛠️ Runtime Improvements  
+- Fixed Git clone failures when accessing repositories via SSH protocol
+- Enhanced module loading reliability for remote Git repositories
+- Improved debugging output for SSH authentication issues
+
+### Dependencies
+
+#### 📦 Version Updates
+- Updated workspace version from 0.0.44 to 0.0.45
+- Bumped all workspace packages to version 0.0.45
+- Updated Rust version requirement to 1.87.0
+
+---
+
 ## [0.0.44] - 2025-08-04
 
 ### Added

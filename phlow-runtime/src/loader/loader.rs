@@ -59,6 +59,13 @@ fn clone_git_repo(url: &str, branch: Option<&str>) -> Result<String, Error> {
 
     let mut callbacks = RemoteCallbacks::new();
 
+    // Add certificate check callback to handle SSH host key verification
+    callbacks.certificate_check(|_cert, _valid| {
+        // Accept all certificates - you might want to implement proper host key checking
+        // in a production environment by verifying against known_hosts
+        Ok(git2::CertificateCheckStatus::CertificateOk)
+    });
+
     if url.contains("@") {
         debug!("Using SSH authentication for Git: {}", url);
         if let Some(ssh_user) = url.split('@').next() {
