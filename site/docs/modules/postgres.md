@@ -4,20 +4,20 @@ title: Postgres Module
 hide_title: true
 ---
 
-# Módulo Postgres
+# PostgreSQL Module
 
-O módulo Postgres fornece operações completas de banco de dados PostgreSQL com pool de conexões, cache de queries, suporte a SSL e operações em batch.
+The PostgreSQL module provides complete PostgreSQL database operations with connection pooling, query caching, SSL support, and batch operations.
 
-## 🚀 Funcionalidades
+## 🚀 Features
 
-### Características Principais
+### Key Features
 
-- ✅ **Pool de conexões**: Gerenciamento eficiente de conexões
-- ✅ **Cache de queries**: Cache configurável para performance
-- ✅ **Suporte SSL**: Múltiplos modos SSL (disable, prefer, require)
-- ✅ **Batch operations**: Inserções em lote para alta performance
-- ✅ **Parâmetros seguros**: Prevenção de SQL injection
-- ✅ **Observabilidade**: Tracing completo com OpenTelemetry
+- ✅ **Connection pool**: Efficient connection management
+- ✅ **Query cache**: Configurable cache for performance
+- ✅ **SSL support**: Multiple SSL modes (disable, prefer, require)
+- ✅ **Batch operations**: Bulk inserts for high performance
+- ✅ **Safe parameters**: SQL injection prevention
+- ✅ **Observability**: Complete tracing with OpenTelemetry
 
 ## 📋 Configuração
 

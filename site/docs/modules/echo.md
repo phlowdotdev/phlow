@@ -6,22 +6,22 @@ hide_title: true
 
 # Echo Module
 
-O módulo Echo é um módulo simples e fundamental que retorna exatamente o que recebe como entrada. É útil para debug, testes, passagem de dados e como exemplo básico de implementação de módulos Phlow.
+The Echo module is a simple and fundamental module that returns exactly what it receives as input. It's useful for debugging, testing, data passing, and as a basic example of Phlow module implementation.
 
-## 🚀 Funcionalidades
+## 🚀 Features
 
-### Características Principais
+### Key Features
 
-- ✅ **Simplicidade**: Retorna exatamente o que recebe
-- ✅ **Qualquer tipo**: Aceita qualquer tipo de entrada
-- ✅ **Preservação de dados**: Mantém estrutura e tipo original
-- ✅ **Performance**: Operação de passagem direta, sem processamento
-- ✅ **Debug**: Útil para verificar dados em pipelines
-- ✅ **Observabilidade**: Totalmente integrado com OpenTelemetry
+- ✅ **Simplicity**: Returns exactly what it receives
+- ✅ **Any type**: Accepts any type of input
+- ✅ **Data preservation**: Maintains original structure and type
+- ✅ **Performance**: Direct passthrough operation, no processing
+- ✅ **Debug**: Useful for checking data in pipelines
+- ✅ **Observability**: Fully integrated with OpenTelemetry
 
-## 📋 Configuração
+## 📝 Configuration
 
-### Configuração Básica
+### Basic Configuration
 
 ```phlow
 steps:
@@ -30,7 +30,7 @@ steps:
     input: "Hello, World!"
 ```
 
-### Configuração com Dados Estruturados
+### Configuration with Structured Data
 
 ```phlow
 steps:
@@ -44,23 +44,23 @@ steps:
         active: true
 ```
 
-## 🔧 Parâmetros
+## 🔧 Parameters
 
-### Entrada (Input)
-- **Tipo**: `any` (qualquer tipo)
-- **Obrigatório**: `true`
-- **Descrição**: A mensagem ou dados a serem ecoados
-- **Padrão**: `null`
+### Input
+- **Type**: `any` (any type)
+- **Required**: `true`
+- **Description**: The message or data to be echoed
+- **Default**: `null`
 
-### Saída (Output)
-- **Tipo**: `any` (mesmo tipo da entrada)
-- **Obrigatório**: `true`
-- **Descrição**: Os dados ecoados (idênticos à entrada)
-- **Padrão**: `null`
+### Output
+- **Type**: `any` (same type as input)
+- **Required**: `true`
+- **Description**: The echoed data (identical to input)
+- **Default**: `null`
 
-## 💻 Exemplos de Uso
+## 💻 Usage Examples
 
-### Echo de String Simples
+### Simple String Echo
 
 ```phlow
 steps:
@@ -68,10 +68,10 @@ steps:
     use: "echo_module"
     input: "Esta mensagem será ecoada"
     
-  # Saída: "Esta mensagem será ecoada"
+  # Output: "This message will be echoed"
 ```
 
-### Echo de Número
+### Number Echo
 
 ```phlow
 steps:
@@ -79,10 +79,10 @@ steps:
     use: "echo_module"
     input: 42
     
-  # Saída: 42
+  # Output: 42
 ```
 
-### Echo de Boolean
+### Boolean Echo
 
 ```phlow
 steps:
@@ -90,21 +90,21 @@ steps:
     use: "echo_module"
     input: true
     
-  # Saída: true
+  # Output: true
 ```
 
-### Echo de Array
+### Array Echo
 
 ```phlow
 steps:
   - name: "array_echo"
     use: "echo_module"
-    input: [1, 2, 3, "teste", true]
+    input: [1, 2, 3, "test", true]
     
-  # Saída: [1, 2, 3, "teste", true]
+  # Output: [1, 2, 3, "test", true]
 ```
 
-### Echo de Objeto Complexo
+### Complex Object Echo
 
 ```phlow
 steps:
@@ -125,26 +125,26 @@ steps:
         updated_at: "2024-01-15T14:30:00Z"
         version: "1.2.3"
     
-  # Saída: (objeto idêntico ao input)
+  # Output: (identical object to input)
 ```
 
-### Echo com Dados Dinâmicos
+### Echo with Dynamic Data
 
 ```phlow
 steps:
   - name: "process_user"
-    # Algum processamento que retorna dados do usuário
+    # Some processing that returns user data
     
   - name: "echo_user_data"
     use: "echo_module"
     input: "{{ $process_user }}"
     
-  # Saída: (dados do usuário do step anterior)
+  # Output: (user data from previous step)
 ```
 
-## 🔍 Casos de Uso
+## 🔍 Use Cases
 
-### 1. Debug de Pipeline
+### 1. Pipeline Debug
 
 ```phlow
 steps:
@@ -156,13 +156,13 @@ steps:
   - name: "debug_response"
     use: "echo_module"
     input: "{{ $fetch_data }}"
-    # Útil para ver exatamente o que a API retornou
+    # Useful to see exactly what the API returned
     
   - name: "process_data"
-    # Continua processamento...
+    # Continue processing...
 ```
 
-### 2. Passagem de Dados
+### 2. Data Passing
 
 ```phlow
 steps:
@@ -176,10 +176,10 @@ steps:
     input: "{{ $calculate_result }}"
     
   - name: "format_output"
-    input: "Resultado: {{ $pass_result }}"
+    input: "Result: {{ $pass_result }}"
 ```
 
-### 3. Validação de Estruturas
+### 3. Structure Validation
 
 ```phlow
 steps:
@@ -187,7 +187,7 @@ steps:
     script: |
       {
         id: 123,
-        name: "Usuário Teste",
+        name: "Test User",
         email: "test@example.com",
         created_at: new Date().toISOString()
       }
@@ -195,14 +195,14 @@ steps:
   - name: "validate_structure"
     use: "echo_module"
     input: "{{ $create_user_object }}"
-    # Verifica se o objeto foi criado corretamente
+    # Checks if object was created correctly
     
   - name: "save_user"
     use: "database_save"
     input: "{{ $validate_structure }}"
 ```
 
-### 4. Testes e Desenvolvimento
+### 4. Testing and Development
 
 ```phlow
 steps:
@@ -218,16 +218,16 @@ steps:
       timestamp: "2024-01-01T00:00:00Z"
     
   - name: "process_users"
-    # Processa como se viesse de uma API real
+    # Process as if it came from a real API
     input: "{{ $mock_api_response.data.users }}"
 ```
 
-## 🌐 Exemplo Completo
+## 🌐 Complete Example
 
 ```phlow
 name: "echo-demo"
 version: "1.0.0"
-description: "Demonstração do módulo Echo"
+description: "Echo module demonstration"
 
 modules:
   - name: "echo_module"
@@ -271,31 +271,31 @@ steps:
       }
 ```
 
-## 📊 Observabilidade
+## 📊 Observability
 
-O módulo Echo herda a observabilidade padrão do Phlow SDK:
+The Echo module inherits the standard Phlow SDK observability:
 
-- **Tracing**: Cada execução gera spans OpenTelemetry
-- **Logging**: Logs estruturados para debug
-- **Metrics**: Métricas de performance e uso
-- **Context**: Propagação de contexto entre steps
+- **Tracing**: Each execution generates OpenTelemetry spans
+- **Logging**: Structured logs for debugging
+- **Metrics**: Performance and usage metrics
+- **Context**: Context propagation between steps
 
-## 🔒 Segurança
+## 🔒 Security
 
-- **Preservação de dados**: Não modifica nem expõe dados sensíveis
-- **Sem efeitos colaterais**: Operação puramente funcional
-- **Memória**: Passa referências quando possível para eficiência
+- **Data preservation**: Does not modify or expose sensitive data
+- **No side effects**: Purely functional operation
+- **Memory**: Passes references when possible for efficiency
 
 ## 📈 Performance
 
-- **Latência mínima**: Operação de passagem direta
-- **Memória eficiente**: Sem cópias desnecessárias
-- **Threading**: Suporte completo a execução assíncrona
-- **Escalabilidade**: Sem limitações de throughput
+- **Minimal latency**: Direct passthrough operation
+- **Efficient memory**: No unnecessary copies
+- **Threading**: Full support for asynchronous execution
+- **Scalability**: No throughput limitations
 
-## 🛠️ Implementação
+## 🛠️ Implementation
 
-O módulo Echo é implementado de forma minimalista:
+The Echo module is implemented in a minimalist way:
 
 ```rust
 pub async fn echo(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -318,7 +318,7 @@ pub async fn echo(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + 
 
 ---
 
-**Versão**: 0.0.1  
-**Autor**: Philippe Assis `<codephilippe@gmail.com>`
-**Licença**: MIT  
-**Repositório**: https://github.com/phlowdotdev/phlow
+**Version**: 0.0.1  
+**Author**: Philippe Assis `<codephilippe@gmail.com>`
+**License**: MIT  
+**Repository**: https://github.com/phlowdotdev/phlow

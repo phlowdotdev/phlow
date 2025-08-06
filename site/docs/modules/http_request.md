@@ -4,23 +4,23 @@ title: HTTP Request Module
 hide_title: true
 ---
 
-# Módulo HTTP Request
+# HTTP Request Module
 
-O módulo HTTP Request fornece funcionalidades completas para realizar requisições HTTP/HTTPS, suportando todos os métodos HTTP padrão, headers customizados, SSL/TLS, timeouts e tratamento abrangente de erros.
+The HTTP Request module provides comprehensive functionality for making HTTP/HTTPS requests, supporting all standard HTTP methods, custom headers, SSL/TLS, timeouts, and comprehensive error handling.
 
-## 🚀 Funcionalidades
+## 🚀 Features
 
-### Características Principais
+### Key Features
 
-- ✅ **Métodos HTTP completos**: GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD, TRACE, CONNECT
-- ✅ **Headers customizados**: Suporte completo a headers HTTP
-- ✅ **Body flexível**: Suporte a texto, JSON e dados binários
-- ✅ **SSL/TLS**: Verificação de certificados configurável
-- ✅ **Timeouts**: Configuração de timeout personalizável
-- ✅ **Auto-detecção**: Content-Type automático para JSON
-- ✅ **User-Agent**: User-Agent padrão configurável
-- ✅ **Tratamento de erros**: Respostas estruturadas com códigos de status
-- ✅ **Observabilidade**: Tracing completo com OpenTelemetry
+- ✅ **Complete HTTP methods**: GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD, TRACE, CONNECT
+- ✅ **Custom headers**: Full support for HTTP headers
+- ✅ **Flexible body**: Support for text, JSON, and binary data
+- ✅ **SSL/TLS**: Configurable certificate verification
+- ✅ **Timeouts**: Customizable timeout configuration
+- ✅ **Auto-detection**: Automatic Content-Type for JSON
+- ✅ **User-Agent**: Configurable default User-Agent
+- ✅ **Error handling**: Structured responses with status codes
+- ✅ **Observability**: Complete tracing with OpenTelemetry
 
 ## 📋 Configuração
 

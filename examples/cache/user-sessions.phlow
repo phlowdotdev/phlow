@@ -1,0 +1,206 @@
+name: User Session Cache Example
+version: 1.0.0
+description: |
+  Example demonstrating how to use the cache module for managing user sessions.
+  This example shows session creation, validation, renewal, and cleanup.
+
+modules:
+  - module: cache
+    with:
+      capacity: 1000
+      default_ttl: 1800  # 30 minutes default session timeout
+      enable_events: false
+  - module: log
+
+# Simulate user login and session management
+
+steps:
+  - use: log
+    input:
+      level: info
+      message: "🔐 Starting user session management example"
+
+  # Step 1: Create user session
+  - use: cache
+    input:
+      action: set
+      key: "session:12345"
+      value:
+        user_id: 12345
+        username: "john.doe"
+        email: "john.doe@example.com"
+        login_time: "2025-08-06T23:10:00Z"
+        last_activity: "2025-08-06T23:10:00Z"
+        permissions: ["read", "write", "profile"]
+        is_active: true
+      ttl: 3600  # 1 hour session
+
+  - use: log
+    input:
+      level: info
+      message: "✅ Created session for user john.doe (ID: 12345)"
+
+  # Step 2: Store user profile cache
+  - use: cache
+    input:
+      action: set
+      key: "user:profile:12345"
+      value:
+        id: 12345
+        username: "john.doe"
+        email: "john.doe@example.com"
+        full_name: "John Doe"
+        avatar: "/avatars/john.doe.jpg"
+        preferences:
+          theme: "dark"
+          language: "en"
+          notifications: true
+      ttl: 7200  # 2 hours for profile data
+
+  - use: log
+    input:
+      level: info
+      message: "📋 Cached user profile for john.doe"
+
+  # Step 3: Validate session exists
+  - use: cache
+    input:
+      action: exists
+      key: "session:12345"
+
+  - assert: !phs payload.found
+    then:
+      - use: log
+        input:
+          level: info
+          message: "✅ Session validation successful"
+    else:
+      - use: log
+        input:
+          level: error
+          message: "❌ Session not found"
+
+  # Step 4: Retrieve session data
+  - use: cache
+    input:
+      action: get
+      key: "session:12345"
+
+  - assert: !phs payload.found
+    then:
+      - use: log
+        input:
+          level: info
+          message: !phs `👤 Retrieved session for ${payload.value.username}, last activity: ${payload.value.last_activity}`
+      
+      # Step 5: Update last activity (session renewal)
+      - use: cache
+        input:
+          action: set
+          key: "session:12345"
+          value:
+            user_id: !phs payload.value.user_id
+            username: !phs payload.value.username
+            email: !phs payload.value.email
+            login_time: !phs payload.value.login_time
+            last_activity: "2025-08-06T23:15:00Z"
+            permissions: !phs payload.value.permissions
+            is_active: true
+          ttl: 3600  # Renew for another hour
+      
+      - use: log
+        input:
+          level: info
+          message: "🔄 Session renewed with updated last activity"
+
+  # Step 6: List all active sessions (for admin)
+  - use: cache
+    input:
+      action: list
+      filter_type: "prefix"
+      filter_prefix: "session:"
+      order: "desc"
+      limit: 10
+
+  - use: log
+    input:
+      level: info
+      message: !phs `📊 Found ${payload.total_count} active sessions`
+
+  # Step 7: Get user profile
+  - use: cache
+    input:
+      action: get
+      key: "user:profile:12345"
+
+  - assert: !phs payload.found
+    then:
+      - use: log
+        input:
+          level: info
+          message: !phs `👤 Retrieved profile: ${payload.value.full_name} (${payload.value.email})`
+      - use: log
+        input:
+          level: info
+          message: !phs `🎨 User preferences - Theme: ${payload.value.preferences.theme}, Language: ${payload.value.preferences.language}`
+
+  # Step 8: Simulate user logout (remove session)
+  - use: cache
+    input:
+      action: remove
+      key: "session:12345"
+
+  - assert: !phs payload.removed
+    then:
+      - use: log
+        input:
+          level: info
+          message: "🚪 User john.doe logged out successfully"
+    else:
+      - use: log
+        input:
+          level: warn
+          message: "⚠️ Session was already expired or not found"
+
+  # Step 9: Verify session is gone
+  - use: cache
+    input:
+      action: exists
+      key: "session:12345"
+
+  - assert: !phs !payload.found
+    then:
+      - use: log
+        input:
+          level: info
+          message: "✅ Confirmed session has been removed"
+    else:
+      - use: log
+        input:
+          level: error
+          message: "❌ Error: Session still exists after logout"
+
+  # Step 10: Cleanup expired sessions
+  - use: cache
+    input:
+      action: cleanup
+
+  - use: log
+    input:
+      level: info
+      message: !phs `🧹 Cleanup completed, removed ${payload.cleaned_count} expired sessions`
+
+  # Step 11: Show final cache statistics
+  - use: cache
+    input:
+      action: stats
+
+  - use: log
+    input:
+      level: info
+      message: !phs `📈 Cache stats - Size: ${payload.stats.size}/${payload.stats.capacity}, Hit rate: ${payload.stats.hit_rate.toFixed(1)}%`
+
+  - return:
+      message: "User session management example completed"
+      cache_stats: !phs payload.stats
+      user_processed: "john.doe"

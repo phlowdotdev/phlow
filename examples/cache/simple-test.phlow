@@ -1,0 +1,194 @@
+name: Cache Module Simple Tests
+version: 1.0.0
+description: Simple tests for basic cache operations
+
+modules:
+  - module: cache
+    with:
+      capacity: 10
+      default_ttl: 300
+
+tests:
+  # Test 1: Set and get string
+  - describe: "Set and get string value"
+    main:
+      test_key: "simple:string"
+      test_value: "Hello Cache!"
+    payload: null
+    assert: !phs payload.success && payload.key == "simple:string"
+
+  # Test 2: Get the stored string
+  - describe: "Retrieve stored string value"
+    main:
+      test_key: "simple:string"
+    payload: null
+    assert: !phs payload.found && payload.value == "Hello Cache!"
+
+  # Test 3: Store number
+  - describe: "Set and get number value"
+    main:
+      test_key: "simple:number"
+      test_value: 42
+    payload: null
+    assert: !phs payload.success
+
+  # Test 4: Get the number
+  - describe: "Retrieve stored number value"
+    main:
+      test_key: "simple:number"
+    payload: null
+    assert: !phs payload.found && payload.value == 42
+
+  # Test 5: Store object
+  - describe: "Set complex object"
+    main:
+      test_key: "simple:object"
+      test_value:
+        name: "Test User"
+        age: 30
+        active: true
+    payload: null
+    assert: !phs payload.success
+
+  # Test 6: Get the object
+  - describe: "Retrieve stored object"
+    main:
+      test_key: "simple:object"
+    payload: null
+    assert: !phs payload.found && payload.value.name == "Test User" && payload.value.age == 30
+
+  # Test 7: Check existence
+  - describe: "Check if key exists"
+    main:
+      test_key: "simple:string"
+    payload: null
+    assert: !phs payload.found
+
+  # Test 8: Check non-existence
+  - describe: "Check non-existent key"
+    main:
+      test_key: "nonexistent"
+    payload: null
+    assert: !phs !payload.found
+
+  # Test 9: Remove key
+  - describe: "Remove existing key"
+    main:
+      test_key: "simple:number"
+    payload: null
+    assert: !phs payload.success == true
+
+  # Test 10: List all items
+  - describe: "List all cached items"
+    main: {}
+    payload: null
+    assert: !phs payload.success && payload.total_count >= 2
+
+  # Test 11: Get statistics
+  - describe: "Get cache statistics"
+    main: {}
+    payload: null
+    assert: !phs payload.success == true
+
+  # Test 12: Clear cache
+  - describe: "Clear entire cache"
+    main: {}
+    payload: null
+    assert: !phs payload.success == true
+
+steps:
+  # Test 1: Set string
+  - assert: !phs main.test_key == "simple:string" && main.test_value != null
+    then:
+      - use: cache
+        input:
+          action: set
+          key: !phs main.test_key
+          value: !phs main.test_value
+
+  # Test 2: Get string
+  - assert: !phs main.test_key == "simple:string" && main.test_value == null
+    then:
+      - use: cache
+        input:
+          action: get
+          key: !phs main.test_key
+
+  # Test 3: Set number
+  - assert: !phs main.test_key == "simple:number" && main.test_value != null
+    then:
+      - use: cache
+        input:
+          action: set
+          key: !phs main.test_key
+          value: !phs main.test_value
+
+  # Test 4: Get number
+  - assert: !phs main.test_key == "simple:number" && main.test_value == null
+    then:
+      - use: cache
+        input:
+          action: get
+          key: !phs main.test_key
+
+  # Test 5: Set object
+  - assert: !phs main.test_key == "simple:object" && main.test_value != null
+    then:
+      - use: cache
+        input:
+          action: set
+          key: !phs main.test_key
+          value: !phs main.test_value
+
+  # Test 6: Get object
+  - assert: !phs main.test_key == "simple:object" && main.test_value == null
+    then:
+      - use: cache
+        input:
+          action: get
+          key: !phs main.test_key
+
+  # Test 7: Check existence
+  - assert: !phs main.test_key == "simple:string"
+    then:
+      - use: cache
+        input:
+          action: exists
+          key: !phs main.test_key
+
+  # Test 8: Check non-existence
+  - assert: !phs main.test_key == "nonexistent"
+    then:
+      - use: cache
+        input:
+          action: exists
+          key: !phs main.test_key
+
+  # Test 9: Remove key
+  - assert: !phs main.test_key == "simple:number"
+    then:
+      - use: cache
+        input:
+          action: remove
+          key: !phs main.test_key
+
+  # Test 10: List all items
+  - assert: !phs main.test_key == null
+    then:
+      - use: cache
+        input:
+          action: list
+
+  # Test 11: Get statistics
+  - assert: !phs main.test_key == null
+    then:
+      - use: cache
+        input:
+          action: stats
+
+  # Test 12: Clear cache
+  - assert: !phs main.test_key == null
+    then:
+      - use: cache
+        input:
+          action: clear

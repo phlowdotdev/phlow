@@ -4,21 +4,21 @@ title: RPC Module
 hide_title: true
 ---
 
-# Módulo RPC
+# RPC Module
 
-O módulo RPC fornece funcionalidade de Remote Procedure Call (RPC) usando tarpc para comunicação cliente-servidor de alta performance.
+The RPC module provides Remote Procedure Call (RPC) functionality using tarpc for high-performance client-server communication.
 
-## 🚀 Funcionalidades
+## 🚀 Features
 
-### Características Principais
+### Key Features
 
-- ✅ **Servidor RPC**: Recebe chamadas RPC e processa via steps
-- ✅ **Cliente RPC**: Faz chamadas para servidores RPC remotos
-- ✅ **Alta performance**: Usando tarpc com transporte TCP
-- ✅ **Serialização JSON**: Compatibilidade cross-language
-- ✅ **Health checks**: Endpoint de verificação de saúde
-- ✅ **Pool de conexões**: Gerenciamento automático de conexões
-- ✅ **Observabilidade**: Tracing completo com OpenTelemetry
+- ✅ **RPC Server**: Receives RPC calls and processes via steps
+- ✅ **RPC Client**: Makes calls to remote RPC servers
+- ✅ **High performance**: Using tarpc with TCP transport
+- ✅ **JSON serialization**: Cross-language compatibility
+- ✅ **Health checks**: Health verification endpoint
+- ✅ **Connection pool**: Automatic connection management
+- ✅ **Observability**: Complete tracing with OpenTelemetry
 
 ## 📋 Configuração
 

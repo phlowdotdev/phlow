@@ -1,0 +1,472 @@
+name: Cache Module Test Suite
+version: 1.0.0
+description: |
+  Comprehensive test suite for the Phlow cache module.
+  Tests all cache operations, TTL functionality, filtering,
+  pagination, statistics, and error conditions.
+
+modules:
+  - module: cache
+    with:
+      capacity: 50
+      default_ttl: 60  # 1 minute default TTL for testing
+      enable_events: false
+
+tests:
+  # Basic Set/Get Operations
+  - describe: "Basic set and get operation"
+    main:
+      key: "test:basic"
+      value: "hello world"
+    payload: null
+    assert: !phs payload.found && payload.value == "hello world"
+
+  - describe: "Set operation returns success"
+    main:
+      key: "test:success"
+      value: {"status": "ok"}
+    payload: null
+    assert: !phs payload.success && payload.cached
+
+  - describe: "Get non-existent key returns miss"
+    main:
+      key: "nonexistent:key"
+    payload: null
+    assert: !phs !payload.found && payload.value == null
+
+  # TTL Operations
+  - describe: "Set with custom TTL"
+    main:
+      key: "test:ttl"
+      value: "expires soon"
+      ttl: 3600
+    payload: null
+    assert: !phs payload.success && payload.key == "test:ttl"
+
+  - describe: "Set without TTL uses default"
+    main:
+      key: "test:default_ttl"
+      value: "uses default"
+    payload: null
+    assert: !phs payload.success
+
+  # Complex Data Types
+  - describe: "Store complex object"
+    main:
+      key: "user:complex"
+      value: 
+        id: 123
+        name: "John Doe"
+        roles: ["admin", "user"]
+        settings:
+          theme: "dark"
+          notifications: true
+    payload: null
+    assert: !phs payload.found && payload.value.name == "John Doe" && payload.value.roles.length == 2
+
+  - describe: "Store array data"
+    main:
+      key: "list:numbers"
+      value: [1, 2, 3, 4, 5]
+    payload: null
+    assert: !phs payload.found && payload.value.length == 5 && payload.value[2] == 3
+
+  # Exists Operations
+  - describe: "Check existence of stored key"
+    main:
+      key: "test:exists"
+      value: "exists test"
+    payload: null
+    assert: !phs payload.found
+
+  - describe: "Check existence of non-existent key"
+    main:
+      key: "test:not_exists"
+    payload: null
+    assert: !phs !payload.found
+
+  # Remove Operations
+  - describe: "Remove existing key"
+    main:
+      key: "test:remove"
+      value: "to be removed"
+    payload: null
+    assert: !phs payload.removed
+
+  - describe: "Remove non-existent key"
+    main:
+      key: "test:not_exists_remove"
+    payload: null
+    assert: !phs !payload.removed
+
+  # List Operations - Prefix Filter
+  - describe: "List with prefix filter finds items"
+    main:
+      setup_keys: 
+        - {key: "user:alice", value: {name: "Alice"}}
+        - {key: "user:bob", value: {name: "Bob"}}
+        - {key: "session:123", value: {id: 123}}
+      filter_prefix: "user:"
+    payload: null
+    assert: !phs payload.total_count == 2
+
+  - describe: "List with no matching prefix"
+    main:
+      filter_prefix: "nomatch:"
+    payload: null
+    assert: !phs payload.total_count == 0
+
+  # List Operations - Pagination
+  - describe: "List with pagination limit"
+    main:
+      setup_keys:
+        - {key: "item:1", value: 1}
+        - {key: "item:2", value: 2}
+        - {key: "item:3", value: 3}
+        - {key: "item:4", value: 4}
+      limit: 2
+    payload: null
+    assert: !phs payload.items.length == 2 && payload.has_more
+
+  - describe: "List with pagination offset"
+    main:
+      offset: 2
+      limit: 2
+    payload: null
+    assert: !phs payload.items.length <= 2
+
+  # List Operations - Ordering
+  - describe: "List with ascending order"
+    main:
+      order: "asc"
+      limit: 10
+    payload: null
+    assert: !phs payload.success
+
+  - describe: "List with descending order"
+    main:
+      order: "desc"
+      limit: 10
+    payload: null
+    assert: !phs payload.success
+
+  # Statistics Operations
+  - describe: "Get cache statistics"
+    main: {}
+    payload: null
+    assert: !phs payload.success && payload.stats.capacity == 50
+
+  - describe: "Statistics show hit rate"
+    main:
+      key: "stats:test"
+      value: "for stats"
+    payload: null
+    assert: !phs payload.stats.hit_rate >= 0 && payload.stats.hit_rate <= 100
+
+  # Cleanup Operations
+  - describe: "Manual cleanup operation"
+    main: {}
+    payload: null
+    assert: !phs payload.success && payload.cleaned_count >= 0
+
+  # Clear Operations
+  - describe: "Clear entire cache"
+    main:
+      setup_count: 3
+    payload: null
+    assert: !phs payload.success && payload.previous_size >= 0
+
+  # Error Conditions
+  - describe: "Set with empty key fails"
+    main:
+      key: ""
+      value: "test"
+    payload: null
+    assert: !phs !payload.success
+
+  - describe: "Get with empty key fails"
+    main:
+      key: ""
+    payload: null
+    assert: !phs !payload.success
+
+steps:
+  # Test 1: Basic set and get
+  - assert: !phs main.key == "test:basic"
+    then:
+      - use: cache
+        input:
+          action: set
+          key: !phs main.key
+          value: !phs main.value
+      - use: cache
+        input:
+          action: get
+          key: !phs main.key
+
+  # Test 2: Set operation returns success
+  - assert: !phs main.key == "test:success"
+    then:
+      - use: cache
+        input:
+          action: set
+          key: !phs main.key
+          value: !phs main.value
+
+  # Test 3: Get non-existent key
+  - assert: !phs main.key == "nonexistent:key"
+    then:
+      - use: cache
+        input:
+          action: get
+          key: !phs main.key
+
+  # Test 4: Set with custom TTL
+  - assert: !phs main.key == "test:ttl"
+    then:
+      - use: cache
+        input:
+          action: set
+          key: !phs main.key
+          value: !phs main.value
+          ttl: !phs main.ttl
+
+  # Test 5: Set without TTL
+  - assert: !phs main.key == "test:default_ttl"
+    then:
+      - use: cache
+        input:
+          action: set
+          key: !phs main.key
+          value: !phs main.value
+
+  # Test 6: Complex object storage and retrieval
+  - assert: !phs main.key == "user:complex"
+    then:
+      - use: cache
+        input:
+          action: set
+          key: !phs main.key
+          value: !phs main.value
+      - use: cache
+        input:
+          action: get
+          key: !phs main.key
+
+  # Test 7: Array storage and retrieval
+  - assert: !phs main.key == "list:numbers"
+    then:
+      - use: cache
+        input:
+          action: set
+          key: !phs main.key
+          value: !phs main.value
+      - use: cache
+        input:
+          action: get
+          key: !phs main.key
+
+  # Test 8: Check existence of stored key
+  - assert: !phs main.key == "test:exists"
+    then:
+      - use: cache
+        input:
+          action: set
+          key: !phs main.key
+          value: !phs main.value
+      - use: cache
+        input:
+          action: exists
+          key: !phs main.key
+
+  # Test 9: Check existence of non-existent key
+  - assert: !phs main.key == "test:not_exists"
+    then:
+      - use: cache
+        input:
+          action: exists
+          key: !phs main.key
+
+  # Test 10: Remove existing key
+  - assert: !phs main.key == "test:remove"
+    then:
+      - use: cache
+        input:
+          action: set
+          key: !phs main.key
+          value: !phs main.value
+      - use: cache
+        input:
+          action: remove
+          key: !phs main.key
+
+  # Test 11: Remove non-existent key
+  - assert: !phs main.key == "test:not_exists_remove"
+    then:
+      - use: cache
+        input:
+          action: remove
+          key: !phs main.key
+
+  # Test 12: List with prefix filter
+  - assert: !phs main.setup_keys != null
+    then:
+      # Setup test data
+      - use: cache
+        input:
+          action: set
+          key: "user:alice"
+          value: {name: "Alice"}
+      - use: cache
+        input:
+          action: set
+          key: "user:bob"
+          value: {name: "Bob"}  
+      - use: cache
+        input:
+          action: set
+          key: "session:123"
+          value: {id: 123}
+      # List with prefix filter
+      - use: cache
+        input:
+          action: list
+          filter_type: "prefix"
+          filter_prefix: !phs main.filter_prefix
+
+  # Test 13: List with no matching prefix
+  - assert: !phs main.filter_prefix == "nomatch:"
+    then:
+      - use: cache
+        input:
+          action: list
+          filter_type: "prefix"
+          filter_prefix: !phs main.filter_prefix
+
+  # Test 14: List with pagination limit
+  - assert: !phs main.setup_keys != null && main.limit
+    then:
+      # Setup test data
+      - use: cache
+        input:
+          action: set
+          key: "item:1"
+          value: 1
+      - use: cache
+        input:
+          action: set
+          key: "item:2"
+          value: 2
+      - use: cache
+        input:
+          action: set
+          key: "item:3"
+          value: 3
+      - use: cache
+        input:
+          action: set
+          key: "item:4"
+          value: 4
+      # List with limit
+      - use: cache
+        input:
+          action: list
+          limit: !phs main.limit
+
+  # Test 15: List with pagination offset
+  - assert: !phs main.offset != null
+    then:
+      - use: cache
+        input:
+          action: list
+          offset: !phs main.offset
+          limit: !phs main.limit
+
+  # Test 16: List with ascending order
+  - assert: !phs main.order == "asc"
+    then:
+      - use: cache
+        input:
+          action: list
+          order: !phs main.order
+          limit: !phs main.limit
+
+  # Test 17: List with descending order
+  - assert: !phs main.order == "desc"
+    then:
+      - use: cache
+        input:
+          action: list
+          order: !phs main.order
+          limit: !phs main.limit
+
+  # Test 18: Get cache statistics
+  - assert: !phs main.key == null
+    then:
+      - use: cache
+        input:
+          action: stats
+
+  # Test 19: Statistics with hit rate
+  - assert: !phs main.key == "stats:test"
+    then:
+      - use: cache
+        input:
+          action: set
+          key: !phs main.key
+          value: !phs main.value
+      - use: cache
+        input:
+          action: get
+          key: !phs main.key
+      - use: cache
+        input:
+          action: stats
+
+  # Test 20: Manual cleanup
+  - assert: !phs main.setup_count == null
+    then:
+      - use: cache
+        input:
+          action: cleanup
+
+  # Test 21: Clear entire cache
+  - assert: !phs main.setup_count
+    then:
+      # Setup some data first
+      - use: cache
+        input:
+          action: set
+          key: "clear:1"
+          value: "data1"
+      - use: cache
+        input:
+          action: set
+          key: "clear:2"
+          value: "data2"
+      - use: cache
+        input:
+          action: set
+          key: "clear:3"  
+          value: "data3"
+      # Clear cache
+      - use: cache
+        input:
+          action: clear
+
+  # Test 22: Set with empty key fails
+  - assert: !phs main.key == ""
+    then:
+      - use: cache
+        input:
+          action: set
+          key: !phs main.key
+          value: !phs main.value
+
+  # Test 23: Get with empty key fails  
+  - assert: !phs main.key == ""
+    then:
+      - use: cache
+        input:
+          action: get
+          key: !phs main.key

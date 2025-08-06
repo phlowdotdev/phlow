@@ -4,22 +4,22 @@ title: JWT Module
 hide_title: true
 ---
 
-# Módulo JWT
+# JWT Module
 
-O módulo JWT fornece funcionalidades completas para criação e validação de JSON Web Tokens (JWT), permitindo autenticação e autorização seguras em aplicações Phlow.
+The JWT module provides comprehensive functionality for creating and validating JSON Web Tokens (JWT), enabling secure authentication and authorization in Phlow applications.
 
-## 🚀 Funcionalidades
+## 🚀 Features
 
-### Características Principais
+### Key Features
 
-- ✅ **Criação de tokens JWT**: Geração de tokens com dados customizados
-- ✅ **Validação de tokens**: Verificação automática de assinatura e expiração
-- ✅ **Secret configurável**: Chave secreta definida por módulo
-- ✅ **Claims customizados**: Suporte a dados arbitrários no payload
-- ✅ **Expiração automática**: Configuração de TTL para tokens com validação rigorosa
-- ✅ **Algoritmo HS256**: Padrão da indústria para assinatura
-- ✅ **Validação dupla**: Biblioteca jsonwebtoken + validação manual de expiração
-- ✅ **Tratamento de erros**: Respostas estruturadas para falhas
+- ✅ **JWT token creation**: Generation of tokens with custom data
+- ✅ **Token validation**: Automatic verification of signature and expiration
+- ✅ **Configurable secret**: Secret key defined per module
+- ✅ **Custom claims**: Support for arbitrary data in payload
+- ✅ **Automatic expiration**: TTL configuration for tokens with strict validation
+- ✅ **HS256 algorithm**: Industry standard for signing
+- ✅ **Double validation**: jsonwebtoken library + manual expiration validation
+- ✅ **Error handling**: Structured responses for failures
 
 ## 📋 Configuração
 

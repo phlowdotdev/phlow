@@ -4,19 +4,19 @@ title: Log Module
 hide_title: true
 ---
 
-# Módulo Log
+# Log Module
 
-O módulo Log fornece funcionalidades de logging estruturado para aplicações Phlow, permitindo registrar mensagens com diferentes níveis de severidade.
+The Log module provides structured logging functionality for Phlow applications, allowing you to record messages with different severity levels.
 
-## 🚀 Funcionalidades
+## 🚀 Features
 
-### Características Principais
+### Key Features
 
-- ✅ **Múltiplos níveis de log**: info, debug, warn, error
-- ✅ **Logging estruturado**: Compatível com env_logger
-- ✅ **Configuração flexível**: Via variável de ambiente PHLOW_LOG
-- ✅ **Observabilidade**: Integração com OpenTelemetry
-- ✅ **Performance**: Logging assíncrono sem bloqueio
+- ✅ **Multiple log levels**: info, debug, warn, error
+- ✅ **Structured logging**: Compatible with env_logger
+- ✅ **Flexible configuration**: Via PHLOW_LOG environment variable
+- ✅ **Observability**: Integration with OpenTelemetry
+- ✅ **Performance**: Asynchronous logging without blocking
 
 ## 📋 Configuração
 

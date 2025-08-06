@@ -1,0 +1,272 @@
+name: Cache Module Example
+version: 1.0.0
+description: |
+  Comprehensive example demonstrating all features of the Phlow cache module.
+  This example showcases various caching operations, TTL functionality,
+  filtering capabilities, and statistics tracking.
+
+modules:
+  - module: cache
+    with:
+      capacity: 100
+      default_ttl: 300  # 5 minutes default TTL
+      enable_events: false
+  - module: log
+
+steps:
+  # Initialize with some test data
+  - use: log
+    input:
+      level: info
+      message: "🚀 Starting cache module demonstration"
+
+  # Set operations with different TTLs
+  - use: cache
+    input:
+      action: set
+      key: "user:alice"
+      value:
+        id: 1
+        name: "Alice Smith"
+        role: "admin"
+        email: "alice@example.com"
+        created_at: "2025-08-06T23:07:32Z"
+      ttl: 3600  # 1 hour
+
+  - use: cache
+    input:
+      action: set
+      key: "user:bob"
+      value:
+        id: 2
+        name: "Bob Johnson"
+        role: "user"
+        email: "bob@example.com"
+        created_at: "2025-08-06T23:07:32Z"
+      # Uses default TTL (300 seconds)
+
+  - use: cache
+    input:
+      action: set
+      key: "session:abc123"
+      value:
+        user_id: 1
+        login_time: "2025-08-06T23:07:32Z"
+        permissions: ["read", "write", "admin"]
+      ttl: 1800  # 30 minutes
+
+  - use: cache
+    input:
+      action: set
+      key: "config:app_settings"
+      value:
+        theme: "dark"
+        language: "en"
+        notifications: true
+        version: "1.0.0"
+      ttl: 86400  # 24 hours
+
+  - use: cache
+    input:
+      action: set
+      key: "temp:processing_data"
+      value:
+        status: "processing"
+        started_at: "2025-08-06T23:07:32Z"
+        progress: 0
+      ttl: 60  # 1 minute - short TTL for demo
+
+  - use: log
+    input:
+      level: info
+      message: "✅ Stored 5 items in cache with different TTLs"
+
+  # Get operations
+  - use: cache
+    input:
+      action: get
+      key: "user:alice"
+
+  - assert: !phs payload.found
+    then:
+      - use: log
+        input:
+          level: info
+          message: !phs `Found user: ${payload.value.name} (${payload.value.role})`
+    else:
+      - use: log
+        input:
+          level: warn
+          message: "User Alice not found in cache"
+
+  # Check existence
+  - use: cache
+    input:
+      action: exists
+      key: "session:abc123"
+
+  - use: log
+    input:
+      level: info
+      message: !phs `Session exists: ${payload.found}`
+
+  # List all users (prefix filter)
+  - use: cache
+    input:
+      action: list
+      filter_type: "prefix"
+      filter_prefix: "user:"
+      order: "asc"
+      limit: 10
+
+  - use: log
+    input:
+      level: info
+      message: !phs `Found ${payload.total_count} users in cache`
+
+  # List all sessions (prefix filter)
+  - use: cache
+    input:
+      action: list
+      filter_type: "prefix"
+      filter_prefix: "session:"
+      order: "desc"
+
+  - use: log
+    input:
+      level: info
+      message: !phs `Found ${payload.total_count} active sessions`
+
+  # List configuration items (prefix filter)
+  - use: cache
+    input:
+      action: list
+      filter_type: "prefix"
+      filter_prefix: "config:"
+
+  - use: log
+    input:
+      level: info
+      message: !phs `Found ${payload.total_count} configuration items`
+
+  # Get cache statistics
+  - use: cache
+    input:
+      action: stats
+
+  - use: log
+    input:
+      level: info
+      message: !phs `Cache stats - Size: ${payload.stats.size}, Capacity: ${payload.stats.capacity}, Hit Rate: ${payload.stats.hit_rate.toFixed(2)}%`
+
+  # Test cache operations with pagination
+  - use: cache
+    input:
+      action: list
+      order: "asc"
+      limit: 3
+      offset: 0
+
+  - use: log
+    input:
+      level: info
+      message: !phs `First page: ${payload.items.length} items, has more: ${payload.has_more}`
+
+  - use: cache
+    input:
+      action: list
+      order: "asc"
+      limit: 3
+      offset: 3
+
+  - use: log
+    input:
+      level: info
+      message: !phs `Second page: ${payload.items.length} items, has more: ${payload.has_more}`
+
+  # Demonstrate cache miss
+  - use: cache
+    input:
+      action: get
+      key: "nonexistent:key"
+
+  - assert: !phs payload.found
+    then:
+      - use: log
+        input:
+          level: warn
+          message: "This should not happen - key should not exist"
+    else:
+      - use: log
+        input:
+          level: info
+          message: "✅ Cache miss handled correctly for nonexistent key"
+
+  # Remove a specific item
+  - use: cache
+    input:
+      action: remove
+      key: "temp:processing_data"
+
+  - use: log
+    input:
+      level: info
+      message: !phs `Removed temp data: ${payload.removed}`
+
+  # Manual cleanup of expired items
+  - use: cache
+    input:
+      action: cleanup
+
+  - use: log
+    input:
+      level: info
+      message: !phs `Cleaned up ${payload.cleaned_count} expired items`
+
+  # Final statistics
+  - use: cache
+    input:
+      action: stats
+
+  - use: log
+    input:
+      level: info
+      message: !phs `Final cache stats - Size: ${payload.stats.size}/${payload.stats.capacity}, Memory: ${(payload.stats.memory_usage/1024).toFixed(1)}KB`
+
+  # List remaining items
+  - use: cache
+    input:
+      action: list
+      order: "asc"
+
+  - use: log
+    input:
+      level: info
+      message: "📋 Remaining cache items:"
+
+  - payload: !phs payload.items
+  
+  # Clear entire cache
+  - use: cache
+    input:
+      action: clear
+
+  - use: log
+    input:
+      level: info
+      message: !phs `🗑️ Cleared entire cache, removed ${payload.previous_size} items`
+
+  # Final verification
+  - use: cache
+    input:
+      action: stats
+
+  - use: log
+    input:
+      level: info
+      message: !phs `Cache is now empty - Size: ${payload.stats.size}, Total operations: ${payload.stats.total_sets} sets, ${payload.stats.total_gets} gets`
+
+  - return:
+      message: "Cache module demonstration completed successfully"
+      final_stats: !phs payload.stats
+      items_processed: !phs steps[18].items

@@ -4,25 +4,25 @@ title: HTTP Server Module
 hide_title: true
 ---
 
-# Módulo HTTP Server
+# HTTP Server Module
 
-O módulo HTTP Server fornece um servidor web completo e de alta performance para construir APIs REST, webhooks e serviços web. Construído com Hyper e Tokio, oferece observabilidade completa com OpenTelemetry.
+The HTTP Server module provides a complete, high-performance web server for building REST APIs, webhooks, and web services. Built with Hyper and Tokio, it offers complete observability with OpenTelemetry.
 
-## 🚀 Funcionalidades
+## 🚀 Features
 
-### Características Principais
+### Key Features
 
-- ✅ **Servidor HTTP/HTTPS** de alta performance
-- ✅ **Suporte a todos os métodos HTTP** (GET, POST, PUT, PATCH, DELETE, OPTIONS, etc.)
-- ✅ **Roteamento dinâmico** via fluxos Phlow
-- ✅ **Headers customizados** para requisições e respostas
-- ✅ **Parsing automático** de JSON, query parameters e headers
+- ✅ **High-performance HTTP/HTTPS server**
+- ✅ **Support for all HTTP methods** (GET, POST, PUT, PATCH, DELETE, OPTIONS, etc.)
+- ✅ **Dynamic routing** via Phlow flows
+- ✅ **Custom headers** for requests and responses
+- ✅ **Automatic parsing** of JSON, query parameters, and headers
 - ✅ **Health check** endpoint (`/health`)
-- ✅ **Observabilidade completa** com OpenTelemetry tracing
-- ✅ **Configuração flexível** de host e porta
-- ✅ **Tratamento de authorization** com diferentes modos de span
-- ✅ **Middleware de tracing** para todas as requisições
-- ✅ **Suporte a keep-alive** para conexões persistentes
+- ✅ **Complete observability** with OpenTelemetry tracing
+- ✅ **Flexible configuration** of host and port
+- ✅ **Authorization handling** with different span modes
+- ✅ **Tracing middleware** for all requests
+- ✅ **Keep-alive support** for persistent connections
 
 ## 📋 Configuração
 

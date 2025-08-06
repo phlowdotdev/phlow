@@ -4,23 +4,23 @@ title: Sleep Module
 hide_title: true
 ---
 
-# Módulo Sleep
+# Sleep Module
 
-O módulo Sleep fornece funcionalidade para pausar a execução por um período específico, útil para delays, throttling e sincronização em fluxos de trabalho.
+The Sleep module provides functionality to pause execution for a specific period, useful for delays, throttling, and synchronization in workflows.
 
-## 🚀 Funcionalidades
+## 🚀 Features
 
-### Características Principais
+### Key Features
 
-- ✅ **Múltiplas unidades de tempo**: milliseconds, seconds, minutes, hours
-- ✅ **Flexibilidade**: Aceita qualquer unidade de tempo
-- ✅ **Performance**: Não bloqueia outros fluxos
-- ✅ **Observabilidade**: Logging integrado
-- ✅ **Simplicidade**: Interface intuitiva
+- ✅ **Multiple time units**: milliseconds, seconds, minutes, hours
+- ✅ **Flexibility**: Accepts any time unit
+- ✅ **Performance**: Does not block other flows
+- ✅ **Observability**: Integrated logging
+- ✅ **Simplicity**: Intuitive interface
 
-## 📋 Configuração
+## 📝 Configuration
 
-### Configuração Básica
+### Basic Configuration
 
 ```phlow
 steps:
@@ -30,16 +30,16 @@ steps:
       seconds: 5
 ```
 
-## 🔧 Parâmetros
+## 🔧 Parameters
 
-### Entrada (input)
-- `milliseconds` (integer, opcional): Tempo em milissegundos (padrão: 0)
-- `seconds` (integer, opcional): Tempo em segundos (padrão: 0)
-- `minutes` (integer, opcional): Tempo em minutos (padrão: 0)
-- `hours` (integer, opcional): Tempo em horas (padrão: 0)
+### Input
+- `milliseconds` (integer, optional): Time in milliseconds (default: 0)
+- `seconds` (integer, optional): Time in seconds (default: 0)
+- `minutes` (integer, optional): Time in minutes (default: 0)
+- `hours` (integer, optional): Time in hours (default: 0)
 
-### Saída (output)
-- Retorna `null` após o período de sleep
+### Output
+- Returns `null` after sleep period
 
 ## 💻 Exemplos de Uso
 

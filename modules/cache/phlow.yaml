@@ -1,0 +1,208 @@
+name: cache
+description: |
+  High-performance in-memory cache module powered by QuickLeaf.
+  
+  **Actions:**
+  - `set`: Store a key-value pair in cache with optional TTL
+  - `get`: Retrieve a value by key
+  - `remove`: Remove a key-value pair from cache
+  - `clear`: Clear all items from cache
+  - `exists`: Check if a key exists in cache
+  - `list`: List cache entries with filtering and ordering
+  - `cleanup`: Manually clean up expired items
+  - `stats`: Get cache statistics and information
+  
+  **Features:**
+  - O(1) access time for get/set operations
+  - TTL (Time To Live) support with automatic expiration
+  - LRU (Least Recently Used) eviction
+  - Advanced filtering (prefix, suffix, pattern matching)
+  - Ordered listing with pagination support
+  - Real-time statistics
+  
+  **Usage Examples:**
+  
+  Store data:
+  ```yaml
+  - use: cache
+    input:
+      action: set
+      key: "user:123"
+      value: { name: "Alice", role: "admin" }
+      ttl: 3600  # Optional TTL in seconds
+  ```
+  
+  Retrieve data:
+  ```yaml
+  - use: cache
+    input:
+      action: get
+      key: "user:123"
+  ```
+  
+  List with filtering:
+  ```yaml
+  - use: cache
+    input:
+      action: list
+      filter_type: "prefix"
+      filter_value: "user:"
+      order: "asc"
+      limit: 10
+  ```
+
+version: 0.1.0
+author: Philippe Assis <codephilippe@gmail.com>
+repository: https://github.com/phlowdotdev/phlow
+license: MIT
+type: step
+
+tags:
+  - cache
+  - memory
+  - storage
+  - performance
+  - ttl
+  - lru
+
+with:
+  type: object
+  required: false
+  properties:
+    capacity:
+      type: number
+      description: "Maximum number of items in cache"
+      default: 1000
+      required: false
+    default_ttl:
+      type: number
+      description: "Default TTL in seconds for all cached items"
+      required: false
+    enable_events:
+      type: boolean
+      description: "Enable cache operation events (insert, remove, clear)"
+      default: false
+      required: false
+
+input:
+  type: object
+  required: true
+  properties:
+    action:
+      type: string
+      description: "Action to perform"
+      required: true
+      enum: ["set", "get", "remove", "clear", "exists", "list", "cleanup", "stats"]
+    
+    # Properties for set action
+    key:
+      type: string
+      description: "Cache key (for set, get, remove, exists actions)"
+      required: false
+    value:
+      type: any
+      description: "Value to cache (for set action)"
+      required: false
+    ttl:
+      type: number
+      description: "TTL in seconds (for set action)"
+      required: false
+    
+    # Properties for list action
+    filter_type:
+      type: string
+      enum: ["none", "prefix", "suffix", "pattern"]
+      description: "Type of filter to apply (for list action)"
+      default: "none"
+      required: false
+    filter_value:
+      type: string
+      description: "Filter value (for list action)"
+      required: false
+    filter_prefix:
+      type: string
+      description: "Filter by key prefix (for list action)"
+      required: false
+    filter_suffix:
+      type: string
+      description: "Filter by key suffix (for list action)"
+      required: false
+    order:
+      type: string
+      enum: ["asc", "desc"]
+      description: "Ordering for results (for list action)"
+      default: "asc"
+      required: false
+    limit:
+      type: number
+      description: "Maximum number of results to return (for list action)"
+      required: false
+    offset:
+      type: number
+      description: "Number of results to skip (for list action)"
+      default: 0
+      required: false
+
+output:
+  type: object
+  required: true
+  properties:
+    success:
+      type: boolean
+      description: "Whether the operation succeeded"
+      required: true
+    
+    # Common outputs
+    error:
+      type: string
+      description: "Error message if operation failed"
+      required: false
+    
+    # Get action output
+    value:
+      type: any
+      description: "Retrieved value (for get action)"
+      required: false
+    found:
+      type: boolean
+      description: "Whether key was found (for get/exists actions)"
+      required: false
+    
+    # List action output
+    items:
+      type: array
+      description: "List of cache items (for list action)"
+      required: false
+    total_count:
+      type: number
+      description: "Total number of items matching filter (for list action)"
+      required: false
+    has_more:
+      type: boolean
+      description: "Whether there are more results (for list action)"
+      required: false
+    
+    # Stats action output
+    stats:
+      type: object
+      description: "Cache statistics (for stats action)"
+      required: false
+      properties:
+        size:
+          type: number
+          description: "Current number of items in cache"
+        capacity:
+          type: number
+          description: "Maximum cache capacity"
+        hit_rate:
+          type: number
+          description: "Cache hit rate percentage"
+        memory_usage:
+          type: number
+          description: "Estimated memory usage in bytes"
+    
+    # Cleanup action output
+    cleaned_count:
+      type: number
+      description: "Number of expired items removed (for cleanup action)"
+      required: false

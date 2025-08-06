@@ -1,0 +1,262 @@
+name: API Data Cache Example
+version: 1.0.0
+description: |
+  Example showing how to use the cache module for caching API responses
+  and expensive computations with different TTL strategies.
+
+modules:
+  - module: cache
+    with:
+      capacity: 500
+      default_ttl: 600  # 10 minutes default
+      enable_events: false
+  - module: log
+
+steps:
+  - use: log
+    input:
+      level: info
+      message: "🌐 Starting API data caching example"
+
+  # Scenario 1: Cache API response with short TTL
+  - use: cache
+    input:
+      action: set
+      key: !phs `api:${main.api_endpoint}:list`
+      value:
+        data:
+          - {id: 1, name: "Alice", status: "active"}
+          - {id: 2, name: "Bob", status: "inactive"}
+          - {id: 3, name: "Charlie", status: "active"}
+        metadata:
+          total_count: 3
+          page: 1
+          per_page: 10
+          cached_at: !phs main.current_time
+        cache_info:
+          source: "database"
+          query_time_ms: 245
+      ttl: 300  # 5 minutes - short TTL for frequently changing data
+
+  - use: log
+    input:
+      level: info
+      message: "📋 Cached user list API response (5 min TTL)"
+
+  # Scenario 2: Cache individual user data with medium TTL
+  - use: cache
+    input:
+      action: set
+      key: !phs `api:user:${main.user_id}`
+      value:
+        id: !phs main.user_id
+        name: "Alice Johnson"
+        email: "alice@example.com"
+        profile:
+          bio: "Software Developer"
+          location: "San Francisco, CA"
+          joined: "2023-01-15"
+        settings:
+          theme: "dark"
+          notifications: true
+        cached_at: !phs main.current_time
+      ttl: 1800  # 30 minutes - medium TTL for user data
+
+  - use: log
+    input:
+      level: info
+      message: !phs `👤 Cached individual user data for ID ${main.user_id} (30 min TTL)`
+
+  # Scenario 3: Cache computed/aggregated data with long TTL
+  - use: cache
+    input:
+      action: set
+      key: "api:stats:daily"
+      value:
+        date: "2025-08-06"
+        statistics:
+          total_users: 15247
+          active_users: 8934
+          new_registrations: 127
+          page_views: 45892
+          api_calls: 12456
+        computed_at: !phs main.current_time
+        computation_time_ms: 1850
+      ttl: 86400  # 24 hours - long TTL for daily stats
+
+  - use: log
+    input:
+      level: info
+      message: "📊 Cached daily statistics (24 hour TTL)"
+
+  # Scenario 4: Cache configuration data with very long TTL
+  - use: cache
+    input:
+      action: set
+      key: "api:config:app"
+      value:
+        version: "2.1.0"
+        features:
+          dark_mode: true
+          notifications: true
+          analytics: true
+          beta_features: false
+        limits:
+          max_file_size_mb: 10
+          max_requests_per_hour: 1000
+          max_concurrent_connections: 50
+        endpoints:
+          - {path: "/api/users", methods: ["GET", "POST"]}
+          - {path: "/api/users/:id", methods: ["GET", "PUT", "DELETE"]}
+        last_updated: !phs main.current_time
+      ttl: 604800  # 7 days - very long TTL for configuration
+
+  - use: log
+    input:
+      level: info
+      message: "⚙️ Cached application configuration (7 days TTL)"
+
+  # Check if API data exists (cache hit simulation)
+  - use: cache
+    input:
+      action: get
+      key: !phs `api:${main.api_endpoint}:list`
+
+  - assert: !phs payload.found
+    then:
+      - use: log
+        input:
+          level: info
+          message: !phs `✅ Cache HIT: Found cached user list with ${payload.value.metadata.total_count} users`
+      - use: log
+        input:
+          level: info
+          message: !phs `⏱️ Original query took ${payload.value.cache_info.query_time_ms}ms`
+    else:
+      - use: log
+        input:
+          level: warn
+          message: "❌ Cache MISS: Would need to fetch from database"
+
+  # Get individual user data
+  - use: cache
+    input:
+      action: get
+      key: !phs `api:user:${main.user_id}`
+
+  - assert: !phs payload.found
+    then:
+      - use: log
+        input:
+          level: info
+          message: !phs `✅ Retrieved cached user: ${payload.value.name} (${payload.value.email})`
+      - use: log
+        input:
+          level: info
+          message: !phs `📍 Location: ${payload.value.profile.location}`
+
+  # List all cached API data
+  - use: cache
+    input:
+      action: list
+      filter_type: "prefix"
+      filter_prefix: "api:"
+      order: "asc"
+
+  - use: log
+    input:
+      level: info
+      message: !phs `📂 Found ${payload.total_count} cached API responses`
+
+  # Show cache statistics
+  - use: cache
+    input:
+      action: stats
+
+  - use: log
+    input:
+      level: info
+      message: !phs `📈 Cache performance - Hit rate: ${payload.stats.hit_rate.toFixed(1)}%, Size: ${payload.stats.size} items`
+
+  # Simulate cache invalidation for user data
+  - use: cache
+    input:
+      action: remove
+      key: !phs `api:user:${main.user_id}`
+
+  - assert: !phs payload.removed
+    then:
+      - use: log
+        input:
+          level: info
+          message: !phs `🗑️ Invalidated cache for user ${main.user_id} (e.g., after user update)`
+
+  # Try to get the invalidated data
+  - use: cache
+    input:
+      action: get
+      key: !phs `api:user:${main.user_id}`
+
+  - assert: !phs !payload.found
+    then:
+      - use: log
+        input:
+          level: info
+          message: "✅ Confirmed: User data was successfully invalidated"
+      - use: log
+        input:
+          level: info
+          message: "💡 Next API call would trigger a fresh database query"
+
+  # List remaining cached items by category
+  - use: cache
+    input:
+      action: list
+      filter_type: "prefix"
+      filter_prefix: "api:config:"
+
+  - use: log
+    input:
+      level: info
+      message: !phs `⚙️ Configuration cache items: ${payload.total_count}`
+
+  - use: cache
+    input:
+      action: list
+      filter_type: "prefix"
+      filter_prefix: "api:stats:"
+
+  - use: log
+    input:
+      level: info
+      message: !phs `📊 Statistics cache items: ${payload.total_count}`
+
+  # Final cleanup of expired items
+  - use: cache
+    input:
+      action: cleanup
+
+  - use: log
+    input:
+      level: info
+      message: !phs `🧹 Cleaned up ${payload.cleaned_count} expired cache entries`
+
+  # Final statistics
+  - use: cache
+    input:
+      action: stats
+
+  - use: log
+    input:
+      level: info
+      message: !phs `📊 Final stats - Memory usage: ${(payload.stats.memory_usage/1024).toFixed(1)}KB, Efficiency: ${payload.stats.hit_rate.toFixed(1)}%`
+
+  - return:
+      message: "API data caching example completed"
+      final_cache_size: !phs payload.stats.size
+      hit_rate: !phs payload.stats.hit_rate
+      cache_categories:
+        - "api:users - Short TTL (5 min)"
+        - "api:user:id - Medium TTL (30 min)"
+        - "api:stats - Long TTL (24 hours)"
+        - "api:config - Very Long TTL (7 days)"

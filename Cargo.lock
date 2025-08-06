@@ -523,6 +523,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "cache"
+version = "0.1.0"
+dependencies = [
+ "log 0.4.27",
+ "phlow-sdk",
+ "quickleaf",
+ "serde",
+ "tokio",
+]
+
+[[package]]
 name = "cbc"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2930,6 +2941,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.101",
+]
+
+[[package]]
+name = "quickleaf"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "007cd40a48bd155237148f1b8f309c80b6658aa05c47ba90104dca7c772e9977"
+dependencies = [
+ "valu3",
 ]
 
 [[package]]
