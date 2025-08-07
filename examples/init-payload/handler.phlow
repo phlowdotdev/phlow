@@ -1,0 +1,10 @@
+steps:
+  - payload:
+      use_name: !phs main.name
+    assert: true
+
+  - assert: !phs payload.use_name == "John"
+    then:
+      payload: !phs `Hello, ${ payload.use_name }! Welcome to the Phlow platform.`
+    else:
+      payload: !phs "Hello, Guest! Welcome to the Phlow platform."

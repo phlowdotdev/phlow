@@ -1,0 +1,15 @@
+steps:
+  - assert: !phs 1 == 1
+    then:
+      !include ./handler.phlow
+
+tests:
+  - describe: "Test Phlow with Name"
+    main:
+      name: John
+    assert_eq: "Hello, John! Welcome to the Phlow platform."
+
+  - describe: "Test Phlow with No Name"
+    main:
+      name: "Other"
+    assert_eq: "Hello, Guest! Welcome to the Phlow platform."
