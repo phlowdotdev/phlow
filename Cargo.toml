@@ -13,12 +13,13 @@ members = [
     "modules/postgres",
     "modules/cli",
     "modules/rpc",
-    "modules/jwt", "modules/cache",
+    "modules/jwt",
+    "modules/cache",
 ]
 resolver = "2"
 
 [workspace.package]
-version = "0.0.45"
+version = "0.0.46"
 edition = "2021"
 rust-version = "1.87.0"
 authors = ["Philippe Assis <codephilippe@gmail.com>"]

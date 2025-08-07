@@ -27,8 +27,12 @@ pub async fn load_script(script_target: &str, print_yaml: bool) -> Result<Script
         Err(_) => return Err(Error::ModuleNotFound(script_file_path.to_string())),
     };
 
-    let script = resolve_script(&file, script_file_path.clone(), print_yaml)
-        .map_err(|_| Error::ModuleLoaderError("Module not found".to_string()))?;
+    let script = resolve_script(&file, script_file_path.clone(), print_yaml).map_err(|err| {
+        Error::ModuleLoaderError(format!(
+            "Failed to resolve script: {}. Error: {}",
+            script_file_path, err
+        ))
+    })?;
 
     Ok(ScriptLoaded {
         script,
@@ -249,7 +253,7 @@ fn resolve_script(file: &str, main_file_path: String, print_yaml: bool) -> Resul
             }
         }
 
-        serde_yaml::from_str(&script).map_err(Error::LoaderErrorYaml)?
+        serde_yaml::from_str(&script).map_err(Error::LoaderErrorScript)?
     };
 
     if value.get("steps").is_none() {
@@ -286,7 +290,7 @@ pub fn load_external_module_info(module: &str) -> Value {
 
     {
         let value: serde_yaml::Value = serde_yaml::from_str::<serde_yaml::Value>(&file)
-            .map_err(Error::LoaderErrorYaml)
+            .map_err(Error::LoaderErrorScript)
             .unwrap();
 
         if let Some(input) = value.get("input") {
@@ -311,7 +315,7 @@ pub fn load_external_module_info(module: &str) -> Value {
     }
 
     let mut value: Value = serde_yaml::from_str::<Value>(&file)
-        .map_err(Error::LoaderErrorYaml)
+        .map_err(Error::LoaderErrorScript)
         .unwrap();
 
     value.insert("input_order".to_string(), input_order.to_value());
@@ -337,7 +341,7 @@ pub fn load_local_module_info(local_path: &str) -> Value {
 
     {
         let value: serde_yaml::Value = serde_yaml::from_str::<serde_yaml::Value>(&file)
-            .map_err(Error::LoaderErrorYaml)
+            .map_err(Error::LoaderErrorScript)
             .unwrap();
 
         if let Some(input) = value.get("input") {
@@ -362,7 +366,7 @@ pub fn load_local_module_info(local_path: &str) -> Value {
     }
 
     let mut value: Value = serde_yaml::from_str::<Value>(&file)
-        .map_err(Error::LoaderErrorYaml)
+        .map_err(Error::LoaderErrorScript)
         .unwrap();
 
     value.insert("input_order".to_string(), input_order.to_value());
