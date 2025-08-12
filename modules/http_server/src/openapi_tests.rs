@@ -50,6 +50,12 @@ fn create_test_openapi_spec() -> &'static str {
                     "items": {
                       "type": "string"
                     }
+                  },
+                  "phone": {
+                    "type": "string",
+                    "pattern": "^\\+?(\\()?[1-9][0-9](\\))?[0-9 \\-()]{7,15}$",
+                    "minLength": 8,
+                    "maxLength": 20
                   }
                 }
               }
@@ -1159,4 +1165,36 @@ mod tests {
         assert_eq!(result.matched_route, Some("/users/{id}".to_string()));
     }
 
+    #[test]
+    fn test_post_with_valid_phone_number() {
+        let validator = create_test_validator();
+        let query_params = HashMap::new();
+
+        let test_phones = vec![
+            "15-1234567",     // Formato simples: 1 dígito (1-9) + 1 dígito + hífen + 7 dígitos
+            "+12-1234567",    // Com + no início
+            "12345678901",    // Apenas números
+            "12 3456 7890",   // Com espaços
+            "12-345-6789",    // Com hífens
+            "(12)34567890",   // Com parênteses
+            "12 (345) 67890", // Combinação de formatos
+        ];
+
+        for phone in test_phones {
+            let mut user_data = HashMap::new();
+            user_data.insert("name".to_string(), "Valid Phone User".to_value());
+            user_data.insert("email".to_string(), "valid.phone@example.com".to_value());
+            user_data.insert("phone".to_string(), phone.to_value());
+
+            let body = user_data.to_value();
+
+            let result = validator.validate_request("POST", "/users", &query_params, &body);
+
+            assert!(
+                result.is_valid,
+                "Phone number '{}' should be valid. Errors: {:?}",
+                phone, result.errors
+            );
+        }
+    }
 }

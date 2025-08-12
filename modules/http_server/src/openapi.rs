@@ -73,14 +73,15 @@ impl OpenAPIValidator {
     pub fn json_to_value(
         target: &str,
     ) -> Result<(Value, String), Box<dyn std::error::Error + Send + Sync>> {
-        let target: String = target.to_string().replace("\\", "\\\\");
-
         if target.trim_start().starts_with('{') {
+            // For JSON input, apply backslash normalization if needed
+            let target: String = target.to_string().replace("\\", "\\\\");
             let value = Value::json_to_value(&target)
                 .map_err(|e| format!("Failed to parse OpenAPI spec JSON: {:?}", e))?;
             Ok((value, target))
         } else {
-            let value: Value = serde_yaml::from_str(&target)?;
+            // For YAML input, don't double-escape backslashes as YAML parser handles them correctly
+            let value: Value = serde_yaml::from_str(target)?;
             let string = value.to_json(JsonMode::Inline);
             Ok((value, string))
         }
@@ -421,37 +422,41 @@ impl OpenAPIValidator {
         let paths = self.spec.get("paths")?;
         let path_item = paths.get(path)?;
         let operation = path_item.get(method)?;
-        
+
         // If operation not found, try lowercase method name (per OpenAPI spec)
         let operation = if operation.is_null() || operation.is_undefined() {
             path_item.get(method.to_lowercase())?
         } else {
             operation
         };
-        
+
         // Try to get schema
         let request_body = operation.get("requestBody")?;
         let content = request_body.get("content")?;
         let json_content = content.get("application/json")?;
         let schema = json_content.get("schema")?;
-        
+
         // Resolve schema reference if it's a $ref
         let resolved_schema = self.resolve_schema_reference(schema);
-        
+
         Some(resolved_schema)
     }
-    
+
     /// Resolve schema reference ($ref) to actual schema definition
     fn resolve_schema_reference(&self, schema: &Value) -> Value {
         // Check if this is a schema reference
         if let Some(ref_str) = schema.get("$ref").and_then(|r| {
             let string = r.to_string();
-            if string.is_empty() { None } else { Some(string) }
+            if string.is_empty() {
+                None
+            } else {
+                Some(string)
+            }
         }) {
             // Parse the reference path (e.g., "#/components/schemas/NewUser")
             if ref_str.starts_with("#/") {
                 let path_parts: Vec<&str> = ref_str[2..].split('/').collect();
-                
+
                 // Navigate through the spec to find the referenced schema
                 let mut current = &Value::Object(self.spec.clone());
                 for part in path_parts {
@@ -463,7 +468,7 @@ impl OpenAPIValidator {
                         return schema.clone();
                     }
                 }
-                
+
                 // Return the resolved schema
                 current.clone()
             } else {
@@ -549,12 +554,7 @@ impl OpenAPIValidator {
                             );
                         }
                         Some(ref val) if val == "array" => {
-                            self.validate_array_field(
-                                &prop_name,
-                                field_value,
-                                prop_schema,
-                                errors,
-                            );
+                            self.validate_array_field(&prop_name, field_value, prop_schema, errors);
                         }
                         _ => {
                             // Handle other types or generic validation
@@ -660,11 +660,26 @@ impl OpenAPIValidator {
                 Some(string)
             }
         }) {
-            match Regex::new(&pattern) {
+            // Remove barras extras adicionadas pelo parsing do JSON
+            let mut unescaped_pattern = pattern.to_string();
+            while unescaped_pattern.contains("\\\\") {
+                unescaped_pattern = unescaped_pattern.replace("\\\\", "\\");
+            }
+            println!(
+                "Pattern before unescaping: '{}', after: '{}'",
+                pattern, unescaped_pattern
+            );
+            match Regex::new(&unescaped_pattern) {
                 Ok(regex) => {
-                    log::warn!("Validating field '{}' with value '{}' against pattern '{}'", field_name, str_val, pattern);
+                    println!(
+                        "Validating field '{}' with value '{}' against pattern '{}'",
+                        field_name, str_val, unescaped_pattern
+                    );
                     if !regex.is_match(str_val) {
-                        log::warn!("Pattern match failed for '{}' with pattern '{}'", str_val, pattern);
+                        println!(
+                            "Pattern match failed for '{}' with pattern '{}'",
+                            str_val, unescaped_pattern
+                        );
                         let message = if field_name == "email" {
                             format!("Field '{}' must be a valid email address", field_name)
                         } else {
@@ -676,12 +691,21 @@ impl OpenAPIValidator {
                             field: Some(field_name.to_string()),
                         });
                     } else {
-                        log::warn!("Pattern match successful for '{}' with pattern '{}'", str_val, pattern);
+                        log::warn!(
+                            "Pattern match successful for '{}' with pattern '{}'",
+                            str_val,
+                            pattern
+                        );
                     }
                 }
                 Err(regex_err) => {
                     // If regex is invalid, log the error and treat as validation failure
-                    log::warn!("Invalid regex pattern '{}' for field '{}': {}", pattern, field_name, regex_err);
+                    log::warn!(
+                        "Invalid regex pattern '{}' for field '{}': {}",
+                        pattern,
+                        field_name,
+                        regex_err
+                    );
                     errors.push(ValidationError {
                         error_type: ValidationErrorType::InvalidFieldValue,
                         message: format!("Field '{}' has invalid validation pattern", field_name),
@@ -730,18 +754,19 @@ impl OpenAPIValidator {
         };
 
         // Check if schema specifies integer type and value is not an integer
-        if let Some(type_str) = schema.get("type").and_then(|t| {
-            match t {
-                Value::String(s) => Some(s.as_str().to_string()),
-                _ => Some(t.to_string()),
-            }
+        if let Some(type_str) = schema.get("type").and_then(|t| match t {
+            Value::String(s) => Some(s.as_str().to_string()),
+            _ => Some(t.to_string()),
         }) {
             if type_str == "integer" {
                 // For integer type, check if the number is actually an integer
                 let num_val = match number.to_f64() {
                     Some(val) => val,
                     None => {
-                        log::warn!("Failed to convert number value for field '{}' to f64", field_name);
+                        log::warn!(
+                            "Failed to convert number value for field '{}' to f64",
+                            field_name
+                        );
                         errors.push(ValidationError {
                             error_type: ValidationErrorType::InvalidFieldValue,
                             message: format!("Field '{}' has invalid numeric value", field_name),
@@ -750,12 +775,15 @@ impl OpenAPIValidator {
                         return;
                     }
                 };
-                
+
                 // Check if the value is actually an integer (no decimal part)
                 if num_val.fract() != 0.0 {
                     errors.push(ValidationError {
                         error_type: ValidationErrorType::InvalidFieldType,
-                        message: format!("Field '{}' must be an integer (no decimal places)", field_name),
+                        message: format!(
+                            "Field '{}' must be an integer (no decimal places)",
+                            field_name
+                        ),
                         field: Some(field_name.to_string()),
                     });
                     return;
@@ -768,7 +796,10 @@ impl OpenAPIValidator {
             Some(val) => val,
             None => {
                 // If conversion fails, log and return error
-                log::warn!("Failed to convert number value for field '{}' to f64", field_name);
+                log::warn!(
+                    "Failed to convert number value for field '{}' to f64",
+                    field_name
+                );
                 errors.push(ValidationError {
                     error_type: ValidationErrorType::InvalidFieldValue,
                     message: format!("Field '{}' has invalid numeric value", field_name),
@@ -864,7 +895,10 @@ impl OpenAPIValidator {
                             if !matches!(item, Value::String(_)) {
                                 errors.push(ValidationError {
                                     error_type: ValidationErrorType::InvalidFieldType,
-                                    message: format!("Array item at index {} must be a string", index),
+                                    message: format!(
+                                        "Array item at index {} must be a string",
+                                        index
+                                    ),
                                     field: Some(format!("{}[{}]", field_name, index)),
                                 });
                             }
@@ -873,7 +907,10 @@ impl OpenAPIValidator {
                             if !matches!(item, Value::Number(_)) {
                                 errors.push(ValidationError {
                                     error_type: ValidationErrorType::InvalidFieldType,
-                                    message: format!("Array item at index {} must be a number", index),
+                                    message: format!(
+                                        "Array item at index {} must be a number",
+                                        index
+                                    ),
                                     field: Some(format!("{}[{}]", field_name, index)),
                                 });
                             }
@@ -882,7 +919,10 @@ impl OpenAPIValidator {
                             if !matches!(item, Value::Boolean(_)) {
                                 errors.push(ValidationError {
                                     error_type: ValidationErrorType::InvalidFieldType,
-                                    message: format!("Array item at index {} must be a boolean", index),
+                                    message: format!(
+                                        "Array item at index {} must be a boolean",
+                                        index
+                                    ),
                                     field: Some(format!("{}[{}]", field_name, index)),
                                 });
                             }
@@ -938,49 +978,61 @@ impl OpenAPIValidator {
         if email.is_empty() || !email.contains('@') {
             return false;
         }
-        
+
         let parts: Vec<&str> = email.split('@').collect();
         if parts.len() != 2 {
             return false; // Should have exactly one @
         }
-        
+
         let username = parts[0];
         let domain = parts[1];
-        
+
         // Username checks
-        if username.is_empty() || username.starts_with('.') || username.ends_with('.') || username.contains("..") {
+        if username.is_empty()
+            || username.starts_with('.')
+            || username.ends_with('.')
+            || username.contains("..")
+        {
             return false;
         }
-        
+
         // Domain checks
-        if domain.is_empty() || domain.starts_with('.') || domain.ends_with('.') 
-            || domain.starts_with('-') || domain.ends_with('-') || domain.contains("..") 
-            || !domain.contains('.') {
+        if domain.is_empty()
+            || domain.starts_with('.')
+            || domain.ends_with('.')
+            || domain.starts_with('-')
+            || domain.ends_with('-')
+            || domain.contains("..")
+            || !domain.contains('.')
+        {
             return false;
         }
-        
+
         // Check if domain has a valid TLD (at least 2 characters after last dot)
         let domain_parts: Vec<&str> = domain.split('.').collect();
         if domain_parts.len() < 2 {
             return false; // Must have at least domain.tld
         }
-        
+
         let tld = domain_parts.last().unwrap();
         if tld.len() < 2 || tld.is_empty() {
             return false;
         }
-        
+
         // More permissive regex that accepts common email formats
         let email_regex = match Regex::new(
-            r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$"
+            r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$",
         ) {
             Ok(regex) => regex,
             Err(_) => {
                 // If regex compilation fails, use basic validation
-                return username.len() > 0 && domain.len() > 3 && domain.contains('.') && !domain.ends_with('.');
+                return username.len() > 0
+                    && domain.len() > 3
+                    && domain.contains('.')
+                    && !domain.ends_with('.');
             }
         };
-        
+
         email_regex.is_match(email)
     }
 
