@@ -1,10 +1,11 @@
-use phlow_sdk::{prelude::*, valu3::to};
+use phlow_sdk::prelude::*;
 use regex::Regex;
 use std::{collections::HashMap, path::Path};
 
 #[derive(Debug, Clone)]
 pub struct OpenAPIValidator {
     pub spec_json: String,
+    pub spec: Object,
     pub config: ValidationConfig,
     pub route_patterns: Vec<RoutePattern>,
 }
@@ -73,19 +74,26 @@ impl OpenAPIValidator {
         content: &str,
         config: ValidationConfig,
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        let spec_json = if content.trim_start().starts_with('{') {
-            // Already JSON format
-            content.to_string()
+        let (spec, spec_json) = if content.trim_start().starts_with('{') {
+            let string = content.to_string();
+            let value = Value::json_to_value(&string)
+                .map_err(|e| format!("Failed to parse OpenAPI spec JSON: {:?}", e))?;
+            (value, string)
         } else {
-            // YAML format - convert to JSON
-            let yaml_value: Value = serde_yaml::from_str(content)?;
-            yaml_value.to_json(JsonMode::Inline)
+            let value: Value = serde_yaml::from_str(content)?;
+            let string = value.to_json(JsonMode::Inline);
+            (value, string)
         };
 
         let route_patterns = Self::build_route_patterns_from_json(&spec_json)?;
+        let spec = match spec.as_object() {
+            Some(obj) => obj.clone(),
+            None => return Err("Invalid OpenAPI spec format".into()),
+        };
 
         Ok(Self {
             spec_json,
+            spec,
             config,
             route_patterns,
         })
@@ -333,43 +341,36 @@ impl OpenAPIValidator {
         route_pattern: &str,
     ) {
         // Parse OpenAPI spec to get schema definitions
-        if let Ok(spec) = Value::json_to_value(&self.spec_json) {
-            // For now, implement basic validation for common patterns
-            // This is a simplified implementation that validates basic structure
 
-            match body {
-                Value::Undefined | Value::Null => {
-                    // Check if body is required - for POST/PUT requests, usually it is
-                    errors.push(ValidationError {
-                        error_type: ValidationErrorType::InvalidRequestBody,
-                        message: "Request body is required".to_string(),
-                        field: Some("body".to_string()),
-                    });
-                }
-                Value::Object(obj) => {
-                    // Now we use the actual HTTP method and route for accurate validation
-                    self.validate_object_schema_with_route(
-                        obj,
-                        errors,
-                        &spec,
-                        method,
-                        route_pattern,
-                    );
-                }
-                Value::String(s) if s.trim().is_empty() => {
-                    errors.push(ValidationError {
-                        error_type: ValidationErrorType::InvalidRequestBody,
-                        message: "Request body cannot be empty".to_string(),
-                        field: Some("body".to_string()),
-                    });
-                }
-                _ => {
-                    errors.push(ValidationError {
-                        error_type: ValidationErrorType::InvalidRequestBody,
-                        message: "Invalid request body format".to_string(),
-                        field: Some("body".to_string()),
-                    });
-                }
+        // For now, implement basic validation for common patterns
+        // This is a simplified implementation that validates basic structure
+
+        match body {
+            Value::Undefined | Value::Null => {
+                // Check if body is required - for POST/PUT requests, usually it is
+                errors.push(ValidationError {
+                    error_type: ValidationErrorType::InvalidRequestBody,
+                    message: "Request body is required".to_string(),
+                    field: Some("body".to_string()),
+                });
+            }
+            Value::Object(obj) => {
+                // Now we use the actual HTTP method and route for accurate validation
+                self.validate_object_schema_with_route(obj, errors, method, route_pattern);
+            }
+            Value::String(s) if s.trim().is_empty() => {
+                errors.push(ValidationError {
+                    error_type: ValidationErrorType::InvalidRequestBody,
+                    message: "Request body cannot be empty".to_string(),
+                    field: Some("body".to_string()),
+                });
+            }
+            _ => {
+                errors.push(ValidationError {
+                    error_type: ValidationErrorType::InvalidRequestBody,
+                    message: "Invalid request body format".to_string(),
+                    field: Some("body".to_string()),
+                });
             }
         }
     }
@@ -379,12 +380,11 @@ impl OpenAPIValidator {
         &self,
         obj: &Object,
         errors: &mut Vec<ValidationError>,
-        spec: &Value,
         method: &str,
         route_pattern: &str,
     ) {
         // Try to extract actual schema from OpenAPI spec for more accurate validation using the actual HTTP method and route
-        let schema = self.extract_request_body_schema(spec, route_pattern, method);
+        let schema = self.extract_request_body_schema(route_pattern, method);
 
         if let Some(properties) = schema.as_ref().and_then(|s| s.get("properties")) {
             // Validate based on actual OpenAPI schema using the correct HTTP method and route
@@ -396,8 +396,9 @@ impl OpenAPIValidator {
     }
 
     /// Extract request body schema from OpenAPI spec for a specific path/method
-    fn extract_request_body_schema(&self, spec: &Value, path: &str, method: &str) -> Option<Value> {
-        spec.get("paths")?
+    fn extract_request_body_schema(&self, path: &str, method: &str) -> Option<Value> {
+        self.spec
+            .get("paths")?
             .get(path)?
             .get(method)?
             .get("requestBody")?
@@ -794,9 +795,11 @@ mod tests {
         let mut obj_map = HashMap::new();
         obj_map.insert("age".to_string(), Value::Number(30.into()));
         let obj = Object::from(obj_map);
+        let spec_map: HashMap<String, Value> = HashMap::new();
 
         let validator = OpenAPIValidator {
             spec_json: String::new(),
+            spec: Value::from(spec_map).as_object().unwrap().clone(),
             config: ValidationConfig::default(),
             route_patterns: Vec::new(),
         };
