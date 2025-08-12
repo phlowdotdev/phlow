@@ -1,29 +1,29 @@
-[2025-08-12T22:12:49Z DEBUG phlow] Starting Phlow Runtime
-[2025-08-12T22:12:49Z INFO  phlow::loader] Downloading modules...
-[2025-08-12T22:12:49Z INFO  phlow::loader] Module http_server (latest) already exists at phlow_packages/http_server/module.so, skipping download
-[2025-08-12T22:12:49Z INFO  phlow::loader] Module cache (latest) already exists at phlow_packages/cache/module.so, skipping download
-[2025-08-12T22:12:49Z INFO  phlow::loader] All modules downloaded and extracted successfully
-[2025-08-12T22:12:49Z DEBUG phlow::loader] update_info
-[2025-08-12T22:12:49Z DEBUG phlow::loader] module info loaded
-[2025-08-12T22:12:49Z DEBUG phlow::loader] module info loaded
-[2025-08-12T22:12:49Z DEBUG phlow] Run application
-[2025-08-12T22:12:49Z DEBUG phlow::runtime] Module http_server loaded with name "http_server" and version "latest"
-[2025-08-12T22:12:49Z DEBUG phlow::loader] Find phlow_packages/http_server/module.so...
-[2025-08-12T22:12:49Z INFO  phlow::loader] 🧪 Load Module: http_server (latest), in phlow_packages/http_server/module.so
-[2025-08-12T22:12:49Z INFO  phlow::loader] Loading binary module: phlow_packages/http_server/module.so
-[2m2025-08-12T22:12:49.930690Z[0m [34mDEBUG[0m [2mphlow_sdk::otel[0m[2m:[0m PHLOW_OTEL is set to false, using default subscriber
-[2m2025-08-12T22:12:49.933941Z[0m [34mDEBUG[0m [2mlog[0m[2m:[0m Loading OpenAPI spec from content: {"info": {"version": "1.0.0","title": "Test API"},"openapi": "3.1.0","components": {"responses": {"NotFound": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}},"description": "Resource not found"},"ValidationError": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}},"description": "Validation error"}},"parameters": {"UserIdPath": {"schema": {"$ref": "#/components/schemas/UserId"},"name": "userId","in": "path","required": true}},"schemas": {"User": {"description": "User resource","required": ["id","name","email"],"additionalProperties": false,"type": "object","properties": {"name": {"type": "string","pattern": "^[a-zA-ZÀ-ÿ ]+$","maxLength": 50,"minLength": 2},"email": {"type": "string","format": "email"},"phone": {"minLength": 8,"maxLength": 20,"description": "User phone number (optional)","type": "string","pattern": "^\+?[1-9]\d[\d \-\(\)]{7,15}$"},"id": {"$ref": "#/components/schemas/UserId"},"age": {"maximum": 120,"minimum": 0,"description": "User age in years (optional)","type": "integer"}}},"Error": {"required": ["code","message"],"properties": {"details": {"items": {"type": "object"},"type": "array","description": "Arbitrary validation or domain details"},"code": {"type": "string"},"message": {"type": "string"}},"type": "object","additionalProperties": false},"NewUser": {"required": ["name","email"],"properties": {"email": {"type": "string","format": "email"},"age": {"minimum": 0,"type": "integer","maximum": 120},"phone": {"minLength": 8,"maxLength": 20,"pattern": "^\+?[1-9]\d[\d \-\(\)]{7,15}$","type": "string"},"name": {"type": "string","pattern": "^[a-zA-ZÀ-ÿ ]+$","minLength": 2,"maxLength": 50}},"additionalProperties": false,"description": "Payload to create a new user","type": "object"},"UpdateUser": {"description": "Payload to update an existing user","minProperties": 1,"type": "object","additionalProperties": true,"properties": {"age": {"type": "integer","maximum": 120,"minimum": 0},"phone": {"pattern": "^\+?[1-9]\d[\d \-\(\)]{7,15}$","minLength": 8,"type": "string","maxLength": 20},"name": {"maxLength": 50,"pattern": "^[a-zA-ZÀ-ÿ ]+$","minLength": 2,"type": "string"}}},"UserId": {"description": "The unique identifier of a user (email address in this implementation)","type": "string"}}},"servers": [{"url": "https://api.example.com/v1"}],"paths": {"/users/{userId}": {"get": {"operationId": "getUser","responses": {"200": {"description": "User found","content": {"application/json": {"schema": {"$ref": "#/components/schemas/User"}}}},"404": {"$ref": "#/components/responses/NotFound"}},"tags": ["Users"],"summary": "Get user by ID"},"parameters": [{"$ref": "#/components/parameters/UserIdPath"}],"put": {"tags": ["Users"],"summary": "Update user by ID","requestBody": {"required": true,"content": {"application/json": {"schema": {"$ref": "#/components/schemas/UpdateUser"}}}},"operationId": "updateUser","responses": {"404": {"$ref": "#/components/responses/NotFound"},"200": {"description": "User updated","content": {"application/json": {"schema": {"$ref": "#/components/schemas/User"}}}},"400": {"$ref": "#/components/responses/ValidationError"}}},"delete": {"operationId": "deleteUser","summary": "Delete user by ID","tags": ["Users"],"responses": {"204": {"description": "User deleted"},"404": {"$ref": "#/components/responses/NotFound"}}}},"/users": {"post": {"responses": {"201": {"headers": {"Location": {"description": "URI of the created resource","schema": {"format": "uri","type": "string"}}},"description": "User created","content": {"application/json": {"schema": {"$ref": "#/components/schemas/User"}}}},"400": {"$ref": "#/components/responses/ValidationError"}},"summary": "Create a new user","operationId": "createUser","requestBody": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/NewUser"}}},"required": true},"tags": ["Users"]},"get": {"responses": {"400": {"$ref": "#/components/responses/ValidationError"},"200": {"description": "A list of users","content": {"application/json": {"schema": {"items": {"$ref": "#/components/schemas/User"},"type": "array"}}}}},"tags": ["Users"],"operationId": "listUsers","summary": "List all users"}}},"tags": [{"name": "Users","description": "User management endpoints"}]}    
-[2m2025-08-12T22:12:49.935327Z[0m [32m INFO[0m [2mlog[0m[2m:[0m OpenAPI validator loaded successfully    
-[2m2025-08-12T22:12:49.935375Z[0m [34mDEBUG[0m [2mlog[0m[2m:[0m Listening on 0.0.0.0:3000    
-[2025-08-12T22:12:49Z DEBUG phlow::runtime] Module http_server did not register
-[2025-08-12T22:12:49Z DEBUG phlow::runtime] Module cache loaded with name "cache" and version "latest"
-[2025-08-12T22:12:49Z DEBUG phlow::loader] Find phlow_packages/cache/module.so...
-[2025-08-12T22:12:49Z INFO  phlow::loader] 🧪 Load Module: cache (latest), in phlow_packages/cache/module.so
-[2025-08-12T22:12:49Z INFO  phlow::loader] Loading binary module: phlow_packages/cache/module.so
-[2025-08-12T22:12:49Z DEBUG phlow::runtime] Module cache registered
-[2025-08-12T22:12:49Z DEBUG cache] Cache module started with config: CacheConfig { capacity: 1000, default_ttl: None, enable_events: false }
-[2025-08-12T22:12:49Z INFO  phlow::runtime] Phlow!
-[2025-08-12T22:12:49Z DEBUG phlow_engine::transform] [
+[2025-08-12T23:07:38Z DEBUG phlow] Starting Phlow Runtime
+[2025-08-12T23:07:38Z INFO  phlow::loader] Downloading modules...
+[2025-08-12T23:07:38Z INFO  phlow::loader] Module http_server (latest) already exists at phlow_packages/http_server/module.so, skipping download
+[2025-08-12T23:07:38Z INFO  phlow::loader] Module cache (latest) already exists at phlow_packages/cache/module.so, skipping download
+[2025-08-12T23:07:38Z INFO  phlow::loader] All modules downloaded and extracted successfully
+[2025-08-12T23:07:38Z DEBUG phlow::loader] update_info
+[2025-08-12T23:07:38Z DEBUG phlow::loader] module info loaded
+[2025-08-12T23:07:38Z DEBUG phlow::loader] module info loaded
+[2025-08-12T23:07:38Z DEBUG phlow] Run application
+[2025-08-12T23:07:38Z DEBUG phlow::runtime] Module http_server loaded with name "http_server" and version "latest"
+[2025-08-12T23:07:38Z DEBUG phlow::loader] Find phlow_packages/http_server/module.so...
+[2025-08-12T23:07:38Z INFO  phlow::loader] 🧪 Load Module: http_server (latest), in phlow_packages/http_server/module.so
+[2025-08-12T23:07:38Z INFO  phlow::loader] Loading binary module: phlow_packages/http_server/module.so
+[2m2025-08-12T23:07:38.530769Z[0m [34mDEBUG[0m [2mphlow_sdk::otel[0m[2m:[0m PHLOW_OTEL is set to false, using default subscriber
+[2m2025-08-12T23:07:38.535859Z[0m [34mDEBUG[0m [2mlog[0m[2m:[0m Loading OpenAPI spec from content: {"paths": {"/users": {"get": {"tags": ["Users"],"responses": {"200": {"content": {"application/json": {"schema": {"items": {"$ref": "#/components/schemas/User"},"type": "array"}}},"description": "A list of users"},"400": {"$ref": "#/components/responses/ValidationError"}},"operationId": "listUsers","summary": "List all users"},"post": {"operationId": "createUser","tags": ["Users"],"requestBody": {"required": true,"content": {"application/json": {"schema": {"$ref": "#/components/schemas/NewUser"}}}},"responses": {"400": {"$ref": "#/components/responses/ValidationError"},"201": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/User"}}},"headers": {"Location": {"schema": {"format": "uri","type": "string"},"description": "URI of the created resource"}},"description": "User created"}},"summary": "Create a new user"}},"/users/{userId}": {"put": {"requestBody": {"required": true,"content": {"application/json": {"schema": {"$ref": "#/components/schemas/UpdateUser"}}}},"responses": {"200": {"description": "User updated","content": {"application/json": {"schema": {"$ref": "#/components/schemas/User"}}}},"404": {"$ref": "#/components/responses/NotFound"},"400": {"$ref": "#/components/responses/ValidationError"}},"summary": "Update user by ID","tags": ["Users"],"operationId": "updateUser"},"parameters": [{"$ref": "#/components/parameters/UserIdPath"}],"delete": {"responses": {"204": {"description": "User deleted"},"404": {"$ref": "#/components/responses/NotFound"}},"operationId": "deleteUser","tags": ["Users"],"summary": "Delete user by ID"},"get": {"operationId": "getUser","tags": ["Users"],"responses": {"200": {"description": "User found","content": {"application/json": {"schema": {"$ref": "#/components/schemas/User"}}}},"404": {"$ref": "#/components/responses/NotFound"}},"summary": "Get user by ID"}}},"openapi": "3.1.0","servers": [{"url": "https://api.example.com/v1"}],"tags": [{"description": "User management endpoints","name": "Users"}],"info": {"title": "Test API","version": "1.0.0"},"components": {"schemas": {"User": {"type": "object","additionalProperties": false,"properties": {"phone": {"pattern": "^\+?[1-9]\d[\d \-\(\)]{7,15}$","maxLength": 20,"type": "string","minLength": 8,"description": "User phone number (optional)"},"id": {"$ref": "#/components/schemas/UserId"},"age": {"maximum": 120,"minimum": 0,"description": "User age in years (optional)","type": "integer"},"name": {"maxLength": 50,"pattern": "^[a-zA-ZÀ-ÿ ]+$","type": "string","minLength": 2},"email": {"type": "string","format": "email"}},"required": ["id","name","email"],"description": "User resource"},"UserId": {"type": "string","description": "The unique identifier of a user (email address in this implementation)"},"Error": {"properties": {"code": {"type": "string"},"message": {"type": "string"},"details": {"description": "Arbitrary validation or domain details","type": "array","items": {"type": "object"}}},"required": ["code","message"],"type": "object","additionalProperties": false},"UpdateUser": {"additionalProperties": true,"properties": {"age": {"maximum": 120,"minimum": 0,"type": "integer"},"phone": {"maxLength": 20,"type": "string","pattern": "^\+?[1-9]\d[\d \-\(\)]{7,15}$","minLength": 8},"name": {"type": "string","pattern": "^[a-zA-ZÀ-ÿ ]+$","maxLength": 50,"minLength": 2}},"minProperties": 1,"description": "Payload to update an existing user","type": "object"},"NewUser": {"properties": {"phone": {"maxLength": 20,"type": "string","pattern": "^\+?[1-9]\d[\d \-\(\)]{7,15}$","minLength": 8},"name": {"pattern": "^[a-zA-ZÀ-ÿ ]+$","maxLength": 50,"type": "string","minLength": 2},"email": {"type": "string","format": "email"},"age": {"maximum": 120,"minimum": 0,"type": "integer"}},"description": "Payload to create a new user","type": "object","additionalProperties": false,"required": ["name","email"]}},"responses": {"ValidationError": {"description": "Validation error","content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},"NotFound": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}},"description": "Resource not found"}},"parameters": {"UserIdPath": {"name": "userId","schema": {"$ref": "#/components/schemas/UserId"},"required": true,"in": "path"}}}}    
+[2m2025-08-12T23:07:38.537621Z[0m [32m INFO[0m [2mlog[0m[2m:[0m OpenAPI validator loaded successfully    
+[2m2025-08-12T23:07:38.537698Z[0m [34mDEBUG[0m [2mlog[0m[2m:[0m Listening on 0.0.0.0:3000    
+[2025-08-12T23:07:38Z DEBUG phlow::runtime] Module http_server did not register
+[2025-08-12T23:07:38Z DEBUG phlow::runtime] Module cache loaded with name "cache" and version "latest"
+[2025-08-12T23:07:38Z DEBUG phlow::loader] Find phlow_packages/cache/module.so...
+[2025-08-12T23:07:38Z INFO  phlow::loader] 🧪 Load Module: cache (latest), in phlow_packages/cache/module.so
+[2025-08-12T23:07:38Z INFO  phlow::loader] Loading binary module: phlow_packages/cache/module.so
+[2025-08-12T23:07:38Z DEBUG cache] Cache module started with config: CacheConfig { capacity: 1000, default_ttl: None, enable_events: false }
+[2025-08-12T23:07:38Z DEBUG phlow::runtime] Module cache registered
+[2025-08-12T23:07:38Z INFO  phlow::runtime] Phlow!
+[2025-08-12T23:07:38Z DEBUG phlow_engine::transform] [
     	[
     		{
     			"return": {
@@ -36,53 +36,53 @@
     	],
     	[
     		{
+    			"use": "cache",
     			"input": {
     				"key": "{{ main.body.email }}",
     				"action": "get"
+    			}
+    		},
+    		{
+    			"then": 0,
+    			"assert": "{{ payload.success && payload.found }}"
+    		},
+    		{
+    			"input": {
+    				"key": "{{ main.body.email }}",
+    				"value": "{{ main.body }}",
+    				"action": "set"
     			},
     			"use": "cache"
     		},
     		{
-    			"assert": "{{ payload.success && payload.found }}",
-    			"then": 0
-    		},
-    		{
-    			"use": "cache",
-    			"input": {
-    				"action": "set",
-    				"value": "{{ main.body }}",
-    				"key": "{{ main.body.email }}"
-    			}
-    		},
-    		{
     			"return": {
+    				"status_code": 201,
     				"body": {
-    					"message": "User created successfully",
-    					"user": "{{ main.body }}"
-    				},
-    				"status_code": 201
+    					"user": "{{ main.body }}",
+    					"message": "User created successfully"
+    				}
     			}
     		}
     	],
     	[
     		{
     			"return": {
-    				"body": "{{ main }}",
+    				"body": "{{ payload.value }}",
     				"status_code": 200
     			}
     		}
     	],
     	[
     		{
+    			"use": "cache",
     			"input": {
-    				"key": "{{ main.path_params.userId }}",
-    				"action": "get"
-    			},
-    			"use": "cache"
+    				"action": "get",
+    				"key": "{{ main.path_params.userId }}"
+    			}
     		},
     		{
     			"then": 2,
-    			"assert": "{{ payload.success }}"
+    			"assert": "{{ payload.success && payload.found }}"
     		},
     		{
     			"return": {
@@ -95,35 +95,35 @@
     	],
     	[
     		{
+    			"use": "cache",
     			"input": {
-    				"action": "set",
     				"key": "{{ main.path_params.userId }}",
-    				"value": "{{ merge(payload.value, main.body) }}"
-    			},
-    			"use": "cache"
+    				"value": "{{ merge(payload.value, main.body) }}",
+    				"action": "set"
+    			}
     		},
     		{
     			"return": {
-    				"status_code": 200,
     				"body": {
     					"user": "{{ main.body }}",
     					"message": "User updated successfully"
-    				}
+    				},
+    				"status_code": 200
     			}
     		}
     	],
     	[
     		{
+    			"use": "cache",
     			"input": {
     				"value": "{{ main.body }}",
     				"action": "get",
     				"key": "{{ main.path_params.userId }}"
-    			},
-    			"use": "cache"
+    			}
     		},
     		{
-    			"assert": "{{ payload.success && !is_empty(payload.value) }}",
-    			"then": 4
+    			"then": 4,
+    			"assert": "{{ payload.success && !is_empty(payload.value) }}"
     		},
     		{
     			"return": {
@@ -136,17 +136,38 @@
     	],
     	[
     		{
+    			"use": "cache",
     			"input": {
-    				"action": "remove",
-    				"key": "{{ main.path_params.userId }}"
-    			},
-    			"use": "cache"
+    				"key": "{{ main.path_params.userId }}",
+    				"action": "remove"
+    			}
     		},
     		{
     			"return": {
+    				"status_code": 204,
     				"body": {
-    				},
-    				"status_code": 204
+    				}
+    			}
+    		}
+    	],
+    	[
+    		{
+    			"use": "cache",
+    			"input": {
+    				"key": "{{ main.path_params.userId }}",
+    				"action": "get"
+    			}
+    		},
+    		{
+    			"then": 6,
+    			"assert": "{{ payload.success && payload.found }}"
+    		},
+    		{
+    			"return": {
+    				"status_code": 404,
+    				"body": {
+    					"message": "User not found"
+    				}
     			}
     		}
     	],
@@ -168,8 +189,8 @@
     	],
     	[
     		{
-    			"assert": "{{ main.method == \"POST\" && main.path == \"/users\" }}",
-    			"then": 1
+    			"then": 1,
+    			"assert": "{{ main.method == \"POST\" && main.path == \"/users\" }}"
     		},
     		{
     			"assert": "{{ main.method == \"GET\" && main.path == \"/users/{userId}\" }}",
@@ -181,110 +202,193 @@
     		},
     		{
     			"assert": "{{ main.method == \"DELETE\" && main.path == \"/users/{userId}\" }}",
-    			"then": 6
+    			"then": 7
     		},
     		{
     			"assert": "{{ main.method == \"GET\" && main.path == \"/users\" }}",
-    			"then": 7
+    			"then": 8
     		}
     	]
     ]
-[2025-08-12T22:12:51Z DEBUG cache] Cache module received input: Get { key: "joao@exemplo.com" }
-[2025-08-12T22:12:51Z DEBUG cache] Cache miss for key 'joao@exemplo.com'
-[2025-08-12T22:12:51Z DEBUG cache] Cache operation successful
-[2025-08-12T22:12:51Z DEBUG cache] Cache module received input: Set { key: "joao@exemplo.com", value: Object(HashMap({String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(30), i128: None, f32: None, f64: None }), String(StringB { value: "name" }): String(StringB { value: "João Silva" }), String(StringB { value: "email" }): String(StringB { value: "joao@exemplo.com" })})), ttl: None }
-[2025-08-12T22:12:51Z DEBUG cache] Set key 'joao@exemplo.com' with value: Object(HashMap({String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(30), i128: None, f32: None, f64: None }), String(StringB { value: "name" }): String(StringB { value: "João Silva" }), String(StringB { value: "email" }): String(StringB { value: "joao@exemplo.com" })}))
-[2025-08-12T22:12:51Z DEBUG cache] Cache operation successful
-[2025-08-12T22:12:51Z DEBUG cache] Cache module received input: Get { key: "maria@exemplo.com" }
-[2025-08-12T22:12:51Z DEBUG cache] Cache miss for key 'maria@exemplo.com'
-[2025-08-12T22:12:51Z DEBUG cache] Cache operation successful
-[2025-08-12T22:12:51Z DEBUG cache] Cache module received input: Set { key: "maria@exemplo.com", value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "maria@exemplo.com" }), String(StringB { value: "name" }): String(StringB { value: "Maria Santos" })})), ttl: None }
-[2025-08-12T22:12:51Z DEBUG cache] Set key 'maria@exemplo.com' with value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "maria@exemplo.com" }), String(StringB { value: "name" }): String(StringB { value: "Maria Santos" })}))
-[2025-08-12T22:12:51Z DEBUG cache] Cache operation successful
-[2025-08-12T22:12:55Z DEBUG cache] Cache module received input: Get { key: "teste1@exemplo.com" }
-[2025-08-12T22:12:55Z DEBUG cache] Cache miss for key 'teste1@exemplo.com'
-[2025-08-12T22:12:55Z DEBUG cache] Cache operation successful
-[2025-08-12T22:12:55Z DEBUG cache] Cache module received input: Set { key: "teste1@exemplo.com", value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "João Silva" }), String(StringB { value: "email" }): String(StringB { value: "teste1@exemplo.com" })})), ttl: None }
-[2025-08-12T22:12:55Z DEBUG cache] Set key 'teste1@exemplo.com' with value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "João Silva" }), String(StringB { value: "email" }): String(StringB { value: "teste1@exemplo.com" })}))
-[2025-08-12T22:12:55Z DEBUG cache] Cache operation successful
-[2025-08-12T22:12:56Z DEBUG cache] Cache module received input: Get { key: "usuario@dominio.com" }
-[2025-08-12T22:12:56Z DEBUG cache] Cache miss for key 'usuario@dominio.com'
-[2025-08-12T22:12:56Z DEBUG cache] Cache operation successful
-[2025-08-12T22:12:56Z DEBUG cache] Cache module received input: Set { key: "usuario@dominio.com", value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "Teste" }), String(StringB { value: "email" }): String(StringB { value: "usuario@dominio.com" })})), ttl: None }
-[2025-08-12T22:12:56Z DEBUG cache] Set key 'usuario@dominio.com' with value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "Teste" }), String(StringB { value: "email" }): String(StringB { value: "usuario@dominio.com" })}))
-[2025-08-12T22:12:56Z DEBUG cache] Cache operation successful
-[2025-08-12T22:12:56Z DEBUG cache] Cache module received input: Get { key: "usuario@sub.dominio.com.br" }
-[2025-08-12T22:12:56Z DEBUG cache] Cache miss for key 'usuario@sub.dominio.com.br'
-[2025-08-12T22:12:56Z DEBUG cache] Cache operation successful
-[2025-08-12T22:12:56Z DEBUG cache] Cache module received input: Set { key: "usuario@sub.dominio.com.br", value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "Teste" }), String(StringB { value: "email" }): String(StringB { value: "usuario@sub.dominio.com.br" })})), ttl: None }
-[2025-08-12T22:12:56Z DEBUG cache] Set key 'usuario@sub.dominio.com.br' with value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "Teste" }), String(StringB { value: "email" }): String(StringB { value: "usuario@sub.dominio.com.br" })}))
-[2025-08-12T22:12:56Z DEBUG cache] Cache operation successful
-[2025-08-12T22:12:58Z DEBUG cache] Cache module received input: Get { key: "idade4@exemplo.com" }
-[2025-08-12T22:12:58Z DEBUG cache] Cache miss for key 'idade4@exemplo.com'
-[2025-08-12T22:12:58Z DEBUG cache] Cache operation successful
-[2025-08-12T22:12:58Z DEBUG cache] Cache module received input: Set { key: "idade4@exemplo.com", value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "idade4@exemplo.com" }), String(StringB { value: "name" }): String(StringB { value: "Teste" }), String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(25), i128: None, f32: None, f64: None })})), ttl: None }
-[2025-08-12T22:12:58Z DEBUG cache] Set key 'idade4@exemplo.com' with value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "idade4@exemplo.com" }), String(StringB { value: "name" }): String(StringB { value: "Teste" }), String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(25), i128: None, f32: None, f64: None })}))
-[2025-08-12T22:12:58Z DEBUG cache] Cache operation successful
-[2025-08-12T22:12:59Z DEBUG cache] Cache module received input: List { filter_type: "none", filter_value: None, filter_prefix: None, filter_suffix: None, order: "asc", limit: None, offset: 0 }
-[2025-08-12T22:12:59Z DEBUG cache] Listed 6 items (total: 6, offset: 0, limit: None)
-[2025-08-12T22:12:59Z DEBUG cache] Cache operation successful
-[2025-08-12T22:12:59Z DEBUG cache] Cache module received input: Get { key: "joao@exemplo.com" }
-[2025-08-12T22:12:59Z DEBUG cache] Cache hit for key 'joao@exemplo.com'
-[2025-08-12T22:12:59Z DEBUG cache] Cache operation successful
-[2025-08-12T22:13:00Z DEBUG cache] Cache module received input: Get { key: "usuario-inexistente" }
-[2025-08-12T22:13:00Z DEBUG cache] Cache miss for key 'usuario-inexistente'
-[2025-08-12T22:13:00Z DEBUG cache] Cache operation successful
-[2025-08-12T22:13:00Z DEBUG cache] Cache module received input: Get { key: "123" }
-[2025-08-12T22:13:00Z DEBUG cache] Cache miss for key '123'
-[2025-08-12T22:13:00Z DEBUG cache] Cache operation successful
-[2025-08-12T22:13:00Z DEBUG cache] Cache module received input: Get { key: "joao@exemplo.com" }
-[2025-08-12T22:13:00Z DEBUG cache] Cache hit for key 'joao@exemplo.com'
-[2025-08-12T22:13:00Z DEBUG cache] Cache operation successful
-[2025-08-12T22:13:00Z DEBUG cache] Cache module received input: Set { key: "joao@exemplo.com", value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "joao@exemplo.com" }), String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(31), i128: None, f32: None, f64: None }), String(StringB { value: "name" }): String(StringB { value: "João Silva Atualizado" })})), ttl: None }
-[2025-08-12T22:13:00Z DEBUG cache] Set key 'joao@exemplo.com' with value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "joao@exemplo.com" }), String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(31), i128: None, f32: None, f64: None }), String(StringB { value: "name" }): String(StringB { value: "João Silva Atualizado" })}))
-[2025-08-12T22:13:00Z DEBUG cache] Cache operation successful
-[2025-08-12T22:13:01Z DEBUG cache] Cache module received input: Get { key: "joao@exemplo.com" }
-[2025-08-12T22:13:01Z DEBUG cache] Cache hit for key 'joao@exemplo.com'
-[2025-08-12T22:13:01Z DEBUG cache] Cache operation successful
-[2025-08-12T22:13:01Z DEBUG cache] Cache module received input: Set { key: "joao@exemplo.com", value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "joao@exemplo.com" }), String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(31), i128: None, f32: None, f64: None }), String(StringB { value: "name" }): String(StringB { value: "Novo Nome" })})), ttl: None }
-[2025-08-12T22:13:01Z DEBUG cache] Set key 'joao@exemplo.com' with value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "joao@exemplo.com" }), String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(31), i128: None, f32: None, f64: None }), String(StringB { value: "name" }): String(StringB { value: "Novo Nome" })}))
-[2025-08-12T22:13:01Z DEBUG cache] Cache operation successful
-[2025-08-12T22:13:01Z DEBUG cache] Cache module received input: Get { key: "joao@exemplo.com" }
-[2025-08-12T22:13:01Z DEBUG cache] Cache hit for key 'joao@exemplo.com'
-[2025-08-12T22:13:01Z DEBUG cache] Cache operation successful
-[2025-08-12T22:13:01Z DEBUG cache] Cache module received input: Set { key: "joao@exemplo.com", value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "Novo Nome" }), String(StringB { value: "email" }): String(StringB { value: "joao@exemplo.com" }), String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(32), i128: None, f32: None, f64: None })})), ttl: None }
-[2025-08-12T22:13:01Z DEBUG cache] Set key 'joao@exemplo.com' with value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "Novo Nome" }), String(StringB { value: "email" }): String(StringB { value: "joao@exemplo.com" }), String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(32), i128: None, f32: None, f64: None })}))
-[2025-08-12T22:13:01Z DEBUG cache] Cache operation successful
-[2025-08-12T22:13:01Z DEBUG cache] Cache module received input: Get { key: "usuario-inexistente" }
-[2025-08-12T22:13:01Z DEBUG cache] Cache miss for key 'usuario-inexistente'
-[2025-08-12T22:13:01Z DEBUG cache] Cache operation successful
-[2025-08-12T22:13:02Z DEBUG cache] Cache module received input: Remove { key: "maria@exemplo.com" }
-[2025-08-12T22:13:02Z DEBUG cache] Removed key 'maria@exemplo.com'
-[2025-08-12T22:13:02Z DEBUG cache] Cache operation successful
-[2025-08-12T22:13:02Z DEBUG cache] Cache module received input: Remove { key: "usuario-inexistente" }
-[2025-08-12T22:13:02Z DEBUG cache] Key 'usuario-inexistente' not found for removal
-[2025-08-12T22:13:02Z DEBUG cache] Cache operation successful
-[2025-08-12T22:13:02Z DEBUG cache] Cache module received input: Remove { key: "abc123" }
-[2025-08-12T22:13:02Z DEBUG cache] Key 'abc123' not found for removal
-[2025-08-12T22:13:02Z DEBUG cache] Cache operation successful
-[2025-08-12T22:13:09Z DEBUG cache] Cache module received input: Get { key: "teste@exemplo.com" }
-[2025-08-12T22:13:09Z DEBUG cache] Cache miss for key 'teste@exemplo.com'
-[2025-08-12T22:13:09Z DEBUG cache] Cache operation successful
-[2025-08-12T22:13:09Z DEBUG cache] Cache module received input: Set { key: "teste@exemplo.com", value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "Teste" }), String(StringB { value: "email" }): String(StringB { value: "teste@exemplo.com" })})), ttl: None }
-[2025-08-12T22:13:09Z DEBUG cache] Set key 'teste@exemplo.com' with value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "Teste" }), String(StringB { value: "email" }): String(StringB { value: "teste@exemplo.com" })}))
-[2025-08-12T22:13:09Z DEBUG cache] Cache operation successful
-[2025-08-12T22:13:10Z DEBUG cache] Cache module received input: Get { key: "teste@exemplo.com" }
-[2025-08-12T22:13:10Z DEBUG cache] Cache hit for key 'teste@exemplo.com'
-[2025-08-12T22:13:10Z DEBUG cache] Cache operation successful
-[2025-08-12T22:13:11Z DEBUG cache] Cache module received input: Get { key: "baby@exemplo.com" }
-[2025-08-12T22:13:11Z DEBUG cache] Cache miss for key 'baby@exemplo.com'
-[2025-08-12T22:13:11Z DEBUG cache] Cache operation successful
-[2025-08-12T22:13:11Z DEBUG cache] Cache module received input: Set { key: "baby@exemplo.com", value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "baby@exemplo.com" }), String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(0), i128: None, f32: None, f64: None }), String(StringB { value: "name" }): String(StringB { value: "Baby" })})), ttl: None }
-[2025-08-12T22:13:11Z DEBUG cache] Set key 'baby@exemplo.com' with value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "baby@exemplo.com" }), String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(0), i128: None, f32: None, f64: None }), String(StringB { value: "name" }): String(StringB { value: "Baby" })}))
-[2025-08-12T22:13:11Z DEBUG cache] Cache operation successful
-[2025-08-12T22:13:11Z DEBUG cache] Cache module received input: Get { key: "old@exemplo.com" }
-[2025-08-12T22:13:11Z DEBUG cache] Cache miss for key 'old@exemplo.com'
-[2025-08-12T22:13:11Z DEBUG cache] Cache operation successful
-[2025-08-12T22:13:11Z DEBUG cache] Cache module received input: Set { key: "old@exemplo.com", value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "Centenário" }), String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(120), i128: None, f32: None, f64: None }), String(StringB { value: "email" }): String(StringB { value: "old@exemplo.com" })})), ttl: None }
-[2025-08-12T22:13:11Z DEBUG cache] Set key 'old@exemplo.com' with value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "Centenário" }), String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(120), i128: None, f32: None, f64: None }), String(StringB { value: "email" }): String(StringB { value: "old@exemplo.com" })}))
-[2025-08-12T22:13:11Z DEBUG cache] Cache operation successful
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'João Silva' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+[2025-08-12T23:07:40Z DEBUG cache] Cache module received input: Get { key: "joao@exemplo.com" }
+[2025-08-12T23:07:40Z DEBUG cache] Cache miss for key 'joao@exemplo.com'
+[2025-08-12T23:07:40Z DEBUG cache] Cache operation successful
+[2025-08-12T23:07:40Z DEBUG cache] Cache module received input: Set { key: "joao@exemplo.com", value: Object(HashMap({String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(30), i128: None, f32: None, f64: None }), String(StringB { value: "name" }): String(StringB { value: "João Silva" }), String(StringB { value: "email" }): String(StringB { value: "joao@exemplo.com" })})), ttl: None }
+[2025-08-12T23:07:40Z DEBUG cache] Set key 'joao@exemplo.com' with value: Object(HashMap({String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(30), i128: None, f32: None, f64: None }), String(StringB { value: "name" }): String(StringB { value: "João Silva" }), String(StringB { value: "email" }): String(StringB { value: "joao@exemplo.com" })}))
+[2025-08-12T23:07:40Z DEBUG cache] Cache operation successful
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Maria Santos' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+[2025-08-12T23:07:40Z DEBUG cache] Cache module received input: Get { key: "maria@exemplo.com" }
+[2025-08-12T23:07:40Z DEBUG cache] Cache miss for key 'maria@exemplo.com'
+[2025-08-12T23:07:40Z DEBUG cache] Cache operation successful
+[2025-08-12T23:07:40Z DEBUG cache] Cache module received input: Set { key: "maria@exemplo.com", value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "maria@exemplo.com" }), String(StringB { value: "name" }): String(StringB { value: "Maria Santos" })})), ttl: None }
+[2025-08-12T23:07:40Z DEBUG cache] Set key 'maria@exemplo.com' with value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "maria@exemplo.com" }), String(StringB { value: "name" }): String(StringB { value: "Maria Santos" })}))
+[2025-08-12T23:07:40Z DEBUG cache] Cache operation successful
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Pedro Oliveira' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Teste User' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'A' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'João123' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+Pattern match failed for 'João123' with pattern '^[a-zA-ZÀ-ÿ ]+$'
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'João@Silva#' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+Pattern match failed for 'João@Silva#' with pattern '^[a-zA-ZÀ-ÿ ]+$'
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'João Silva' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+[2025-08-12T23:07:43Z DEBUG cache] Cache module received input: Get { key: "teste1@exemplo.com" }
+[2025-08-12T23:07:43Z DEBUG cache] Cache miss for key 'teste1@exemplo.com'
+[2025-08-12T23:07:43Z DEBUG cache] Cache operation successful
+[2025-08-12T23:07:43Z DEBUG cache] Cache module received input: Set { key: "teste1@exemplo.com", value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "João Silva" }), String(StringB { value: "email" }): String(StringB { value: "teste1@exemplo.com" })})), ttl: None }
+[2025-08-12T23:07:43Z DEBUG cache] Set key 'teste1@exemplo.com' with value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "João Silva" }), String(StringB { value: "email" }): String(StringB { value: "teste1@exemplo.com" })}))
+[2025-08-12T23:07:43Z DEBUG cache] Cache operation successful
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Teste' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Teste' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Teste' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Teste' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+[2025-08-12T23:07:45Z DEBUG cache] Cache module received input: Get { key: "usuario@dominio.com" }
+[2025-08-12T23:07:45Z DEBUG cache] Cache miss for key 'usuario@dominio.com'
+[2025-08-12T23:07:45Z DEBUG cache] Cache operation successful
+[2025-08-12T23:07:45Z DEBUG cache] Cache module received input: Set { key: "usuario@dominio.com", value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "usuario@dominio.com" }), String(StringB { value: "name" }): String(StringB { value: "Teste" })})), ttl: None }
+[2025-08-12T23:07:45Z DEBUG cache] Set key 'usuario@dominio.com' with value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "usuario@dominio.com" }), String(StringB { value: "name" }): String(StringB { value: "Teste" })}))
+[2025-08-12T23:07:45Z DEBUG cache] Cache operation successful
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Teste' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+[2025-08-12T23:07:45Z DEBUG cache] Cache module received input: Get { key: "usuario@sub.dominio.com.br" }
+[2025-08-12T23:07:45Z DEBUG cache] Cache miss for key 'usuario@sub.dominio.com.br'
+[2025-08-12T23:07:45Z DEBUG cache] Cache operation successful
+[2025-08-12T23:07:45Z DEBUG cache] Cache module received input: Set { key: "usuario@sub.dominio.com.br", value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "Teste" }), String(StringB { value: "email" }): String(StringB { value: "usuario@sub.dominio.com.br" })})), ttl: None }
+[2025-08-12T23:07:45Z DEBUG cache] Set key 'usuario@sub.dominio.com.br' with value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "Teste" }), String(StringB { value: "email" }): String(StringB { value: "usuario@sub.dominio.com.br" })}))
+[2025-08-12T23:07:45Z DEBUG cache] Cache operation successful
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Teste' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Teste' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Teste' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Teste' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+[2025-08-12T23:07:46Z DEBUG cache] Cache module received input: Get { key: "idade4@exemplo.com" }
+[2025-08-12T23:07:46Z DEBUG cache] Cache miss for key 'idade4@exemplo.com'
+[2025-08-12T23:07:46Z DEBUG cache] Cache operation successful
+[2025-08-12T23:07:46Z DEBUG cache] Cache module received input: Set { key: "idade4@exemplo.com", value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "idade4@exemplo.com" }), String(StringB { value: "name" }): String(StringB { value: "Teste" }), String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(25), i128: None, f32: None, f64: None })})), ttl: None }
+[2025-08-12T23:07:46Z DEBUG cache] Set key 'idade4@exemplo.com' with value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "idade4@exemplo.com" }), String(StringB { value: "name" }): String(StringB { value: "Teste" }), String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(25), i128: None, f32: None, f64: None })}))
+[2025-08-12T23:07:46Z DEBUG cache] Cache operation successful
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Teste' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+Pattern before unescaping: '^\\+?[1-9]\\d[\\d \\-\\(\\)]{7,15}$', after: '^\+?[1-9]\d[\d \-\(\)]{7,15}$'
+Validating field 'phone' with value '123abc' against pattern '^\+?[1-9]\d[\d \-\(\)]{7,15}$'
+Pattern match failed for '123abc' with pattern '^\+?[1-9]\d[\d \-\(\)]{7,15}$'
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Teste' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+Pattern before unescaping: '^\\+?[1-9]\\d[\\d \\-\\(\\)]{7,15}$', after: '^\+?[1-9]\d[\d \-\(\)]{7,15}$'
+Validating field 'phone' with value '+5511999999999' against pattern '^\+?[1-9]\d[\d \-\(\)]{7,15}$'
+[2025-08-12T23:07:47Z DEBUG cache] Cache module received input: Get { key: "phone2@exemplo.com" }
+[2025-08-12T23:07:47Z DEBUG cache] Cache miss for key 'phone2@exemplo.com'
+[2025-08-12T23:07:47Z DEBUG cache] Cache operation successful
+[2025-08-12T23:07:47Z DEBUG cache] Cache module received input: Set { key: "phone2@exemplo.com", value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "Teste" }), String(StringB { value: "email" }): String(StringB { value: "phone2@exemplo.com" }), String(StringB { value: "phone" }): String(StringB { value: "+5511999999999" })})), ttl: None }
+[2025-08-12T23:07:47Z DEBUG cache] Set key 'phone2@exemplo.com' with value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "Teste" }), String(StringB { value: "email" }): String(StringB { value: "phone2@exemplo.com" }), String(StringB { value: "phone" }): String(StringB { value: "+5511999999999" })}))
+[2025-08-12T23:07:47Z DEBUG cache] Cache operation successful
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Teste' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+Pattern before unescaping: '^\\+?[1-9]\\d[\\d \\-\\(\\)]{7,15}$', after: '^\+?[1-9]\d[\d \-\(\)]{7,15}$'
+Validating field 'phone' with value '11999999999' against pattern '^\+?[1-9]\d[\d \-\(\)]{7,15}$'
+[2025-08-12T23:07:47Z DEBUG cache] Cache module received input: Get { key: "phone3@exemplo.com" }
+[2025-08-12T23:07:47Z DEBUG cache] Cache miss for key 'phone3@exemplo.com'
+[2025-08-12T23:07:47Z DEBUG cache] Cache operation successful
+[2025-08-12T23:07:47Z DEBUG cache] Cache module received input: Set { key: "phone3@exemplo.com", value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "phone3@exemplo.com" }), String(StringB { value: "name" }): String(StringB { value: "Teste" }), String(StringB { value: "phone" }): String(StringB { value: "11999999999" })})), ttl: None }
+[2025-08-12T23:07:47Z DEBUG cache] Set key 'phone3@exemplo.com' with value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "phone3@exemplo.com" }), String(StringB { value: "name" }): String(StringB { value: "Teste" }), String(StringB { value: "phone" }): String(StringB { value: "11999999999" })}))
+[2025-08-12T23:07:47Z DEBUG cache] Cache operation successful
+[2025-08-12T23:07:48Z DEBUG cache] Cache module received input: List { filter_type: "none", filter_value: None, filter_prefix: None, filter_suffix: None, order: "asc", limit: None, offset: 0 }
+[2025-08-12T23:07:48Z DEBUG cache] Listed 8 items (total: 8, offset: 0, limit: None)
+[2025-08-12T23:07:48Z DEBUG cache] Cache operation successful
+[2025-08-12T23:07:48Z DEBUG cache] Cache module received input: Get { key: "joao@exemplo.com" }
+[2025-08-12T23:07:48Z DEBUG cache] Cache hit for key 'joao@exemplo.com'
+[2025-08-12T23:07:48Z DEBUG cache] Cache operation successful
+[2025-08-12T23:07:48Z DEBUG cache] Cache module received input: Get { key: "usuario-inexistente" }
+[2025-08-12T23:07:48Z DEBUG cache] Cache miss for key 'usuario-inexistente'
+[2025-08-12T23:07:48Z DEBUG cache] Cache operation successful
+[2025-08-12T23:07:48Z DEBUG cache] Cache module received input: Get { key: "123" }
+[2025-08-12T23:07:48Z DEBUG cache] Cache miss for key '123'
+[2025-08-12T23:07:48Z DEBUG cache] Cache operation successful
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'João Silva Atualizado' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+[2025-08-12T23:07:49Z DEBUG cache] Cache module received input: Get { key: "joao@exemplo.com" }
+[2025-08-12T23:07:49Z DEBUG cache] Cache hit for key 'joao@exemplo.com'
+[2025-08-12T23:07:49Z DEBUG cache] Cache operation successful
+[2025-08-12T23:07:49Z DEBUG cache] Cache module received input: Set { key: "joao@exemplo.com", value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "João Silva Atualizado" }), String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(31), i128: None, f32: None, f64: None }), String(StringB { value: "email" }): String(StringB { value: "joao@exemplo.com" })})), ttl: None }
+[2025-08-12T23:07:49Z DEBUG cache] Set key 'joao@exemplo.com' with value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "João Silva Atualizado" }), String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(31), i128: None, f32: None, f64: None }), String(StringB { value: "email" }): String(StringB { value: "joao@exemplo.com" })}))
+[2025-08-12T23:07:49Z DEBUG cache] Cache operation successful
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Novo Nome' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+[2025-08-12T23:07:49Z DEBUG cache] Cache module received input: Get { key: "joao@exemplo.com" }
+[2025-08-12T23:07:49Z DEBUG cache] Cache hit for key 'joao@exemplo.com'
+[2025-08-12T23:07:49Z DEBUG cache] Cache operation successful
+[2025-08-12T23:07:49Z DEBUG cache] Cache module received input: Set { key: "joao@exemplo.com", value: Object(HashMap({String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(31), i128: None, f32: None, f64: None }), String(StringB { value: "name" }): String(StringB { value: "Novo Nome" }), String(StringB { value: "email" }): String(StringB { value: "joao@exemplo.com" })})), ttl: None }
+[2025-08-12T23:07:49Z DEBUG cache] Set key 'joao@exemplo.com' with value: Object(HashMap({String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(31), i128: None, f32: None, f64: None }), String(StringB { value: "name" }): String(StringB { value: "Novo Nome" }), String(StringB { value: "email" }): String(StringB { value: "joao@exemplo.com" })}))
+[2025-08-12T23:07:49Z DEBUG cache] Cache operation successful
+[2025-08-12T23:07:49Z DEBUG cache] Cache module received input: Get { key: "joao@exemplo.com" }
+[2025-08-12T23:07:49Z DEBUG cache] Cache hit for key 'joao@exemplo.com'
+[2025-08-12T23:07:49Z DEBUG cache] Cache operation successful
+[2025-08-12T23:07:49Z DEBUG cache] Cache module received input: Set { key: "joao@exemplo.com", value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "joao@exemplo.com" }), String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(32), i128: None, f32: None, f64: None }), String(StringB { value: "name" }): String(StringB { value: "Novo Nome" })})), ttl: None }
+[2025-08-12T23:07:49Z DEBUG cache] Set key 'joao@exemplo.com' with value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "joao@exemplo.com" }), String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(32), i128: None, f32: None, f64: None }), String(StringB { value: "name" }): String(StringB { value: "Novo Nome" })}))
+[2025-08-12T23:07:49Z DEBUG cache] Cache operation successful
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Teste' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+[2025-08-12T23:07:50Z DEBUG cache] Cache module received input: Get { key: "usuario-inexistente" }
+[2025-08-12T23:07:50Z DEBUG cache] Cache miss for key 'usuario-inexistente'
+[2025-08-12T23:07:50Z DEBUG cache] Cache operation successful
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'João123' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+Pattern match failed for 'João123' with pattern '^[a-zA-ZÀ-ÿ ]+$'
+[2025-08-12T23:07:50Z DEBUG cache] Cache module received input: Get { key: "maria@exemplo.com" }
+[2025-08-12T23:07:50Z DEBUG cache] Cache hit for key 'maria@exemplo.com'
+[2025-08-12T23:07:50Z DEBUG cache] Cache operation successful
+[2025-08-12T23:07:50Z DEBUG cache] Cache module received input: Remove { key: "maria@exemplo.com" }
+[2025-08-12T23:07:50Z DEBUG cache] Removed key 'maria@exemplo.com'
+[2025-08-12T23:07:50Z DEBUG cache] Cache operation successful
+[2025-08-12T23:07:51Z DEBUG cache] Cache module received input: Get { key: "usuario-inexistente" }
+[2025-08-12T23:07:51Z DEBUG cache] Cache miss for key 'usuario-inexistente'
+[2025-08-12T23:07:51Z DEBUG cache] Cache operation successful
+[2025-08-12T23:07:51Z DEBUG cache] Cache module received input: Get { key: "abc123" }
+[2025-08-12T23:07:51Z DEBUG cache] Cache miss for key 'abc123'
+[2025-08-12T23:07:51Z DEBUG cache] Cache operation successful
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Teste' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+[2025-08-12T23:07:58Z DEBUG cache] Cache module received input: Get { key: "teste@exemplo.com" }
+[2025-08-12T23:07:58Z DEBUG cache] Cache miss for key 'teste@exemplo.com'
+[2025-08-12T23:07:58Z DEBUG cache] Cache operation successful
+[2025-08-12T23:07:58Z DEBUG cache] Cache module received input: Set { key: "teste@exemplo.com", value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "teste@exemplo.com" }), String(StringB { value: "name" }): String(StringB { value: "Teste" })})), ttl: None }
+[2025-08-12T23:07:58Z DEBUG cache] Set key 'teste@exemplo.com' with value: Object(HashMap({String(StringB { value: "email" }): String(StringB { value: "teste@exemplo.com" }), String(StringB { value: "name" }): String(StringB { value: "Teste" })}))
+[2025-08-12T23:07:58Z DEBUG cache] Cache operation successful
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Teste' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Teste' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Baby' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+[2025-08-12T23:07:59Z DEBUG cache] Cache module received input: Get { key: "baby@exemplo.com" }
+[2025-08-12T23:07:59Z DEBUG cache] Cache miss for key 'baby@exemplo.com'
+[2025-08-12T23:07:59Z DEBUG cache] Cache operation successful
+[2025-08-12T23:07:59Z DEBUG cache] Cache module received input: Set { key: "baby@exemplo.com", value: Object(HashMap({String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(0), i128: None, f32: None, f64: None }), String(StringB { value: "name" }): String(StringB { value: "Baby" }), String(StringB { value: "email" }): String(StringB { value: "baby@exemplo.com" })})), ttl: None }
+[2025-08-12T23:07:59Z DEBUG cache] Set key 'baby@exemplo.com' with value: Object(HashMap({String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(0), i128: None, f32: None, f64: None }), String(StringB { value: "name" }): String(StringB { value: "Baby" }), String(StringB { value: "email" }): String(StringB { value: "baby@exemplo.com" })}))
+[2025-08-12T23:07:59Z DEBUG cache] Cache operation successful
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value 'Centenário' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+[2025-08-12T23:08:00Z DEBUG cache] Cache module received input: Get { key: "old@exemplo.com" }
+[2025-08-12T23:08:00Z DEBUG cache] Cache miss for key 'old@exemplo.com'
+[2025-08-12T23:08:00Z DEBUG cache] Cache operation successful
+[2025-08-12T23:08:00Z DEBUG cache] Cache module received input: Set { key: "old@exemplo.com", value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "Centenário" }), String(StringB { value: "email" }): String(StringB { value: "old@exemplo.com" }), String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(120), i128: None, f32: None, f64: None })})), ttl: None }
+[2025-08-12T23:08:00Z DEBUG cache] Set key 'old@exemplo.com' with value: Object(HashMap({String(StringB { value: "name" }): String(StringB { value: "Centenário" }), String(StringB { value: "email" }): String(StringB { value: "old@exemplo.com" }), String(StringB { value: "age" }): Number(Number { u8: None, u16: None, u32: None, u64: None, u128: None, i8: None, i16: None, i32: None, i64: Some(120), i128: None, f32: None, f64: None })}))
+[2025-08-12T23:08:00Z DEBUG cache] Cache operation successful
+Pattern before unescaping: '^[a-zA-ZÀ-ÿ ]+$', after: '^[a-zA-ZÀ-ÿ ]+$'
+Validating field 'name' with value '123' against pattern '^[a-zA-ZÀ-ÿ ]+$'
+Pattern match failed for '123' with pattern '^[a-zA-ZÀ-ÿ ]+$'

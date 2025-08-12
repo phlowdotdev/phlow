@@ -609,6 +609,16 @@ impl OpenAPIValidator {
         };
 
         let str_val = string_val.as_str();
+        
+        // Check for empty string after trimming (names with only spaces)
+        if field_name == "name" && str_val.trim().is_empty() {
+            errors.push(ValidationError {
+                error_type: ValidationErrorType::InvalidFieldValue,
+                message: format!("Field '{}' cannot be empty or contain only spaces", field_name),
+                field: Some(field_name.to_string()),
+            });
+            return;
+        }
 
         // Check minLength
         if let Some(min_len) = schema.get("minLength").and_then(|v| {

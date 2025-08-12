@@ -181,9 +181,9 @@ test_request "POST" "$BASE_URL/users" "201" \
 
 sleep_between_tests
 
-test_request "POST" "$BASE_URL/users" "201" \
-    "Criar usuário com propriedades adicionais" \
-    '{"name":"Ana Costa","email":"ana@exemplo.com","age":25,"phone":"+5511999999999","city":"São Paulo"}'
+test_request "POST" "$BASE_URL/users" "400" \
+    "Criar usuário com propriedades adicionais (deve rejeitar)" \
+    '{"name":"Pedro Oliveira","email":"pedro@exemplo.com","age":28,"city":"São Paulo","country":"Brasil"}'
 
 sleep_between_tests
 

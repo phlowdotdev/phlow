@@ -74,6 +74,51 @@ pub async fn proxy(
     let query = req.uri().query().unwrap_or_default().to_string();
     let uri = req.uri().to_string();
 
+    // Check Content-Type for POST, PUT, PATCH requests
+    let method_requires_content_type = matches!(method.as_str(), "POST" | "PUT" | "PATCH");
+    if method_requires_content_type {
+        let content_type = req.headers().get("content-type")
+            .and_then(|ct| ct.to_str().ok())
+            .unwrap_or("");
+        
+        log::debug!("Content-Type validation - method: {}, content_type: '{}', contains_json: {}, is_empty: {}", 
+                   method, content_type, content_type.contains("application/json"), content_type.is_empty());
+        
+        if !content_type.contains("application/json") && !content_type.is_empty() {
+            let error_details = vec![{
+                let mut error_obj = HashMap::new();
+                error_obj.insert("type".to_string(), "InvalidRequestBody".to_value());
+                error_obj.insert("message".to_string(), "Content-Type must be application/json".to_value());
+                error_obj.insert("field".to_string(), "content-type".to_value());
+                error_obj.to_value()
+            }];
+            
+            let mut body_obj = HashMap::new();
+            body_obj.insert("error".to_string(), "Validation failed".to_value());
+            body_obj.insert("details".to_string(), error_details.to_value());
+            
+            let mut headers_obj = HashMap::new();
+            headers_obj.insert("Content-Type".to_string(), "application/json".to_value());
+            
+            let error_response = ResponseHandler::from({
+                let mut response_obj = HashMap::new();
+                response_obj.insert("status_code".to_string(), 400u16.to_value());
+                response_obj.insert("body".to_string(), body_obj.to_value());
+                response_obj.insert("headers".to_string(), headers_obj.to_value());
+                response_obj.to_value()
+            });
+            
+            context.span.record("http.response.status_code", error_response.status_code);
+            context.span.record("http.response.body.size", error_response.body.len());
+            
+            error_response.headers.iter().for_each(|(key, value)| {
+                context.span.record(to_span_format!("http.response.header.{}", key), value);
+            });
+            
+            return Ok(error_response.build());
+        }
+    }
+    
     let headers = resolve_headers(
         req.headers().clone(),
         &context.span,

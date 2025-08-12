@@ -49,11 +49,11 @@ steps:
           action: get
           key: !phs main.path_params.userId
 
-      - assert: !phs payload.success
+      - assert: !phs payload.success && payload.found
         then:
           return:
             status_code: 200
-            body: !phs main
+            body: !phs payload.value
 
       - return:
           status_code: 404
@@ -93,12 +93,24 @@ steps:
     then:
       - use: cache
         input:
-          action: remove
+          action: get
           key: !phs main.path_params.userId
 
+      - assert: !phs payload.success && payload.found
+        then:
+          - use: cache
+            input:
+              action: remove
+              key: !phs main.path_params.userId
+
+          - return:
+              status_code: 204
+              body: {}
+
       - return:
-          status_code: 204
-          body: {}
+          status_code: 404
+          body:
+            message: "User not found"
 
   # List a users
   - assert: !phs main.method == "GET" && main.path == "/users"
