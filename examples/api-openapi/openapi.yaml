@@ -12,15 +12,29 @@ paths:
     post:
       summary: "Create a new user"
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - name
+                - email
               properties:
                 name:
                   type: string
+                  minLength: 2
+                  maxLength: 50
+                  pattern: '^[a-zA-ZÀ-ÿ\s]+$'  # Apenas letras e espaços
                 email:
                   type: string
+                  format: email  # Validação built-in de email
+                  pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'  # Regex customizado adicional
+                age:
+                  type: integer
+                  minimum: 0
+                  maximum: 120
+                  description: "User age in years"
       responses:
         201:
           description: "User created"
@@ -50,6 +64,7 @@ paths:
     put:
       summary: "Update user by ID"
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -57,8 +72,17 @@ paths:
               properties:
                 name:
                   type: string
+                  minLength: 2
+                  maxLength: 50
+                  pattern: '^[a-zA-ZÀ-ÿ\s]+$'
                 email:
                   type: string
+                  format: email
+                  pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+                age:
+                  type: integer
+                  minimum: 0
+                  maximum: 120
       responses:
         200:
           description: "User updated"
