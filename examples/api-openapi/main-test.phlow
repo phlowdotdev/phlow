@@ -1,0 +1,128 @@
+name: "Test Original Path"
+version: "1.0.0"
+description: "Teste do original_path em PHS"
+
+main: http_server
+
+modules:
+  - module: http_server
+    with:
+      openapi_spec: "examples/api-openapi/openapi.yaml"
+  - module: cache
+    with:
+      capacity: 1000
+
+steps:
+  # Create a user
+  - assert: !phs main.method == "POST" && main.path == "/users"
+    then:
+      - use: cache
+        input:
+          action: get
+          key: !phs main.body.email
+
+      - assert: !phs payload.success && payload.found
+        then:
+          return:
+            status_code: 409
+            body:
+              message: "User already exists"
+
+      - use: cache
+        input:
+          action: set
+          key: !phs main.body.email
+          value: !phs main.body
+
+      - return:
+          status_code: 201
+          body:
+            message: "User created successfully"
+            user: !phs main.body
+
+  # Get a user
+  - assert: !phs main.method == "GET" && main.path == "/users/{userId}"
+    then:
+      - use: cache
+        input:
+          action: get
+          key: !phs main.path_params.userId
+
+      - assert: !phs payload.success
+        then:
+          return:
+            status_code: 200
+            body: !phs main
+
+      - return:
+          status_code: 404
+          body:
+            message: "User not found"
+
+  # Edit a user
+  - assert: !phs main.method == "PUT" && main.path == "/users/{userId}"
+    then:
+      - use: cache
+        input:
+          action: get
+          key: !phs main.path_params.userId
+          value: !phs main.body
+
+      - assert: !phs payload.success && !is_empty(payload.value)
+        then:
+          - use: cache
+            input:
+              action: set
+              key: !phs main.path_params.userId
+              value: !phs merge(payload.value, main.body)
+
+          - return:
+              status_code: 200
+              body:
+                message: "User updated successfully"
+                user: !phs main.body
+
+      - return:
+          status_code: 404
+          body:
+            message: "User not found"
+
+  # Delete a user
+  - assert: !phs main.method == "DELETE" && main.path == "/users/{userId}"
+    then:
+      - use: cache
+        input:
+          action: remove
+          key: !phs main.path_params.userId
+
+      - return:
+          status_code: 204
+          body: {}
+
+  # List a users
+  - assert: !phs main.method == "GET" && main.path == "/users"
+    then:
+      - use: cache
+        input:
+          action: list
+
+      - return:
+          status_code: 200
+          body:
+            users: !phs payload.items
+
+tests:
+  - describe: Create user
+    main:
+      path: /users
+      method: POST
+      body:
+        name: John
+        email: john@example.com
+    assert_eq:
+      status_code: 201
+      body:
+        message: "User created successfully"
+        user:
+          name: John
+          email: john@example.com

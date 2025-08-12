@@ -1,0 +1,9 @@
+[2025-08-12T16:35:20Z INFO  phlow::loader] Downloading modules...
+[2025-08-12T16:35:20Z INFO  phlow::loader] Module http_server (latest) already exists at phlow_packages/http_server/module.so, skipping download
+[2025-08-12T16:35:20Z INFO  phlow::loader] Module cache (latest) already exists at phlow_packages/cache/module.so, skipping download
+[2025-08-12T16:35:20Z INFO  phlow::loader] All modules downloaded and extracted successfully
+[2025-08-12T16:35:20Z INFO  phlow::loader] 🧪 Load Module: http_server (latest), in phlow_packages/http_server/module.so
+[2025-08-12T16:35:20Z INFO  phlow::loader] Loading binary module: phlow_packages/http_server/module.so
+[2025-08-12T16:35:20Z INFO  phlow::loader] 🧪 Load Module: cache (latest), in phlow_packages/cache/module.so
+[2025-08-12T16:35:20Z INFO  phlow::loader] Loading binary module: phlow_packages/cache/module.so
+[2025-08-12T16:35:20Z INFO  phlow::runtime] Phlow!

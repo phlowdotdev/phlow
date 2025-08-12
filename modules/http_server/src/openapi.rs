@@ -70,20 +70,28 @@ impl OpenAPIValidator {
         Self::from_spec_content(&content, config)
     }
 
+    pub fn json_to_value(
+        target: &str,
+    ) -> Result<(Value, String), Box<dyn std::error::Error + Send + Sync>> {
+        let target: String = target.to_string().replace("\\", "\\\\");
+
+        if target.trim_start().starts_with('{') {
+            let value = Value::json_to_value(&target)
+                .map_err(|e| format!("Failed to parse OpenAPI spec JSON: {:?}", e))?;
+            Ok((value, target))
+        } else {
+            let value: Value = serde_yaml::from_str(&target)?;
+            let string = value.to_json(JsonMode::Inline);
+            Ok((value, string))
+        }
+    }
+
     pub fn from_spec_content(
         content: &str,
         config: ValidationConfig,
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        let (spec, spec_json) = if content.trim_start().starts_with('{') {
-            let string = content.to_string();
-            let value = Value::json_to_value(&string)
-                .map_err(|e| format!("Failed to parse OpenAPI spec JSON: {:?}", e))?;
-            (value, string)
-        } else {
-            let value: Value = serde_yaml::from_str(content)?;
-            let string = value.to_json(JsonMode::Inline);
-            (value, string)
-        };
+        log::debug!("Loading OpenAPI spec from content: {}", content);
+        let (spec, spec_json) = Self::json_to_value(content)?;
 
         let route_patterns = Self::build_route_patterns_from_json(&spec_json)?;
         let spec = match spec.as_object() {
@@ -155,8 +163,7 @@ impl OpenAPIValidator {
         spec_json: &str,
     ) -> Result<Vec<RoutePattern>, Box<dyn std::error::Error + Send + Sync>> {
         let mut patterns = Vec::new();
-        let spec: Value = Value::json_to_value(spec_json)
-            .map_err(|e| format!("Failed to parse OpenAPI spec JSON: {:?}", e))?;
+        let (spec, _) = Self::json_to_value(spec_json)?;
 
         if let Some(paths) = spec.get("paths").and_then(|p| p.as_object()) {
             for (path, path_item) in paths.iter() {
@@ -248,7 +255,6 @@ impl OpenAPIValidator {
         &self,
         method: &str,
         path: &str,
-        headers: &HashMap<String, String>,
         query_params: &HashMap<String, String>,
         body: &Value,
     ) -> ValidationResult {
@@ -300,7 +306,6 @@ impl OpenAPIValidator {
                 }
 
                 if self.config.strict_mode {
-                    self.validate_headers(headers, &mut validation_errors);
                     self.validate_query_parameters(query_params, &mut validation_errors);
                 }
 
@@ -388,7 +393,7 @@ impl OpenAPIValidator {
 
         if let Some(properties) = schema.as_ref().and_then(|s| s.get("properties")) {
             // Validate based on actual OpenAPI schema using the correct HTTP method and route
-            self.validate_properties_with_schema(obj, properties, errors, schema.as_ref(), method);
+            self.validate_properties_with_schema(obj, properties, errors, schema.as_ref());
         } else {
             // Fallback to basic validation with method awareness
             self.validate_basic_user_schema_with_method(obj, errors, method);
@@ -415,7 +420,6 @@ impl OpenAPIValidator {
         properties: &Value,
         errors: &mut Vec<ValidationError>,
         parent_schema: Option<&Value>,
-        method: &str,
     ) {
         if let Some(props) = properties.as_object() {
             // Extract required fields array from the parent schema that was passed
@@ -730,16 +734,6 @@ impl OpenAPIValidator {
                 });
             }
         }
-    }
-
-    /// Validate headers (basic implementation)
-    fn validate_headers(
-        &self,
-        _headers: &HashMap<String, String>,
-        _errors: &mut Vec<ValidationError>,
-    ) {
-        // Basic header validation
-        // In a full implementation, we would check required headers against the OpenAPI spec
     }
 
     /// Validate query parameters (basic implementation)

@@ -13,7 +13,8 @@ use resolver::proxy;
 use settings::Settings;
 use setup::Config;
 use std::{net::SocketAddr, sync::Arc};
-
+#[cfg(test)]
+mod openapi_tests;
 create_main!(start_server(setup));
 
 pub async fn start_server(

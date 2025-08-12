@@ -16,7 +16,7 @@ pub struct RouteValidationResult {
 
 impl Router {
     pub fn new() -> Self {
-        Router { 
+        Router {
             openapi_validator: None,
         }
     }
@@ -26,21 +26,20 @@ impl Router {
         &self,
         method: &str,
         path: &str,
-        headers: &HashMap<String, String>,
         query_params: &HashMap<String, String>,
         body: &Value,
     ) -> RouteValidationResult {
         // If OpenAPI validator is available, use it
         if let Some(validator) = &self.openapi_validator {
-            let validation_result = validator.validate_request(method, path, headers, query_params, body);
-            
+            let validation_result = validator.validate_request(method, path, query_params, body);
+
             return RouteValidationResult {
                 path_params: validation_result.path_params.clone(),
                 validation_result: Some(validation_result.clone()),
                 matched_route: validation_result.matched_route.clone(),
             };
         }
-        
+
         // No OpenAPI spec available - return empty params
         RouteValidationResult {
             path_params: HashMap::new(),
@@ -48,7 +47,6 @@ impl Router {
             matched_route: None,
         }
     }
-    
 }
 
 impl From<Value> for Router {

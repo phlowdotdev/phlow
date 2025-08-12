@@ -94,16 +94,6 @@ pub async fn proxy(
     let body = body.await;
     let headers = headers.await;
 
-    // Convert headers HashMap for validation
-    let headers_map: std::collections::HashMap<String, String> =
-        if let Value::Object(obj) = &headers {
-            obj.iter()
-                .map(|(k, v)| (k.to_string(), v.to_string()))
-                .collect()
-        } else {
-            std::collections::HashMap::new()
-        };
-
     // Convert query_params HashMap for validation
     let query_map: std::collections::HashMap<String, String> =
         if let Value::Object(obj) = &query_params {
@@ -115,14 +105,8 @@ pub async fn proxy(
         };
 
     // Validate request and extract path parameters
-    let (path_params, original_path, validation_error) = validate_request_and_extract_params(
-        &method,
-        &path,
-        &headers_map,
-        &query_map,
-        &body,
-        &context.router,
-    );
+    let (path_params, original_path, validation_error) =
+        validate_request_and_extract_params(&method, &path, &query_map, &body, &context.router);
 
     // If validation failed, return error response immediately
     if let Some(error_response) = validation_error {
@@ -283,12 +267,11 @@ async fn resolve_headers(
 fn validate_request_and_extract_params(
     method: &str,
     path: &str,
-    headers: &std::collections::HashMap<String, String>,
     query_params: &std::collections::HashMap<String, String>,
     body: &Value,
     router: &Router,
 ) -> (Value, Option<Value>, Option<Value>) {
-    let validation_result = router.validate_and_extract(method, path, headers, query_params, body);
+    let validation_result = router.validate_and_extract(method, path, query_params, body);
 
     let path_params = validation_result.path_params.to_value();
     let original_path = validation_result
