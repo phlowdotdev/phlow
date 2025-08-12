@@ -337,6 +337,19 @@ impl OpenAPIValidator {
         }
     }
 
+    /// Check if request body is required in OpenAPI spec
+    fn is_request_body_required(&self, method: &str, route_pattern: &str) -> bool {
+        self.spec
+            .get("paths")
+            .and_then(|paths| paths.get(route_pattern))
+            .and_then(|path_item| path_item.get(method.to_lowercase()))
+            .and_then(|operation| operation.get("requestBody"))
+            .and_then(|req_body| req_body.get("required"))
+            .and_then(|required| required.as_bool())
+            .map(|b| *b)
+            .unwrap_or(false) // Default: body is not required
+    }
+
     /// Validate request body against OpenAPI spec with dynamic route
     fn validate_request_body_with_route(
         &self,
@@ -345,32 +358,34 @@ impl OpenAPIValidator {
         method: &str,
         route_pattern: &str,
     ) {
-        // Parse OpenAPI spec to get schema definitions
-
-        // For now, implement basic validation for common patterns
-        // This is a simplified implementation that validates basic structure
-
         match body {
             Value::Undefined | Value::Null => {
-                // Check if body is required - for POST/PUT requests, usually it is
-                errors.push(ValidationError {
-                    error_type: ValidationErrorType::InvalidRequestBody,
-                    message: "Request body is required".to_string(),
-                    field: Some("body".to_string()),
-                });
+                // Check if body is actually required in the OpenAPI spec
+                if self.is_request_body_required(method, route_pattern) {
+                    errors.push(ValidationError {
+                        error_type: ValidationErrorType::InvalidRequestBody,
+                        message: "Request body is required".to_string(),
+                        field: Some("body".to_string()),
+                    });
+                }
+                // If body is not required, null/undefined is valid
             }
             Value::Object(obj) => {
-                // Now we use the actual HTTP method and route for accurate validation
+                // Body is present, validate its structure
                 self.validate_object_schema_with_route(obj, errors, method, route_pattern);
             }
             Value::String(s) if s.trim().is_empty() => {
-                errors.push(ValidationError {
-                    error_type: ValidationErrorType::InvalidRequestBody,
-                    message: "Request body cannot be empty".to_string(),
-                    field: Some("body".to_string()),
-                });
+                // Empty string body - check if required
+                if self.is_request_body_required(method, route_pattern) {
+                    errors.push(ValidationError {
+                        error_type: ValidationErrorType::InvalidRequestBody,
+                        message: "Request body cannot be empty".to_string(),
+                        field: Some("body".to_string()),
+                    });
+                }
             }
             _ => {
+                // Body has some other type - usually invalid for JSON APIs
                 errors.push(ValidationError {
                     error_type: ValidationErrorType::InvalidRequestBody,
                     message: "Invalid request body format".to_string(),
@@ -470,6 +485,22 @@ impl OpenAPIValidator {
                         }
                         Some(ref val) if val == "integer" || val == "number" => {
                             self.validate_numeric_field(
+                                &prop_name,
+                                field_value,
+                                prop_schema,
+                                errors,
+                            );
+                        }
+                        Some(ref val) if val == "boolean" => {
+                            self.validate_boolean_field(
+                                &prop_name,
+                                field_value,
+                                prop_schema,
+                                errors,
+                            );
+                        }
+                        Some(ref val) if val == "array" => {
+                            self.validate_array_field(
                                 &prop_name,
                                 field_value,
                                 prop_schema,
@@ -667,10 +698,179 @@ impl OpenAPIValidator {
         }
     }
 
+    /// Validate boolean field
+    fn validate_boolean_field(
+        &self,
+        field_name: &str,
+        value: &Value,
+        _schema: &Value, // For future extensions
+        errors: &mut Vec<ValidationError>,
+    ) {
+        match value {
+            Value::Boolean(_) => {
+                // Field is valid boolean
+            }
+            _ => {
+                errors.push(ValidationError {
+                    error_type: ValidationErrorType::InvalidFieldType,
+                    message: format!("Field '{}' must be a boolean", field_name),
+                    field: Some(field_name.to_string()),
+                });
+            }
+        }
+    }
+
+    /// Validate array field with item type validation
+    fn validate_array_field(
+        &self,
+        field_name: &str,
+        value: &Value,
+        schema: &Value,
+        errors: &mut Vec<ValidationError>,
+    ) {
+        let Value::Array(arr) = value else {
+            errors.push(ValidationError {
+                error_type: ValidationErrorType::InvalidFieldType,
+                message: format!("Field '{}' must be an array", field_name),
+                field: Some(field_name.to_string()),
+            });
+            return;
+        };
+
+        // Validate type of array items if specified
+        if let Some(items_schema) = schema.get("items") {
+            if let Some(item_type) = items_schema.get("type").and_then(|t| {
+                let string = t.to_string();
+                if string.is_empty() {
+                    None
+                } else {
+                    Some(string)
+                }
+            }) {
+                for (index, item) in arr.values.iter().enumerate() {
+                    match item_type.as_str() {
+                        "string" => {
+                            if !matches!(item, Value::String(_)) {
+                                errors.push(ValidationError {
+                                    error_type: ValidationErrorType::InvalidFieldType,
+                                    message: format!("Array item at index {} must be a string", index),
+                                    field: Some(format!("{}[{}]", field_name, index)),
+                                });
+                            }
+                        }
+                        "number" | "integer" => {
+                            if !matches!(item, Value::Number(_)) {
+                                errors.push(ValidationError {
+                                    error_type: ValidationErrorType::InvalidFieldType,
+                                    message: format!("Array item at index {} must be a number", index),
+                                    field: Some(format!("{}[{}]", field_name, index)),
+                                });
+                            }
+                        }
+                        "boolean" => {
+                            if !matches!(item, Value::Boolean(_)) {
+                                errors.push(ValidationError {
+                                    error_type: ValidationErrorType::InvalidFieldType,
+                                    message: format!("Array item at index {} must be a boolean", index),
+                                    field: Some(format!("{}[{}]", field_name, index)),
+                                });
+                            }
+                        }
+                        _ => {
+                            // Handle other item types if needed
+                        }
+                    }
+                }
+            }
+        }
+
+        // Check minItems
+        if let Some(min_items) = schema.get("minItems").and_then(|v| {
+            v.as_number()
+                .unwrap_or(Value::from(0).as_number().unwrap())
+                .to_i64()
+        }) {
+            if arr.len() < min_items as usize {
+                errors.push(ValidationError {
+                    error_type: ValidationErrorType::InvalidFieldValue,
+                    message: format!(
+                        "Field '{}' must have at least {} items",
+                        field_name, min_items
+                    ),
+                    field: Some(field_name.to_string()),
+                });
+            }
+        }
+
+        // Check maxItems
+        if let Some(max_items) = schema.get("maxItems").and_then(|v| {
+            v.as_number()
+                .unwrap_or(Value::from(0).as_number().unwrap())
+                .to_i64()
+        }) {
+            if arr.len() > max_items as usize {
+                errors.push(ValidationError {
+                    error_type: ValidationErrorType::InvalidFieldValue,
+                    message: format!(
+                        "Field '{}' must have at most {} items",
+                        field_name, max_items
+                    ),
+                    field: Some(field_name.to_string()),
+                });
+            }
+        }
+    }
+
     /// Basic email format validation (fallback)
     fn is_valid_email_format(&self, email: &str) -> bool {
-        // Simple email validation
-        email.contains('@') && email.contains('.') && email.len() >= 5
+        // Basic validation checks first
+        if email.is_empty() || !email.contains('@') {
+            return false;
+        }
+        
+        let parts: Vec<&str> = email.split('@').collect();
+        if parts.len() != 2 {
+            return false; // Should have exactly one @
+        }
+        
+        let username = parts[0];
+        let domain = parts[1];
+        
+        // Username checks
+        if username.is_empty() || username.starts_with('.') || username.ends_with('.') || username.contains("..") {
+            return false;
+        }
+        
+        // Domain checks
+        if domain.is_empty() || domain.starts_with('.') || domain.ends_with('.') 
+            || domain.starts_with('-') || domain.ends_with('-') || domain.contains("..") 
+            || !domain.contains('.') {
+            return false;
+        }
+        
+        // Check if domain has a valid TLD (at least 2 characters after last dot)
+        let domain_parts: Vec<&str> = domain.split('.').collect();
+        if domain_parts.len() < 2 {
+            return false; // Must have at least domain.tld
+        }
+        
+        let tld = domain_parts.last().unwrap();
+        if tld.len() < 2 || tld.is_empty() {
+            return false;
+        }
+        
+        // More permissive regex that accepts common email formats
+        let email_regex = match Regex::new(
+            r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$"
+        ) {
+            Ok(regex) => regex,
+            Err(_) => {
+                // If regex compilation fails, use basic validation
+                return username.len() > 0 && domain.len() > 3 && domain.contains('.') && !domain.ends_with('.');
+            }
+        };
+        
+        email_regex.is_match(email)
     }
 
     /// Fallback basic validation with HTTP method awareness

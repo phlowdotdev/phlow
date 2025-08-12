@@ -30,8 +30,7 @@ fn create_test_openapi_spec() -> &'static str {
                   },
                   "email": {
                     "type": "string",
-                    "format": "email",
-                    "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+                    "format": "email"
                   },
                   "age": {
                     "type": "integer",
@@ -86,8 +85,7 @@ fn create_test_openapi_spec() -> &'static str {
                   },
                   "email": {
                     "type": "string",
-                    "format": "email",
-                    "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+                    "format": "email"
                   }
                 }
               }
@@ -259,6 +257,11 @@ mod tests {
             "user@example.com",
             "test.email@domain.co.uk",
             "user123@test-domain.org",
+            "first.last@subdomain.example.com",
+            "user_name@company.co",
+            "test+tag@gmail.com",
+            "a@b.co",
+            "user123@test-domain-with-hyphens.org",
         ];
 
         for email in test_emails {
@@ -273,6 +276,149 @@ mod tests {
             assert!(
                 result.is_valid,
                 "Email {} should be valid. Errors: {:?}",
+                email, result.errors
+            );
+        }
+    }
+
+    #[test]
+    fn test_post_with_invalid_email_formats() {
+        let validator = create_test_validator();
+
+        let query_params = HashMap::new();
+
+        let invalid_emails = vec![
+            "plainaddress",                     // Missing @ and domain
+            "@missingusername.com",             // Missing username
+            "username@",                        // Missing domain
+            "username@.com",                    // Domain starts with dot
+            "username@com",                     // Missing domain extension
+            "username..double.dot@example.com", // Double dot in username
+            "username@-example.com",            // Domain starts with hyphen
+            "username@example-.com",            // Domain ends with hyphen
+            "username@example.c",               // TLD too short
+            "username@example..com",            // Double dot in domain
+            "username@",                        // Empty domain
+            "",                                 // Empty string
+            "username@example.com.",            // Trailing dot
+            "user name@example.com",            // Space in username
+            "username@exam ple.com",            // Space in domain
+            "username@example,com",             // Comma instead of dot
+            "username@example@com",             // Multiple @ symbols
+            "username@@example.com",            // Double @
+            "user@",                            // Just @ at end
+            "@",                                // Just @
+            "user@.example.com",                // Domain starts with dot
+            "user@example.",                    // Domain ends with dot
+            "user@exam..ple.com",               // Double dot in domain middle
+        ];
+
+        for email in invalid_emails {
+            let mut user_data = HashMap::new();
+            user_data.insert("name".to_string(), "Test User".to_value());
+            user_data.insert("email".to_string(), email.to_value());
+
+            let body = user_data.to_value();
+
+            let result = validator.validate_request("POST", "/users", &query_params, &body);
+
+            assert!(
+                !result.is_valid,
+                "Email '{}' should be invalid but was accepted",
+                email
+            );
+            assert_eq!(result.status_code, 400);
+
+            let has_email_error = result.errors.iter().any(|e| {
+                e.field == Some("email".to_string())
+                    && (e.message.contains("valid email")
+                        || e.message.contains("format is invalid")
+                        || e.message.contains("must be a valid email address"))
+            });
+            assert!(
+                has_email_error,
+                "Should have email validation error for '{}'. Errors: {:?}",
+                email, result.errors
+            );
+        }
+    }
+
+    #[test]
+    fn test_put_with_invalid_email_formats() {
+        let validator = create_test_validator();
+
+        let query_params = HashMap::new();
+
+        let invalid_emails = vec![
+            "not-an-email",
+            "missing@domain",
+            "@missing-user.com",
+            "double@@at.com",
+            "trailing.dot@domain.com.",
+        ];
+
+        for email in invalid_emails {
+            let mut user_data = HashMap::new();
+            user_data.insert("name".to_string(), "Updated User".to_value());
+            user_data.insert("email".to_string(), email.to_value());
+
+            let body = user_data.to_value();
+
+            let result = validator.validate_request("PUT", "/users/123", &query_params, &body);
+
+            assert!(
+                !result.is_valid,
+                "PUT: Email '{}' should be invalid but was accepted",
+                email
+            );
+            assert_eq!(result.status_code, 400);
+
+            let has_email_error = result.errors.iter().any(|e| {
+                e.field == Some("email".to_string()) && e.message.contains("valid email address")
+            });
+            assert!(
+                has_email_error,
+                "PUT: Should have email validation error for '{}'. Errors: {:?}",
+                email, result.errors
+            );
+        }
+    }
+
+    #[test]
+    fn test_patch_with_invalid_email_formats() {
+        let validator = create_test_validator();
+
+        let query_params = HashMap::new();
+
+        let invalid_emails = vec![
+            "incomplete@",
+            "@incomplete.com",
+            "spaces in@email.com",
+            "email@spaces in.com",
+            "multiple@at@symbols.com",
+        ];
+
+        for email in invalid_emails {
+            let mut user_data = HashMap::new();
+            user_data.insert("email".to_string(), email.to_value());
+
+            let body = user_data.to_value();
+
+            let result = validator.validate_request("PATCH", "/users/456", &query_params, &body);
+
+            assert!(
+                !result.is_valid,
+                "PATCH: Email '{}' should be invalid but was accepted",
+                email
+            );
+            assert_eq!(result.status_code, 400);
+
+            let has_email_error = result.errors.iter().any(|e| {
+                e.field == Some("email".to_string()) && e.message.contains("valid email address")
+            });
+            assert!(
+                has_email_error,
+                "PATCH: Should have email validation error for '{}'. Errors: {:?}",
                 email, result.errors
             );
         }
@@ -808,10 +954,14 @@ mod tests {
         assert_eq!(result.status_code, 400);
 
         let has_type_error = result.errors.iter().any(|e| {
-            e.message.contains("tags")
+            (e.message.contains("tags")
+                || e.field
+                    .as_ref()
+                    .map(|f| f.contains("tags"))
+                    .unwrap_or(false))
                 && (e.message.contains("must be a string")
                     || e.message.contains("expected string")
-                    || e.message.contains("array items"))
+                    || e.message.contains("Array item"))
         });
         assert!(
             has_type_error,
@@ -1008,4 +1158,5 @@ mod tests {
         assert_eq!(result.path_params.get("id"), Some(&"john123".to_string()));
         assert_eq!(result.matched_route, Some("/users/{id}".to_string()));
     }
+
 }
