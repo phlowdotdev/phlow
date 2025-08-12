@@ -1,6 +1,8 @@
 mod middleware;
+mod openapi;
 mod resolver;
 mod response;
+mod router;
 mod settings;
 mod setup;
 use hyper::{server::conn::http1, service::service_fn};
@@ -61,6 +63,7 @@ pub async fn start_server(
     loop {
         let dispatch = setup.dispatch.clone();
         let authorization_span_mode = settings.authorization_span_mode.clone();
+        let router = config.router.clone();
         let sender = match setup.main_sender.clone() {
             Some(sender) => sender,
             None => {
@@ -81,6 +84,8 @@ pub async fn start_server(
                 id: setup.id,
                 peer_addr,
                 authorization_span_mode,
+                router: router.clone(),
+                openapi_validator: router.openapi_validator.clone(),
             };
 
             if let Err(e) = http1::Builder::new()

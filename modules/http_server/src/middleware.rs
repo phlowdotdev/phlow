@@ -1,4 +1,4 @@
-use crate::settings::AuthorizationSpanMode;
+use crate::{settings::AuthorizationSpanMode, router::Router, openapi::OpenAPIValidator};
 use hyper::{body::Incoming, service::Service, Request};
 use phlow_sdk::{
     prelude::*,
@@ -15,6 +15,8 @@ pub struct RequestContext {
     pub span: phlow_sdk::tracing::Span,
     pub client_ip: String,
     pub authorization_span_mode: AuthorizationSpanMode,
+    pub router: Router,
+    pub openapi_validator: Option<OpenAPIValidator>,
 }
 
 #[derive(Debug, Clone)]
@@ -25,6 +27,8 @@ pub struct TracingMiddleware<S> {
     pub sender: MainRuntimeSender,
     pub peer_addr: std::net::SocketAddr,
     pub authorization_span_mode: AuthorizationSpanMode,
+    pub router: Router,
+    pub openapi_validator: Option<OpenAPIValidator>,
 }
 
 impl<S> Service<Request<Incoming>> for TracingMiddleware<S>
@@ -127,6 +131,8 @@ where
                 client_ip: self.peer_addr.to_string(),
                 span,
                 authorization_span_mode: self.authorization_span_mode.clone(),
+                router: self.router.clone(),
+                openapi_validator: self.openapi_validator.clone(),
             };
 
             req.extensions_mut().insert(context);

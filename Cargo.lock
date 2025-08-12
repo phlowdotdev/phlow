@@ -1161,6 +1161,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "from-path"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e5a32daba01ad4b00b41373a471bbf6b68a53598b6c5d55bfa995f858288712b"
+
+[[package]]
 name = "futures"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1464,12 +1470,17 @@ name = "http_server"
 version = "0.1.0"
 dependencies = [
  "bytes",
+ "from-path",
  "futures-util",
  "http-body-util",
  "hyper",
  "hyper-util",
  "openssl",
  "phlow-sdk",
+ "regex",
+ "serde",
+ "serde_json",
+ "serde_yaml",
 ]
 
 [[package]]

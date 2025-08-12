@@ -1,0 +1,100 @@
+name: "Test Original Path"
+version: "1.0.0"
+description: "Teste do original_path em PHS"
+
+main: http_server
+
+modules:
+  - module: http_server
+    with:
+      host: "0.0.0.0"
+      openapi_spec:
+        !include openapi.yaml
+  - module: cache
+    with:
+      capacity: 1000
+
+steps:
+  # Create a user
+  - assert: !phs main.method == "POST" && main.path == "/users"
+    then:
+      - use: cache
+        input:
+          action: set
+          key: !phs main.body.email
+          value: !phs main.body
+
+      - return:
+          status_code: 201
+          body:
+            message: "User created successfully"
+            user: !phs main.body
+
+  # Get a user
+  - assert: !phs main.method == "GET" && main.path == "/users/{userId}"
+    then:
+      - use: cache
+        input:
+          action: get
+          key: !phs main.path_params.userId
+
+      - return:
+          status_code: 200
+          body: !phs main
+
+  # Edit a user
+  - assert: !phs main.method == "PUT" && main.path == "/users/{userId}"
+    then:
+      - use: cache
+        input:
+          action: update
+          key: !phs main.path_params.userId
+          value: !phs main.body
+
+      - return:
+          status_code: 200
+          body:
+            message: "User updated successfully"
+            user: !phs main.body
+
+  # Delete a user
+  - assert: !phs main.method == "DELETE" && main.path == "/users/{userId}"
+    then:
+      - use: cache
+        input:
+          action: remove
+          key: !phs main.path_params.userId
+
+      - return:
+          status_code: 204
+          body: {}
+
+  # List a users
+  - assert: !phs main.method == "GET" && main.path == "/users"
+    then:
+      - use: cache
+        input:
+          action: list
+
+      - return:
+        status_code: 200
+        body:
+          users: !phs main
+
+
+
+tests:
+  - describe: Create user
+    main:
+      path: /users
+      method: POST
+      body:
+        name: John
+        email: john@example.com
+    assert_eq:
+      status_code: 201
+      body:
+        message: "User created successfully"
+        user:
+          name: John
+          email: john@example.com
