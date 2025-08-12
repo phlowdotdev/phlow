@@ -598,6 +598,7 @@ impl OpenAPIValidator {
         schema: &Value,
         errors: &mut Vec<ValidationError>,
     ) {
+        log::warn!("validate_string_field called for field '{}'", field_name);
         let Value::String(string_val) = value else {
             errors.push(ValidationError {
                 error_type: ValidationErrorType::InvalidFieldType,
@@ -661,9 +662,9 @@ impl OpenAPIValidator {
         }) {
             match Regex::new(&pattern) {
                 Ok(regex) => {
-                    log::debug!("Validating field '{}' with value '{}' against pattern '{}'", field_name, str_val, pattern);
+                    log::warn!("Validating field '{}' with value '{}' against pattern '{}'", field_name, str_val, pattern);
                     if !regex.is_match(str_val) {
-                        log::debug!("Pattern match failed for '{}' with pattern '{}'", str_val, pattern);
+                        log::warn!("Pattern match failed for '{}' with pattern '{}'", str_val, pattern);
                         let message = if field_name == "email" {
                             format!("Field '{}' must be a valid email address", field_name)
                         } else {
@@ -675,7 +676,7 @@ impl OpenAPIValidator {
                             field: Some(field_name.to_string()),
                         });
                     } else {
-                        log::debug!("Pattern match successful for '{}' with pattern '{}'", str_val, pattern);
+                        log::warn!("Pattern match successful for '{}' with pattern '{}'", str_val, pattern);
                     }
                 }
                 Err(regex_err) => {
