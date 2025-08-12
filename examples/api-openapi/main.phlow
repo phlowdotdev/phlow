@@ -69,7 +69,7 @@ steps:
           key: !phs main.path_params.userId
           value: !phs main.body
 
-      - assert: !phs payload.success
+      - assert: !phs payload.success && !is_empty(payload.value)
         then:
           - use: cache
             input:
