@@ -259,7 +259,12 @@ impl OpenAPIValidator {
 
                 // Perform additional validations if enabled
                 if self.config.validate_request_body {
-                    self.validate_request_body(body, &mut validation_errors);
+                    // Only validate request body for methods that typically have bodies
+                    let method_has_body = matches!(method.to_uppercase().as_str(), "POST" | "PUT" | "PATCH");
+                    if method_has_body {
+                        // Pass the actual matched route pattern for dynamic validation
+                        self.validate_request_body_with_route(body, &mut validation_errors, method.to_lowercase().as_str(), &route_pattern.path_pattern);
+                    }
                 }
 
                 if self.config.strict_mode {
@@ -296,7 +301,13 @@ impl OpenAPIValidator {
     }
 
     /// Validate request body against OpenAPI spec
-    fn validate_request_body(&self, body: &Value, errors: &mut Vec<ValidationError>) {
+    fn validate_request_body(&self, body: &Value, errors: &mut Vec<ValidationError>, method: &str) {
+        // This is a fallback method - in practice, validate_request_body_with_route should be used
+        self.validate_request_body_with_route(body, errors, method, "/users");
+    }
+    
+    /// Validate request body against OpenAPI spec with dynamic route
+    fn validate_request_body_with_route(&self, body: &Value, errors: &mut Vec<ValidationError>, method: &str, route_pattern: &str) {
         // Parse OpenAPI spec to get schema definitions
         if let Ok(spec) = serde_json::from_str::<serde_json::Value>(&self.spec_json) {
             // For now, implement basic validation for common patterns
@@ -312,8 +323,8 @@ impl OpenAPIValidator {
                     });
                 }
                 Value::Object(obj) => {
-                    // Validate object structure based on OpenAPI schema
-                    self.validate_object_schema(obj, errors, &spec);
+                    // Now we use the actual HTTP method and route for accurate validation
+                    self.validate_object_schema_with_route(obj, errors, &spec, method, route_pattern);
                 }
                 Value::String(s) if s.trim().is_empty() => {
                     errors.push(ValidationError {
@@ -334,13 +345,19 @@ impl OpenAPIValidator {
     }
     
     /// Validate object schema against OpenAPI specification
-    fn validate_object_schema(&self, obj: &Object, errors: &mut Vec<ValidationError>, spec: &serde_json::Value) {
-        // Try to extract actual schema from OpenAPI spec for more accurate validation
-        let schema = self.extract_request_body_schema(spec, "/users", "post");
+    fn validate_object_schema(&self, obj: &Object, errors: &mut Vec<ValidationError>, spec: &serde_json::Value, method: &str) {
+        // This is a fallback method - in practice, validate_object_schema_with_route should be used
+        self.validate_object_schema_with_route(obj, errors, spec, method, "/users");
+    }
+    
+    /// Validate object schema against OpenAPI specification with dynamic route
+    fn validate_object_schema_with_route(&self, obj: &Object, errors: &mut Vec<ValidationError>, spec: &serde_json::Value, method: &str, route_pattern: &str) {
+        // Try to extract actual schema from OpenAPI spec for more accurate validation using the actual HTTP method and route
+        let schema = self.extract_request_body_schema(spec, route_pattern, method);
         
         if let Some(properties) = schema.as_ref().and_then(|s| s.get("properties")) {
-            // Validate based on actual OpenAPI schema
-            self.validate_properties_with_schema(obj, properties, errors);
+            // Validate based on actual OpenAPI schema using the correct HTTP method and route
+            self.validate_properties_with_schema(obj, properties, errors, schema.as_ref(), method);
         } else {
             // Fallback to basic validation
             self.validate_basic_user_schema(obj, errors);
@@ -360,39 +377,62 @@ impl OpenAPIValidator {
     }
     
     /// Validate object properties against OpenAPI schema with patterns
-    fn validate_properties_with_schema(&self, obj: &Object, properties: &serde_json::Value, errors: &mut Vec<ValidationError>) {
+    fn validate_properties_with_schema(&self, obj: &Object, properties: &serde_json::Value, errors: &mut Vec<ValidationError>, parent_schema: Option<&serde_json::Value>, method: &str) {
         if let Some(props) = properties.as_object() {
-            // Check for email field with pattern validation
-            if let Some(email_schema) = props.get("email") {
-                if let Some(email_value) = obj.get("email") {
-                    self.validate_string_field("email", email_value, email_schema, errors);
-                } else {
-                    // Check if email is required (this should be checked from 'required' array, but simplified here)
+            // Extract required fields array from the parent schema that was passed
+            let required_fields: Vec<String> = parent_schema
+                .and_then(|s| s.get("required"))
+                .and_then(|r| r.as_array())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                        .collect()
+                })
+                .unwrap_or_default();
+            
+            // Check if additionalProperties are allowed
+            let allow_additional_properties = parent_schema
+                .and_then(|s| s.get("additionalProperties"))
+                .map(|ap| !matches!(ap, serde_json::Value::Bool(false)))
+                .unwrap_or(true); // Default to true if not specified
+            
+            // Validate each property in the schema
+            for (prop_name, prop_schema) in props {
+                if let Some(field_value) = obj.get(prop_name.as_str()) {
+                    // Field is present, validate its value
+                    match prop_schema.get("type").and_then(|t| t.as_str()) {
+                        Some("string") => {
+                            self.validate_string_field(prop_name, field_value, prop_schema, errors);
+                        }
+                        Some("integer") | Some("number") => {
+                            self.validate_numeric_field(prop_name, field_value, prop_schema, errors);
+                        }
+                        _ => {
+                            // Handle other types or generic validation
+                        }
+                    }
+                } else if required_fields.contains(&prop_name.to_string()) {
+                    // Field is missing and required
                     errors.push(ValidationError {
                         error_type: ValidationErrorType::MissingRequiredField,
-                        message: "Missing required field: email".to_string(),
-                        field: Some("email".to_string()),
+                        message: format!("Missing required field: {}", prop_name),
+                        field: Some(prop_name.to_string()),
                     });
                 }
+                // If field is not present and not required, it's valid (optional field)
             }
             
-            // Check for name field with pattern validation
-            if let Some(name_schema) = props.get("name") {
-                if let Some(name_value) = obj.get("name") {
-                    self.validate_string_field("name", name_value, name_schema, errors);
-                } else {
-                    errors.push(ValidationError {
-                        error_type: ValidationErrorType::MissingRequiredField,
-                        message: "Missing required field: name".to_string(),
-                        field: Some("name".to_string()),
-                    });
-                }
-            }
-            
-            // Check for age field with numeric validation
-            if let Some(age_schema) = props.get("age") {
-                if let Some(age_value) = obj.get("age") {
-                    self.validate_numeric_field("age", age_value, age_schema, errors);
+            // Check for additional properties if not allowed
+            if !allow_additional_properties {
+                for field_name in obj.keys() {
+                    let field_name_str = field_name.to_string();
+                    if !props.contains_key(&field_name_str) {
+                        errors.push(ValidationError {
+                            error_type: ValidationErrorType::InvalidFieldValue,
+                            message: format!("Additional property '{}' is not allowed", field_name_str),
+                            field: Some(field_name_str),
+                        });
+                    }
                 }
             }
         }

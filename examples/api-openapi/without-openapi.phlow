@@ -1,0 +1,69 @@
+name: "Test Original Path"
+version: "1.0.0"
+description: "Teste do original_path em PHS"
+
+main: http_server
+
+modules:
+  - module: http_server
+  - module: cache
+    with:
+      capacity: 1000
+
+steps:
+  # Create a user
+  - assert: !phs main.method == "POST" && main.path == "/users"
+    then:
+      - use: cache
+        input:
+          action: get
+          key: !phs main.body.email
+
+      - assert: !phs payload.success && payload.found
+        then:
+          return:
+            status_code: 409
+            body:
+              message: "User already exists"
+
+      - use: cache
+        input:
+          action: set
+          key: !phs main.body.email
+          value: !phs main.body
+
+      - return:
+          status_code: 201
+          body:
+            message: "User created successfully"
+            user: !phs main.body
+
+  # List a users
+  - assert: !phs main.method == "GET" && main.path == "/users"
+    then:
+      - use: cache
+        input:
+          action: list
+
+      - return:
+          status_code: 200
+          body:
+            users: !phs payload.items
+
+
+
+tests:
+  - describe: Create user
+    main:
+      path: /users
+      method: POST
+      body:
+        name: John
+        email: john@example.com
+    assert_eq:
+      status_code: 201
+      body:
+        message: "User created successfully"
+        user:
+          name: John
+          email: john@example.com

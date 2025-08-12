@@ -7,7 +7,6 @@ main: http_server
 modules:
   - module: http_server
     with:
-      host: "0.0.0.0"
       openapi_spec:
         !include openapi.yaml
   - module: cache
@@ -111,7 +110,7 @@ steps:
       - return:
           status_code: 200
           body:
-            users: !phs main
+            users: !phs payload.items
 
 
 

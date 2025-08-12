@@ -20,21 +20,26 @@ paths:
               required:
                 - name
                 - email
+              additionalProperties: true # Permite propriedades adicionais
               properties:
                 name:
                   type: string
                   minLength: 2
                   maxLength: 50
-                  pattern: '^[a-zA-ZÀ-ÿ\s]+$'  # Apenas letras e espaços
+                  pattern: '^[a-zA-ZÀ-ÿ\s]+$' # Apenas letras e espaços
                 email:
                   type: string
-                  format: email  # Validação built-in de email
-                  pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'  # Regex customizado adicional
+                  format: email # Validação built-in de email
+                  pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$' # Regex customizado adicional
                 age:
                   type: integer
                   minimum: 0
                   maximum: 120
-                  description: "User age in years"
+                  description: "User age in years (optional)"
+                phone:
+                  type: string
+                  pattern: '^\+?[1-9]\d{1,14}$' # Formato internacional de telefone (opcional)
+                  description: "User phone number (optional)"
       responses:
         201:
           description: "User created"
@@ -69,20 +74,20 @@ paths:
           application/json:
             schema:
               type: object
+              additionalProperties: true
               properties:
                 name:
                   type: string
                   minLength: 2
                   maxLength: 50
                   pattern: '^[a-zA-ZÀ-ÿ\s]+$'
-                email:
-                  type: string
-                  format: email
-                  pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
                 age:
                   type: integer
                   minimum: 0
                   maximum: 120
+                phone:
+                  type: string
+                  pattern: '^\+?[1-9]\d{1,14}$'
       responses:
         200:
           description: "User updated"
