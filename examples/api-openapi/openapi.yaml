@@ -1,93 +1,219 @@
 openapi: 3.1.0
 info:
-  title: "Test API"
+  title: Test API
   version: "1.0.0"
+servers:
+  - url: https://api.example.com/v1
+tags:
+  - name: Users
+    description: User management endpoints
+
+components:
+  schemas:
+    UserId:
+      type: string
+      description: The unique identifier of a user
+      format: uuid
+
+    User:
+      type: object
+      description: User resource
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/UserId'
+        name:
+          type: string
+          minLength: 2
+          maxLength: 50
+          pattern: '^[a-zA-ZÀ-ÿ\s]+$'
+        email:
+          type: string
+          format: email
+          pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        age:
+          type: integer
+          minimum: 0
+          maximum: 120
+          description: User age in years (optional)
+        phone:
+          type: string
+          pattern: '^\+?[1-9]\d{1,14}$'
+          description: User phone number (optional)
+      required:
+        - id
+        - name
+        - email
+
+    NewUser:
+      type: object
+      description: Payload to create a new user
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 50
+          pattern: '^[a-zA-ZÀ-ÿ\s]+$'
+        email:
+          type: string
+          format: email
+          pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        age:
+          type: integer
+          minimum: 0
+          maximum: 120
+        phone:
+          type: string
+          pattern: '^\+?[1-9]\d{1,14}$'
+      required:
+        - name
+        - email
+
+    UpdateUser:
+      type: object
+      description: Payload to update an existing user
+      additionalProperties: true
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 50
+          pattern: '^[a-zA-ZÀ-ÿ\s]+$'
+        age:
+          type: integer
+          minimum: 0
+          maximum: 120
+        phone:
+          type: string
+          pattern: '^\+?[1-9]\d{1,14}$'
+      minProperties: 1
+
+    Error:
+      type: object
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          description: Arbitrary validation or domain details
+          type: array
+          items:
+            type: object
+      required:
+        - code
+        - message
+
+  parameters:
+    UserIdPath:
+      name: userId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/UserId'
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
 paths:
   /users:
     get:
-      summary: "List all users"
+      tags: [Users]
+      operationId: listUsers
+      summary: List all users
       responses:
         200:
-          description: "A list of users"
-    post:
-      summary: "Create a new user"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - name
-                - email
-              additionalProperties: true # Permite propriedades adicionais
-              properties:
-                name:
-                  type: string
-                  minLength: 2
-                  maxLength: 50
-                  pattern: '^[a-zA-ZÀ-ÿ\s]+$' # Apenas letras e espaços
-                email:
-                  type: string
-                  format: email # Validação built-in de email
-                  pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$' # Regex customizado adicional
-                age:
-                  type: integer
-                  minimum: 0
-                  maximum: 120
-                  description: "User age in years (optional)"
-                phone:
-                  type: string
-                  pattern: '^\+?[1-9]\d{1,14}$' # Formato internacional de telefone (opcional)
-                  description: "User phone number (optional)"
-      responses:
-        201:
-          description: "User created"
-  /users/{userId}:
-    get:
-      summary: "Get user by ID"
-      responses:
-        200:
-          description: "User found"
+          description: A list of users
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                  name:
-                    type: string
-                  email:
-                    type: string
-    delete:
-      summary: "Delete user by ID"
-      responses:
-        204:
-          description: "User deleted"
-          content: {}
-    put:
-      summary: "Update user by ID"
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        400:
+          $ref: '#/components/responses/ValidationError'
+    post:
+      tags: [Users]
+      operationId: createUser
+      summary: Create a new user
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: true
-              properties:
-                name:
-                  type: string
-                  minLength: 2
-                  maxLength: 50
-                  pattern: '^[a-zA-ZÀ-ÿ\s]+$'
-                age:
-                  type: integer
-                  minimum: 0
-                  maximum: 120
-                phone:
-                  type: string
-                  pattern: '^\+?[1-9]\d{1,14}$'
+              $ref: '#/components/schemas/NewUser'
+      responses:
+        201:
+          description: User created
+          headers:
+            Location:
+              description: URI of the created resource
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        400:
+          $ref: '#/components/responses/ValidationError'
+
+  /users/{userId}:
+    parameters:
+      - $ref: '#/components/parameters/UserIdPath'
+    get:
+      tags: [Users]
+      operationId: getUser
+      summary: Get user by ID
       responses:
         200:
-          description: "User updated"
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        404:
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Users]
+      operationId: updateUser
+      summary: Update user by ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUser'
+      responses:
+        200:
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        400:
+          $ref: '#/components/responses/ValidationError'
+        404:
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Users]
+      operationId: deleteUser
+      summary: Delete user by ID
+      responses:
+        204:
+          description: User deleted
+        404:
+          $ref: '#/components/responses/NotFound'

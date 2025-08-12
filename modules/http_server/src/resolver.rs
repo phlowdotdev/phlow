@@ -27,7 +27,7 @@ pub async fn proxy(
 
         return Ok(response);
     }
-    
+
     // Handle OpenAPI spec route
     if req.method() == hyper::Method::GET && req.uri().path() == "/openapi.json" {
         let context = req
@@ -35,7 +35,7 @@ pub async fn proxy(
             .get::<RequestContext>()
             .cloned()
             .expect("RequestContext not found");
-            
+
         if let Some(ref openapi_validator) = context.openapi_validator {
             let spec = openapi_validator.get_spec();
             let response = Response::builder()
@@ -44,17 +44,17 @@ pub async fn proxy(
                 .header("access-control-allow-origin", "*")
                 .body(Full::new(Bytes::from(spec)))
                 .unwrap();
-            
+
             return Ok(response);
         } else {
             let error_response = r#"{"error":"OPENAPI_NOT_CONFIGURED","message":"OpenAPI specification is not configured for this server"}"#;
-            
+
             let response = Response::builder()
                 .status(404)
                 .header("content-type", "application/json")
                 .body(Full::new(Bytes::from(error_response)))
                 .unwrap();
-            
+
             return Ok(response);
         }
     }
@@ -93,20 +93,26 @@ pub async fn proxy(
     let query_params = query_params.await;
     let body = body.await;
     let headers = headers.await;
-    
+
     // Convert headers HashMap for validation
-    let headers_map: std::collections::HashMap<String, String> = if let Value::Object(obj) = &headers {
-        obj.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
-    } else {
-        std::collections::HashMap::new()
-    };
-    
-    // Convert query_params HashMap for validation  
-    let query_map: std::collections::HashMap<String, String> = if let Value::Object(obj) = &query_params {
-        obj.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
-    } else {
-        std::collections::HashMap::new()
-    };
+    let headers_map: std::collections::HashMap<String, String> =
+        if let Value::Object(obj) = &headers {
+            obj.iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect()
+        } else {
+            std::collections::HashMap::new()
+        };
+
+    // Convert query_params HashMap for validation
+    let query_map: std::collections::HashMap<String, String> =
+        if let Value::Object(obj) = &query_params {
+            obj.iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect()
+        } else {
+            std::collections::HashMap::new()
+        };
 
     // Validate request and extract path parameters
     let (path_params, original_path, validation_error) = validate_request_and_extract_params(
@@ -117,11 +123,11 @@ pub async fn proxy(
         &body,
         &context.router,
     );
-    
+
     // If validation failed, return error response immediately
     if let Some(error_response) = validation_error {
         let error_handler = ResponseHandler::from(error_response);
-        
+
         context
             .span
             .record("http.response.status_code", error_handler.status_code);
@@ -150,7 +156,7 @@ pub async fn proxy(
         ("body_size", body_size.to_value()),
         ("path_params", path_params),
     ]);
-    
+
     // Add path (original OpenAPI pattern) if available
     if let Some(openapi_path) = original_path {
         data_map.insert("path", openapi_path);
@@ -158,7 +164,7 @@ pub async fn proxy(
         // Fallback to resolved_path if no OpenAPI pattern matched
         data_map.insert("path", path.to_value());
     }
-    
+
     let data = data_map.to_value();
 
     let response_value = sender_package!(
@@ -283,39 +289,51 @@ fn validate_request_and_extract_params(
     router: &Router,
 ) -> (Value, Option<Value>, Option<Value>) {
     let validation_result = router.validate_and_extract(method, path, headers, query_params, body);
-    
+
     let path_params = validation_result.path_params.to_value();
-    let original_path = validation_result.matched_route.as_ref().map(|route| route.to_value());
-    
+    let original_path = validation_result
+        .matched_route
+        .as_ref()
+        .map(|route| route.to_value());
+
     // If validation failed, return error response
     if let Some(validation) = &validation_result.validation_result {
         if !validation.is_valid {
-            let error_details: Vec<Value> = validation.errors.iter().map(|e| {
-                let mut error_obj = HashMap::new();
-                error_obj.insert("type".to_string(), format!("{:?}", e.error_type).to_value());
-                error_obj.insert("message".to_string(), e.message.to_value());
-                error_obj.insert("field".to_string(), e.field.as_ref().unwrap_or(&"unknown".to_string()).to_value());
-                error_obj.to_value()
-            }).collect();
-            
+            let error_details: Vec<Value> = validation
+                .errors
+                .iter()
+                .map(|e| {
+                    let mut error_obj = HashMap::new();
+                    error_obj.insert("type".to_string(), format!("{:?}", e.error_type).to_value());
+                    error_obj.insert("message".to_string(), e.message.to_value());
+                    error_obj.insert(
+                        "field".to_string(),
+                        e.field
+                            .as_ref()
+                            .unwrap_or(&"unknown".to_string())
+                            .to_value(),
+                    );
+                    error_obj.to_value()
+                })
+                .collect();
+
             let mut body_obj = HashMap::new();
             body_obj.insert("error".to_string(), "Validation failed".to_value());
             body_obj.insert("details".to_string(), error_details.to_value());
-            
+
             let mut headers_obj = HashMap::new();
             headers_obj.insert("Content-Type".to_string(), "application/json".to_value());
-            
+
             let mut error_response_obj = HashMap::new();
             error_response_obj.insert("status_code".to_string(), validation.status_code.to_value());
             error_response_obj.insert("body".to_string(), body_obj.to_value());
             error_response_obj.insert("headers".to_string(), headers_obj.to_value());
-            
+
             let error_response = error_response_obj.to_value();
-            
+
             return (path_params, original_path, Some(error_response));
         }
     }
-    
+
     (path_params, original_path, None)
 }
-

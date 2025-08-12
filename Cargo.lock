@@ -1479,7 +1479,6 @@ dependencies = [
  "phlow-sdk",
  "regex",
  "serde",
- "serde_json",
  "serde_yaml",
 ]
 

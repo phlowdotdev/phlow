@@ -1,7 +1,6 @@
-use phlow_sdk::prelude::*;
+use phlow_sdk::{prelude::*, valu3::to};
 use regex::Regex;
 use std::{collections::HashMap, path::Path};
-
 
 #[derive(Debug, Clone)]
 pub struct OpenAPIValidator {
@@ -79,8 +78,8 @@ impl OpenAPIValidator {
             content.to_string()
         } else {
             // YAML format - convert to JSON
-            let yaml_value: serde_yaml::Value = serde_yaml::from_str(content)?;
-            serde_json::to_string_pretty(&yaml_value)?
+            let yaml_value: Value = serde_yaml::from_str(content)?;
+            yaml_value.to_json(JsonMode::Inline)
         };
 
         let route_patterns = Self::build_route_patterns_from_json(&spec_json)?;
@@ -92,16 +91,18 @@ impl OpenAPIValidator {
         })
     }
 
-    pub fn from_value(value: Value) -> Result<Option<Self>, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn from_value(
+        value: Value,
+    ) -> Result<Option<Self>, Box<dyn std::error::Error + Send + Sync>> {
         // Check for OpenAPI spec as inline object
         if let Some(spec_value) = value.get("openapi_spec") {
             let config = Self::extract_validation_config(&value);
-            
+
             match spec_value {
                 // Inline object spec
                 Value::Object(_) => {
-                    // Use valu3's native serde integration
-                    let spec_json = serde_json::to_string_pretty(spec_value)?;
+                    // Use value's native serde integration
+                    let spec_json = spec_value.to_json(JsonMode::Inline);
                     return Ok(Some(Self::from_spec_content(&spec_json, config)?));
                 }
                 // File path (backward compatibility)
@@ -146,24 +147,41 @@ impl OpenAPIValidator {
         spec_json: &str,
     ) -> Result<Vec<RoutePattern>, Box<dyn std::error::Error + Send + Sync>> {
         let mut patterns = Vec::new();
-        let spec: serde_json::Value = serde_json::from_str(spec_json)?;
+        let spec: Value = Value::json_to_value(spec_json)
+            .map_err(|e| format!("Failed to parse OpenAPI spec JSON: {:?}", e))?;
 
         if let Some(paths) = spec.get("paths").and_then(|p| p.as_object()) {
-            for (path, path_item) in paths {
-                let pattern = path.clone(); // Keep original OpenAPI syntax
+            for (path, path_item) in paths.iter() {
+                let pattern = path.to_string(); // Keep original OpenAPI syntax
                 let regex = Self::build_regex_from_openapi_path(&pattern)?;
                 let param_names = Self::extract_param_names_from_openapi(&pattern);
 
                 let mut methods = Vec::new();
                 if let Some(path_obj) = path_item.as_object() {
-                    if path_obj.contains_key("get") { methods.push("GET".to_string()); }
-                    if path_obj.contains_key("post") { methods.push("POST".to_string()); }
-                    if path_obj.contains_key("put") { methods.push("PUT".to_string()); }
-                    if path_obj.contains_key("patch") { methods.push("PATCH".to_string()); }
-                    if path_obj.contains_key("delete") { methods.push("DELETE".to_string()); }
-                    if path_obj.contains_key("head") { methods.push("HEAD".to_string()); }
-                    if path_obj.contains_key("options") { methods.push("OPTIONS".to_string()); }
-                    if path_obj.contains_key("trace") { methods.push("TRACE".to_string()); }
+                    if path_obj.contains_key(&"get") {
+                        methods.push("GET".to_string());
+                    }
+                    if path_obj.contains_key(&"post") {
+                        methods.push("POST".to_string());
+                    }
+                    if path_obj.contains_key(&"put") {
+                        methods.push("PUT".to_string());
+                    }
+                    if path_obj.contains_key(&"patch") {
+                        methods.push("PATCH".to_string());
+                    }
+                    if path_obj.contains_key(&"delete") {
+                        methods.push("DELETE".to_string());
+                    }
+                    if path_obj.contains_key(&"head") {
+                        methods.push("HEAD".to_string());
+                    }
+                    if path_obj.contains_key(&"options") {
+                        methods.push("OPTIONS".to_string());
+                    }
+                    if path_obj.contains_key(&"trace") {
+                        methods.push("TRACE".to_string());
+                    }
                 }
 
                 patterns.push(RoutePattern {
@@ -181,14 +199,14 @@ impl OpenAPIValidator {
     /// Build regex from OpenAPI path pattern (with {param} syntax)
     fn build_regex_from_openapi_path(openapi_path: &str) -> Result<Regex, regex::Error> {
         let mut regex_pattern = "^".to_string();
-        
+
         for segment in openapi_path.split('/') {
             if segment.is_empty() {
                 continue;
             }
-            
+
             regex_pattern.push('/');
-            
+
             // Check if segment contains OpenAPI parameter {param}
             if segment.starts_with('{') && segment.ends_with('}') {
                 // Parameter segment - match any non-slash characters
@@ -198,7 +216,7 @@ impl OpenAPIValidator {
                 regex_pattern.push_str(&regex::escape(segment));
             }
         }
-        
+
         regex_pattern.push('$');
         Regex::new(&regex_pattern)
     }
@@ -210,7 +228,7 @@ impl OpenAPIValidator {
             .filter_map(|segment| {
                 if segment.starts_with('{') && segment.ends_with('}') {
                     // Remove the braces and return parameter name
-                    Some(segment[1..segment.len()-1].to_string())
+                    Some(segment[1..segment.len() - 1].to_string())
                 } else {
                     None
                 }
@@ -260,10 +278,16 @@ impl OpenAPIValidator {
                 // Perform additional validations if enabled
                 if self.config.validate_request_body {
                     // Only validate request body for methods that typically have bodies
-                    let method_has_body = matches!(method.to_uppercase().as_str(), "POST" | "PUT" | "PATCH");
+                    let method_has_body =
+                        matches!(method.to_uppercase().as_str(), "POST" | "PUT" | "PATCH");
                     if method_has_body {
                         // Pass the actual matched route pattern for dynamic validation
-                        self.validate_request_body_with_route(body, &mut validation_errors, method.to_lowercase().as_str(), &route_pattern.path_pattern);
+                        self.validate_request_body_with_route(
+                            body,
+                            &mut validation_errors,
+                            method.to_lowercase().as_str(),
+                            &route_pattern.path_pattern,
+                        );
                     }
                 }
 
@@ -300,19 +324,19 @@ impl OpenAPIValidator {
         }
     }
 
-    /// Validate request body against OpenAPI spec
-    fn validate_request_body(&self, body: &Value, errors: &mut Vec<ValidationError>, method: &str) {
-        // This is a fallback method - in practice, validate_request_body_with_route should be used
-        self.validate_request_body_with_route(body, errors, method, "/users");
-    }
-    
     /// Validate request body against OpenAPI spec with dynamic route
-    fn validate_request_body_with_route(&self, body: &Value, errors: &mut Vec<ValidationError>, method: &str, route_pattern: &str) {
+    fn validate_request_body_with_route(
+        &self,
+        body: &Value,
+        errors: &mut Vec<ValidationError>,
+        method: &str,
+        route_pattern: &str,
+    ) {
         // Parse OpenAPI spec to get schema definitions
-        if let Ok(spec) = serde_json::from_str::<serde_json::Value>(&self.spec_json) {
+        if let Ok(spec) = Value::json_to_value(&self.spec_json) {
             // For now, implement basic validation for common patterns
             // This is a simplified implementation that validates basic structure
-            
+
             match body {
                 Value::Undefined | Value::Null => {
                     // Check if body is required - for POST/PUT requests, usually it is
@@ -324,7 +348,13 @@ impl OpenAPIValidator {
                 }
                 Value::Object(obj) => {
                     // Now we use the actual HTTP method and route for accurate validation
-                    self.validate_object_schema_with_route(obj, errors, &spec, method, route_pattern);
+                    self.validate_object_schema_with_route(
+                        obj,
+                        errors,
+                        &spec,
+                        method,
+                        route_pattern,
+                    );
                 }
                 Value::String(s) if s.trim().is_empty() => {
                     errors.push(ValidationError {
@@ -343,29 +373,30 @@ impl OpenAPIValidator {
             }
         }
     }
-    
-    /// Validate object schema against OpenAPI specification
-    fn validate_object_schema(&self, obj: &Object, errors: &mut Vec<ValidationError>, spec: &serde_json::Value, method: &str) {
-        // This is a fallback method - in practice, validate_object_schema_with_route should be used
-        self.validate_object_schema_with_route(obj, errors, spec, method, "/users");
-    }
-    
+
     /// Validate object schema against OpenAPI specification with dynamic route
-    fn validate_object_schema_with_route(&self, obj: &Object, errors: &mut Vec<ValidationError>, spec: &serde_json::Value, method: &str, route_pattern: &str) {
+    fn validate_object_schema_with_route(
+        &self,
+        obj: &Object,
+        errors: &mut Vec<ValidationError>,
+        spec: &Value,
+        method: &str,
+        route_pattern: &str,
+    ) {
         // Try to extract actual schema from OpenAPI spec for more accurate validation using the actual HTTP method and route
         let schema = self.extract_request_body_schema(spec, route_pattern, method);
-        
+
         if let Some(properties) = schema.as_ref().and_then(|s| s.get("properties")) {
             // Validate based on actual OpenAPI schema using the correct HTTP method and route
             self.validate_properties_with_schema(obj, properties, errors, schema.as_ref(), method);
         } else {
-            // Fallback to basic validation
-            self.validate_basic_user_schema(obj, errors);
+            // Fallback to basic validation with method awareness
+            self.validate_basic_user_schema_with_method(obj, errors, method);
         }
     }
-    
+
     /// Extract request body schema from OpenAPI spec for a specific path/method
-    fn extract_request_body_schema(&self, spec: &serde_json::Value, path: &str, method: &str) -> Option<serde_json::Value> {
+    fn extract_request_body_schema(&self, spec: &Value, path: &str, method: &str) -> Option<Value> {
         spec.get("paths")?
             .get(path)?
             .get(method)?
@@ -375,37 +406,70 @@ impl OpenAPIValidator {
             .get("schema")
             .cloned()
     }
-    
+
     /// Validate object properties against OpenAPI schema with patterns
-    fn validate_properties_with_schema(&self, obj: &Object, properties: &serde_json::Value, errors: &mut Vec<ValidationError>, parent_schema: Option<&serde_json::Value>, method: &str) {
+    fn validate_properties_with_schema(
+        &self,
+        obj: &Object,
+        properties: &Value,
+        errors: &mut Vec<ValidationError>,
+        parent_schema: Option<&Value>,
+        method: &str,
+    ) {
         if let Some(props) = properties.as_object() {
             // Extract required fields array from the parent schema that was passed
             let required_fields: Vec<String> = parent_schema
                 .and_then(|s| s.get("required"))
                 .and_then(|r| r.as_array())
                 .map(|arr| {
-                    arr.iter()
-                        .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                    arr.into_iter()
+                        .filter_map(|v| {
+                            let string = v.to_string();
+
+                            if string.is_empty() {
+                                None
+                            } else {
+                                Some(string)
+                            }
+                        })
                         .collect()
                 })
                 .unwrap_or_default();
-            
+
             // Check if additionalProperties are allowed
             let allow_additional_properties = parent_schema
                 .and_then(|s| s.get("additionalProperties"))
-                .map(|ap| !matches!(ap, serde_json::Value::Bool(false)))
+                .map(|ap| !matches!(ap, Value::Boolean(false)))
                 .unwrap_or(true); // Default to true if not specified
-            
+
             // Validate each property in the schema
-            for (prop_name, prop_schema) in props {
-                if let Some(field_value) = obj.get(prop_name.as_str()) {
+            for (prop_name, prop_schema) in props.iter() {
+                let prop_name = prop_name.to_string();
+                if let Some(field_value) = obj.get(prop_name.clone()) {
                     // Field is present, validate its value
-                    match prop_schema.get("type").and_then(|t| t.as_str()) {
-                        Some("string") => {
-                            self.validate_string_field(prop_name, field_value, prop_schema, errors);
+                    match prop_schema.get("type").and_then(|t| {
+                        let string = t.to_string();
+                        if string.is_empty() {
+                            None
+                        } else {
+                            Some(string)
                         }
-                        Some("integer") | Some("number") => {
-                            self.validate_numeric_field(prop_name, field_value, prop_schema, errors);
+                    }) {
+                        Some(ref val) if val == "string" => {
+                            self.validate_string_field(
+                                &prop_name,
+                                field_value,
+                                prop_schema,
+                                errors,
+                            );
+                        }
+                        Some(ref val) if val == "integer" || val == "number" => {
+                            self.validate_numeric_field(
+                                &prop_name,
+                                field_value,
+                                prop_schema,
+                                errors,
+                            );
                         }
                         _ => {
                             // Handle other types or generic validation
@@ -421,7 +485,7 @@ impl OpenAPIValidator {
                 }
                 // If field is not present and not required, it's valid (optional field)
             }
-            
+
             // Check for additional properties if not allowed
             if !allow_additional_properties {
                 for field_name in obj.keys() {
@@ -429,7 +493,10 @@ impl OpenAPIValidator {
                     if !props.contains_key(&field_name_str) {
                         errors.push(ValidationError {
                             error_type: ValidationErrorType::InvalidFieldValue,
-                            message: format!("Additional property '{}' is not allowed", field_name_str),
+                            message: format!(
+                                "Additional property '{}' is not allowed",
+                                field_name_str
+                            ),
                             field: Some(field_name_str),
                         });
                     }
@@ -437,9 +504,15 @@ impl OpenAPIValidator {
             }
         }
     }
-    
+
     /// Validate string field with pattern/format constraints
-    fn validate_string_field(&self, field_name: &str, value: &Value, schema: &serde_json::Value, errors: &mut Vec<ValidationError>) {
+    fn validate_string_field(
+        &self,
+        field_name: &str,
+        value: &Value,
+        schema: &Value,
+        errors: &mut Vec<ValidationError>,
+    ) {
         let Value::String(string_val) = value else {
             errors.push(ValidationError {
                 error_type: ValidationErrorType::InvalidFieldType,
@@ -448,34 +521,56 @@ impl OpenAPIValidator {
             });
             return;
         };
-        
+
         let str_val = string_val.as_str();
-        
+
         // Check minLength
-        if let Some(min_len) = schema.get("minLength").and_then(|v| v.as_u64()) {
+        if let Some(min_len) = schema.get("minLength").and_then(|v| {
+            v.as_number()
+                .unwrap_or(Value::from(0).as_number().unwrap())
+                .to_i64()
+        }) {
             if str_val.len() < min_len as usize {
                 errors.push(ValidationError {
                     error_type: ValidationErrorType::InvalidFieldValue,
-                    message: format!("Field '{}' must be at least {} characters long", field_name, min_len),
+                    message: format!(
+                        "Field '{}' must be at least {} characters long",
+                        field_name, min_len
+                    ),
                     field: Some(field_name.to_string()),
                 });
             }
         }
-        
+
         // Check maxLength
-        if let Some(max_len) = schema.get("maxLength").and_then(|v| v.as_u64()) {
+        if let Some(max_len) = schema.get("maxLength").and_then(|v| {
+            v.as_number()
+                .unwrap_or(Value::from(0).as_number().unwrap())
+                .to_i64()
+        }) {
             if str_val.len() > max_len as usize {
                 errors.push(ValidationError {
                     error_type: ValidationErrorType::InvalidFieldValue,
-                    message: format!("Field '{}' must be at most {} characters long", field_name, max_len),
+                    message: format!(
+                        "Field '{}' must be at most {} characters long",
+                        field_name, max_len
+                    ),
                     field: Some(field_name.to_string()),
                 });
             }
         }
-        
+
         // Check pattern (regex)
-        if let Some(pattern) = schema.get("pattern").and_then(|v| v.as_str()) {
-            if let Ok(regex) = Regex::new(pattern) {
+        if let Some(pattern) = schema.get("pattern").and_then(|v| {
+            let string = v.to_string();
+
+            if string.is_empty() {
+                None
+            } else {
+                Some(string)
+            }
+        }) {
+            if let Ok(regex) = Regex::new(&pattern) {
                 if !regex.is_match(str_val) {
                     let message = if field_name == "email" {
                         format!("Field '{}' must be a valid email address", field_name)
@@ -490,9 +585,17 @@ impl OpenAPIValidator {
                 }
             }
         }
-        
+
         // Check format (built-in formats like 'email')
-        if let Some(format) = schema.get("format").and_then(|v| v.as_str()) {
+        if let Some(format) = schema.get("format").and_then(|v| {
+            let string = v.to_string();
+
+            if string.is_empty() {
+                None
+            } else {
+                Some(string)
+            }
+        }) {
             if format == "email" && !self.is_valid_email_format(str_val) {
                 errors.push(ValidationError {
                     error_type: ValidationErrorType::InvalidFieldValue,
@@ -502,16 +605,22 @@ impl OpenAPIValidator {
             }
         }
     }
-    
+
     /// Validate numeric field with min/max constraints
-    fn validate_numeric_field(&self, field_name: &str, value: &Value, schema: &serde_json::Value, errors: &mut Vec<ValidationError>) {
+    fn validate_numeric_field(
+        &self,
+        field_name: &str,
+        value: &Value,
+        schema: &Value,
+        errors: &mut Vec<ValidationError>,
+    ) {
         let num_val = match value {
             Value::Number(_) => {
                 // For now, just validate that it's a number - detailed validation would require
                 // more complex conversion from valu3::Number to f64
                 // This is a simplified implementation
                 0.0 // Placeholder - actual validation would convert properly
-            },
+            }
             _ => {
                 errors.push(ValidationError {
                     error_type: ValidationErrorType::InvalidFieldType,
@@ -521,9 +630,13 @@ impl OpenAPIValidator {
                 return;
             }
         };
-        
+
         // Check minimum
-        if let Some(min) = schema.get("minimum").and_then(|v| v.as_f64()) {
+        if let Some(min) = schema.get("minimum").and_then(|v| {
+            v.as_number()
+                .unwrap_or(Value::from(0).as_number().unwrap())
+                .to_f64()
+        }) {
             if num_val < min {
                 errors.push(ValidationError {
                     error_type: ValidationErrorType::InvalidFieldValue,
@@ -532,9 +645,13 @@ impl OpenAPIValidator {
                 });
             }
         }
-        
+
         // Check maximum
-        if let Some(max) = schema.get("maximum").and_then(|v| v.as_f64()) {
+        if let Some(max) = schema.get("maximum").and_then(|v| {
+            v.as_number()
+                .unwrap_or(Value::from(0).as_number().unwrap())
+                .to_f64()
+        }) {
             if num_val > max {
                 errors.push(ValidationError {
                     error_type: ValidationErrorType::InvalidFieldValue,
@@ -544,33 +661,45 @@ impl OpenAPIValidator {
             }
         }
     }
-    
+
     /// Basic email format validation (fallback)
     fn is_valid_email_format(&self, email: &str) -> bool {
         // Simple email validation
         email.contains('@') && email.contains('.') && email.len() >= 5
     }
-    
-    /// Fallback basic validation when schema parsing fails
-    fn validate_basic_user_schema(&self, obj: &Object, errors: &mut Vec<ValidationError>) {
-        // Check for required fields
-        if !obj.contains_key(&"name") {
-            errors.push(ValidationError {
-                error_type: ValidationErrorType::MissingRequiredField,
-                message: "Missing required field: name".to_string(),
-                field: Some("name".to_string()),
-            });
+
+    /// Fallback basic validation with HTTP method awareness
+    fn validate_basic_user_schema_with_method(
+        &self,
+        obj: &Object,
+        errors: &mut Vec<ValidationError>,
+        method: &str,
+    ) {
+        // For POST requests, require name and email fields (strict validation)
+        // For PUT/PATCH requests, allow partial updates (no required fields)
+        let is_create_operation = method.to_uppercase() == "POST";
+
+        if is_create_operation {
+            // POST requires name and email
+            if !obj.contains_key(&"name") {
+                errors.push(ValidationError {
+                    error_type: ValidationErrorType::MissingRequiredField,
+                    message: "Missing required field: name".to_string(),
+                    field: Some("name".to_string()),
+                });
+            }
+
+            if !obj.contains_key(&"email") {
+                errors.push(ValidationError {
+                    error_type: ValidationErrorType::MissingRequiredField,
+                    message: "Missing required field: email".to_string(),
+                    field: Some("email".to_string()),
+                });
+            }
         }
-        
-        if !obj.contains_key(&"email") {
-            errors.push(ValidationError {
-                error_type: ValidationErrorType::MissingRequiredField,
-                message: "Missing required field: email".to_string(),
-                field: Some("email".to_string()),
-            });
-        }
-        
-        // Validate field types
+        // For PUT/PATCH, we don't require any fields (allow partial updates)
+
+        // Validate field types for any fields that are present
         if let Some(name_value) = obj.get("name") {
             if !matches!(name_value, Value::String(_)) {
                 errors.push(ValidationError {
@@ -580,7 +709,7 @@ impl OpenAPIValidator {
                 });
             }
         }
-        
+
         if let Some(email_value) = obj.get("email") {
             if !matches!(email_value, Value::String(_)) {
                 errors.push(ValidationError {
@@ -590,7 +719,7 @@ impl OpenAPIValidator {
                 });
             }
         }
-        
+
         if let Some(age_value) = obj.get("age") {
             if !matches!(age_value, Value::Number(_)) {
                 errors.push(ValidationError {
@@ -603,18 +732,25 @@ impl OpenAPIValidator {
     }
 
     /// Validate headers (basic implementation)
-    fn validate_headers(&self, _headers: &HashMap<String, String>, _errors: &mut Vec<ValidationError>) {
+    fn validate_headers(
+        &self,
+        _headers: &HashMap<String, String>,
+        _errors: &mut Vec<ValidationError>,
+    ) {
         // Basic header validation
         // In a full implementation, we would check required headers against the OpenAPI spec
     }
 
     /// Validate query parameters (basic implementation)
-    fn validate_query_parameters(&self, _query_params: &HashMap<String, String>, _errors: &mut Vec<ValidationError>) {
+    fn validate_query_parameters(
+        &self,
+        _query_params: &HashMap<String, String>,
+        _errors: &mut Vec<ValidationError>,
+    ) {
         // Basic query parameter validation
         // In a full implementation, we would validate against the OpenAPI parameter definitions
     }
 
-    
     /// Returns the OpenAPI specification as a JSON string
     pub fn get_spec(&self) -> String {
         self.spec_json.clone()
@@ -632,22 +768,58 @@ mod tests {
         assert!(regex.is_match("/users/abc"));
         assert!(!regex.is_match("/users/"));
         assert!(!regex.is_match("/users/123/posts"));
-        
-        let regex2 = OpenAPIValidator::build_regex_from_openapi_path("/users/{userId}/posts/{postId}").unwrap();
+
+        let regex2 =
+            OpenAPIValidator::build_regex_from_openapi_path("/users/{userId}/posts/{postId}")
+                .unwrap();
         assert!(regex2.is_match("/users/john/posts/42"));
         assert!(!regex2.is_match("/users/john/posts"));
     }
 
     #[test]
     fn test_extract_param_names_from_openapi() {
-        let params = OpenAPIValidator::extract_param_names_from_openapi("/users/{userId}/posts/{postId}");
+        let params =
+            OpenAPIValidator::extract_param_names_from_openapi("/users/{userId}/posts/{postId}");
         assert_eq!(params, vec!["userId", "postId"]);
-        
+
         let params2 = OpenAPIValidator::extract_param_names_from_openapi("/users/{id}");
         assert_eq!(params2, vec!["id"]);
-        
+
         let params3 = OpenAPIValidator::extract_param_names_from_openapi("/users/static/path");
         assert_eq!(params3, Vec::<String>::new());
     }
 
+    #[test]
+    fn test_method_aware_validation() {
+        let mut obj_map = HashMap::new();
+        obj_map.insert("age".to_string(), Value::Number(30.into()));
+        let obj = Object::from(obj_map);
+
+        let validator = OpenAPIValidator {
+            spec_json: String::new(),
+            config: ValidationConfig::default(),
+            route_patterns: Vec::new(),
+        };
+
+        let mut post_errors = Vec::new();
+        let mut put_errors = Vec::new();
+
+        // Test POST - should require name and email
+        validator.validate_basic_user_schema_with_method(&obj, &mut post_errors, "POST");
+
+        // Test PUT - should allow partial update (no required fields)
+        validator.validate_basic_user_schema_with_method(&obj, &mut put_errors, "PUT");
+
+        // POST should have 2 errors (missing name and email)
+        assert_eq!(post_errors.len(), 2);
+        assert!(post_errors
+            .iter()
+            .any(|e| e.message.contains("Missing required field: name")));
+        assert!(post_errors
+            .iter()
+            .any(|e| e.message.contains("Missing required field: email")));
+
+        // PUT should have no errors (allows partial updates)
+        assert_eq!(put_errors.len(), 0);
+    }
 }

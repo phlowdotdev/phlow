@@ -1,0 +1,17 @@
+nohup: ignoring input
+[2025-08-12T03:29:34Z INFO  phlow::loader] Downloading modules...
+[2025-08-12T03:29:34Z INFO  phlow::loader] Module http_server (latest) already exists at phlow_packages/http_server/module.so, skipping download
+[2025-08-12T03:29:34Z INFO  phlow::loader] Module cache (latest) already exists at phlow_packages/cache/module.so, skipping download
+[2025-08-12T03:29:34Z INFO  phlow::loader] All modules downloaded and extracted successfully
+[2025-08-12T03:29:34Z INFO  phlow::loader] 🧪 Load Module: http_server (latest), in phlow_packages/http_server/module.so
+[2025-08-12T03:29:34Z INFO  phlow::loader] Loading binary module: phlow_packages/http_server/module.so
+[2025-08-12T03:29:34Z INFO  phlow::loader] 🧪 Load Module: cache (latest), in phlow_packages/cache/module.so
+[2025-08-12T03:29:34Z INFO  phlow::loader] Loading binary module: phlow_packages/cache/module.so
+[2025-08-12T03:29:34Z INFO  phlow::runtime] Phlow!
+
+thread 'tokio-runtime-worker' panicked at /cargo/registry/src/index.crates.io-1949cf8c6b5b557f/valu3-0.8.2/src/impls.rs:13:18:
+Unable to get a reference to a type other than an array or object
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'tokio-runtime-worker' panicked at /cargo/registry/src/index.crates.io-1949cf8c6b5b557f/valu3-0.8.2/src/impls.rs:13:18:
+Unable to get a reference to a type other than an array or object
