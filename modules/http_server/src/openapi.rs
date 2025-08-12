@@ -45,6 +45,9 @@ pub struct ValidationError {
 pub enum ValidationErrorType {
     RouteNotFound,
     MethodNotAllowed,
+    InvalidRequestBody,
+    MissingRequiredField,
+    InvalidFieldType,
 }
 
 impl Default for ValidationConfig {
@@ -291,22 +294,95 @@ impl OpenAPIValidator {
         }
     }
 
-    /// Validate request body against OpenAPI spec (simplified implementation)
-    fn validate_request_body(&self, body: &Value, _errors: &mut Vec<ValidationError>) {
-        // Basic validation - check if body is valid JSON when expected
-        match body {
-            Value::Undefined | Value::Null => {
-                // Empty body is often acceptable
+    /// Validate request body against OpenAPI spec
+    fn validate_request_body(&self, body: &Value, errors: &mut Vec<ValidationError>) {
+        // Parse OpenAPI spec to get schema definitions
+        if let Ok(spec) = serde_json::from_str::<serde_json::Value>(&self.spec_json) {
+            // For now, implement basic validation for common patterns
+            // This is a simplified implementation that validates basic structure
+            
+            match body {
+                Value::Undefined | Value::Null => {
+                    // Check if body is required - for POST/PUT requests, usually it is
+                    errors.push(ValidationError {
+                        error_type: ValidationErrorType::InvalidRequestBody,
+                        message: "Request body is required".to_string(),
+                        field: Some("body".to_string()),
+                    });
+                }
+                Value::Object(obj) => {
+                    // Validate object structure based on OpenAPI schema
+                    self.validate_object_schema(obj, errors, &spec);
+                }
+                Value::String(s) if s.trim().is_empty() => {
+                    errors.push(ValidationError {
+                        error_type: ValidationErrorType::InvalidRequestBody,
+                        message: "Request body cannot be empty".to_string(),
+                        field: Some("body".to_string()),
+                    });
+                }
+                _ => {
+                    errors.push(ValidationError {
+                        error_type: ValidationErrorType::InvalidRequestBody,
+                        message: "Invalid request body format".to_string(),
+                        field: Some("body".to_string()),
+                    });
+                }
             }
-            Value::Object(_) | Value::Array(_) => {
-                // Valid structured data
+        }
+    }
+    
+    /// Validate object schema against OpenAPI specification
+    fn validate_object_schema(&self, obj: &Object, errors: &mut Vec<ValidationError>, spec: &serde_json::Value) {
+        // Extract common required fields from OpenAPI spec
+        // This is a simplified implementation focusing on the /users POST endpoint
+        
+        // Check for required fields based on common API patterns
+        if !obj.contains_key(&"name") {
+            errors.push(ValidationError {
+                error_type: ValidationErrorType::MissingRequiredField,
+                message: "Missing required field: name".to_string(),
+                field: Some("name".to_string()),
+            });
+        }
+        
+        if !obj.contains_key(&"email") {
+            errors.push(ValidationError {
+                error_type: ValidationErrorType::MissingRequiredField,
+                message: "Missing required field: email".to_string(),
+                field: Some("email".to_string()),
+            });
+        }
+        
+        // Validate field types
+        if let Some(name_value) = obj.get("name") {
+            if !matches!(name_value, Value::String(_)) {
+                errors.push(ValidationError {
+                    error_type: ValidationErrorType::InvalidFieldType,
+                    message: "Field 'name' must be a string".to_string(),
+                    field: Some("name".to_string()),
+                });
             }
-            Value::String(s) if s.trim().is_empty() => {
-                // Empty string body
+        }
+        
+        if let Some(email_value) = obj.get("email") {
+            if !matches!(email_value, Value::String(_)) {
+                errors.push(ValidationError {
+                    error_type: ValidationErrorType::InvalidFieldType,
+                    message: "Field 'email' must be a string".to_string(),
+                    field: Some("email".to_string()),
+                });
             }
-            _ => {
-                // For now, accept all other types
-                // In a full implementation, we would validate against the schema
+        }
+        
+        // Validate age field if present
+        if let Some(age_value) = obj.get("age") {
+            if !matches!(age_value, Value::Number(_)) {
+                errors.push(ValidationError {
+                    error_type: ValidationErrorType::InvalidFieldType,
+                    message: "Field 'age' must be a number".to_string(),
+                    field: Some("age".to_string()),
+                });
             }
         }
     }

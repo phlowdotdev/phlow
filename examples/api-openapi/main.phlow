@@ -20,6 +20,18 @@ steps:
     then:
       - use: cache
         input:
+          action: get
+          key: !phs main.body.email
+
+      - assert: !phs payload.success && payload.found
+        then:
+          return:
+            status_code: 409
+            body:
+              message: "User already exists"
+
+      - use: cache
+        input:
           action: set
           key: !phs main.body.email
           value: !phs main.body
@@ -38,24 +50,44 @@ steps:
           action: get
           key: !phs main.path_params.userId
 
+      - assert: !phs payload.success
+        then:
+          return:
+            status_code: 200
+            body: !phs main
+
       - return:
-          status_code: 200
-          body: !phs main
+          status_code: 404
+          body:
+            message: "User not found"
 
   # Edit a user
   - assert: !phs main.method == "PUT" && main.path == "/users/{userId}"
     then:
       - use: cache
         input:
-          action: update
+          action: get
           key: !phs main.path_params.userId
           value: !phs main.body
 
+      - assert: !phs payload.success
+        then:
+          - use: cache
+            input:
+              action: set
+              key: !phs main.path_params.userId
+              value: !phs merge(payload.value, main.body)
+
+          - return:
+              status_code: 200
+              body:
+                message: "User updated successfully"
+                user: !phs main.body
+
       - return:
-          status_code: 200
+          status_code: 404
           body:
-            message: "User updated successfully"
-            user: !phs main.body
+            message: "User not found"
 
   # Delete a user
   - assert: !phs main.method == "DELETE" && main.path == "/users/{userId}"
@@ -77,9 +109,9 @@ steps:
           action: list
 
       - return:
-        status_code: 200
-        body:
-          users: !phs main
+          status_code: 200
+          body:
+            users: !phs main
 
 
 
