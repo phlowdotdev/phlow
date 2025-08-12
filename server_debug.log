@@ -1,0 +1,191 @@
+[2025-08-12T19:43:16Z DEBUG phlow] Starting Phlow Runtime
+[2025-08-12T19:43:16Z INFO  phlow::loader] Downloading modules...
+[2025-08-12T19:43:16Z INFO  phlow::loader] Module http_server (latest) already exists at phlow_packages/http_server/module.so, skipping download
+[2025-08-12T19:43:16Z INFO  phlow::loader] Module cache (latest) already exists at phlow_packages/cache/module.so, skipping download
+[2025-08-12T19:43:16Z INFO  phlow::loader] All modules downloaded and extracted successfully
+[2025-08-12T19:43:16Z DEBUG phlow::loader] update_info
+[2025-08-12T19:43:16Z DEBUG phlow::loader] module info loaded
+[2025-08-12T19:43:16Z DEBUG phlow::loader] module info loaded
+[2025-08-12T19:43:16Z DEBUG phlow] Run application
+[2025-08-12T19:43:16Z DEBUG phlow::runtime] Module http_server loaded with name "http_server" and version "latest"
+[2025-08-12T19:43:16Z DEBUG phlow::loader] Find phlow_packages/http_server/module.so...
+[2025-08-12T19:43:16Z INFO  phlow::loader] 🧪 Load Module: http_server (latest), in phlow_packages/http_server/module.so
+[2025-08-12T19:43:16Z INFO  phlow::loader] Loading binary module: phlow_packages/http_server/module.so
+[2m2025-08-12T19:43:16.584914Z[0m [34mDEBUG[0m [2mphlow_sdk::otel[0m[2m:[0m PHLOW_OTEL is set to false, using default subscriber
+[2m2025-08-12T19:43:16.589669Z[0m [34mDEBUG[0m [2mlog[0m[2m:[0m Loading OpenAPI spec from content: {"tags": [{"description": "User management endpoints","name": "Users"}],"openapi": "3.1.0","paths": {"/users/{userId}": {"get": {"responses": {"200": {"description": "User found","content": {"application/json": {"schema": {"$ref": "#/components/schemas/User"}}}},"404": {"$ref": "#/components/responses/NotFound"}},"tags": ["Users"],"summary": "Get user by ID","operationId": "getUser"},"put": {"responses": {"404": {"$ref": "#/components/responses/NotFound"},"200": {"description": "User updated","content": {"application/json": {"schema": {"$ref": "#/components/schemas/User"}}}},"400": {"$ref": "#/components/responses/ValidationError"}},"operationId": "updateUser","tags": ["Users"],"summary": "Update user by ID","requestBody": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/UpdateUser"}}},"required": true}},"parameters": [{"$ref": "#/components/parameters/UserIdPath"}],"delete": {"operationId": "deleteUser","responses": {"404": {"$ref": "#/components/responses/NotFound"},"204": {"description": "User deleted"}},"tags": ["Users"],"summary": "Delete user by ID"}},"/users": {"post": {"summary": "Create a new user","tags": ["Users"],"requestBody": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/NewUser"}}},"required": true},"operationId": "createUser","responses": {"201": {"description": "User created","content": {"application/json": {"schema": {"$ref": "#/components/schemas/User"}}},"headers": {"Location": {"description": "URI of the created resource","schema": {"format": "uri","type": "string"}}}},"400": {"$ref": "#/components/responses/ValidationError"}}},"get": {"responses": {"400": {"$ref": "#/components/responses/ValidationError"},"200": {"description": "A list of users","content": {"application/json": {"schema": {"type": "array","items": {"$ref": "#/components/schemas/User"}}}}}},"tags": ["Users"],"summary": "List all users","operationId": "listUsers"}}},"servers": [{"url": "https://api.example.com/v1"}],"info": {"title": "Test API","version": "1.0.0"},"components": {"responses": {"NotFound": {"description": "Resource not found","content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},"ValidationError": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}},"description": "Validation error"}},"parameters": {"UserIdPath": {"required": true,"in": "path","schema": {"$ref": "#/components/schemas/UserId"},"name": "userId"}},"schemas": {"Error": {"additionalProperties": false,"required": ["code","message"],"properties": {"code": {"type": "string"},"message": {"type": "string"},"details": {"items": {"type": "object"},"type": "array","description": "Arbitrary validation or domain details"}},"type": "object"},"UserId": {"type": "string","description": "The unique identifier of a user (email address in this implementation)"},"User": {"properties": {"phone": {"pattern": "^\+?[1-9]\d[\d\s\-\(\)]{7,15}$","description": "User phone number (optional)","type": "string"},"id": {"$ref": "#/components/schemas/UserId"},"email": {"type": "string","format": "email"},"name": {"type": "string","maxLength": 50,"minLength": 2,"pattern": "^[a-zA-Z\s]+$"},"age": {"type": "integer","maximum": 120,"minimum": 0,"description": "User age in years (optional)"}},"additionalProperties": false,"required": ["id","name","email"],"type": "object","description": "User resource"},"UpdateUser": {"additionalProperties": true,"minProperties": 1,"type": "object","description": "Payload to update an existing user","properties": {"name": {"maxLength": 50,"minLength": 2,"pattern": "^[a-zA-Z\s]+$","type": "string"},"phone": {"type": "string","pattern": "^\+?[1-9]\d[\d\s\-\(\)]{7,15}$"},"age": {"maximum": 120,"type": "integer","minimum": 0}}},"NewUser": {"type": "object","description": "Payload to create a new user","required": ["name","email"],"additionalProperties": false,"properties": {"email": {"format": "email","type": "string"},"name": {"type": "string","pattern": "^[a-zA-Z\s]+$","minLength": 2,"maxLength": 50},"phone": {"pattern": "^\+?[1-9]\d[\d\s\-\(\)]{7,15}$","type": "string"},"age": {"type": "integer","maximum": 120,"minimum": 0}}}}}}    
+[2m2025-08-12T19:43:16.591092Z[0m [32m INFO[0m [2mlog[0m[2m:[0m OpenAPI validator loaded successfully    
+[2m2025-08-12T19:43:16.591160Z[0m [34mDEBUG[0m [2mlog[0m[2m:[0m Listening on 0.0.0.0:3000    
+[2025-08-12T19:43:16Z DEBUG phlow::runtime] Module http_server did not register
+[2025-08-12T19:43:16Z DEBUG phlow::runtime] Module cache loaded with name "cache" and version "latest"
+[2025-08-12T19:43:16Z DEBUG phlow::loader] Find phlow_packages/cache/module.so...
+[2025-08-12T19:43:16Z INFO  phlow::loader] 🧪 Load Module: cache (latest), in phlow_packages/cache/module.so
+[2025-08-12T19:43:16Z INFO  phlow::loader] Loading binary module: phlow_packages/cache/module.so
+[2025-08-12T19:43:16Z DEBUG cache] Cache module started with config: CacheConfig { capacity: 1000, default_ttl: None, enable_events: false }
+[2025-08-12T19:43:16Z DEBUG phlow::runtime] Module cache registered
+[2025-08-12T19:43:16Z INFO  phlow::runtime] Phlow!
+[2025-08-12T19:43:16Z DEBUG phlow_engine::transform] [
+    	[
+    		{
+    			"return": {
+    				"status_code": 409,
+    				"body": {
+    					"message": "User already exists"
+    				}
+    			}
+    		}
+    	],
+    	[
+    		{
+    			"use": "cache",
+    			"input": {
+    				"key": "{{ main.body.email }}",
+    				"action": "get"
+    			}
+    		},
+    		{
+    			"assert": "{{ payload.success && payload.found }}",
+    			"then": 0
+    		},
+    		{
+    			"input": {
+    				"value": "{{ main.body }}",
+    				"action": "set",
+    				"key": "{{ main.body.email }}"
+    			},
+    			"use": "cache"
+    		},
+    		{
+    			"return": {
+    				"status_code": 201,
+    				"body": {
+    					"message": "User created successfully",
+    					"user": "{{ main.body }}"
+    				}
+    			}
+    		}
+    	],
+    	[
+    		{
+    			"return": {
+    				"body": "{{ main }}",
+    				"status_code": 200
+    			}
+    		}
+    	],
+    	[
+    		{
+    			"use": "cache",
+    			"input": {
+    				"key": "{{ main.path_params.userId }}",
+    				"action": "get"
+    			}
+    		},
+    		{
+    			"then": 2,
+    			"assert": "{{ payload.success }}"
+    		},
+    		{
+    			"return": {
+    				"status_code": 404,
+    				"body": {
+    					"message": "User not found"
+    				}
+    			}
+    		}
+    	],
+    	[
+    		{
+    			"use": "cache",
+    			"input": {
+    				"value": "{{ merge(payload.value, main.body) }}",
+    				"action": "set",
+    				"key": "{{ main.path_params.userId }}"
+    			}
+    		},
+    		{
+    			"return": {
+    				"status_code": 200,
+    				"body": {
+    					"user": "{{ main.body }}",
+    					"message": "User updated successfully"
+    				}
+    			}
+    		}
+    	],
+    	[
+    		{
+    			"input": {
+    				"key": "{{ main.path_params.userId }}",
+    				"value": "{{ main.body }}",
+    				"action": "get"
+    			},
+    			"use": "cache"
+    		},
+    		{
+    			"then": 4,
+    			"assert": "{{ payload.success && !is_empty(payload.value) }}"
+    		},
+    		{
+    			"return": {
+    				"body": {
+    					"message": "User not found"
+    				},
+    				"status_code": 404
+    			}
+    		}
+    	],
+    	[
+    		{
+    			"input": {
+    				"key": "{{ main.path_params.userId }}",
+    				"action": "remove"
+    			},
+    			"use": "cache"
+    		},
+    		{
+    			"return": {
+    				"status_code": 204,
+    				"body": {
+    				}
+    			}
+    		}
+    	],
+    	[
+    		{
+    			"use": "cache",
+    			"input": {
+    				"action": "list"
+    			}
+    		},
+    		{
+    			"return": {
+    				"status_code": 200,
+    				"body": {
+    					"users": "{{ payload.items }}"
+    				}
+    			}
+    		}
+    	],
+    	[
+    		{
+    			"then": 1,
+    			"assert": "{{ main.method == \"POST\" && main.path == \"/users\" }}"
+    		},
+    		{
+    			"assert": "{{ main.method == \"GET\" && main.path == \"/users/{userId}\" }}",
+    			"then": 3
+    		},
+    		{
+    			"then": 5,
+    			"assert": "{{ main.method == \"PUT\" && main.path == \"/users/{userId}\" }}"
+    		},
+    		{
+    			"assert": "{{ main.method == \"DELETE\" && main.path == \"/users/{userId}\" }}",
+    			"then": 6
+    		},
+    		{
+    			"assert": "{{ main.method == \"GET\" && main.path == \"/users\" }}",
+    			"then": 7
+    		}
+    	]
+    ]

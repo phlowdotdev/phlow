@@ -12,8 +12,7 @@ components:
   schemas:
     UserId:
       type: string
-      description: The unique identifier of a user
-      format: uuid
+      description: The unique identifier of a user (email address in this implementation)
 
     User:
       type: object
@@ -26,7 +25,7 @@ components:
           type: string
           minLength: 2
           maxLength: 50
-          pattern: '^[a-zA-ZÀ-ÿ\s]+$'
+          pattern: '^[a-zA-ZÀ-ÿ ]+$'
         email:
           type: string
           format: email
@@ -37,7 +36,7 @@ components:
           description: User age in years (optional)
         phone:
           type: string
-          pattern: '^\+?[1-9]\d{1,14}$'
+          pattern: '^\+?[1-9]\d[\d \-\(\)]{7,15}$'
           description: User phone number (optional)
       required:
         - id
@@ -53,7 +52,7 @@ components:
           type: string
           minLength: 2
           maxLength: 50
-          pattern: '^[a-zA-ZÀ-ÿ\s]+$'
+          pattern: '^[a-zA-ZÀ-ÿ ]+$'
         email:
           type: string
           format: email
@@ -63,7 +62,7 @@ components:
           maximum: 120
         phone:
           type: string
-          pattern: '^\+?[1-9]\d{1,14}$'
+          pattern: '^\+?[1-9]\d[\d \-\(\)]{7,15}$'
       required:
         - name
         - email
@@ -77,14 +76,14 @@ components:
           type: string
           minLength: 2
           maxLength: 50
-          pattern: '^[a-zA-ZÀ-ÿ\s]+$'
+          pattern: '^[a-zA-ZÀ-ÿ ]+$'
         age:
           type: integer
           minimum: 0
           maximum: 120
         phone:
           type: string
-          pattern: '^\+?[1-9]\d{1,14}$'
+          pattern: '^\+?[1-9]\d[\d \-\(\)]{7,15}$'
       minProperties: 1
 
     Error:

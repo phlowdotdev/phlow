@@ -647,7 +647,11 @@ impl OpenAPIValidator {
 
         // Check pattern (regex) - with better error handling to prevent panics
         if let Some(pattern) = schema.get("pattern").and_then(|v| {
-            let string = v.to_string();
+            // Extract the string value properly without quotes
+            let string = match v {
+                Value::String(s) => s.as_str().to_string(),
+                _ => v.to_string(),
+            };
 
             if string.is_empty() {
                 None
@@ -657,7 +661,9 @@ impl OpenAPIValidator {
         }) {
             match Regex::new(&pattern) {
                 Ok(regex) => {
+                    log::debug!("Validating field '{}' with value '{}' against pattern '{}'", field_name, str_val, pattern);
                     if !regex.is_match(str_val) {
+                        log::debug!("Pattern match failed for '{}' with pattern '{}'", str_val, pattern);
                         let message = if field_name == "email" {
                             format!("Field '{}' must be a valid email address", field_name)
                         } else {
@@ -668,6 +674,8 @@ impl OpenAPIValidator {
                             message,
                             field: Some(field_name.to_string()),
                         });
+                    } else {
+                        log::debug!("Pattern match successful for '{}' with pattern '{}'", str_val, pattern);
                     }
                 }
                 Err(regex_err) => {
@@ -719,6 +727,40 @@ impl OpenAPIValidator {
             });
             return;
         };
+
+        // Check if schema specifies integer type and value is not an integer
+        if let Some(type_str) = schema.get("type").and_then(|t| {
+            match t {
+                Value::String(s) => Some(s.as_str().to_string()),
+                _ => Some(t.to_string()),
+            }
+        }) {
+            if type_str == "integer" {
+                // For integer type, check if the number is actually an integer
+                let num_val = match number.to_f64() {
+                    Some(val) => val,
+                    None => {
+                        log::warn!("Failed to convert number value for field '{}' to f64", field_name);
+                        errors.push(ValidationError {
+                            error_type: ValidationErrorType::InvalidFieldValue,
+                            message: format!("Field '{}' has invalid numeric value", field_name),
+                            field: Some(field_name.to_string()),
+                        });
+                        return;
+                    }
+                };
+                
+                // Check if the value is actually an integer (no decimal part)
+                if num_val.fract() != 0.0 {
+                    errors.push(ValidationError {
+                        error_type: ValidationErrorType::InvalidFieldType,
+                        message: format!("Field '{}' must be an integer (no decimal places)", field_name),
+                        field: Some(field_name.to_string()),
+                    });
+                    return;
+                }
+            }
+        }
 
         // Try to safely extract the numeric value
         let num_val = match number.to_f64() {
