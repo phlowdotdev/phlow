@@ -417,15 +417,64 @@ impl OpenAPIValidator {
 
     /// Extract request body schema from OpenAPI spec for a specific path/method
     fn extract_request_body_schema(&self, path: &str, method: &str) -> Option<Value> {
-        self.spec
-            .get("paths")?
-            .get(path)?
-            .get(method)?
-            .get("requestBody")?
-            .get("content")?
-            .get("application/json")?
-            .get("schema")
-            .cloned()
+        // Extract each part safely with better error handling
+        let paths = self.spec.get("paths")?;
+        let path_item = paths.get(path)?;
+        let operation = path_item.get(method)?;
+        
+        // If operation not found, try lowercase method name (per OpenAPI spec)
+        let operation = if operation.is_null() || operation.is_undefined() {
+            path_item.get(method.to_lowercase())?
+        } else {
+            operation
+        };
+        
+        // Try to get schema
+        let request_body = operation.get("requestBody")?;
+        let content = request_body.get("content")?;
+        let json_content = content.get("application/json")?;
+        let schema = json_content.get("schema")?;
+        
+        // Resolve schema reference if it's a $ref
+        let resolved_schema = self.resolve_schema_reference(schema);
+        
+        Some(resolved_schema)
+    }
+    
+    /// Resolve schema reference ($ref) to actual schema definition
+    fn resolve_schema_reference(&self, schema: &Value) -> Value {
+        // Check if this is a schema reference
+        if let Some(ref_str) = schema.get("$ref").and_then(|r| {
+            let string = r.to_string();
+            if string.is_empty() { None } else { Some(string) }
+        }) {
+            // Parse the reference path (e.g., "#/components/schemas/NewUser")
+            if ref_str.starts_with("#/") {
+                let path_parts: Vec<&str> = ref_str[2..].split('/').collect();
+                
+                // Navigate through the spec to find the referenced schema
+                let mut current = &Value::Object(self.spec.clone());
+                for part in path_parts {
+                    if let Some(next) = current.get(part) {
+                        current = next;
+                    } else {
+                        // Reference not found, return original schema
+                        log::warn!("Schema reference '{}' not found", ref_str);
+                        return schema.clone();
+                    }
+                }
+                
+                // Return the resolved schema
+                current.clone()
+            } else {
+                // External reference - not supported, return original
+                log::warn!("External schema reference '{}' not supported", ref_str);
+                schema.clone()
+            }
+        } else {
+            // Not a reference, return as-is
+            schema.clone()
+        }
     }
 
     /// Validate object properties against OpenAPI schema with patterns
@@ -596,7 +645,7 @@ impl OpenAPIValidator {
             }
         }
 
-        // Check pattern (regex)
+        // Check pattern (regex) - with better error handling to prevent panics
         if let Some(pattern) = schema.get("pattern").and_then(|v| {
             let string = v.to_string();
 
@@ -606,16 +655,27 @@ impl OpenAPIValidator {
                 Some(string)
             }
         }) {
-            if let Ok(regex) = Regex::new(&pattern) {
-                if !regex.is_match(str_val) {
-                    let message = if field_name == "email" {
-                        format!("Field '{}' must be a valid email address", field_name)
-                    } else {
-                        format!("Field '{}' format is invalid", field_name)
-                    };
+            match Regex::new(&pattern) {
+                Ok(regex) => {
+                    if !regex.is_match(str_val) {
+                        let message = if field_name == "email" {
+                            format!("Field '{}' must be a valid email address", field_name)
+                        } else {
+                            format!("Field '{}' format is invalid", field_name)
+                        };
+                        errors.push(ValidationError {
+                            error_type: ValidationErrorType::InvalidFieldValue,
+                            message,
+                            field: Some(field_name.to_string()),
+                        });
+                    }
+                }
+                Err(regex_err) => {
+                    // If regex is invalid, log the error and treat as validation failure
+                    log::warn!("Invalid regex pattern '{}' for field '{}': {}", pattern, field_name, regex_err);
                     errors.push(ValidationError {
                         error_type: ValidationErrorType::InvalidFieldValue,
-                        message,
+                        message: format!("Field '{}' has invalid validation pattern", field_name),
                         field: Some(field_name.to_string()),
                     });
                 }
@@ -650,50 +710,58 @@ impl OpenAPIValidator {
         schema: &Value,
         errors: &mut Vec<ValidationError>,
     ) {
-        let num_val = match value {
-            Value::Number(_) => {
-                // For now, just validate that it's a number - detailed validation would require
-                // more complex conversion from valu3::Number to f64
-                // This is a simplified implementation
-                0.0 // Placeholder - actual validation would convert properly
-            }
-            _ => {
+        // First check if it's actually a number type
+        let Value::Number(number) = value else {
+            errors.push(ValidationError {
+                error_type: ValidationErrorType::InvalidFieldType,
+                message: format!("Field '{}' must be a number", field_name),
+                field: Some(field_name.to_string()),
+            });
+            return;
+        };
+
+        // Try to safely extract the numeric value
+        let num_val = match number.to_f64() {
+            Some(val) => val,
+            None => {
+                // If conversion fails, log and return error
+                log::warn!("Failed to convert number value for field '{}' to f64", field_name);
                 errors.push(ValidationError {
-                    error_type: ValidationErrorType::InvalidFieldType,
-                    message: format!("Field '{}' must be a number", field_name),
+                    error_type: ValidationErrorType::InvalidFieldValue,
+                    message: format!("Field '{}' has invalid numeric value", field_name),
                     field: Some(field_name.to_string()),
                 });
                 return;
             }
         };
 
-        // Check minimum
-        if let Some(min) = schema.get("minimum").and_then(|v| {
-            v.as_number()
-                .unwrap_or(Value::from(0).as_number().unwrap())
-                .to_f64()
-        }) {
-            if num_val < min {
-                errors.push(ValidationError {
-                    error_type: ValidationErrorType::InvalidFieldValue,
-                    message: format!("Field '{}' must be at least {}", field_name, min),
-                    field: Some(field_name.to_string()),
-                });
+        // Check minimum - with safe extraction
+        if let Some(min_value) = schema.get("minimum") {
+            if let Some(min_number) = min_value.as_number() {
+                if let Some(min) = min_number.to_f64() {
+                    if num_val < min {
+                        errors.push(ValidationError {
+                            error_type: ValidationErrorType::InvalidFieldValue,
+                            message: format!("Field '{}' must be at least {}", field_name, min),
+                            field: Some(field_name.to_string()),
+                        });
+                    }
+                }
             }
         }
 
-        // Check maximum
-        if let Some(max) = schema.get("maximum").and_then(|v| {
-            v.as_number()
-                .unwrap_or(Value::from(0).as_number().unwrap())
-                .to_f64()
-        }) {
-            if num_val > max {
-                errors.push(ValidationError {
-                    error_type: ValidationErrorType::InvalidFieldValue,
-                    message: format!("Field '{}' must be at most {}", field_name, max),
-                    field: Some(field_name.to_string()),
-                });
+        // Check maximum - with safe extraction
+        if let Some(max_value) = schema.get("maximum") {
+            if let Some(max_number) = max_value.as_number() {
+                if let Some(max) = max_number.to_f64() {
+                    if num_val > max {
+                        errors.push(ValidationError {
+                            error_type: ValidationErrorType::InvalidFieldValue,
+                            message: format!("Field '{}' must be at most {}", field_name, max),
+                            field: Some(field_name.to_string()),
+                        });
+                    }
+                }
             }
         }
     }
