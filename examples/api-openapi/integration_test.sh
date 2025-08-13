@@ -84,12 +84,22 @@ test_request() {
     local extra_headers="$6"
     
     local headers_args=""
+    local use_default_content_type=true
+    
     if [ -n "$extra_headers" ]; then
         headers_args="$extra_headers"
+        # Se extra_headers contém Content-Type, não usar o padrão
+        if [[ "$extra_headers" == *"Content-Type"* ]]; then
+            use_default_content_type=false
+        fi
     fi
     
     if [ -n "$data" ]; then
-        response=$(timeout $TIMEOUT curl -s -w "\n%{http_code}" -X "$method" -H "$CONTENT_TYPE" $headers_args -d "$data" "$url" 2>/dev/null || echo -e "\nERROR")
+        if [ "$use_default_content_type" = true ]; then
+            response=$(timeout $TIMEOUT curl -s -w "\n%{http_code}" -X "$method" -H "$CONTENT_TYPE" $headers_args -d "$data" "$url" 2>/dev/null || echo -e "\nERROR")
+        else
+            response=$(timeout $TIMEOUT curl -s -w "\n%{http_code}" -X "$method" $headers_args -d "$data" "$url" 2>/dev/null || echo -e "\nERROR")
+        fi
     else
         response=$(timeout $TIMEOUT curl -s -w "\n%{http_code}" -X "$method" $headers_args "$url" 2>/dev/null || echo -e "\nERROR")
     fi
