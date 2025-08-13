@@ -82,24 +82,47 @@ pub async fn proxy(
             .and_then(|ct| ct.to_str().ok())
             .unwrap_or("");
         
-        // For POST, PUT, PATCH methods, if Content-Type is specified and it's not application/json, reject
-        let has_explicit_content_type = !content_type.is_empty();
-        let is_json_content_type = content_type.starts_with("application/json");
+        // Define accepted Content-Types
+        let accepted_content_types = [
+            "application/json",
+            "application/octet-stream",
+            // Adicione outros content-types conforme necessário:
+            // "application/xml",
+            // "text/plain",
+        ];
         
-        if has_explicit_content_type && !is_json_content_type {
-            let error_response_json = r#"{"error":"Validation failed","details":[{"type":"InvalidRequestBody","message":"Content-Type must be application/json","field":"content-type"}]}"#;
+        // For POST, PUT, PATCH methods, if Content-Type is specified, validate it
+        let has_explicit_content_type = !content_type.is_empty();
+        
+        if has_explicit_content_type {
+            let is_accepted_content_type = accepted_content_types.iter()
+                .any(|&accepted| content_type.starts_with(accepted));
             
-            let response = Response::builder()
-                .status(400)
-                .header("content-type", "application/json")
-                .body(Full::new(Bytes::from(error_response_json)))
-                .unwrap();
+            if !is_accepted_content_type {
+                let accepted_types_str = accepted_content_types.join(", ");
+                let error_message = format!(
+                    "Content-Type must be one of: {}", 
+                    accepted_types_str
+                );
                 
-            context.span.record("http.response.status_code", 400);
-            context.span.record("http.response.body.size", error_response_json.len());
-            context.span.record("http.response.header.content-type", "application/json");
-            
-            return Ok(response);
+                let error_response_json = format!(
+                    r#"{{"error":"Validation failed","details":[{{"type":"InvalidRequestBody","message":"{}","field":"content-type"}}]}}"#,
+                    error_message
+                );
+                let error_body_size = error_response_json.len();
+                
+                let response = Response::builder()
+                    .status(400)
+                    .header("content-type", "application/json")
+                    .body(Full::new(Bytes::from(error_response_json)))
+                    .unwrap();
+                    
+                context.span.record("http.response.status_code", 400);
+                context.span.record("http.response.body.size", error_body_size);
+                context.span.record("http.response.header.content-type", "application/json");
+                
+                return Ok(response);
+            }
         }
     }
     
