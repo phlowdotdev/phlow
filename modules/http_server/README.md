@@ -17,6 +17,8 @@ O módulo HTTP Server fornece um servidor web completo e de alta performance par
 - ✅ **Tratamento de authorization** com diferentes modos de span
 - ✅ **Middleware de tracing** para todas as requisições
 - ✅ **Suporte a keep-alive** para conexões persistentes
+- ✅ **Path parameters** dinâmicos com patterns como `/users/:username/posts/:post_id`
+- ✅ **Roteamento inteligente** com matching automático de rotas
 
 ## 📋 Configuração
 
@@ -354,6 +356,100 @@ steps:
       body: "{{ $handle_cors }}"
 ```
 
+### API com Path Parameters
+
+```yaml
+name: "users-posts-api"
+version: "1.0.0"
+main: "api_server"
+
+modules:
+  - name: "api_server"
+    module: "http_server"
+    with:
+      host: "0.0.0.0"
+      port: 3000
+      routes:
+        - pattern: "/users/:username"
+          name: "user_profile"
+        - pattern: "/users/:username/posts/:post_id"
+          name: "user_post"
+        - pattern: "/users/:username/posts/:post_id/comments/:comment_id"
+          name: "post_comment"
+
+steps:
+  - name: "route_handler"
+    condition:
+      left: "{{ $input.method }}"
+      operator: "equals"
+      right: "GET"
+    then:
+      condition:
+        left: "{{ $input.path_params.username }}"
+        operator: "exists"
+        right: true
+      then:
+        condition:
+          left: "{{ $input.path_params.post_id }}"
+          operator: "exists"
+          right: true
+        then:
+          condition:
+            left: "{{ $input.path_params.comment_id }}"
+            operator: "exists"
+            right: true
+          then:
+            # GET /users/:username/posts/:post_id/comments/:comment_id
+            return:
+              status_code: 200
+              body:
+                username: "{{ $input.path_params.username }}"
+                post_id: "{{ $input.path_params.post_id }}"
+                comment_id: "{{ $input.path_params.comment_id }}"
+                message: "Comment details"
+          else:
+            # GET /users/:username/posts/:post_id
+            return:
+              status_code: 200
+              body:
+                username: "{{ $input.path_params.username }}"
+                post_id: "{{ $input.path_params.post_id }}"
+                title: "Post title"
+                content: "Post content..."
+        else:
+          # GET /users/:username
+          return:
+            status_code: 200
+            body:
+              username: "{{ $input.path_params.username }}"
+              name: "User Full Name"
+              bio: "User biography..."
+      else:
+        return:
+          status_code: 404
+          body: { error: "Not Found" }
+    else:
+      return:
+        status_code: 405
+        body: { error: "Method Not Allowed" }
+```
+
+#### Exemplo de Requisições com Path Parameters:
+
+```bash
+# GET /users/john
+curl http://localhost:3000/users/john
+# Response: {"username": "john", "name": "User Full Name", "bio": "User biography..."}
+
+# GET /users/john/posts/123
+curl http://localhost:3000/users/john/posts/123
+# Response: {"username": "john", "post_id": "123", "title": "Post title", "content": "Post content..."}
+
+# GET /users/john/posts/123/comments/456
+curl http://localhost:3000/users/john/posts/123/comments/456
+# Response: {"username": "john", "post_id": "123", "comment_id": "456", "message": "Comment details"}
+```
+
 ## 🔍 Estrutura de Dados
 
 ### Request Data (disponível em `$input`)
@@ -379,7 +475,11 @@ steps:
   },
   "uri": "/users?limit=10&offset=0",
   "client_ip": "192.168.1.100",
-  "body_size": 1024
+  "body_size": 1024,
+  "path_params": {
+    "username": "john",
+    "post_id": "123"
+  }
 }
 ```
 

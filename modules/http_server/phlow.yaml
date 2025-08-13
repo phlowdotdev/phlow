@@ -1,4 +1,3 @@
-
 name: http_server
 description: A simple REST API server.
 version: 0.0.1
@@ -27,6 +26,30 @@ with:
       description: The host to listen on.
       default: "0.0.0.0"
       required: false
+    openapi_spec:
+      type: object
+      description: OpenAPI 3.0 specification as inline object for automatic route validation and path parameter extraction
+      required: false
+    validation:
+      type: object
+      description: Validation configuration for OpenAPI
+      required: false
+      properties:
+        strict_mode:
+          type: boolean
+          description: "Enable strict validation mode (default: true)"
+          default: true
+          required: false
+        validate_request_body:
+          type: boolean
+          description: "Validate request body against OpenAPI schema (default: true)"
+          default: true
+          required: false
+        validate_response_body:
+          type: boolean
+          description: "Validate response body against OpenAPI schema (default: false)"
+          default: false
+          required: false
 input:
   type: object
   required: false
@@ -85,4 +108,8 @@ output:
     body_size:
       type: number
       description: The size of the body in bytes.
+      required: true
+    path_params:
+      type: object
+      description: "The path parameters extracted from the URL pattern."
       required: true

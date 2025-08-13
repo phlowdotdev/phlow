@@ -1,9 +1,11 @@
+use crate::{openapi::OpenAPIValidator, router::Router};
 use phlow_sdk::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct Config {
     pub port: Option<u16>,
     pub host: Option<String>,
+    pub router: Router,
 }
 
 impl From<Value> for Config {
@@ -12,6 +14,7 @@ impl From<Value> for Config {
             return Config {
                 port: Some(3000),
                 host: Some("0.0.0.0".to_string()),
+                router: Router::from(Value::Null),
             };
         }
 
@@ -25,6 +28,16 @@ impl From<Value> for Config {
             None => Some("0.0.0.0".to_string()),
         };
 
-        Config { port, host }
+        let mut router = Router::from(value.clone());
+
+        // Try to load OpenAPI validator
+        if let Ok(Some(validator)) = OpenAPIValidator::from_value(value.clone()).map_err(|e| {
+            log::error!("Failed to load OpenAPI validator: {:?}", e);
+        }) {
+            router.openapi_validator = Some(validator);
+            log::info!("OpenAPI validator loaded successfully");
+        }
+
+        Config { port, host, router }
     }
 }

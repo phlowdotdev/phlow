@@ -31,6 +31,17 @@ pub fn build_functions() -> Engine {
 
     engine.register_fn("is_null", |x: rhai::Dynamic| x.is_unit());
 
+    engine.register_fn("is_not_null", |x: rhai::Dynamic| !x.is_unit());
+
+    engine.register_fn("merge", |x: rhai::Dynamic, y: rhai::Dynamic| {
+        if let (Some(mut x), Some(y)) = (x.try_cast::<rhai::Map>(), y.try_cast::<rhai::Map>()) {
+            x.extend(y.into_iter());
+            rhai::Dynamic::from(x)
+        } else {
+            rhai::Dynamic::UNIT
+        }
+    });
+
     engine.register_fn("is_empty", |x: rhai::Dynamic| {
         if x.is_unit() {
             true
@@ -79,5 +90,19 @@ mod tests {
 
         let result: bool = engine.eval(r#""\\d+" search "123""#).unwrap();
         assert!(result);
+    }
+
+    #[test]
+    fn test_merge_function() {
+        let engine = build_functions();
+
+        let result: rhai::Dynamic = engine
+            .eval(r#"merge(#{ "a": 1, "b": 2 },#{ "b": 3, "c": 4 })"#)
+            .unwrap();
+        let map: rhai::Map = result.try_cast().unwrap();
+
+        assert!(map.get("a").unwrap().as_int().unwrap() == 1);
+        assert!(map.get("b").unwrap().as_int().unwrap() == 3);
+        assert!(map.get("c").unwrap().as_int().unwrap() == 4);
     }
 }

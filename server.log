@@ -1,0 +1,2 @@
+nohup: ignoring input
+nohup: failed to run command 'RUST_LOG=warn': Permission denied
