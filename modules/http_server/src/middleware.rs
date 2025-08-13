@@ -17,6 +17,7 @@ pub struct RequestContext {
     pub authorization_span_mode: AuthorizationSpanMode,
     pub router: Router,
     pub openapi_validator: Option<OpenAPIValidator>,
+    pub cors: Option<crate::setup::CorsConfig>,
 }
 
 #[derive(Debug, Clone)]
@@ -29,6 +30,7 @@ pub struct TracingMiddleware<S> {
     pub authorization_span_mode: AuthorizationSpanMode,
     pub router: Router,
     pub openapi_validator: Option<OpenAPIValidator>,
+    pub cors: Option<crate::setup::CorsConfig>,
 }
 
 impl<S> Service<Request<Incoming>> for TracingMiddleware<S>
@@ -133,6 +135,7 @@ where
                 authorization_span_mode: self.authorization_span_mode.clone(),
                 router: self.router.clone(),
                 openapi_validator: self.openapi_validator.clone(),
+                cors: self.cors.clone(),
             };
 
             req.extensions_mut().insert(context);

@@ -63,6 +63,7 @@ pub async fn start_server(
         let dispatch = setup.dispatch.clone();
         let authorization_span_mode = settings.authorization_span_mode.clone();
         let router = config.router.clone();
+        let cors_config = config.cors.clone();
         let sender = match setup.main_sender.clone() {
             Some(sender) => sender,
             None => {
@@ -85,6 +86,7 @@ pub async fn start_server(
                 authorization_span_mode,
                 router: router.clone(),
                 openapi_validator: router.openapi_validator.clone(),
+                cors: cors_config,
             };
 
             if let Err(e) = http1::Builder::new()

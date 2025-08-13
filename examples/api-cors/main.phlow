@@ -1,0 +1,36 @@
+name: "Modern API with CORS Support"
+version: "1.0.0"
+description: "Complete REST API example demonstrating CORS configuration and usage"
+main: "api_server"
+
+modules:
+  - name: "api_server"
+    module: "http_server"
+    with:
+      host: "0.0.0.0"
+      port: 8080
+      cors:
+        # Allow specific origins for security
+        origins:
+          - "http://localhost:3000"     # React dev server
+          - "http://localhost:3001"
+        # Standard REST methods
+        methods:
+          - "GET"
+          - "POST"
+          - "PUT"
+          - "PATCH"
+          - "DELETE"
+          - "OPTIONS"
+        # Common headers for modern SPAs
+        headers:
+          - "Content-Type"
+          - "Authorization"
+          - "X-Requested-With"
+          - "X-API-Key"
+          - "X-Client-Version"
+          - "Accept"
+        credentials: true
+
+steps:
+  - return: !phs main

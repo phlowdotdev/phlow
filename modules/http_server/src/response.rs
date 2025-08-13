@@ -3,6 +3,7 @@ use hyper::body::Bytes;
 use hyper::Response;
 use phlow_sdk::prelude::*;
 use std::collections::HashMap;
+use crate::setup::CorsConfig;
 
 #[derive(ToValue)]
 pub struct ResponseHandler {
@@ -33,6 +34,75 @@ impl ResponseHandler {
                     .expect("Failed to build response")
             }
         }
+    }
+
+    /// Apply CORS headers to the response based on the request origin
+    pub fn apply_cors_headers(&mut self, cors_config: Option<&CorsConfig>, origin: Option<&str>) {
+        // If no CORS config is provided, don't apply any CORS headers
+        let cors_config = match cors_config {
+            Some(config) => config,
+            None => return,
+        };
+        // Handle Access-Control-Allow-Origin
+        let allowed_origin = if cors_config.origins.contains(&"*".to_string()) {
+            "*".to_string()
+        } else if let Some(origin) = origin {
+            if cors_config.origins.iter().any(|allowed| {
+                allowed == origin || 
+                (allowed.starts_with("http") && origin.starts_with(allowed)) ||
+                allowed == "*"
+            }) {
+                origin.to_string()
+            } else {
+                // Origin not allowed, don't set CORS headers
+                return;
+            }
+        } else {
+            cors_config.origins.get(0).unwrap_or(&"*".to_string()).clone()
+        };
+
+        self.headers.insert(
+            "access-control-allow-origin".to_string(),
+            allowed_origin,
+        );
+
+        // Access-Control-Allow-Methods
+        self.headers.insert(
+            "access-control-allow-methods".to_string(),
+            cors_config.methods.join(", "),
+        );
+
+        // Access-Control-Allow-Headers
+        self.headers.insert(
+            "access-control-allow-headers".to_string(),
+            cors_config.headers.join(", "),
+        );
+
+        // Access-Control-Allow-Credentials
+        if cors_config.credentials {
+            self.headers.insert(
+                "access-control-allow-credentials".to_string(),
+                "true".to_string(),
+            );
+        }
+
+        // Access-Control-Max-Age (for preflight requests)
+        self.headers.insert(
+            "access-control-max-age".to_string(),
+            cors_config.max_age.to_string(),
+        );
+    }
+
+    /// Create a preflight CORS response
+    pub fn create_preflight_response(cors_config: Option<&CorsConfig>, origin: Option<&str>) -> Self {
+        let mut response = Self {
+            status_code: 200,
+            headers: HashMap::new(),
+            body: String::new(),
+        };
+        
+        response.apply_cors_headers(cors_config, origin);
+        response
     }
 }
 

@@ -19,6 +19,8 @@ O módulo HTTP Server fornece um servidor web completo e de alta performance par
 - ✅ **Suporte a keep-alive** para conexões persistentes
 - ✅ **Path parameters** dinâmicos com patterns como `/users/:username/posts/:post_id`
 - ✅ **Roteamento inteligente** com matching automático de rotas
+- ✅ **CORS (Cross-Origin Resource Sharing)** configurável e automático
+- ✅ **Preflight requests** (OPTIONS) tratadas automaticamente
 
 ## 📋 Configuração
 
@@ -49,6 +51,12 @@ export PHLOW_AUTHORIZATION_SPAN_MODE="prefix"  # none, hidden, prefix, suffix, a
 ### Configuração do Módulo (with)
 - `host` (string, opcional): Host para bind do servidor (padrão: "0.0.0.0")
 - `port` (number, opcional): Porta para bind do servidor (padrão: 4000)
+- `cors` (object, opcional): Configuração CORS (Cross-Origin Resource Sharing)
+  - `origins` (array, opcional): Origins permitidas (padrão: ["*"])
+  - `methods` (array, opcional): Métodos HTTP permitidos (padrão: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+  - `headers` (array, opcional): Headers permitidos (padrão: ["Content-Type", "Authorization", "X-Requested-With"])
+  - `credentials` (boolean, opcional): Permitir credentials (padrão: true)
+  - `max_age` (number, opcional): Cache do preflight em segundos (padrão: 86400)
 
 ### Dados de Entrada do Request (output do módulo)
 - `method` (string): Método HTTP (GET, POST, PUT, etc.)
@@ -554,6 +562,231 @@ export PHLOW_AUTHORIZATION_SPAN_MODE="suffix"  # "...xyz123"
 
 # Mostrar completo
 export PHLOW_AUTHORIZATION_SPAN_MODE="all"     # "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+## 🌍 CORS (Cross-Origin Resource Sharing)
+
+O módulo oferece suporte completo a CORS com configuração flexível e tratamento automático de preflight requests.
+
+### Configuração CORS
+
+#### CORS Padrão (Permissivo)
+
+Se não especificado, o CORS usará configurações permissivas:
+
+```yaml
+modules:
+  - name: "api_server"
+    module: "http_server"
+    with:
+      port: 3000
+      # CORS padrão:
+      # origins: ["*"]
+      # methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+      # headers: ["Content-Type", "Authorization", "X-Requested-With"]
+      # credentials: true
+      # max_age: 86400
+```
+
+#### CORS Customizado
+
+```yaml
+modules:
+  - name: "secure_api"
+    module: "http_server"
+    with:
+      port: 3000
+      cors:
+        origins:
+          - "https://myapp.com"
+          - "https://admin.myapp.com"
+          - "http://localhost:3000"  # Para desenvolvimento
+        methods:
+          - "GET"
+          - "POST"
+          - "PUT"
+          - "DELETE"
+        headers:
+          - "Content-Type"
+          - "Authorization"
+          - "X-API-Key"
+        credentials: true
+        max_age: 3600  # 1 hora
+```
+
+#### CORS para Desenvolvimento
+
+```yaml
+modules:
+  - name: "dev_server"
+    module: "http_server"
+    with:
+      port: 8080
+      cors:
+        origins: ["*"]  # Aceita qualquer origin
+        methods: ["*"]  # Todos os métodos
+        headers: ["*"]  # Todos os headers
+        credentials: false  # Mais seguro para desenvolvimento
+        max_age: 86400
+```
+
+### Funcionamento Automático
+
+1. **Preflight Requests**: Requisições OPTIONS são automaticamente respondidas com headers CORS apropriados
+2. **Headers Automáticos**: Todas as respostas recebem headers CORS baseados na configuração
+3. **Validação de Origin**: Origins são validados automaticamente
+
+### Exemplos de Requisições
+
+#### Preflight Request (Automática)
+
+```bash
+# O browser envia automaticamente:
+curl -X OPTIONS http://localhost:3000/api/users \
+  -H "Origin: https://myapp.com" \
+  -H "Access-Control-Request-Method: POST" \
+  -H "Access-Control-Request-Headers: Content-Type, Authorization"
+
+# Resposta automática:
+# HTTP/1.1 200 OK
+# Access-Control-Allow-Origin: https://myapp.com
+# Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
+# Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With
+# Access-Control-Allow-Credentials: true
+# Access-Control-Max-Age: 86400
+```
+
+#### Requisição Normal com CORS
+
+```bash
+curl -X POST http://localhost:3000/api/users \
+  -H "Origin: https://myapp.com" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "João", "email": "joao@example.com"}'
+
+# Resposta com headers CORS:
+# HTTP/1.1 201 Created
+# Access-Control-Allow-Origin: https://myapp.com
+# Access-Control-Allow-Credentials: true
+# Content-Type: application/json
+# {"id": 123, "name": "João", "email": "joao@example.com"}
+```
+
+### Exemplo Completo: API com CORS Customizado
+
+```yaml
+name: "cors-demo-api"
+version: "1.0.0"
+main: "api_server"
+
+modules:
+  - name: "api_server"
+    module: "http_server"
+    with:
+      host: "0.0.0.0"
+      port: 8080
+      cors:
+        origins:
+          - "https://myapp.com"
+          - "https://admin.myapp.com"
+          - "http://localhost:3000"
+          - "http://localhost:3001"
+        methods:
+          - "GET"
+          - "POST"
+          - "PUT"
+          - "DELETE"
+          - "PATCH"
+        headers:
+          - "Content-Type"
+          - "Authorization"
+          - "X-API-Key"
+          - "X-Request-ID"
+        credentials: true
+        max_age: 7200  # 2 horas
+
+steps:
+  - name: "api_handler"
+    condition:
+      left: "{{ $input.path }}"
+      operator: "starts_with"
+      right: "/api/"
+    then:
+      condition:
+        left: "{{ $input.method }}"
+        operator: "equals"
+        right: "GET"
+      then:
+        # GET /api/*
+        return:
+          status_code: 200
+          headers:
+            "Content-Type": "application/json"
+          body:
+            message: "API GET response"
+            path: "{{ $input.path }}"
+            origin: "{{ $input.headers.origin }}"
+            timestamp: "2024-01-01T00:00:00Z"
+      else:
+        condition:
+          left: "{{ $input.method }}"
+          operator: "equals"
+          right: "POST"
+        then:
+          # POST /api/*
+          return:
+            status_code: 201
+            headers:
+              "Content-Type": "application/json"
+              "Location": "/api/resource/123"
+            body:
+              message: "Resource created successfully"
+              data: "{{ $input.body }}"
+              id: 123
+        else:
+          return:
+            status_code: 405
+            body: { error: "Method not allowed" }
+    else:
+      return:
+        status_code: 404
+        body: { error: "API endpoint not found" }
+```
+
+### Teste do CORS
+
+```bash
+# 1. Testar preflight
+curl -v -X OPTIONS http://localhost:8080/api/users \
+  -H "Origin: https://myapp.com" \
+  -H "Access-Control-Request-Method: POST" \
+  -H "Access-Control-Request-Headers: Content-Type, Authorization"
+
+# 2. Testar requisição real
+curl -v -X POST http://localhost:8080/api/users \
+  -H "Origin: https://myapp.com" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer abc123" \
+  -d '{"name": "Test User", "email": "test@example.com"}'
+
+# 3. Testar origin não permitido
+curl -v -X GET http://localhost:8080/api/users \
+  -H "Origin: https://malicious.com"
+```
+
+### Logs e Observabilidade CORS
+
+O tracing do OpenTelemetry captura informações detalhadas sobre CORS:
+
+```
+http_request
+├── otel.name: "OPTIONS /api/users" (preflight)
+├── http.request.method: "OPTIONS"
+├── http.request.header.origin: "https://myapp.com"
+├── http.response.status_code: 200
+├── http.response.header.access-control-allow-origin: "https://myapp.com"
+├── http.response.header.access-control-allow-methods: "GET, POST, PUT, DELETE"
+└── http.response.header.access-control-max-age: "7200"
 ```
 
 ## 🌡️ Health Check

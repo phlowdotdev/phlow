@@ -50,6 +50,36 @@ with:
           description: "Validate response body against OpenAPI schema (default: false)"
           default: false
           required: false
+    cors:
+      type: object
+      description: CORS (Cross-Origin Resource Sharing) configuration
+      required: false
+      properties:
+        origins:
+          type: array
+          description: "Allowed origins (default: ['*'])"
+          default: ["*"]
+          required: false
+        methods:
+          type: array
+          description: "Allowed HTTP methods (default: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'])"
+          default: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+          required: false
+        headers:
+          type: array
+          description: "Allowed headers (default: ['Content-Type', 'Authorization', 'X-Requested-With'])"
+          default: ["Content-Type", "Authorization", "X-Requested-With"]
+          required: false
+        credentials:
+          type: boolean
+          description: "Allow credentials (default: true)"
+          default: true
+          required: false
+        max_age:
+          type: number
+          description: "Preflight cache duration in seconds (default: 86400)"
+          default: 86400
+          required: false
 input:
   type: object
   required: false

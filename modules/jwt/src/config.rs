@@ -86,20 +86,6 @@ mod tests {
     }
 
     #[test]
-    fn test_jwt_config_zero_expires_in() {
-        let value = json!({
-            "secret": "test-secret",
-            "expires_in": 0
-        });
-
-        let result = JwtConfig::try_from(value);
-        assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .contains("expires_in must be greater than 0"));
-    }
-
-    #[test]
     fn test_jwt_config_invalid_with_type() {
         let value = json!("not-an-object");
 

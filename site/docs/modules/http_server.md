@@ -20,6 +20,7 @@ The HTTP Server module provides a complete, high-performance web server for buil
 - ✅ **Schema validation** (string formats, numeric constraints, arrays, objects)
 - ✅ **Custom headers** for requests and responses
 - ✅ **Automatic parsing** of JSON, query parameters, and headers
+- ✅ **CORS support** with optional and flexible configuration
 - ✅ **Health check** endpoint (`/health`)
 - ✅ **Complete observability** with OpenTelemetry tracing
 - ✅ **Flexible configuration** of host and port
@@ -67,6 +68,104 @@ modules:
       host: "0.0.0.0"
       port: 8080
       openapi_spec: "./openapi.yaml"  # Caminho para a especificação OpenAPI
+```
+
+### Configuração com CORS
+
+**CORS é opcional** - os headers CORS só são aplicados quando explicitamente configurados.
+
+#### Comportamento Padrão (sem CORS)
+
+Quando nenhuma configuração `cors` é fornecida, **nenhum header CORS é aplicado**:
+
+```phlow
+name: "api-no-cors"
+version: "1.0.0"
+main: "api_server"
+
+modules:
+  - name: "api_server"
+    module: "http_server"
+    with:
+      host: "0.0.0.0"
+      port: 8080
+      # Sem configuração CORS = Nenhum header CORS aplicado
+```
+
+#### Habilitando CORS
+
+Para habilitar CORS, adicione uma seção `cors` à configuração:
+
+```phlow
+name: "api-cors-enabled"
+version: "1.0.0"
+main: "api_server"
+
+modules:
+  - name: "api_server"
+    module: "http_server"
+    with:
+      host: "0.0.0.0"
+      port: 8080
+      cors:
+        origins:
+          - "http://localhost:3000"
+          - "http://localhost:5173"  # Vite dev server
+          - "https://myapp.com"       # Domínio de produção
+        methods:
+          - "GET"
+          - "POST"
+          - "PUT"
+          - "PATCH"
+          - "DELETE"
+          - "OPTIONS"
+        headers:
+          - "Content-Type"
+          - "Authorization"
+          - "X-Requested-With"
+          - "X-Custom-Header"
+        credentials: true
+        max_age: 86400  # 24 horas
+```
+
+#### Parâmetros de Configuração CORS
+
+| Parâmetro | Tipo | Padrão | Descrição |
+|-----------|------|--------|-----------|
+| `origins` | Array de strings | `["*"]` | Origins permitidos para requisições cross-origin |
+| `methods` | Array de strings | `["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]` | Métodos HTTP permitidos |
+| `headers` | Array de strings | `["Content-Type", "Authorization", "X-Requested-With"]` | Headers de requisição permitidos |
+| `credentials` | Boolean | `true` | Se deve permitir credenciais (cookies, headers de autorização) |
+| `max_age` | Number | `86400` | Duração do cache para requisições preflight (em segundos) |
+
+#### Considerações de Segurança CORS
+
+- **Origins wildcard com credenciais**: Não é possível usar `"*"` como origin quando `credentials: true`. O sistema automaticamente definirá `credentials: false` se origins wildcard forem detectados e registrará um aviso de segurança.
+
+- **Origins específicos**: Para aplicações em produção com credenciais, sempre especifique origins exatos em vez de usar wildcards.
+
+#### Exemplos de Configuração CORS
+
+**CORS para desenvolvimento (permissivo):**
+```yaml
+cors:
+  origins: ["*"]
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+  headers: ["Content-Type", "Authorization"]
+  credentials: false  # Obrigatório com wildcard origins
+  max_age: 86400
+```
+
+**CORS para produção (restritivo):**
+```yaml
+cors:
+  origins:
+    - "https://app.mycompany.com"
+    - "https://admin.mycompany.com"
+  methods: ["GET", "POST", "PUT", "DELETE"]
+  headers: ["Content-Type", "Authorization"]
+  credentials: true
+  max_age: 3600
 ```
 
 ## 🔍 OpenAPI 3.0 e Validação
@@ -555,6 +654,13 @@ steps:
 ### Configuração do Módulo (with)
 - `host` (string, opcional): Host para bind do servidor (padrão: "0.0.0.0")
 - `port` (number, opcional): Porta para bind do servidor (padrão: 4000)
+- `openapi_spec` (string, opcional): Caminho para arquivo de especificação OpenAPI 3.0
+- `cors` (object, opcional): Configuração CORS - se não especificado, nenhum header CORS é aplicado
+  - `origins` (array[string], opcional): Lista de origins permitidos (padrão: `["*"]`)
+  - `methods` (array[string], opcional): Métodos HTTP permitidos (padrão: `["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]`)
+  - `headers` (array[string], opcional): Headers permitidos (padrão: `["Content-Type", "Authorization", "X-Requested-With"]`)
+  - `credentials` (boolean, opcional): Permite credenciais (padrão: `true`)
+  - `max_age` (number, opcional): Cache preflight em segundos (padrão: `86400`)
 
 ### Dados de Entrada do Request (output do módulo)
 - `method` (string): Método HTTP (GET, POST, PUT, etc.)
@@ -818,7 +924,7 @@ steps:
         processed_at: "{{ $process_webhook.received_at }}"
 ```
 
-### API com CORS
+### API com CORS (Configuração Automática)
 
 ```phlow
 name: "cors-api"
@@ -830,36 +936,116 @@ modules:
     module: "http_server"
     with:
       port: 5000
+      # Configuração CORS - aplicada automaticamente a todas as respostas
+      cors:
+        origins:
+          - "http://localhost:3000"
+          - "http://localhost:5173"  # Vite
+          - "https://myapp.com"
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+        headers: ["Content-Type", "Authorization", "X-Custom-Header"]
+        credentials: true
+        max_age: 86400
 
 steps:
-  - name: "handle_cors"
+  # Com CORS configurado, não é necessário tratar OPTIONS manualmente
+  # O servidor automaticamente trata requisições preflight
+  
+  - name: "handle_api"
     condition:
       left: "{{ $input.method }}"
       operator: "equals"
-      right: "OPTIONS"
+      right: "GET"
     then:
-      # Preflight CORS
-      return:
-        status_code: 200
-        headers:
-          "Access-Control-Allow-Origin": "*"
-          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS"
-          "Access-Control-Allow-Headers": "Content-Type, Authorization"
-          "Access-Control-Max-Age": "86400"
-        body: ""
+      condition:
+        left: "{{ $input.path }}"
+        operator: "equals"
+        right: "/api/data"
+      then:
+        # Resposta normal - headers CORS aplicados automaticamente
+        return:
+          status_code: 200
+          headers:
+            "Content-Type": "application/json"
+          body:
+            message: "API response with CORS"
+            data: [1, 2, 3, 4, 5]
+            timestamp: "2024-01-01T00:00:00Z"
+      else:
+        return:
+          status_code: 404
+          body: { error: "Endpoint not found" }
     else:
-      # Processar requisição normal
-      script: |
-        // Lógica da API
-        { message: "API response", data: $input.body }
+      condition:
+        left: "{{ $input.method }}"
+        operator: "equals"
+        right: "POST"
+      then:
+        condition:
+          left: "{{ $input.path }}"
+          operator: "equals"
+          right: "/api/data"
+        then:
+          return:
+            status_code: 201
+            headers:
+              "Content-Type": "application/json"
+            body:
+              message: "Data created successfully"
+              data: "{{ $input.body }}"
+              id: 123
+        else:
+          return:
+            status_code: 405
+            body: { error: "Method not allowed" }
+      else:
+        return:
+          status_code: 405
+          body: { error: "Method not allowed" }
+```
 
-  - name: "add_cors_headers"
-    return:
-      status_code: 200
-      headers:
-        "Access-Control-Allow-Origin": "*"
-        "Content-Type": "application/json"
-      body: "{{ $handle_cors }}"
+### API sem CORS (Comportamento Padrão)
+
+```phlow
+name: "no-cors-api"
+version: "1.0.0"
+main: "no_cors_server"
+
+modules:
+  - name: "no_cors_server"
+    module: "http_server"
+    with:
+      port: 5001
+      # Sem configuração CORS = Nenhum header CORS aplicado
+
+steps:
+  - name: "handle_api"
+    condition:
+      left: "{{ $input.method }}"
+      operator: "equals"
+      right: "GET"
+    then:
+      condition:
+        left: "{{ $input.path }}"
+        operator: "equals"
+        right: "/api/internal"
+      then:
+        # Resposta sem headers CORS
+        return:
+          status_code: 200
+          headers:
+            "Content-Type": "application/json"
+          body:
+            message: "Internal API - No CORS headers"
+            restricted: true
+      else:
+        return:
+          status_code: 404
+          body: { error: "Not found" }
+    else:
+      return:
+        status_code: 405
+        body: { error: "Method not allowed" }
 ```
 
 ## 🔍 Estrutura de Dados
@@ -1172,6 +1358,36 @@ curl "http://localhost:8080/users?limit=10&offset=0" -v
 
 # Teste de parâmetro de rota
 curl "http://localhost:8080/users/123" -v
+```
+
+### Testando Configuração CORS
+
+```bash
+# Teste sem CORS configurado (não deve ter headers CORS)
+curl -H "Origin: http://example.com" http://localhost:5001/api/internal -v
+# Esperado: Sem headers Access-Control-*
+
+# Teste com CORS configurado - requisição normal
+curl -H "Origin: http://localhost:3000" http://localhost:5000/api/data -v
+# Esperado: Headers CORS presentes
+
+# Teste preflight CORS - OPTIONS request
+curl -X OPTIONS \
+  -H "Origin: http://localhost:3000" \
+  -H "Access-Control-Request-Method: POST" \
+  -H "Access-Control-Request-Headers: Content-Type" \
+  http://localhost:5000/api/data -v
+# Esperado: Status 200 com headers preflight
+
+# Teste origin não permitido
+curl -H "Origin: http://badsite.com" http://localhost:5000/api/data -v
+# Esperado: Sem headers CORS ou origem rejeitada
+
+# Teste com credenciais
+curl -H "Origin: http://localhost:3000" \
+  -H "Cookie: session=abc123" \
+  http://localhost:5000/api/data -v
+# Esperado: Access-Control-Allow-Credentials: true
 ```
 
 ### Monitoramento de Performance

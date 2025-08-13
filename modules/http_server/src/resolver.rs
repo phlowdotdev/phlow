@@ -28,6 +28,31 @@ pub async fn proxy(
         return Ok(response);
     }
 
+    // Handle CORS preflight requests (OPTIONS)
+    if req.method() == hyper::Method::OPTIONS {
+        let context = req
+            .extensions()
+            .get::<RequestContext>()
+            .cloned()
+            .expect("RequestContext not found");
+
+        let origin = req.headers()
+            .get("origin")
+            .and_then(|h| h.to_str().ok());
+
+        let cors_response = ResponseHandler::create_preflight_response(context.cors.as_ref(), origin);
+        
+        // Record CORS preflight in tracing
+        context.span.record("http.response.status_code", cors_response.status_code);
+        context.span.record("http.response.body.size", cors_response.body.len());
+        
+        cors_response.headers.iter().for_each(|(key, value)| {
+            context.span.record(to_span_format!("http.response.header.{}", key), value);
+        });
+
+        return Ok(cors_response.build());
+    }
+
     // Handle OpenAPI spec route
     if req.method() == hyper::Method::GET && req.uri().path() == "/openapi.json" {
         let context = req
@@ -213,7 +238,15 @@ pub async fn proxy(
     .await
     .unwrap_or(Value::Null);
 
-    let response = ResponseHandler::from(response_value);
+    let mut response = ResponseHandler::from(response_value);
+
+    // Apply CORS headers to the response
+    let origin = data_map.get("headers")
+        .and_then(|h| h.get("origin"))
+        .and_then(|o| o.as_string_b())
+        .map(|s| s.as_str());
+    
+    response.apply_cors_headers(context.cors.as_ref(), origin);
 
     context
         .span
