@@ -28,7 +28,7 @@ pub async fn proxy(
         return Ok(response);
     }
 
-    // Handle CORS preflight requests (OPTIONS) - MUST be before OpenAPI validation
+    // Handle CORS preflight requests (OPTIONS)
     if req.method() == hyper::Method::OPTIONS {
         let context = req
             .extensions()
@@ -36,26 +36,21 @@ pub async fn proxy(
             .cloned()
             .expect("RequestContext not found");
 
-        // Only handle CORS preflight if CORS is configured
-        if context.cors.is_some() {
-            let origin = req.headers()
-                .get("origin")
-                .and_then(|h| h.to_str().ok());
+        let origin = req.headers()
+            .get("origin")
+            .and_then(|h| h.to_str().ok());
 
-            let cors_response = ResponseHandler::create_preflight_response(context.cors.as_ref(), origin);
-            
-            // Record CORS preflight in tracing
-            context.span.record("http.response.status_code", cors_response.status_code);
-            context.span.record("http.response.body.size", cors_response.body.len());
-            
-            cors_response.headers.iter().for_each(|(key, value)| {
-                context.span.record(to_span_format!("http.response.header.{}", key), value);
-            });
+        let cors_response = ResponseHandler::create_preflight_response(context.cors.as_ref(), origin);
+        
+        // Record CORS preflight in tracing
+        context.span.record("http.response.status_code", cors_response.status_code);
+        context.span.record("http.response.body.size", cors_response.body.len());
+        
+        cors_response.headers.iter().for_each(|(key, value)| {
+            context.span.record(to_span_format!("http.response.header.{}", key), value);
+        });
 
-            return Ok(cors_response.build());
-        }
-        // If CORS is not configured, let the OPTIONS request continue to normal processing
-        // This allows OpenAPI validation and flow processing to handle OPTIONS if needed
+        return Ok(cors_response.build());
     }
 
     // Handle OpenAPI spec route
