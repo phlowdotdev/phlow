@@ -4,31 +4,6 @@ use rhai::{Engine, EvalAltResult};
 pub fn build_functions() -> Engine {
     let mut engine = Engine::new();
 
-    // Define operadores personalizados
-    match engine.register_custom_operator("starts_with", 80) {
-        Ok(engine) => engine.register_fn("start_withs", |x: String, y: String| x.starts_with(&y)),
-        Err(_) => {
-            panic!("Error on register custom operator starts_with");
-        }
-    };
-
-    match engine.register_custom_operator("ends_with", 81) {
-        Ok(engine) => engine.register_fn("ends_with", |x: String, y: String| x.ends_with(&y)),
-        Err(_) => {
-            panic!("Error on register custom operator ends_with");
-        }
-    };
-
-    match engine.register_custom_operator("search", 82) {
-        Ok(engine) => engine.register_fn("search", |x: String, y: String| match Regex::new(&x) {
-            Ok(re) => re.is_match(&y),
-            Err(_) => false,
-        }),
-        Err(_) => {
-            panic!("Error on register custom operator search");
-        }
-    };
-
     engine.register_fn("is_null", |x: rhai::Dynamic| x.is_unit());
 
     engine.register_fn("is_not_null", |x: rhai::Dynamic| !x.is_unit());
@@ -49,6 +24,30 @@ pub fn build_functions() -> Engine {
             s.trim().is_empty()
         } else {
             false
+        }
+    });
+
+    // Adiciona função search como método para String
+    engine.register_fn("search", |s: &str, pattern: &str| {
+        Regex::new(pattern)
+            .map(|re| re.is_match(s))
+            .unwrap_or(false)
+    });
+
+    // Adiciona função replace que retorna o valor alterado
+    engine.register_fn("replace", |s: &str, target: &str, replacement: &str| {
+        s.replace(target, replacement)
+    });
+
+    // Adiciona função slice para strings
+    engine.register_fn("slice", |s: &str, start: i64, end: i64| {
+        let len = s.chars().count() as i64;
+        let start = if start < 0 { 0 } else { start };
+        let end = if end > len { len } else { end };
+        if start >= end || start >= len {
+            String::new()
+        } else {
+            s.chars().skip(start as usize).take((end - start) as usize).collect()
         }
     });
 
@@ -79,30 +78,106 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_custom_operators() {
+    fn test_search_function() {
         let engine = build_functions();
 
-        let result: bool = engine.eval(r#""hello" starts_with "he""#).unwrap();
+        // Teste simples: texto contém substring
+        let result: bool = engine.eval(r#""meu texto".search("texto")"#).unwrap();
         assert!(result);
 
-        let result: bool = engine.eval(r#""world" ends_with "ld""#).unwrap();
+        // Teste regex: texto começa com "meu"
+        let result: bool = engine.eval(r#""meu texto".search("^meu")"#).unwrap();
         assert!(result);
 
-        let result: bool = engine.eval(r#""\\d+" search "123""#).unwrap();
+        // Teste regex: texto termina com "texto"
+        let result: bool = engine.eval(r#""meu texto".search("texto$")"#).unwrap();
+        assert!(result);
+
+        // Teste negativo: não contém "abc"
+        let result: bool = engine.eval(r#""meu texto".search("abc")"#).unwrap();
+        assert!(!result);
+
+        // Teste regex inválido: deve retornar false
+        let result: bool = engine.eval(r#""meu texto".search("[")"#).unwrap();
+        assert!(!result);
+    }
+
+    #[test]
+    fn test_replace_function() {
+        let engine = build_functions();
+
+        // Substituição simples
+        let result: String = engine
+            .eval(r#""meu texto".replace("texto", "valor")"#)
+            .unwrap();
+        assert_eq!(result, "meu valor");
+
+        // Substituição sem ocorrência
+        let result: String = engine
+            .eval(r#""meu texto".replace("abc", "valor")"#)
+            .unwrap();
+        assert_eq!(result, "meu texto");
+
+        // Substituição múltipla
+
+    #[test]
+    fn test_is_null_function() {
+        let engine = build_functions();
+        let result: bool = engine.eval(r#"is_null(null)"#).unwrap();
+        assert!(result);
+        let result: bool = engine.eval(r#"is_null(123)"#).unwrap();
+        assert!(!result);
+        let result: bool = engine.eval(r#"is_null("texto")"#).unwrap();
+        assert!(!result);
+    }
+
+    #[test]
+    fn test_is_not_null_function() {
+        let engine = build_functions();
+        let result: bool = engine.eval(r#"is_not_null(null)"#).unwrap();
+        assert!(!result);
+        let result: bool = engine.eval(r#"is_not_null(123)"#).unwrap();
+        assert!(result);
+        let result: bool = engine.eval(r#"is_not_null("texto")"#).unwrap();
+        assert!(result);
+    }
+
+    #[test]
+    fn test_is_empty_function() {
+        let engine = build_functions();
+        let result: bool = engine.eval(r#"is_empty("")"#).unwrap();
+        assert!(result);
+        let result: bool = engine.eval(r#"is_empty("   ")"#).unwrap();
+        assert!(result);
+        let result: bool = engine.eval(r#"is_empty("abc")"#).unwrap();
+        assert!(!result);
+        let result: bool = engine.eval(r#"is_empty(null)"#).unwrap();
         assert!(result);
     }
 
     #[test]
     fn test_merge_function() {
         let engine = build_functions();
-
-        let result: rhai::Dynamic = engine
-            .eval(r#"merge(#{ "a": 1, "b": 2 },#{ "b": 3, "c": 4 })"#)
-            .unwrap();
+        let result: rhai::Dynamic = engine.eval(r#"merge(#{ "a": 1, "b": 2 },#{ "b": 3, "c": 4 })"#).unwrap();
         let map: rhai::Map = result.try_cast().unwrap();
-
-        assert!(map.get("a").unwrap().as_int().unwrap() == 1);
-        assert!(map.get("b").unwrap().as_int().unwrap() == 3);
-        assert!(map.get("c").unwrap().as_int().unwrap() == 4);
+        assert_eq!(map.get("a").unwrap().as_int().unwrap(), 1);
+        assert_eq!(map.get("b").unwrap().as_int().unwrap(), 3);
+        assert_eq!(map.get("c").unwrap().as_int().unwrap(), 4);
     }
+
+    #[test]
+    fn test_slice_function() {
+        let engine = build_functions();
+        let result: String = engine.eval(r#""abcdef".slice(1, 4)"#).unwrap();
+        assert_eq!(result, "bcd");
+        let result: String = engine.eval(r#""abcdef".slice(-2, 3)"#).unwrap();
+        assert_eq!(result, "abc");
+        let result: String = engine.eval(r#""abcdef".slice(2, 10)"#).unwrap();
+        assert_eq!(result, "cdef");
+        let result: String = engine.eval(r#""abcdef".slice(4, 2)"#).unwrap();
+        assert_eq!(result, "");
+        let result: String = engine.eval(r#""abcdef".slice(10, 12)"#).unwrap();
+        assert_eq!(result, "");
+    }
+}
 }

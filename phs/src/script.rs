@@ -307,4 +307,42 @@ mod test {
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from(10i64)));
     }
+
+    #[test]
+    fn test_payload_execute_starts_with_bearer() {
+        let script = r#"{{
+            main.headers.authorization.starts_with("Bearer ")
+        }}"#;
+
+        let context = HashMap::from([(
+            "main".to_string(),
+            HashMap::from([(
+                "headers".to_string(),
+                HashMap::from([("authorization".to_string(), Value::from("Bearer 123456"))])
+                    .to_value(),
+            )])
+            .to_value(),
+        )]);
+
+        let engine = build_engine(None);
+        let payload = Script::try_build(engine.clone(), &script.to_value()).unwrap();
+
+        let variable = payload.evaluate_variable(&context).unwrap();
+        assert_eq!(variable, Variable::new(Value::from(true)));
+
+        // Test with a non-Bearer value
+        let context = HashMap::from([(
+            "main".to_string(),
+            HashMap::from([(
+                "headers".to_string(),
+                HashMap::from([("authorization".to_string(), Value::from("Basic 123456"))])
+                    .to_value(),
+            )])
+            .to_value(),
+        )]);
+
+        let payload = Script::try_build(engine.clone(), &script.to_value()).unwrap();
+        let variable = payload.evaluate_variable(&context).unwrap();
+        assert_eq!(variable, Variable::new(Value::from(false)));
+    }
 }
