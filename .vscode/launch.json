@@ -21,7 +21,10 @@
                 }
             },
             "args": [],
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PHLOW_LOG": "debug"
+            }
         },
         {
             "type": "lldb",
@@ -38,6 +41,9 @@
                     "-p",
                     "phlow-runtime"
                 ]
+            },
+            "env": {
+                "PHLOW_LOG": "debug"
             }
         }
     ]

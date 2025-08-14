@@ -2,6 +2,7 @@ pub mod functions;
 mod repositories;
 pub mod script;
 pub mod variable;
+pub mod preprocessor;
 use functions::build_functions;
 pub use repositories::{Repositories, RepositoryFunction};
 use rhai::serde::from_dynamic;

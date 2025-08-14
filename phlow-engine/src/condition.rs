@@ -1,6 +1,5 @@
 use std::{fmt::Display, sync::Arc};
 
-use phlow_sdk::valu3;
 use rhai::Engine;
 use serde::Serialize;
 use valu3::{prelude::StringBehavior, traits::ToValueBehavior, value::Value};

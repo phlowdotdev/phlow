@@ -82,6 +82,8 @@ pub struct StepWorker {
     pub(crate) modules: Arc<Modules>,
     pub(crate) return_case: Option<Script>,
     pub(crate) to: Option<StepReference>,
+    #[cfg(debug_assertions)]
+    pub(crate) step_raw: String,
 }
 
 impl StepWorker {
@@ -90,6 +92,11 @@ impl StepWorker {
         modules: Arc<Modules>,
         value: &Value,
     ) -> Result<Self, StepWorkerError> {
+        log::debug!(
+            "Parsing step worker from value: {}",
+            value.to_json(JsonMode::Indented)
+        );
+
         let id = match value.get("id") {
             Some(id) => ID::from(id),
             None => ID::new(),
@@ -174,6 +181,9 @@ impl StepWorker {
             None => None,
         };
 
+        #[cfg(debug_assertions)]
+        let step_raw = value.to_string();
+
         Ok(Self {
             id,
             label,
@@ -186,6 +196,8 @@ impl StepWorker {
             modules,
             return_case,
             to,
+            #[cfg(debug_assertions)]
+            step_raw,
         })
     }
 
@@ -230,6 +242,14 @@ impl StepWorker {
                     .evaluate(context)
                     .map_err(StepWorkerError::PayloadError)?,
             );
+
+            #[cfg(debug_assertions)]
+            log::debug!(
+                "Evaluating return case for step {}: {}",
+                self.id,
+                value.as_ref().map_or("None".to_string(), |v| v.to_string())
+            );
+
             Ok(value)
         } else {
             Ok(None)
@@ -255,6 +275,9 @@ impl StepWorker {
                 .await
             {
                 Ok(response) => {
+                    #[cfg(debug_assertions)]
+                    log::debug!("Module response for step {}: {:?}", self.id, response);
+
                     if let Some(err) = response.error {
                         return Err(StepWorkerError::ModulesError(ModulesError::ModuleError(
                             err,
@@ -271,6 +294,15 @@ impl StepWorker {
     }
 
     pub async fn execute(&self, context: &Context) -> Result<StepOutput, StepWorkerError> {
+        #[cfg(debug_assertions)]
+        log::debug!(
+            "Entering step: {}, with: \n\tmain={:?}\n\tpayload={:?}\n\tsetup={:?}",
+            self.step_raw,
+            &context.get_main().to_value().to_string(),
+            &context.get_payload().to_value().to_string(),
+            &context.get_setup().to_value().to_string()
+        );
+
         let span = tracing::info_span!(
             "step",
             otel.name = field::Empty,
@@ -289,6 +321,7 @@ impl StepWorker {
 
         {
             let step_name = self.label.clone().unwrap_or(self.id.to_string());
+
             span.record("otel.name", format!("step {}", step_name));
 
             if let Some(ref input) = context.get_input() {
@@ -336,9 +369,22 @@ impl StepWorker {
                 context.clone()
             };
 
+            let output = self.evaluate_payload(&context, output)?;
+
+            if let Some(to) = &self.to {
+                debug!(
+                    "Define switching to step {} in pipeline {}",
+                    to.step, to.pipeline
+                );
+                return Ok(StepOutput {
+                    next_step: NextStep::GoToStep(to.clone()),
+                    output,
+                });
+            }
+
             return Ok(StepOutput {
                 next_step: NextStep::Next,
-                output: self.evaluate_payload(&context, output)?,
+                output,
             });
         }
 

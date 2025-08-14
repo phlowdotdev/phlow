@@ -1,1 +1,0 @@
-let jsonStr = "{\"users\":[{\"name\":\"João\",\"age\":30},{\"name\":\"Maria\",\"age\":25}],\"total\":2}"; let data = jsonStr.parse(); print("Total users: " + data.total); print("First user: " + data.users[0].name + " (age " + data.users[0].age + ")"); print("Second user: " + data.users[1].name + " (age " + data.users[1].age + ")");

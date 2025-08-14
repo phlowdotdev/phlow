@@ -71,6 +71,75 @@ steps:
 ### use
 Specifies the context in which the step is executed. This is used to invoke specific modules that perform specialized tasks, such as logging, producing messages to an AMQP queue, querying a database, or other operations that are not part of the main context. 
 
+#### New Syntax (Recommended)
+
+The recommended way to use modules is with the `use` and `input` syntax:
+
+```phlow
+steps:
+  - use: log
+    input:
+      message: !phs `Logging a message for tracing`
+      level: info
+      
+  - use: cache
+    input:
+      action: set
+      key: user_session
+      value: !phs main.user_id
+      
+  - use: postgres
+    input:
+      query: "SELECT * FROM users WHERE active = true"
+```
+
+#### Legacy Syntax (Still Supported)
+
+For backward compatibility, you can still use the old direct module syntax. Phlow will automatically transform it to the new format:
+
+```phlow
+steps:
+  # This old syntax...
+  - log:
+      message: !phs `Logging a message for tracing`
+      level: info
+      
+  # ...is automatically transformed to:
+  - use: log
+    input:
+      message: !phs `Logging a message for tracing`
+      level: info
+```
+
+#### Mixed Usage
+
+You can mix both syntaxes in the same flow. The transformation happens automatically during processing:
+
+```phlow
+steps:
+  # New syntax
+  - use: log
+    input:
+      message: "Starting process"
+      
+  # Legacy syntax (will be auto-transformed)
+  - cache:
+      action: get
+      key: config
+      
+  # New syntax
+  - use: postgres
+    input:
+      query: !phs `SELECT * FROM config WHERE key = '${cache_result.key}'`
+```
+
+#### Benefits of New Syntax
+
+- **Consistency**: All module calls follow the same pattern
+- **Clarity**: Clear separation between module name and its parameters
+- **Flexibility**: Easier to extend with additional metadata
+- **Tooling**: Better support for IDE and validation tools
+
 For example:
 
 1. **Using the `log` module**:  

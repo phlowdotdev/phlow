@@ -284,6 +284,36 @@ pub fn build_functions() -> Engine {
         }
     });
 
+    // Funções para spread de objetos e arrays
+    engine.register_fn("__spread_object", |objects: rhai::Array| -> rhai::Dynamic {
+        let mut result_map = rhai::Map::new();
+        
+        for obj in objects {
+            if let Some(map) = obj.try_cast::<rhai::Map>() {
+                for (key, value) in map {
+                    result_map.insert(key, value);
+                }
+            }
+        }
+        
+        rhai::Dynamic::from(result_map)
+    });
+
+    engine.register_fn("__spread_array", |arrays: rhai::Array| -> rhai::Dynamic {
+        let mut result_array = rhai::Array::new();
+        
+        for arr in arrays {
+            if let Some(array) = arr.clone().try_cast::<rhai::Array>() {
+                result_array.extend(array);
+            } else {
+                // Se não for array, adiciona como elemento único
+                result_array.push(arr);
+            }
+        }
+        
+        rhai::Dynamic::from(result_array)
+    });
+
     match engine.register_custom_syntax(
         ["when", "$expr$", "?", "$expr$", ":", "$expr$"],
         false,

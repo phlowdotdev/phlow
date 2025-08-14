@@ -136,21 +136,45 @@ fn value_to_structs(
             for (step_index, step_value) in arr.into_iter().enumerate() {
                 if let Value::Object(step) = step_value {
                     let mut new_step = step.clone();
+                    #[cfg(debug_assertions)]
+                    {
+                        log::debug!("new_step {:?}", new_step.to_value().to_string());
+                    }
 
                     if let Some(to) = step.get("to") {
                         if let Some(go_to_step) = go_to_step_id.get(to.to_string().as_str()) {
                             new_step.insert("to".to_string(), go_to_step.to_value());
                         }
                     } else {
+                        log::debug!(
+                            "No 'to' found for step {} in pipeline {}, last {}, total {}",
+                            step_index,
+                            pipeline_index,
+                            step_index == arr.len() - 1,
+                            arr.len()
+                        );
                         if step.get("then").is_none()
                             && step.get("else").is_none()
                             && step.get("return").is_none()
+                            && step_index == arr.len() - 1
                         {
                             if let Some(target) = parents.get(&StepReference {
                                 pipeline: pipeline_index,
-                                step: step_index,
+                                step: 0,
                             }) {
+                                log::debug!(
+                                    "Resolving 'to' for step {} in pipeline {}: {:?}",
+                                    step_index,
+                                    pipeline_index,
+                                    target
+                                );
                                 let next_step = get_next_step(&pipelines_raw, target);
+                                log::debug!(
+                                    "Next step for step {} in pipeline {}: {:?}",
+                                    step_index,
+                                    pipeline_index,
+                                    next_step
+                                );
                                 new_step.insert("to".to_string(), next_step.to_value());
                             }
                         }

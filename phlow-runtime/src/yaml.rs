@@ -1,4 +1,5 @@
 use regex::Regex;
+use serde_yaml::{Mapping, Value};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
@@ -20,6 +21,7 @@ pub fn yaml_helpers_transform(
     }
 
     let yaml = yaml_helpers_eval(&yaml);
+    let yaml = yaml_transform_modules(&yaml)?;
 
     if print_yaml {
         println!("");
@@ -153,6 +155,69 @@ fn yaml_helpers_eval(yaml: &str) -> String {
                 } else {
                     result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", before_eval, escaped));
                 }
+            } else if after_eval.starts_with("{") {
+                // Bloco de código delimitado por {}
+                let mut block_content = String::new();
+                let mut brace_count = 0;
+
+                // Primeiro, verifica se há conteúdo na mesma linha
+                for ch in after_eval.chars() {
+                    block_content.push(ch);
+                    if ch == '{' {
+                        brace_count += 1;
+                    } else if ch == '}' {
+                        brace_count -= 1;
+                        if brace_count == 0 {
+                            break;
+                        }
+                    }
+                }
+
+                // Se não fechou na mesma linha, continue lendo
+                while brace_count > 0 {
+                    if let Some(next_line) = lines.next() {
+                        for ch in next_line.chars() {
+                            block_content.push(ch);
+                            if ch == '{' {
+                                brace_count += 1;
+                            } else if ch == '}' {
+                                brace_count -= 1;
+                                if brace_count == 0 {
+                                    break;
+                                }
+                            }
+                        }
+                    } else {
+                        break;
+                    }
+                }
+
+                // Remove as chaves externas e processa o conteúdo
+                let inner_content =
+                    if block_content.starts_with('{') && block_content.ends_with('}') {
+                        &block_content[1..block_content.len() - 1]
+                    } else {
+                        &block_content
+                    };
+
+                // Unifica em uma linha, removendo quebras de linha desnecessárias
+                let single_line = inner_content
+                    .lines()
+                    .map(|line| line.trim())
+                    .filter(|line| !line.is_empty())
+                    .collect::<Vec<_>>()
+                    .join(" ");
+
+                let escaped = single_line.replace('"', "\\\"");
+
+                if before_eval.trim().is_empty() {
+                    result.push_str(&format!("{}\"{{{{ {{  {} }} }}}}\"\n", indent, escaped));
+                } else {
+                    result.push_str(&format!(
+                        "{}\"{{{{ {{  {} }} }}}}\"\n",
+                        before_eval, escaped
+                    ));
+                }
             } else if !after_eval.is_empty() {
                 let escaped = after_eval.replace('"', "\\\"");
                 result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", before_eval, escaped));
@@ -258,4 +323,139 @@ fn process_include_file(path: &Path, args: &HashMap<String, String>) -> Result<S
         yaml_helpers_transform(&with_args, parent, false).map_err(|errors| errors.join("; "))?;
 
     Ok(transformed)
+}
+
+fn yaml_transform_modules(yaml: &str) -> Result<String, Vec<String>> {
+    // Lista de propriedades exclusivas do projeto
+    let exclusive_properties = vec![
+        "use",
+        "to",
+        "id",
+        "label",
+        "assert",
+        "condition",
+        "return",
+        "payload",
+        "input",
+        "then",
+        "else",
+    ];
+
+    // Parse o YAML para extrair módulos disponíveis
+    let parsed: Value = match serde_yaml::from_str(yaml) {
+        Ok(val) => val,
+        Err(_) => return Ok(yaml.to_string()), // Se não conseguir parsear, retorna o original
+    };
+
+    let mut available_modules = std::collections::HashSet::new();
+
+    // Extrai módulos da seção "modules"
+    if let Some(modules) = parsed.get("modules") {
+        if let Some(modules_array) = modules.as_sequence() {
+            for module in modules_array {
+                if let Some(module_map) = module.as_mapping() {
+                    // Verifica se existe "module" ou "name"
+                    if let Some(module_name) = module_map
+                        .get("module")
+                        .or_else(|| module_map.get("name"))
+                        .and_then(|v| v.as_str())
+                    {
+                        available_modules.insert(module_name.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    if available_modules.is_empty() {
+        return Ok(yaml.to_string()); // Sem módulos para transformar
+    }
+
+    // Função recursiva para transformar o YAML
+    fn transform_value(
+        value: &mut Value,
+        available_modules: &std::collections::HashSet<String>,
+        exclusive_properties: &[&str],
+        is_in_transformable_context: bool,
+    ) {
+        match value {
+            Value::Mapping(map) => {
+                let mut transformations = Vec::new();
+
+                for (key, val) in map.iter() {
+                    if let Some(key_str) = key.as_str() {
+                        // Só transforma se estiver em um contexto transformável (raiz de steps, then ou else)
+                        if is_in_transformable_context {
+                            // Se não é uma propriedade exclusiva e é um módulo disponível
+                            if !exclusive_properties.contains(&key_str)
+                                && available_modules.contains(key_str)
+                            {
+                                transformations.push((key.clone(), val.clone()));
+                            }
+                        }
+                    }
+                }
+
+                // Aplica as transformações
+                for (key, old_val) in transformations {
+                    map.remove(&key);
+
+                    let mut new_entry = Mapping::new();
+                    new_entry.insert(Value::String("use".to_string()), key);
+                    new_entry.insert(Value::String("input".to_string()), old_val);
+
+                    // Adiciona a nova entrada transformada
+                    for (new_key, new_val) in new_entry.iter() {
+                        map.insert(new_key.clone(), new_val.clone());
+                    }
+                }
+
+                // Continua a transformação recursivamente
+                for (key, val) in map.iter_mut() {
+                    let key_str = key.as_str().unwrap_or("");
+
+                    // Determina se o próximo nível será transformável
+                    let next_is_transformable =
+                        key_str == "steps" || key_str == "then" || key_str == "else";
+
+                    transform_value(
+                        val,
+                        available_modules,
+                        exclusive_properties,
+                        next_is_transformable,
+                    );
+                }
+            }
+            Value::Sequence(seq) => {
+                for item in seq.iter_mut() {
+                    transform_value(
+                        item,
+                        available_modules,
+                        exclusive_properties,
+                        is_in_transformable_context,
+                    );
+                }
+            }
+            _ => {}
+        }
+    }
+
+    // Parse novamente para modificar
+    let mut parsed_mut: Value = match serde_yaml::from_str(yaml) {
+        Ok(val) => val,
+        Err(_) => return Ok(yaml.to_string()),
+    };
+
+    transform_value(
+        &mut parsed_mut,
+        &available_modules,
+        &exclusive_properties,
+        false, // Começa como false, só será true dentro de steps, then ou else
+    );
+
+    // Converte de volta para YAML
+    match serde_yaml::to_string(&parsed_mut) {
+        Ok(result) => Ok(result),
+        Err(_) => Ok(yaml.to_string()),
+    }
 }

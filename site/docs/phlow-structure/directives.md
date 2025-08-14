@@ -100,6 +100,96 @@ message: !phs `The result is ${main.result}`
 return: !phs `${main.score > 50 ? 'Pass' : 'Fail'}`
 ```
 
+#### Code Blocks
+
+You can write multi-line code blocks using curly braces `{}`. These blocks are automatically unified into a single line during processing:
+
+```phlow
+steps:
+  - payload: !phs {
+      let user = main.user;
+      let score = user.score || 0;
+      let bonus = score > 80 ? 10 : 0;
+      
+      score + bonus
+    }
+    
+  - use: log
+    input:
+      message: !phs {
+        let result = payload * 2;
+        let status = result > 100 ? "high" : "normal";
+        
+        `User score: ${result} (${status})`
+      }
+```
+
+**Resulting transformation:**
+```phlow
+steps:
+  - payload: "{{ { let user = main.user; let score = user.score || 0; let bonus = score > 80 ? 10 : 0; score + bonus } }}"
+    
+  - use: log
+    input:
+      message: "{{ { let result = payload * 2; let status = result > 100 ? \"high\" : \"normal\"; `User score: ${result} (${status})` } }}"
+```
+
+#### Advanced Code Block Examples:
+
+**Data Processing:**
+```phlow
+- payload: !phs {
+    let users = main.users || [];
+    let activeUsers = users.filter(u => u.active);
+    let summary = {
+      total: users.length,
+      active: activeUsers.length,
+      inactive: users.length - activeUsers.length
+    };
+    
+    summary
+  }
+```
+
+**Complex Calculations:**
+```phlow
+- payload: !phs {
+    let price = main.price;
+    let discount = main.discount || 0;
+    let tax = 0.18;
+    
+    let discountedPrice = price * (1 - discount);
+    let finalPrice = discountedPrice * (1 + tax);
+    
+    #{
+      original: price,
+      discount: discount,
+      tax: tax,
+      final: Math.round(finalPrice * 100) / 100
+    }
+  }
+```
+
+#### Code Block Limitations:
+
+- **No function declarations**: You cannot declare functions inside code blocks
+- **No imports**: External modules must be imported using `!import`
+- **Single expression result**: The block should result in a single value
+
+#### When to Use Code Blocks vs `!import`:
+
+**Use Code Blocks for:**
+- Short, inline calculations
+- Data transformations
+- Conditional logic
+- Simple variable manipulations
+
+**Use `!import` for:**
+- Complex function definitions
+- Reusable logic across multiple files
+- Advanced algorithms
+- Functions that need to be shared
+
 #### Example Calling Module Functions:
 
 ```phlow

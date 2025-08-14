@@ -1,0 +1,14 @@
+modules:
+  - module: log
+
+steps:
+  - payload: !phs {
+      let x = 10;
+      let y = 20;
+      x + y
+    }
+  - log:
+      message: !phs {
+        let result = payload * 2;
+        "Result is: " + result
+      }
