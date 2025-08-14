@@ -20,16 +20,26 @@ The Log module provides structured logging functionality for Phlow applications,
 
 ## 📋 Configuração
 
-### Configuração Básica
+### Configuração Básica (Sintaxe Recomendada)
 
 ```phlow
 steps:
-  - name: "log_info"
-    use: "logger"
+  - use: log
     input:
       level: "info"
       message: "Aplicação iniciada com sucesso"
 ```
+
+### Configuração Básica (Sintaxe Legada - Ainda Suportada)
+
+```phlow
+steps:
+  - log:
+      level: "info"
+      message: "Aplicação iniciada com sucesso"
+```
+
+**Nota:** Ambas as sintaxes são suportadas. A sintaxe legada é automaticamente transformada para a nova sintaxe durante o processamento.
 
 ### Configuração com Variáveis de Ambiente
 
@@ -49,61 +59,111 @@ export PHLOW_LOG="debug"  # info, debug, warn, error
 
 ## 💻 Exemplos de Uso
 
-### Logs de Diferentes Níveis
+### Logs de Diferentes Níveis (Nova Sintaxe)
 
 ```phlow
 steps:
-  - name: "log_info"
-    use: "logger"
+  - use: log
     input:
       level: "info"
       message: "Processamento iniciado"
       
-  - name: "log_debug"
-    use: "logger"
+  - use: log
     input:
       level: "debug"
-      message: "Variável x = {{ $x }}"
+      message: !phs `Variável x = ${main.x}`
       
-  - name: "log_warn"
-    use: "logger"
+  - use: log
     input:
       level: "warn"
       message: "Configuração não encontrada, usando padrão"
       
-  - name: "log_error"
-    use: "logger"
+  - use: log
     input:
       level: "error"
       message: "Falha na conexão com banco de dados"
+```
+
+### Logs de Diferentes Níveis (Sintaxe Legada - Transformada Automaticamente)
+
+```phlow
+steps:
+  - log:
+      level: "info"
+      message: "Processamento iniciado"
+      
+  - log:
+      level: "debug"
+      message: !phs `Variável x = ${main.x}`
+      
+  - log:
+      level: "warn"
+      message: "Configuração não encontrada, usando padrão"
+      
+  - log:
+      level: "error"
+      message: "Falha na conexão com banco de dados"
+```
+
+### Logging com Blocos de Código
+
+```phlow
+steps:
+  - payload: !phs {
+      let user = main.user;
+      let timestamp = new Date().toISOString();
+      
+      {
+        id: user.id,
+        name: user.name,
+        loginTime: timestamp,
+        sessionId: Math.random().toString(36)
+      }
+    }
+    
+  - use: log
+    input:
+      level: "info"
+      message: !phs {
+        let session = payload;
+        let status = session.id ? "success" : "failed";
+        
+        `User login ${status}: ${session.name} (ID: ${session.id}) at ${session.loginTime}`
+      }
 ```
 
 ### Logging em Pipeline
 
 ```phlow
 steps:
-  - name: "start_log"
-    use: "logger"
+  - use: log
     input:
-      message: "Iniciando processamento do usuário {{ $user_id }}"
+      message: !phs `Iniciando processamento do usuário ${main.user_id}`
       
-  - name: "process_user"
-    script: |
-      // Processamento do usuário
-      let result = { id: $user_id, status: "processed" };
-      result
+  - payload: !phs {
+      let userId = main.user_id;
+      let processedAt = new Date().toISOString();
       
-  - name: "success_log"
-    use: "logger"
+      {
+        id: userId,
+        status: "processed",
+        timestamp: processedAt,
+        result: `User ${userId} processed successfully`
+      }
+    }
+      
+  - use: log
     input:
       level: "info"
-      message: "Usuário {{ $process_user.id }} processado com sucesso"
+      message: !phs `Usuário ${payload.id} processado com sucesso`
       
-  - name: "debug_log"
-    use: "logger"
+  - use: log
     input:
       level: "debug"
-      message: "Dados do usuário: {{ $process_user }}"
+      message: !phs {
+        let data = JSON.stringify(payload, null, 2);
+        `Dados do usuário processado: ${data}`
+      }
 ```
 
 ## 🌐 Exemplo Completo
@@ -111,68 +171,101 @@ steps:
 ```phlow
 name: "logging-example"
 version: "1.0.0"
-description: "Exemplo de uso do módulo Log"
+description: "Exemplo de uso do módulo Log com novas funcionalidades"
 
 modules:
-  - name: "logger"
-    module: "log"
-    version: "0.0.1"
+  - module: log
+    version: latest
 
 steps:
-  - name: "start_application"
-    use: "logger"
+  - use: log
     input:
       level: "info"
-      message: "Aplicação iniciada em {{ new Date().toISOString() }}"
+      message: !phs {
+        let timestamp = new Date().toISOString();
+        `Aplicação iniciada em ${timestamp}`
+      }
       
-  - name: "load_config"
-    script: |
+  - payload: !phs {
       // Simular carregamento de configuração
       let config = {
         database: "postgresql://localhost:5432/mydb",
         port: 3000,
-        debug: true
+        debug: true,
+        version: "1.0.0"
       };
-      config
       
-  - name: "log_config"
-    use: "logger"
+      config
+    }
+      
+  - use: log
     input:
       level: "debug"
-      message: "Configuração carregada: {{ JSON.stringify($load_config) }}"
+      message: !phs {
+        let configStr = JSON.stringify(payload, null, 2);
+        `Configuração carregada: ${configStr}`
+      }
       
-  - name: "validate_config"
-    condition:
-      left: "{{ $load_config.database }}"
-      operator: "exists"
-      right: true
+  - assert: !phs payload.database != null
     then:
-      use: "logger"
-      input:
-        level: "info"
-        message: "Configuração de banco de dados válida"
+      - use: log
+        input:
+          level: "info"
+          message: "Configuração de banco de dados válida"
     else:
-      use: "logger"
-      input:
-        level: "error"
-        message: "Configuração de banco de dados ausente"
+      - use: log
+        input:
+          level: "error"
+          message: "Configuração de banco de dados ausente"
         
-  - name: "performance_warning"
-    condition:
-      left: "{{ $load_config.debug }}"
-      operator: "equals"
-      right: true
+  - assert: !phs payload.debug === true
     then:
-      use: "logger"
-      input:
-        level: "warn"
-        message: "Modo debug ativado - performance pode ser afetada"
+      - use: log
+        input:
+          level: "warn"
+          message: !phs {
+            let version = payload.version;
+            `Modo debug ativado na versão ${version} - performance pode ser afetada`
+          }
         
-  - name: "final_log"
-    use: "logger"
+  - use: log
     input:
       level: "info"
-      message: "Aplicação configurada e pronta para usar"
+      message: !phs {
+        let port = payload.port;
+        let dbHost = payload.database.split("://")[1].split("/")[0];
+        
+        `Aplicação configurada - Porta: ${port}, DB: ${dbHost}`
+      }
+```
+
+### Exemplo com Sintaxe Mista (Legada + Nova)
+
+```phlow
+modules:
+  - module: log
+
+steps:
+  # Nova sintaxe
+  - use: log
+    input:
+      message: "Iniciando com nova sintaxe"
+      
+  # Sintaxe legada (será transformada automaticamente)
+  - log:
+      level: "debug"
+      message: "Esta é a sintaxe legada"
+      
+  # Nova sintaxe com bloco de código
+  - use: log
+    input:
+      level: "info"
+      message: !phs {
+        let mode = "mixed";
+        let timestamp = new Date().toISOString();
+        
+        `Modo ${mode} ativo em ${timestamp}`
+      }
 ```
 
 ## 🔧 Configuração Avançada
