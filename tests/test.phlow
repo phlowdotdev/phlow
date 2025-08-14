@@ -5,8 +5,13 @@ steps:
   - assert: !phs main == 1
     then:
       - payload: !phs main + 1
-      - log:
-          message: !phs main + 1
+      - assert: true
+        then:
+          log:
+            message: !phs main + 1
+      - assert: true
+        then:
+          !include inner.phlow
     else:
       !include inner.phlow
   - payload: !phs payload + 10

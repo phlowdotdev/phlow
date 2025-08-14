@@ -339,6 +339,7 @@ fn yaml_transform_modules(yaml: &str) -> Result<String, Vec<String>> {
         "input",
         "then",
         "else",
+        "steps",
     ];
 
     // Parse o YAML para extrair módulos disponíveis
@@ -360,7 +361,16 @@ fn yaml_transform_modules(yaml: &str) -> Result<String, Vec<String>> {
                         .or_else(|| module_map.get("name"))
                         .and_then(|v| v.as_str())
                     {
-                        available_modules.insert(module_name.to_string());
+                        // Extrai o nome do módulo de paths locais (./modules/cognito -> cognito)
+                        let clean_name = if module_name.starts_with("./modules/") {
+                            &module_name[10..] // Remove "./modules/"
+                        } else if module_name.contains('/') {
+                            // Para outros paths, pega apenas o último segmento
+                            module_name.split('/').last().unwrap_or(module_name)
+                        } else {
+                            module_name
+                        };
+                        available_modules.insert(clean_name.to_string());
                     }
                 }
             }
