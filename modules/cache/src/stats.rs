@@ -74,15 +74,6 @@ impl CacheStats {
     pub fn get_total_removes(&self) -> u64 {
         self.total_removes
     }
-
-    /// Reset all statistics
-    pub fn reset(&mut self) {
-        self.total_gets = 0;
-        self.total_hits = 0;
-        self.total_sets = 0;
-        self.total_removes = 0;
-        self.total_clears = 0;
-    }
 }
 
 impl Default for CacheStats {
