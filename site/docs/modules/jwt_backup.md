@@ -167,19 +167,19 @@ steps:
 }
 ```
 
-## 🌐 Complete Example - Authentication System
+## 🌐 Exemplo Completo - Sistema de Autenticação
 
 ```phlow
 name: "auth-system"
 version: "1.0.0"
-description: "JWT authentication system"
+description: "Sistema de autenticação com JWT"
 
 modules:
   - name: "jwt_handler"
     module: "jwt"
     with:
       secret: "{{ env.JWT_SECRET }}"
-      expires_in: 3600  # 1 hour
+      expires_in: 3600  # 1 hora
       
   - name: "logger"
     module: "log"
@@ -197,7 +197,7 @@ steps:
     use: "logger"
     input:
       level: "info"
-      message: "Authentication attempt for {{ $input.email }}"
+      message: "Tentativa de autenticação para {{ $input.email }}"
       
   - name: "validate_user"
     use: "db"
@@ -211,12 +211,12 @@ steps:
       operator: "greater_than"
       right: 0
     then:
-      # User found, verify password
+      # Usuário encontrado, verificar senha
       name: "verify_password"
       script: |
-        // Simulate password verification
+        // Simular verificação de senha
         let user = $validate_user.result.rows[0];
-        let passwordValid = $input.password === "password123"; // In production, use bcrypt
+        let passwordValid = $input.password === "senha123"; // Em produção, usar bcrypt
         
         if (passwordValid) {
           {
@@ -226,13 +226,13 @@ steps:
         } else {
           {
             valid: false,
-            error: "Incorrect password"
+            error: "Senha incorreta"
           }
         }
     else:
       return:
         success: false
-        error: "User not found"
+        error: "Usuário não encontrado"
         
   - name: "check_password"
     condition:
@@ -240,7 +240,7 @@ steps:
       operator: "equals"
       right: true
     then:
-      # Valid password, create token
+      # Senha válida, criar token
       use: "jwt_handler"
       input:
         action: "create"
@@ -250,7 +250,7 @@ steps:
           roles: "{{ $verify_password.user.roles }}"
           auth_time: "{{ timestamp() }}"
     else:
-      # Invalid password
+      # Senha inválida
       return:
         success: false
         error: "{{ $verify_password.error }}"
@@ -259,7 +259,7 @@ steps:
     use: "logger"
     input:
       level: "info"
-      message: "Successful login for {{ $input.email }}"
+      message: "Login bem-sucedido para {{ $input.email }}"
       
   - name: "return_token"
     return:
@@ -271,12 +271,12 @@ steps:
         email: "{{ $verify_password.user.email }}"
 ```
 
-## 🔐 Authentication Middleware
+## 🔐 Middleware de Autenticação
 
 ```phlow
 name: "auth-middleware"
 version: "1.0.0"
-description: "JWT validation middleware"
+description: "Middleware para validação de JWT"
 
 modules:
   - name: "jwt_handler"
@@ -292,9 +292,9 @@ steps:
     script: |
       let authHeader = $input.headers.authorization;
       if (!authHeader) {
-        { error: "Token not provided" }
+        { error: "Token não fornecido" }
       } else if (!authHeader.startsWith("Bearer ")) {
-        { error: "Invalid token format" }
+        { error: "Formato de token inválido" }
       } else {
         { token: authHeader.replace("Bearer ", "") }
       }
@@ -311,7 +311,7 @@ steps:
           error: "Unauthorized"
           message: "{{ $extract_token.error }}"
     else:
-      # Token extracted successfully
+      # Token extraído com sucesso
       use: "jwt_handler"
       input:
         action: "verify"
@@ -323,14 +323,14 @@ steps:
       operator: "equals"
       right: true
     then:
-      # Valid token, continue processing
+      # Token válido, continuar processamento
       script: |
         {
           user: $check_token_extraction.data,
           authenticated: true
         }
     else:
-      # Invalid token
+      # Token inválido
       condition:
         left: "{{ $check_token_extraction.expired }}"
         operator: "equals"
@@ -340,7 +340,7 @@ steps:
           status_code: 401
           body:
             error: "Token Expired"
-            message: "Token has expired, please login again"
+            message: "Token expirou, faça login novamente"
       else:
         return:
           status_code: 401
@@ -352,7 +352,7 @@ steps:
     use: "logger"
     input:
       level: "debug"
-      message: "User {{ $validate_jwt.user.email }} authenticated successfully"
+      message: "Usuário {{ $validate_jwt.user.email }} autenticado com sucesso"
       
   - name: "return_user_context"
     return:
@@ -360,7 +360,7 @@ steps:
       authenticated: true
 ```
 
-## 🔍 JWT Token Structure
+## 🔍 Estrutura do Token JWT
 
 ### Header
 ```json
@@ -375,31 +375,31 @@ steps:
 {
   "iat": 1640995200,           // Issued At (timestamp)
   "exp": 1640998800,           // Expiration (timestamp)
-  "user_id": 123,              // Custom data
-  "email": "user@example.com", // from 'data' parameter
+  "user_id": 123,              // Dados customizados
+  "email": "user@example.com", // do parâmetro 'data'
   "roles": ["user", "admin"]
 }
 ```
 
-## 🔧 Technical Implementation
+## 🔧 Implementação Técnica
 
-### Double Expiration Validation
+### Validação Dupla de Expiração
 
-The module implements a double validation strategy to ensure expired tokens are always detected:
+O módulo implementa uma estratégia de validação dupla para garantir que tokens expirados sejam sempre detectados:
 
-1. **jsonwebtoken library validation**: Uses `validate_exp = true`
-2. **Additional manual validation**: Compares current timestamp with `exp` claim
+1. **Validação da biblioteca jsonwebtoken**: Utiliza `validate_exp = true`
+2. **Validação manual adicional**: Compara timestamp atual com `exp` claim
 
 ```rust
-// Manual validation as backup
+// Validação manual como backup
 if current_timestamp > claims.exp {
     return Ok(jwt_error_response("Token has expired", true));
 }
 ```
 
-### Debug Logging
+### Logging de Debug
 
-The module provides detailed logging for debugging:
+O módulo fornece logging detalhado para debugging:
 
 ```
 [DEBUG] Creating JWT token with data: {...}, expires_in: 1
@@ -410,66 +410,66 @@ The module provides detailed logging for debugging:
 [WARN]  Token manually detected as expired: 1640998806 > 1640998801
 ```
 
-### Timestamp Management
+### Gestão de Timestamps
 
-- **Creation**: `iat` = current timestamp, `exp` = iat + expires_in
-- **Validation**: Compares current timestamp with `exp` claim
-- **Precision**: Uses chrono::Utc for precise UTC timestamps
+- **Criação**: `iat` = timestamp atual, `exp` = iat + expires_in
+- **Validação**: Compara timestamp atual com `exp` claim
+- **Precisão**: Utiliza chrono::Utc para timestamps UTC precisos
 
-## 📊 Observability
+## 📊 Observabilidade
 
-The module automatically generates OpenTelemetry spans with the following attributes:
+O módulo automaticamente gera spans do OpenTelemetry com os seguintes atributos:
 
 ### Span Attributes
-- `jwt.action`: "create" or "verify"
+- `jwt.action`: "create" ou "verify"
 - `jwt.algorithm`: "HS256"
-- `jwt.valid`: true/false (for verify)
-- `jwt.expired`: true/false (for verify)
-- `jwt.user_id`: User ID (if present in data)
-- `jwt.expires_in`: Expiration time in seconds
+- `jwt.valid`: true/false (para verify)
+- `jwt.expired`: true/false (para verify)
+- `jwt.user_id`: ID do usuário (se presente nos dados)
+- `jwt.expires_in`: Tempo de expiração em segundos
 
-## 🛡️ Security
+## 🛡️ Segurança
 
-### Best Practices
-- **Strong secret**: Use keys with at least 256 bits
-- **Environment variables**: Never hardcode secrets
-- **Appropriate TTL**: Configure adequate expiration
-- **HTTPS mandatory**: Always use secure connections
-- **Key rotation**: Implement periodic rotation
+### Boas Práticas
+- **Secret forte**: Use chaves com pelo menos 256 bits
+- **Variáveis de ambiente**: Nunca hardcode secrets
+- **TTL apropriado**: Configure expiração adequada
+- **HTTPS obrigatório**: Sempre use conexões seguras
+- **Rotação de chaves**: Implemente rotação periódica
 
-### Secure Secret Example
+### Exemplo de Secret Seguro
 ```bash
-# Generate secure secret
+# Gerar secret seguro
 export JWT_SECRET=$(openssl rand -base64 32)
 ```
 
-## 🔧 Error Handling
+## 🔧 Tratamento de Erros
 
-### Creation Errors
+### Erros de Criação
 ```json
 {
   "error": "Invalid data format",
-  "message": "Data must be a valid object"
+  "message": "Os dados devem ser um objeto válido"
 }
 ```
 
-### Validation Errors
+### Erros de Validação
 ```json
 {
   "valid": false,
   "error": "Token expired",
   "expired": true,
-  "message": "Token expired at 2024-01-01T10:00:00Z"
+  "message": "O token expirou em 2024-01-01T10:00:00Z"
 }
 ```
 
-## 💡 Use Cases
+## 💡 Casos de Uso
 
-1. **API Authentication**: User validation in endpoints
-2. **Single Sign-On (SSO)**: Tokens shared between services
-3. **Authorization**: Role-based access control
-4. **Sessions**: Alternative to cookies for SPAs
-5. **Microservices**: Identity propagation between services
+1. **Autenticação de APIs**: Validação de usuários em endpoints
+2. **Single Sign-On (SSO)**: Tokens compartilhados entre serviços
+3. **Autorização**: Controle de acesso baseado em roles
+4. **Sessões**: Alternativa a cookies para SPAs
+5. **Microserviços**: Propagação de identidade entre serviços
 
 ## 🏷️ Tags
 
@@ -482,7 +482,7 @@ export JWT_SECRET=$(openssl rand -base64 32)
 
 ---
 
-**Version**: 0.0.1  
-**Author**: Philippe Assis `<codephilippe@gmail.com>`  
-**License**: MIT  
-**Repository**: https://github.com/phlowdotdev/phlow
+**Versão**: 0.0.1  
+**Autor**: Philippe Assis `<codephilippe@gmail.com>`  
+**Licença**: MIT  
+**Repositório**: https://github.com/phlowdotdev/phlow

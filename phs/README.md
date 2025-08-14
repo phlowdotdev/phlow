@@ -415,15 +415,27 @@ let newText = text.replace("World", "Universe");  // Returns "Hello Universe"
 // text is still "Hello World" - original unchanged
 ```
 
-### ✂️ `slice(start, end)` - Substring Extraction
-Extract a portion of a string with bounds checking:
+### ✂️ `slice(start, end)` / `slice(start)` - Substring Extraction
+Extract a portion of a string with bounds checking. Supports two variants:
 
+**Two parameters - `slice(start, end)`:**
 ```rust
 let text = "Hello World";
 let part = text.slice(0, 5);     // "Hello"
 let middle = text.slice(6, 11);  // "World"
 let safe = text.slice(0, 100);   // "Hello World" (auto-bounds)
 ```
+
+**One parameter - `slice(start)`:** 
+```rust
+let text = "abcdef";
+let fromIndex = text.slice(3);    // "def" (from index 3 to end)
+let lastTwo = text.slice(-2);     // "ef" (last 2 characters)
+let fromStart = text.slice(0);    // "abcdef" (entire string)
+```
+
+- **Positive index:** Takes from that position to the end
+- **Negative index:** Takes the last N characters
 
 ### 🎩 `capitalize()` - First Letter Uppercase
 Capitalize the first character of a string:

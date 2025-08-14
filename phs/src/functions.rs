@@ -44,7 +44,7 @@ pub fn build_functions() -> Engine {
         s.replace(target, replacement)
     });
 
-    // Adiciona função slice para strings
+    // Adiciona função slice para strings (com start e end)
     engine.register_fn("slice", |s: &str, start: i64, end: i64| {
         let len = s.chars().count() as i64;
         let start = if start < 0 { 0 } else { start };
@@ -56,6 +56,27 @@ pub fn build_functions() -> Engine {
                 .skip(start as usize)
                 .take((end - start) as usize)
                 .collect()
+        }
+    });
+
+    // Adiciona função slice para strings (apenas com start, vai até o final)
+    engine.register_fn("slice", |s: &str, start: i64| {
+        let len = s.chars().count() as i64;
+        let start = if start < 0 {
+            let abs_start = start.abs();
+            if abs_start > len {
+                0
+            } else {
+                len - abs_start
+            }
+        } else {
+            start
+        };
+
+        if start >= len {
+            String::new()
+        } else {
+            s.chars().skip(start as usize).collect()
         }
     });
 
@@ -260,6 +281,12 @@ mod tests {
         assert_eq!(result, "");
         let result: String = engine.eval(r#""abcdef".slice(10, 12)"#).unwrap();
         assert_eq!(result, "");
+        let result: String = engine.eval(r#""abcdef".slice(0,3)"#).unwrap();
+        assert_eq!(result, "abc");
+        let result: String = engine.eval(r#""abcdef".slice(3)"#).unwrap();
+        assert_eq!(result, "def");
+        let result: String = engine.eval(r#""abcdef".slice(-2)"#).unwrap();
+        assert_eq!(result, "ef");
     }
 
     #[test]
@@ -272,6 +299,10 @@ mod tests {
         let result: String = engine.eval(r#""".capitalize()"#).unwrap();
         assert_eq!(result, "");
         let result: String = engine.eval(r#""ábc".capitalize()"#).unwrap();
+        assert_eq!(result, "Ábc");
+        let result: String = engine
+            .eval(r#"let a = #{value: "ábc"}; a.value.capitalize()"#)
+            .unwrap();
         assert_eq!(result, "Ábc");
     }
 
