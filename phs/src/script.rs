@@ -1,4 +1,5 @@
 use crate::variable::Variable;
+use crate::preprocessor::SpreadPreprocessor;
 use regex::Regex;
 use rhai::{
     serde::{from_dynamic, to_dynamic},
@@ -153,10 +154,14 @@ impl Script {
                 let code = Self::to_code_string(&value.to_string());
 
                 let code_fixed = Self::replace_null_safe(&code);
+                
+                // Aplica o pré-processamento para spread syntax
+                let preprocessor = SpreadPreprocessor::new();
+                let code_with_spread = preprocessor.process(&code_fixed);
 
-                let ast = match engine.compile(&code_fixed) {
+                let ast = match engine.compile(&code_with_spread) {
                     Ok(ast) => ast,
-                    Err(err) => return Err(ScriptError::CompileError(code_fixed, err)),
+                    Err(err) => return Err(ScriptError::CompileError(code_with_spread, err)),
                 };
                 map_index_ast.insert(*counter, ast);
 
@@ -344,5 +349,149 @@ mod test {
         let payload = Script::try_build(engine.clone(), &script.to_value()).unwrap();
         let variable = payload.evaluate_variable(&context).unwrap();
         assert_eq!(variable, Variable::new(Value::from(false)));
+    }
+
+    #[test]
+    fn test_object_spread_syntax() {
+        let script = r#"{{
+            let a = #{x: 1, y: 2};
+            let b = #{z: 3};
+            #{...a, y: 20, ...b, w: 4}
+        }}"#;
+
+        let context = Context::new();
+        let engine = build_engine(None);
+        let payload = Script::try_build(engine, &script.to_value()).unwrap();
+
+        let result = payload.evaluate(&context).unwrap();
+        let expected = Value::from({
+            let mut map = HashMap::new();
+            map.insert("x".to_string(), Value::from(1i64));
+            map.insert("y".to_string(), Value::from(20i64)); // sobrescreve o valor de a
+            map.insert("z".to_string(), Value::from(3i64));
+            map.insert("w".to_string(), Value::from(4i64));
+            map
+        });
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_array_spread_syntax() {
+        let script = r#"{{
+            let a = [1, 2];
+            let b = [5, 6];
+            [...a, 3, 4, ...b, 7]
+        }}"#;
+
+        let context = Context::new();
+        let engine = build_engine(None);
+        let payload = Script::try_build(engine, &script.to_value()).unwrap();
+
+        let result = payload.evaluate(&context).unwrap();
+        let expected = Value::from(vec![
+            Value::from(1i64),
+            Value::from(2i64),
+            Value::from(3i64),
+            Value::from(4i64),
+            Value::from(5i64),
+            Value::from(6i64),
+            Value::from(7i64),
+        ]);
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_nested_spread_syntax() {
+        let script = r#"{{
+            let user = #{name: "John", age: 30};
+            let meta = #{id: 1, verified: true};
+            
+            #{
+                ...user,
+                profile: meta
+            }
+        }}"#;
+
+        let context = Context::new();
+        let engine = build_engine(None);
+        let payload = Script::try_build(engine, &script.to_value()).unwrap();
+
+        let result = payload.evaluate(&context).unwrap();
+        
+        // Verifica se a estrutura está correta
+        if let Value::Object(obj) = result {
+            assert_eq!(obj.get("name").unwrap(), &Value::from("John"));
+            assert_eq!(obj.get("age").unwrap(), &Value::from(30i64));
+            
+            if let Some(Value::Object(profile)) = obj.get("profile") {
+                assert_eq!(profile.get("id").unwrap(), &Value::from(1i64));
+                assert_eq!(profile.get("verified").unwrap(), &Value::from(true));
+            } else {
+                panic!("Profile should be an object");
+            }
+        } else {
+            panic!("Result should be an object");
+        }
+    }
+
+    #[test]
+    fn test_complete_spread_example() {
+        let script = r#"{{
+            // Dados de exemplo
+            let user_base = #{id: 1, name: "João"};
+            let user_extra = #{email: "joao@email.com", active: true};
+            let permissions = ["read", "write"];
+            let admin_permissions = ["admin", "delete"];
+            
+            // Usando spread para combinar objetos
+            let complete_user = #{...user_base, ...user_extra, role: "user"};
+            
+            // Usando spread para combinar arrays
+            let all_permissions = [...permissions, "update", ...admin_permissions];
+            
+            #{
+                user: complete_user,
+                permissions: all_permissions,
+                total_permissions: all_permissions.len()
+            }
+        }}"#;
+
+        let context = Context::new();
+        let engine = build_engine(None);
+        let payload = Script::try_build(engine, &script.to_value()).unwrap();
+
+        let result = payload.evaluate(&context).unwrap();
+        
+        if let Value::Object(obj) = result {
+            // Verifica o usuário completo
+            if let Some(Value::Object(user)) = obj.get("user") {
+                assert_eq!(user.get("id").unwrap(), &Value::from(1i64));
+                assert_eq!(user.get("name").unwrap(), &Value::from("João"));
+                assert_eq!(user.get("email").unwrap(), &Value::from("joao@email.com"));
+                assert_eq!(user.get("active").unwrap(), &Value::from(true));
+                assert_eq!(user.get("role").unwrap(), &Value::from("user"));
+            } else {
+                panic!("User should be an object");
+            }
+            
+            // Verifica as permissões combinadas
+            if let Some(Value::Array(permissions)) = obj.get("permissions") {
+                assert_eq!(permissions.len(), 5);
+                assert_eq!(permissions.get(0).unwrap(), &Value::from("read"));
+                assert_eq!(permissions.get(1).unwrap(), &Value::from("write"));
+                assert_eq!(permissions.get(2).unwrap(), &Value::from("update"));
+                assert_eq!(permissions.get(3).unwrap(), &Value::from("admin"));
+                assert_eq!(permissions.get(4).unwrap(), &Value::from("delete"));
+            } else {
+                panic!("Permissions should be an array");
+            }
+            
+            // Verifica o total
+            assert_eq!(obj.get("total_permissions").unwrap(), &Value::from(5i64));
+        } else {
+            panic!("Result should be an object");
+        }
     }
 }

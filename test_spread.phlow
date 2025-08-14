@@ -1,0 +1,34 @@
+# Teste de Spread Syntax
+name: "spread_test"
+version: "1.0.0"
+
+steps:
+  - payload: |
+      {{
+        // Testando spread de objetos
+        let user = #{id: 1, name: "João"};
+        let profile = #{email: "joao@test.com", active: true};
+        
+        let combined_user = #{...user, ...profile, role: "admin"};
+        
+        // Testando spread de arrays
+        let basic_permissions = ["read", "write"];
+        let admin_permissions = ["delete", "admin"];
+        
+        let all_permissions = [...basic_permissions, "update", ...admin_permissions];
+        
+        #{
+          user: combined_user,
+          permissions: all_permissions,
+          total_count: all_permissions.len()
+        }
+      }}
+
+tests:
+  - describe: "Verificar spread de objetos e arrays"
+    assert_eq: !phs #{
+        user_id: payload.user.id,
+        user_role: payload.user.role,
+        permissions_count: payload.permissions.len(),
+        total_count: payload.total_count
+      }

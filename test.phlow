@@ -15,8 +15,10 @@ steps:
       level: error
       message: !phs {
         let val = payload * 10;
+        let no = [1, 2, 3];
+        let obj = #{target: 1};
 
-        val
+        #{item: val, ...obj, name: [...no,4,5,6]}
       }
 
 tests:
