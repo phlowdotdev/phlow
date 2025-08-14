@@ -41,6 +41,9 @@ pub fn build_functions() -> Engine {
             .unwrap_or(false)
     });
 
+    // Adiciona função starts_with para verificar se string começa com prefixo
+    engine.register_fn("starts_with", |s: &str, prefix: &str| s.starts_with(prefix));
+
     // Adiciona função replace que retorna o valor alterado
     engine.register_fn("replace", |s: &str, target: &str, replacement: &str| {
         s.replace(target, replacement)
@@ -165,6 +168,65 @@ pub fn build_functions() -> Engine {
         general_purpose::STANDARD.encode(s.as_bytes())
     });
 
+    // Adiciona função base64_to_utf8 para decodificar Base64
+    engine.register_fn("base64_to_utf8", |s: &str| -> String {
+        match general_purpose::STANDARD.decode(s) {
+            Ok(bytes) => {
+                match String::from_utf8(bytes) {
+                    Ok(decoded) => decoded,
+                    Err(_) => String::new(), // Retorna string vazia se não for UTF-8 válido
+                }
+            }
+            Err(_) => String::new(), // Retorna string vazia se não for Base64 válido
+        }
+    });
+
+    // Adiciona função url_encode_to_utf8 para decodificar URL encoding
+    engine.register_fn("url_encode_to_utf8", |s: &str| -> String {
+        let mut result = Vec::new();
+        let mut chars = s.chars().peekable();
+
+        while let Some(ch) = chars.next() {
+            match ch {
+                '+' => result.push(b' '), // '+' representa espaço
+                '%' => {
+                    // Verifica se há dois caracteres hexadecimais após '%'
+                    let hex1 = chars.next();
+                    let hex2 = chars.next();
+
+                    if let (Some(h1), Some(h2)) = (hex1, hex2) {
+                        let hex_str = format!("{}{}", h1, h2);
+                        if let Ok(byte) = u8::from_str_radix(&hex_str, 16) {
+                            result.push(byte);
+                        } else {
+                            // Se não for hex válido, adiciona os caracteres literalmente
+                            result.extend(format!("%{}{}", h1, h2).bytes());
+                        }
+                    } else {
+                        // Se não há caracteres suficientes, adiciona '%' literal
+                        result.push(b'%');
+                        if let Some(h1) = hex1 {
+                            result.extend(h1.to_string().bytes());
+                        }
+                        if let Some(h2) = hex2 {
+                            result.extend(h2.to_string().bytes());
+                        }
+                    }
+                }
+                _ => {
+                    // Caracteres normais são adicionados como UTF-8
+                    result.extend(ch.to_string().bytes());
+                }
+            }
+        }
+
+        // Converte bytes para string UTF-8
+        match String::from_utf8(result) {
+            Ok(decoded) => decoded,
+            Err(_) => String::new(), // Retorna string vazia se não for UTF-8 válido
+        }
+    });
+
     engine.register_fn("parse", |s: &str| -> rhai::Dynamic {
         match Value::json_to_value(s) {
             Ok(value) => {
@@ -246,6 +308,45 @@ mod tests {
         // Teste regex inválido: deve retornar false
         let result: bool = engine.eval(r#""meu texto".search("[")"#).unwrap();
         assert!(!result);
+    }
+
+    #[test]
+    fn test_starts_with_function() {
+        let engine = build_functions();
+
+        // Teste básico: string começa com prefixo
+        let result: bool = engine
+            .eval(r#""Bearer token123".starts_with("Bearer")"#)
+            .unwrap();
+        assert!(result);
+
+        // Teste com espaço: string começa com prefixo incluindo espaço
+        let result: bool = engine
+            .eval(r#""Bearer token123".starts_with("Bearer ")"#)
+            .unwrap();
+        assert!(result);
+
+        // Teste negativo: string não começa com prefixo
+        let result: bool = engine
+            .eval(r#""Basic auth123".starts_with("Bearer")"#)
+            .unwrap();
+        assert!(!result);
+
+        // Teste com string vazia como prefixo (deve retornar true)
+        let result: bool = engine.eval(r#""qualquer texto".starts_with("")"#).unwrap();
+        assert!(result);
+
+        // Teste com prefixo maior que a string (deve retornar false)
+        let result: bool = engine.eval(r#""abc".starts_with("abcdef")"#).unwrap();
+        assert!(!result);
+
+        // Teste case-sensitive
+        let result: bool = engine.eval(r#""Bearer".starts_with("bearer")"#).unwrap();
+        assert!(!result);
+
+        // Teste com caracteres especiais
+        let result: bool = engine.eval(r#""@user123".starts_with("@")"#).unwrap();
+        assert!(result);
     }
 
     #[test]
@@ -560,6 +661,136 @@ mod tests {
             .eval(r#"when "abc".search("b") ? "encontrou" : "não encontrou""#)
             .unwrap();
         assert_eq!(result, "encontrou");
+    }
+
+    #[test]
+    fn test_base64_to_utf8() {
+        let engine = build_functions();
+
+        // Teste básico - decodifica "Hello World"
+        assert_eq!(
+            engine
+                .eval::<String>(r#""SGVsbG8gV29ybGQ=".base64_to_utf8()"#)
+                .unwrap(),
+            "Hello World"
+        );
+
+        // Teste com string vazia (Base64 válido)
+        assert_eq!(engine.eval::<String>(r#""".base64_to_utf8()"#).unwrap(), "");
+
+        // Teste com caracteres especiais
+        assert_eq!(
+            engine
+                .eval::<String>(r#""dXNlckBleGFtcGxlLmNvbQ==".base64_to_utf8()"#)
+                .unwrap(),
+            "user@example.com"
+        );
+
+        // Teste com caracteres acentuados
+        assert_eq!(
+            engine
+                .eval::<String>(r#""Y2Fmw6k=".base64_to_utf8()"#)
+                .unwrap(),
+            "café"
+        );
+
+        // Teste com números
+        assert_eq!(
+            engine
+                .eval::<String>(r#""MTIzNDU=".base64_to_utf8()"#)
+                .unwrap(),
+            "12345"
+        );
+
+        // Teste com Base64 inválido - deve retornar string vazia
+        assert_eq!(
+            engine
+                .eval::<String>(r#""invalid_base64!@#".base64_to_utf8()"#)
+                .unwrap(),
+            ""
+        );
+
+        // Teste com Base64 válido mas não UTF-8 - deve retornar string vazia
+        // (Criando um caso onde temos bytes válidos de Base64 mas que não formam UTF-8 válido)
+        assert_eq!(
+            engine.eval::<String>(r#""//8=".base64_to_utf8()"#).unwrap(),
+            ""
+        );
+    }
+
+    #[test]
+    fn test_url_encode_to_utf8() {
+        let engine = build_functions();
+
+        // Teste básico com espaços (representados por +)
+        assert_eq!(
+            engine
+                .eval::<String>(r#""Hello+World".url_encode_to_utf8()"#)
+                .unwrap(),
+            "Hello World"
+        );
+
+        // Teste com caracteres especiais codificados
+        assert_eq!(
+            engine
+                .eval::<String>(r#""user%40example.com".url_encode_to_utf8()"#)
+                .unwrap(),
+            "user@example.com"
+        );
+
+        // Teste com caracteres que não precisam decodificação
+        assert_eq!(
+            engine
+                .eval::<String>(r#""abc-123_test.file~".url_encode_to_utf8()"#)
+                .unwrap(),
+            "abc-123_test.file~"
+        );
+
+        // Teste com caracteres acentuados codificados em UTF-8
+        assert_eq!(
+            engine
+                .eval::<String>(r#""caf%C3%A9+%26+ma%C3%A7%C3%A3".url_encode_to_utf8()"#)
+                .unwrap(),
+            "café & maçã"
+        );
+
+        // Teste string vazia
+        assert_eq!(
+            engine.eval::<String>(r#""".url_encode_to_utf8()"#).unwrap(),
+            ""
+        );
+
+        // Teste com % sem códigos hex válidos (deve manter literal)
+        assert_eq!(
+            engine
+                .eval::<String>(r#""%ZZ".url_encode_to_utf8()"#)
+                .unwrap(),
+            "%ZZ"
+        );
+
+        // Teste com % no final da string
+        assert_eq!(
+            engine
+                .eval::<String>(r#""test%".url_encode_to_utf8()"#)
+                .unwrap(),
+            "test%"
+        );
+
+        // Teste com % seguido de apenas um caractere
+        assert_eq!(
+            engine
+                .eval::<String>(r#""test%2".url_encode_to_utf8()"#)
+                .unwrap(),
+            "test%2"
+        );
+
+        // Teste complexo misturando diferentes tipos de codificação
+        assert_eq!(
+            engine
+                .eval::<String>(r#""Ol%C3%A1+mundo%21+Como+vai%3F".url_encode_to_utf8()"#)
+                .unwrap(),
+            "Olá mundo! Como vai?"
+        );
     }
 
     #[test]

@@ -10,7 +10,47 @@
 - **UTF-8 support:** Handles special characters correctly
 - **Binary safe:** Works with any byte sequence
 
-### 📋 `parse()` - JSON Parser
+### � `base64_to_utf8()` - Base64 Decoding
+
+Decode Base64 strings back to UTF-8 text:
+
+```rust
+"SGVsbG8gV29ybGQ=".base64_to_utf8();        // "Hello World"
+"dXNlckBleGFtcGxlLmNvbQ==".base64_to_utf8(); // "user@example.com"
+"Y2Fmw6k=".base64_to_utf8();                // "café"
+"MTIzNDU=".base64_to_utf8();                // "12345"
+"".base64_to_utf8();                        // ""
+"invalid_base64!@#".base64_to_utf8();       // "" (empty on error)
+```
+
+**Features:**
+- **Standard decoding:** Uses the standard Base64 alphabet
+- **UTF-8 validation:** Returns empty string if result is not valid UTF-8
+- **Error handling:** Returns empty string for invalid Base64 input
+- **Safe operation:** Never crashes on malformed input
+
+### 🔓 `url_encode_to_utf8()` - URL Decoding
+
+Decode URL-encoded strings back to UTF-8 text:
+
+```rust
+"Hello+World".url_encode_to_utf8();              // "Hello World"
+"user%40example.com".url_encode_to_utf8();       // "user@example.com"
+"caf%C3%A9+%26+ma%C3%A7%C3%A3".url_encode_to_utf8(); // "café & maçã"
+"abc-123_test.file~".url_encode_to_utf8();       // "abc-123_test.file~" (unchanged)
+"Ol%C3%A1+mundo%21".url_encode_to_utf8();        // "Olá mundo!"
+"%ZZ".url_encode_to_utf8();                      // "%ZZ" (invalid hex preserved)
+"test%".url_encode_to_utf8();                    // "test%" (incomplete sequence preserved)
+```
+
+**Features:**
+- **RFC 3986 compliant:** Handles standard URL encoding rules
+- **Plus to space:** Converts `+` characters to spaces
+- **UTF-8 support:** Properly decodes multi-byte UTF-8 sequences
+- **Error tolerance:** Preserves malformed sequences rather than failing
+- **Safe operation:** Returns empty string only for UTF-8 validation errors
+
+### �📋 `parse()` - JSON Parser
 
 Parse JSON strings into native Rhai types:
 
@@ -438,6 +478,34 @@ let startsWithH = text.search("^H");        // true (regex: starts with H)
 let endsWithD = text.search("d$");          // true (regex: ends with d)
 let hasNumbers = text.search("[0-9]");      // false
 ```
+
+### 🎯 `starts_with(prefix)` - Prefix Checking
+Check if a string starts with a specific prefix:
+
+```rust
+let auth = "Bearer abc123";
+let hasBearer = auth.starts_with("Bearer");     // true
+let hasSpace = auth.starts_with("Bearer ");     // true
+let isBasic = auth.starts_with("Basic");        // false
+
+let email = "user@example.com";
+let isUserEmail = email.starts_with("user");   // true
+let hasAt = email.starts_with("@");             // false
+
+let empty = "";
+let anyString = "test".starts_with("");         // true (empty prefix always matches)
+```
+
+**Features:**
+- **Case-sensitive:** Distinguishes between uppercase and lowercase
+- **Exact matching:** No regex patterns, just literal string comparison
+- **Fast operation:** More efficient than regex for simple prefix checks
+- **Empty prefix:** Always returns `true` for empty string prefix
+- **Safe operation:** Never fails, returns `false` for invalid cases
+
+**When to use `starts_with()` vs `search()`:**
+- Use `starts_with("prefix")` for simple prefix checking (faster)
+- Use `search("^prefix")` for regex-based prefix checking with patterns
 
 ### 🔄 `replace(target, replacement)` - String Replacement
 ⚠️ **Important:** Unlike native Rhai `replace`, this function **returns** the modified string instead of changing the variable in place:

@@ -1,0 +1,1 @@
+let auth = "Bearer abc123"; let isBearer = auth.starts_with("Bearer"); print("Authorization: " + auth); print("Is Bearer token: " + isBearer); let basic = "Basic xyz789"; let isBasicBearer = basic.starts_with("Bearer"); print("Basic auth is Bearer: " + isBasicBearer);
