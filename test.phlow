@@ -13,7 +13,11 @@ steps:
   - payload: !phs payload + 1
   - log:
       level: error
-      message: !phs payload
+      message: !phs {
+        let val = payload * 10;
+
+        val
+      }
 
 tests:
   - describe: Test

@@ -155,6 +155,69 @@ fn yaml_helpers_eval(yaml: &str) -> String {
                 } else {
                     result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", before_eval, escaped));
                 }
+            } else if after_eval.starts_with("{") {
+                // Bloco de código delimitado por {}
+                let mut block_content = String::new();
+                let mut brace_count = 0;
+
+                // Primeiro, verifica se há conteúdo na mesma linha
+                for ch in after_eval.chars() {
+                    block_content.push(ch);
+                    if ch == '{' {
+                        brace_count += 1;
+                    } else if ch == '}' {
+                        brace_count -= 1;
+                        if brace_count == 0 {
+                            break;
+                        }
+                    }
+                }
+
+                // Se não fechou na mesma linha, continue lendo
+                while brace_count > 0 {
+                    if let Some(next_line) = lines.next() {
+                        for ch in next_line.chars() {
+                            block_content.push(ch);
+                            if ch == '{' {
+                                brace_count += 1;
+                            } else if ch == '}' {
+                                brace_count -= 1;
+                                if brace_count == 0 {
+                                    break;
+                                }
+                            }
+                        }
+                    } else {
+                        break;
+                    }
+                }
+
+                // Remove as chaves externas e processa o conteúdo
+                let inner_content =
+                    if block_content.starts_with('{') && block_content.ends_with('}') {
+                        &block_content[1..block_content.len() - 1]
+                    } else {
+                        &block_content
+                    };
+
+                // Unifica em uma linha, removendo quebras de linha desnecessárias
+                let single_line = inner_content
+                    .lines()
+                    .map(|line| line.trim())
+                    .filter(|line| !line.is_empty())
+                    .collect::<Vec<_>>()
+                    .join(" ");
+
+                let escaped = single_line.replace('"', "\\\"");
+
+                if before_eval.trim().is_empty() {
+                    result.push_str(&format!("{}\"{{{{ {{  {} }} }}}}\"\n", indent, escaped));
+                } else {
+                    result.push_str(&format!(
+                        "{}\"{{{{ {{  {} }} }}}}\"\n",
+                        before_eval, escaped
+                    ));
+                }
             } else if !after_eval.is_empty() {
                 let escaped = after_eval.replace('"', "\\\"");
                 result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", before_eval, escaped));
