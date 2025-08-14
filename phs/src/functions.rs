@@ -951,8 +951,6 @@ mod tests {
     fn test_base64_to_utf8_and_parse() {
         let engine = build_functions();
 
-        // Teste com Base64 que contém JSON: eyJlbWFpbCI6ImV4YW1wbGVAZXhhbXBsZS5jb20ifQ==
-        // Que decodifica para: {"email":"example@example.com"}
         let result: String = engine
             .eval(
                 r#""eyJlbWFpbCI6ImV4YW1wbGVAZXhhbXBsZS5jb20ifQ==".base64_to_utf8().parse().email"#,

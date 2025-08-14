@@ -52,10 +52,6 @@ pub enum Operator {
     LessThanOrEqual,
     Contains,
     NotContains,
-    StartsWith,
-    EndsWith,
-    Regex,
-    NotRegex,
 }
 
 impl ToValueBehavior for Operator {
@@ -71,10 +67,6 @@ impl ToValueBehavior for Operator {
             Operator::LessThanOrEqual => "less_than_or_equal".to_value(),
             Operator::Contains => "contains".to_value(),
             Operator::NotContains => "not_contains".to_value(),
-            Operator::StartsWith => "starts_with".to_value(),
-            Operator::EndsWith => "ends_with".to_value(),
-            Operator::Regex => "regex".to_value(),
-            Operator::NotRegex => "not_regex".to_value(),
         }
     }
 }
@@ -92,10 +84,6 @@ impl From<&Value> for Operator {
             "less_than_or_equal" => Operator::LessThanOrEqual,
             "contains" => Operator::Contains,
             "not_contains" => Operator::NotContains,
-            "starts_with" => Operator::StartsWith,
-            "ends_with" => Operator::EndsWith,
-            "regex" => Operator::Regex,
-            "not_regex" => Operator::NotRegex,
             _ => panic!("Invalid operator"),
         }
     }
@@ -207,22 +195,6 @@ impl Condition {
                     let query = format!("{{{{!({} in {})}}}}", right, left);
                     query
                 }
-                Operator::StartsWith => {
-                    let query = format!("{{{{{} starts_with {}}}}}", left, right);
-                    query
-                }
-                Operator::EndsWith => {
-                    let query = format!("{{{{{} ends_with {}}}}}", left, right);
-                    query
-                }
-                Operator::Regex => {
-                    let query = format!("{{{{{} search {}}}}}", left, right);
-                    query
-                }
-                Operator::NotRegex => {
-                    let query = format!("{{{{!({} search {})}}}}", left, right);
-                    query
-                }
             }
         };
 
@@ -314,74 +286,6 @@ mod test {
             "hello world".to_string(),
             "hello".to_string(),
             Operator::Contains,
-        )
-        .unwrap();
-
-        let context = Context::new();
-
-        let result = condition.evaluate(&context).unwrap();
-        assert_eq!(result, true);
-    }
-
-    #[test]
-    fn test_condition_execute_regex() {
-        let engine = build_engine(None);
-        let condition = Condition::try_build_with_operator(
-            engine,
-            "hello".to_string(),
-            "hello world".to_string(),
-            Operator::Regex,
-        )
-        .unwrap();
-
-        let context = Context::new();
-
-        let result = condition.evaluate(&context).unwrap();
-        assert_eq!(result, true);
-    }
-
-    #[test]
-    fn test_condition_execute_not_regex() {
-        let engine = build_engine(None);
-        let condition = Condition::try_build_with_operator(
-            engine,
-            "hello".to_string(),
-            "hello world".to_string(),
-            Operator::NotRegex,
-        )
-        .unwrap();
-
-        let context = Context::new();
-
-        let result = condition.evaluate(&context).unwrap();
-        assert_eq!(result, false);
-    }
-
-    #[test]
-    fn test_condition_execute_start_with() {
-        let engine = build_engine(None);
-        let condition = Condition::try_build_with_operator(
-            engine,
-            "hello world".to_string(),
-            "hello".to_string(),
-            Operator::StartsWith,
-        )
-        .unwrap();
-
-        let context = Context::new();
-
-        let result = condition.evaluate(&context).unwrap();
-        assert_eq!(result, true);
-    }
-
-    #[test]
-    fn test_condition_execute_end_with() {
-        let engine = build_engine(None);
-        let condition = Condition::try_build_with_operator(
-            engine,
-            "hello world".to_string(),
-            "world".to_string(),
-            Operator::EndsWith,
         )
         .unwrap();
 
