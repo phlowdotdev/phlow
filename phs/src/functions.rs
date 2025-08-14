@@ -170,7 +170,17 @@ pub fn build_functions() -> Engine {
 
     // Adiciona função base64_to_utf8 para decodificar Base64
     engine.register_fn("base64_to_utf8", |s: &str| -> String {
-        match general_purpose::STANDARD.decode(s) {
+        // Adiciona padding se necessário
+        let mut padded_input = s.to_string();
+        let remainder = padded_input.len() % 4;
+        if remainder != 0 {
+            let padding_needed = 4 - remainder;
+            for _ in 0..padding_needed {
+                padded_input.push('=');
+            }
+        }
+
+        match general_purpose::STANDARD.decode(&padded_input) {
             Ok(bytes) => {
                 match String::from_utf8(bytes) {
                     Ok(decoded) => decoded,
@@ -730,6 +740,14 @@ mod tests {
         assert_eq!(
             engine.eval::<String>(r#""//8=".base64_to_utf8()"#).unwrap(),
             ""
+        );
+
+        // Teste com JWT válido em Base64 - deve decodificar corretamente
+        assert_eq!(
+            engine
+                .eval::<String>(r#""eyJlbWFpbCI6ImV4YW1wbGVAZXhhbXBsZS5jb20ifQ".base64_to_utf8()"#)
+                .unwrap(),
+            "{\"email\":\"example@example.com\"}"
         );
     }
 
