@@ -4,7 +4,37 @@
   - [🔎 Type Conversion Helpers](#-type-conversion-helpers)hlow logo" width="140"/> </p> <h1 align="center">PHS – Phlow Script</h1>
 
 
-**PHS** is a lightweight scripting format for [Phlow](https://github.com/phlowdotdev/phlow), built on top of [Rhai](https://rhai.rs/). It enables simple, dynamic behavior scripting using `.phs` files while deeply integrating with the Phlow runtime and module system.
+**PHS** is a lightweight scripting format for [Phlow](https://github.com/phlowdotdev/phlow), built on top of [Rhai](https://rhai.rs/). It enables simple, dy**Features:**
+- **Standard encoding:** Uses the standard Base64 alphabet
+- **Automatic padding:** Adds `=` characters when needed
+- **UTF-8 support:** Handles special characters correctly
+- **Binary safe:** Works with any byte sequence
+
+### 📋 `parse()` - JSON Parser
+
+Parse JSON strings into native Rhai types:
+
+```rust
+"\"hello world\"".parse();    // "hello world" (string)
+"42".parse();                 // 42 (integer)
+"3.14".parse();               // 3.14 (float)
+"true".parse();               // true (boolean)
+"false".parse();              // false (boolean)
+"null".parse();               // () (unit/null)
+
+// Complex structures are converted to string representation
+"{\"name\":\"João\",\"age\":30}".parse();  // String representation of object
+"[1, 2, 3, \"test\"]".parse();             // String representation of array
+```
+
+**Features:**
+- **Type conversion:** Automatically converts to appropriate Rhai types
+- **Primitive support:** Handles strings, numbers, booleans, and null
+- **Complex fallback:** Objects and arrays return string representation
+- **Error handling:** Returns null (unit) for invalid JSON
+- **Safe parsing:** Never crashes on malformed input
+
+### 📖 Additional String Methodsehavior scripting using `.phs` files while deeply integrating with the Phlow runtime and module system.
 
 ## ✨ Overview
 

@@ -1,6 +1,7 @@
 use base64::{engine::general_purpose, Engine as Base64Engine};
 use regex::Regex;
 use rhai::{Engine, EvalAltResult};
+use valu3::value::Value;
 
 pub fn build_functions() -> Engine {
     let mut engine = Engine::new();
@@ -162,6 +163,38 @@ pub fn build_functions() -> Engine {
     // Adiciona função to_base64
     engine.register_fn("to_base64", |s: &str| {
         general_purpose::STANDARD.encode(s.as_bytes())
+    });
+
+    engine.register_fn("parse", |s: &str| -> rhai::Dynamic {
+        match Value::json_to_value(s) {
+            Ok(value) => {
+                // Para simplificar, vamos converter para tipos básicos do Rhai
+                match value {
+                    Value::Null => rhai::Dynamic::UNIT,
+                    Value::Boolean(b) => rhai::Dynamic::from(b),
+                    Value::Number(n) => {
+                        let num_str = n.to_string();
+                        if num_str.contains('.') {
+                            // Float
+                            num_str
+                                .parse::<f64>()
+                                .map(|f| rhai::Dynamic::from(f))
+                                .unwrap_or_else(|_| rhai::Dynamic::from(num_str))
+                        } else {
+                            // Integer
+                            num_str
+                                .parse::<i64>()
+                                .map(|i| rhai::Dynamic::from(i))
+                                .unwrap_or_else(|_| rhai::Dynamic::from(num_str))
+                        }
+                    }
+                    Value::String(s) => rhai::Dynamic::from(s.to_string()),
+                    // Para arrays e objetos complexos, convertemos para string JSON
+                    _ => rhai::Dynamic::from(value.to_string()),
+                }
+            }
+            Err(_) => rhai::Dynamic::UNIT,
+        }
     });
 
     match engine.register_custom_syntax(
@@ -527,5 +560,59 @@ mod tests {
             .eval(r#"when "abc".search("b") ? "encontrou" : "não encontrou""#)
             .unwrap();
         assert_eq!(result, "encontrou");
+    }
+
+    #[test]
+    fn test_parse() {
+        let engine = build_functions();
+
+        // Teste com string JSON válida (objeto) - deve retornar string representando o JSON
+        let result: String = engine
+            .eval(r#""{\"name\":\"João\",\"age\":30}".parse()"#)
+            .unwrap();
+        // Verifica se contém as informações esperadas (a ordem pode variar)
+        assert!(result.contains("name"));
+        assert!(result.contains("João"));
+        assert!(result.contains("age"));
+        assert!(result.contains("30"));
+
+        // Teste com string JSON válida (array) - deve retornar string representando o JSON
+        let result: String = engine.eval(r#""[1, 2, 3, \"test\"]".parse()"#).unwrap();
+        assert!(result.contains("1"));
+        assert!(result.contains("2"));
+        assert!(result.contains("3"));
+        assert!(result.contains("test"));
+
+        // Teste com string JSON válida (string)
+        let result: String = engine.eval(r#""\"hello world\"".parse()"#).unwrap();
+        assert_eq!(result, "hello world");
+
+        // Teste com número JSON
+        let result: i64 = engine.eval(r#""42".parse()"#).unwrap();
+        assert_eq!(result, 42);
+
+        // Teste com float JSON
+        let result: f64 = engine.eval(r#""3.14".parse()"#).unwrap();
+        assert_eq!(result, 3.14);
+
+        // Teste com boolean JSON true
+        let result: bool = engine.eval(r#""true".parse()"#).unwrap();
+        assert_eq!(result, true);
+
+        // Teste com boolean JSON false
+        let result: bool = engine.eval(r#""false".parse()"#).unwrap();
+        assert_eq!(result, false);
+
+        // Teste com null JSON
+        let result: rhai::Dynamic = engine.eval(r#""null".parse()"#).unwrap();
+        assert!(result.is_unit());
+
+        // Teste com JSON inválido - deve retornar unit (null)
+        let result: rhai::Dynamic = engine.eval(r#""{invalid json}".parse()"#).unwrap();
+        assert!(result.is_unit());
+
+        // Teste com string vazia
+        let result: rhai::Dynamic = engine.eval(r#""".parse()"#).unwrap();
+        assert!(result.is_unit());
     }
 }
