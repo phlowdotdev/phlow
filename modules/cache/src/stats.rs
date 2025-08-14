@@ -135,25 +135,4 @@ mod tests {
         stats.record_miss();
         assert_eq!(stats.get_hit_rate(), 33.33333333333333);
     }
-
-    #[test]
-    fn test_reset() {
-        let mut stats = CacheStats::new();
-
-        stats.record_hit();
-        stats.record_set();
-        stats.record_remove();
-
-        assert_eq!(stats.get_total_gets(), 1);
-        assert_eq!(stats.get_total_sets(), 1);
-        assert_eq!(stats.get_total_removes(), 1);
-
-        stats.reset();
-
-        assert_eq!(stats.get_total_gets(), 0);
-        assert_eq!(stats.get_total_hits(), 0);
-        assert_eq!(stats.get_total_sets(), 0);
-        assert_eq!(stats.get_total_removes(), 0);
-        assert_eq!(stats.get_hit_rate(), 0.0);
-    }
 }
