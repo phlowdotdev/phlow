@@ -161,7 +161,7 @@ steps:
     let discountedPrice = price * (1 - discount);
     let finalPrice = discountedPrice * (1 + tax);
     
-    {
+    #{
       original: price,
       discount: discount,
       tax: tax,

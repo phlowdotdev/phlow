@@ -1,11 +1,11 @@
 ---
 sidebar_position: 5
-title: New Features Guide
+title: Advanced Syntax
 ---
 
-# New Features Guide
+# Advanced Syntax
 
-This guide covers the latest enhancements to Phlow, including improved module syntax and advanced code block support.
+This guide covers advanced Phlow syntax including enhanced module patterns and code block support for complex workflows.
 
 ## Enhanced Module Syntax
 
@@ -90,7 +90,7 @@ You can now write complex, multi-line code blocks using curly braces. These bloc
     let age = user.age || 0;
     let category = age >= 18 ? "adult" : "minor";
     
-    {
+    #{
       name: user.name,
       age: age,
       category: category,
@@ -118,7 +118,7 @@ You can now write complex, multi-line code blocks using curly braces. These bloc
       let discount = order.customer?.tier === "premium" ? 0.1 : 0;
       let finalTotal = total * (1 - discount);
       
-      return {
+      return #{
         id: order.id,
         customerId: order.customer.id,
         itemCount: order.items.length,
@@ -129,7 +129,7 @@ You can now write complex, multi-line code blocks using curly braces. These bloc
       };
     });
     
-    {
+    #{
       orders: processed,
       summary: {
         total: processed.length,
@@ -209,64 +209,23 @@ steps:
   - payload: !phs payload(main.order, main.state)
 ```
 
-## Migration Guide
+## Best Practices
 
-### Gradual Migration
+### Module Syntax
+- **Consistent Style**: Choose between `use` + `input` or direct module syntax based on your team's preference
+- **Mixed Usage**: Both syntaxes can be used in the same flow without any issues
+- **Readability**: The `use` + `input` syntax provides clearer separation of concerns
 
-You don't need to update all your flows at once. Both syntaxes work seamlessly together:
+### Code Blocks
+- **Complex Logic**: Use `!phs {}` blocks for data transformations and calculations
+- **Single Responsibility**: Keep code blocks focused on one specific task
+- **Documentation**: Add comments for complex logic within code blocks
+- **Functions**: Use `!import` for reusable functions and complex algorithms
 
-```phlow
-modules:
-  - module: log
-  - module: cache
-  
-steps:
-  # Keep existing legacy syntax
-  - log:
-      message: "Starting process"
-      
-  # Add new features gradually  
-  - payload: !phs {
-      let config = main.config;
-      let processed = {
-        ...config,
-        timestamp: new Date().toISOString(),
-        version: "2.0"
-      };
-      processed
-    }
-    
-  # Mix with new syntax when convenient
-  - use: cache
-    input:
-      action: set
-      key: "config"
-      value: !phs payload
-      
-  # Legacy syntax still works
-  - log:
-      level: "info"
-      message: !phs `Configuration saved: ${payload.version}`
-```
-
-### Best Practices
-
-1. **New Projects**: Use the new `use` + `input` syntax
-2. **Existing Projects**: Migrate gradually, no rush needed
-3. **Code Blocks**: Use for complex inline logic
-4. **Functions**: Use `!import` for reusable functions
-5. **Documentation**: Comment complex code blocks for maintainability
-
-### Validation
-
-All transformations are validated during processing. If there are issues, you'll see clear error messages:
-
-```
-❌ YAML Transformation Errors:
-  1. Error including file ./handler.phlow: Missing required argument: 'target'
-
-❌ Module transformation failed: Invalid module reference 'unknown_module'
-```
+### Error Handling
+- **Validation**: All transformations are validated with clear error messages
+- **Testing**: Test flows with `--print` flag to verify transformations
+- **Debugging**: Use appropriate log levels for troubleshooting
 
 ## Performance Impact
 
@@ -275,4 +234,4 @@ All transformations are validated during processing. If there are issues, you'll
 - **Backward Compatible**: No performance penalty for legacy syntax
 - **Memory Efficient**: Transformed code uses the same memory footprint
 
-The new features maintain Phlow's performance characteristics while providing enhanced developer experience and maintainability.
+These features maintain Phlow's performance characteristics while providing enhanced developer experience and maintainability.

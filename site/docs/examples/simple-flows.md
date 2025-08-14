@@ -154,7 +154,7 @@ steps:
         .map(user => {
           let grade = user.score >= 90 ? "A" : 
                       user.score >= 80 ? "B" : "C";
-          return {
+          return #{
             name: user.name,
             age: user.age,
             score: user.score,
@@ -163,7 +163,7 @@ steps:
           };
         });
         
-      {
+      #{
         total: users.length,
         processed: processedUsers.length,
         users: processedUsers
@@ -172,7 +172,7 @@ steps:
     
   - payload: !phs {
       let result = payload;
-      let summary = {
+      let summary = #{
         totalUsers: result.total,
         processedUsers: result.processed,
         averageScore: result.users.reduce((sum, user) => sum + user.score, 0) / result.users.length,
@@ -197,9 +197,9 @@ modules:
 steps:
   - payload: !phs {
       // Simulate incoming order data
-      let order = {
+      let order = #{
         id: "ORD-" + Math.random().toString(36).substr(2, 9),
-        customer: {
+        customer: #{
           name: "John Doe",
           email: "john@example.com",
           tier: "premium"
@@ -233,7 +233,7 @@ steps:
       let tax = (subtotal - discountAmount) * 0.08;
       let total = subtotal - discountAmount + tax;
       
-      {
+      #{
         ...order,
         pricing: {
           subtotal: Math.round(subtotal * 100) / 100,
@@ -266,7 +266,7 @@ steps:
     then:
       - payload: !phs {
           let order = payload;
-          {
+          #{
             ...order,
             status: "approved",
             approvedAt: new Date().toISOString()
@@ -279,7 +279,7 @@ steps:
     else:
       - payload: !phs {
           let order = payload;
-          {
+          #{
             ...order,
             status: "rejected",
             rejectedAt: new Date().toISOString(),
@@ -349,12 +349,12 @@ This approach enables:
 - **Backward compatible**: Works alongside complex flows
 - **Flexible**: Can be expanded with modules when needed
 
-## New Features Summary
+## Features Summary
 
 ### Module Syntax Options
 
-- **New Syntax**: `use` + `input` (recommended for new projects)
-- **Legacy Syntax**: Direct module properties (still supported, auto-transformed)
+- **Structured Syntax**: `use` + `input` (recommended for consistency)
+- **Direct Syntax**: Direct module properties (concise, auto-transformed)
 - **Mixed Usage**: Both syntaxes can be used in the same flow
 
 ### Code Blocks with `!phs`
@@ -378,16 +378,17 @@ This approach enables:
 - Shared utility functions
 - Logic that spans multiple files
 
-**Use New Module Syntax for:**
-- New projects and flows
+**Use Structured Module Syntax for:**
+- Clear separation of module and parameters
 - Better tooling support
 - Consistent code style
-- Future-proof implementations
+- Complex module configurations
 
-**Use Legacy Module Syntax when:**
-- Migrating existing flows gradually
-- Working with legacy codebases
-- Quick prototyping with familiar syntax
+**Use Direct Module Syntax for:**
+- Concise, readable flows
+- Quick prototyping
+- Simple module calls
+- Familiar YAML structure
 
 ## When to Use Simple Flows
 

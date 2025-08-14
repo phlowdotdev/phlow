@@ -113,7 +113,7 @@ steps:
       let user = main.user;
       let timestamp = new Date().toISOString();
       
-      {
+      #{
         id: user.id,
         name: user.name,
         loginTime: timestamp,
@@ -144,7 +144,7 @@ steps:
       let userId = main.user_id;
       let processedAt = new Date().toISOString();
       
-      {
+      #{
         id: userId,
         status: "processed",
         timestamp: processedAt,
