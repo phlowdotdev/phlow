@@ -5,6 +5,10 @@ hide_title: true
 ---
 # Phlow
 
+:::warning Alpha Version
+Phlow is currently in **alpha** stage and under active development. It is **not recommended for production use** at this time. The stable version will be released as **v1.0.0 or higher** in the future.
+:::
+
 ## Modular Flow Runtime for Composable Backends
 
 **Phlow** is a **high-performance**, **low-code** flow runtime built in **Rust** — crafted to transform the way you build backends.

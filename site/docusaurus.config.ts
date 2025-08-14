@@ -69,6 +69,14 @@ const config: Config = {
   ],
 
   themeConfig: {
+    announcementBar: {
+      id: 'alpha-version',
+      content:
+        '⚠️ <strong>Alpha Version:</strong> Phlow is in alpha stage. Not recommended for production. Stable version will be v1.0.0+',
+      backgroundColor: '#ffeaa7',
+      textColor: '#2d3748',
+      isCloseable: true,
+    },
     algolia: {
       // The application ID provided by Algolia
       appId: 'ADQF8UB5CB',

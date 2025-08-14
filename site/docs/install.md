@@ -2,6 +2,11 @@
 sidebar_position: 3
 title: Install
 ---
+
+:::warning Alpha Version
+Phlow is currently in **alpha** stage and under active development. It is **not recommended for production use** at this time. The stable version will be released as **v1.0.0 or higher** in the future.
+:::
+
 You can easily install Phlow using our ready-to-use shell scripts.
 
 ## Requirements:

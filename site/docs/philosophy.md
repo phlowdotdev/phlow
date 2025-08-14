@@ -2,7 +2,12 @@
 sidebar_position: 2
 title: Philosophy
 ---
-Phlow is not just a framework — it’s a vision for how modern backend systems should be built: modular, composable, observable, and lightning-fast.
+
+:::warning Alpha Version
+Phlow is currently in **alpha** stage and under active development. It is **not recommended for production use** at this time. The stable version will be released as **v1.0.0 or higher** in the future.
+:::
+
+Phlow is not just a framework — it's a vision for how modern backend systems should be built: modular, composable, observable, and lightning-fast.
 Our philosophy is rooted in five fundamental pillars:
 
 ###  1. Radical Modularity  
