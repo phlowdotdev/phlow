@@ -1,0 +1,1 @@
+let encodedData = "eyJlbWFpbCI6ImV4YW1wbGVAZXhhbXBsZS5jb20ifQ=="; print("Dados codificados em Base64: " + encodedData); let jsonString = encodedData.base64_to_utf8(); print("JSON decodificado: " + jsonString); let data = jsonString.parse(); print("Email do usuário: " + data.email);

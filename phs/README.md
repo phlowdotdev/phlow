@@ -62,15 +62,29 @@ Parse JSON strings into native Rhai types:
 "false".parse();              // false (boolean)
 "null".parse();               // () (unit/null)
 
-// Complex structures are converted to string representation
-"{\"name\":\"João\",\"age\":30}".parse();  // String representation of object
-"[1, 2, 3, \"test\"]".parse();             // String representation of array
+// Objects are converted to Rhai Maps
+let obj = "{\"name\":\"João\",\"age\":30}".parse();
+obj.name;                     // "João"
+obj.age;                      // 30
+
+// Arrays are converted to Rhai Arrays
+let arr = "[1, 2, 3, \"test\"]".parse();
+arr[0];                       // 1
+arr[3];                       // "test"
+arr.len();                    // 4
+
+// Nested structures work too
+let nested = "{\"user\":{\"name\":\"Maria\",\"roles\":[\"admin\",\"user\"]}}".parse();
+nested.user.name;             // "Maria"
+nested.user.roles[0];         // "admin"
 ```
 
 **Features:**
 - **Type conversion:** Automatically converts to appropriate Rhai types
 - **Primitive support:** Handles strings, numbers, booleans, and null
-- **Complex fallback:** Objects and arrays return string representation
+- **Native structures:** Objects become Maps, arrays become Arrays
+- **Nested support:** Handles complex nested JSON structures
+- **Direct access:** Use dot notation and indexing on parsed objects/arrays
 - **Error handling:** Returns null (unit) for invalid JSON
 - **Safe parsing:** Never crashes on malformed input
 

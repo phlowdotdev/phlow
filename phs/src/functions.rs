@@ -230,7 +230,6 @@ pub fn build_functions() -> Engine {
     engine.register_fn("parse", |s: &str| -> rhai::Dynamic {
         match Value::json_to_value(s) {
             Ok(value) => {
-                // Para simplificar, vamos converter para tipos básicos do Rhai
                 match value {
                     Value::Null => rhai::Dynamic::UNIT,
                     Value::Boolean(b) => rhai::Dynamic::from(b),
@@ -251,7 +250,23 @@ pub fn build_functions() -> Engine {
                         }
                     }
                     Value::String(s) => rhai::Dynamic::from(s.to_string()),
-                    // Para arrays e objetos complexos, convertemos para string JSON
+                    Value::Array(_) => {
+                        // Para arrays, tentamos usar to_dynamic do rhai::serde
+                        let json_str = value.to_string();
+                        match rhai::serde::to_dynamic(&value) {
+                            Ok(dynamic_val) => dynamic_val,
+                            Err(_) => rhai::Dynamic::from(json_str),
+                        }
+                    }
+                    Value::Object(_) => {
+                        // Para objetos, tentamos usar to_dynamic do rhai::serde
+                        let json_str = value.to_string();
+                        match rhai::serde::to_dynamic(&value) {
+                            Ok(dynamic_val) => dynamic_val,
+                            Err(_) => rhai::Dynamic::from(json_str),
+                        }
+                    }
+                    // Para outros tipos (Undefined, DateTime), convertemos para string
                     _ => rhai::Dynamic::from(value.to_string()),
                 }
             }
@@ -797,22 +812,45 @@ mod tests {
     fn test_parse() {
         let engine = build_functions();
 
-        // Teste com string JSON válida (objeto) - deve retornar string representando o JSON
-        let result: String = engine
+        // Teste com string JSON válida (objeto) - deve retornar um Map do Rhai
+        let result: rhai::Dynamic = engine
             .eval(r#""{\"name\":\"João\",\"age\":30}".parse()"#)
             .unwrap();
-        // Verifica se contém as informações esperadas (a ordem pode variar)
-        assert!(result.contains("name"));
-        assert!(result.contains("João"));
-        assert!(result.contains("age"));
-        assert!(result.contains("30"));
 
-        // Teste com string JSON válida (array) - deve retornar string representando o JSON
-        let result: String = engine.eval(r#""[1, 2, 3, \"test\"]".parse()"#).unwrap();
-        assert!(result.contains("1"));
-        assert!(result.contains("2"));
-        assert!(result.contains("3"));
-        assert!(result.contains("test"));
+        // Verifica se é um Map
+        if let Some(map) = result.clone().try_cast::<rhai::Map>() {
+            // Verifica se contém as chaves esperadas
+            assert!(map.contains_key("name"));
+            assert!(map.contains_key("age"));
+            // Verifica os valores
+            if let Some(name) = map.get("name") {
+                if let Some(name_str) = name.clone().try_cast::<String>() {
+                    assert_eq!(name_str, "João");
+                }
+            }
+            if let Some(age) = map.get("age") {
+                if let Ok(age_val) = age.as_int() {
+                    assert_eq!(age_val, 30);
+                }
+            }
+        } else {
+            panic!("Esperado um Map, mas recebeu: {:?}", result.type_name());
+        }
+
+        // Teste com string JSON válida (array) - deve retornar um Array do Rhai
+        let result: rhai::Dynamic = engine.eval(r#""[1, 2, 3, \"test\"]".parse()"#).unwrap();
+
+        // Verifica se é um Array
+        if let Some(array) = result.clone().try_cast::<rhai::Array>() {
+            assert_eq!(array.len(), 4);
+            // Verifica os valores
+            assert_eq!(array[0].as_int().unwrap(), 1);
+            assert_eq!(array[1].as_int().unwrap(), 2);
+            assert_eq!(array[2].as_int().unwrap(), 3);
+            assert_eq!(array[3].clone().try_cast::<String>().unwrap(), "test");
+        } else {
+            panic!("Esperado um Array, mas recebeu: {:?}", result.type_name());
+        }
 
         // Teste com string JSON válida (string)
         let result: String = engine.eval(r#""\"hello world\"".parse()"#).unwrap();
@@ -845,5 +883,89 @@ mod tests {
         // Teste com string vazia
         let result: rhai::Dynamic = engine.eval(r#""".parse()"#).unwrap();
         assert!(result.is_unit());
+    }
+
+    #[test]
+    fn test_parse_complex_structures() {
+        let engine = build_functions();
+
+        // Teste com objeto JSON aninhado
+        let result: rhai::Dynamic = engine
+            .eval(r#""{\"user\":{\"name\":\"Maria\",\"age\":25},\"active\":true}".parse()"#)
+            .unwrap();
+
+        if let Some(map) = result.clone().try_cast::<rhai::Map>() {
+            assert!(map.contains_key("user"));
+            assert!(map.contains_key("active"));
+
+            // Testa acesso ao objeto aninhado
+            if let Some(user) = map.get("user") {
+                if let Some(user_map) = user.clone().try_cast::<rhai::Map>() {
+                    assert!(user_map.contains_key("name"));
+                    assert!(user_map.contains_key("age"));
+                }
+            }
+        } else {
+            panic!("Esperado um Map para objeto aninhado");
+        }
+
+        // Teste com array de objetos
+        let result: rhai::Dynamic = engine
+            .eval(r#""[{\"id\":1,\"name\":\"João\"},{\"id\":2,\"name\":\"Maria\"}]".parse()"#)
+            .unwrap();
+
+        if let Some(array) = result.clone().try_cast::<rhai::Array>() {
+            assert_eq!(array.len(), 2);
+
+            // Verifica o primeiro objeto do array
+            if let Some(first_obj) = array.get(0) {
+                if let Some(obj_map) = first_obj.clone().try_cast::<rhai::Map>() {
+                    assert!(obj_map.contains_key("id"));
+                    assert!(obj_map.contains_key("name"));
+                }
+            }
+        } else {
+            panic!("Esperado um Array de objetos");
+        }
+    }
+
+    #[test]
+    fn test_base64_to_utf8_and_parse() {
+        let engine = build_functions();
+
+        // Teste com Base64 que contém JSON: eyJlbWFpbCI6ImV4YW1wbGVAZXhhbXBsZS5jb20ifQ==
+        // Que decodifica para: {"email":"example@example.com"}
+        let result: rhai::Dynamic = engine
+            .eval(r#""eyJlbWFpbCI6ImV4YW1wbGVAZXhhbXBsZS5jb20ifQ==".base64_to_utf8().parse()"#)
+            .unwrap();
+
+        // Verifica se é um Map
+        if let Some(map) = result.clone().try_cast::<rhai::Map>() {
+            // Verifica se contém a chave "email"
+            assert!(map.contains_key("email"));
+
+            // Verifica o valor da propriedade email
+            if let Some(email) = map.get("email") {
+                if let Some(email_str) = email.clone().try_cast::<String>() {
+                    assert_eq!(email_str, "example@example.com");
+                    println!("Email encontrado: {}", email_str);
+                }
+            }
+        } else {
+            panic!("Esperado um Map com propriedade email");
+        }
+
+        // Teste alternativo usando eval direto para verificar acesso via dot notation
+        let email_result: String = engine
+            .eval(r#"let obj = "eyJlbWFpbCI6ImV4YW1wbGVAZXhhbXBsZS5jb20ifQ==".base64_to_utf8().parse(); obj.email"#)
+            .unwrap();
+        assert_eq!(email_result, "example@example.com");
+
+        // Teste mostrando o JSON decodificado
+        let json_str: String = engine
+            .eval(r#""eyJlbWFpbCI6ImV4YW1wbGVAZXhhbXBsZS5jb20ifQ==".base64_to_utf8()"#)
+            .unwrap();
+        assert_eq!(json_str, r#"{"email":"example@example.com"}"#);
+        println!("JSON decodificado: {}", json_str);
     }
 }
