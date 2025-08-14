@@ -1,3 +1,4 @@
+use base64::{engine::general_purpose, Engine as Base64Engine};
 use regex::Regex;
 use rhai::{Engine, EvalAltResult};
 
@@ -144,6 +145,24 @@ pub fn build_functions() -> Engine {
 
     // Adiciona função to_kebab_case
     engine.register_fn("to_kebab_case", |s: &str| split_words(s).join("-"));
+
+    // Adiciona função to_url_encode
+    engine.register_fn("to_url_encode", |s: &str| {
+        s.bytes()
+            .map(|b| match b {
+                b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                    (b as char).to_string()
+                }
+                b' ' => "+".to_string(),
+                _ => format!("%{:02X}", b),
+            })
+            .collect::<String>()
+    });
+
+    // Adiciona função to_base64
+    engine.register_fn("to_base64", |s: &str| {
+        general_purpose::STANDARD.encode(s.as_bytes())
+    });
 
     match engine.register_custom_syntax(
         ["when", "$expr$", "?", "$expr$", ":", "$expr$"],
@@ -408,6 +427,82 @@ mod tests {
                 .eval::<String>(r#""meu-texto-exemplo".to_kebab_case()"#)
                 .unwrap(),
             "meu-texto-exemplo"
+        );
+    }
+
+    #[test]
+    fn test_to_url_encode() {
+        let engine = build_functions();
+
+        // Teste básico com espaços
+        assert_eq!(
+            engine
+                .eval::<String>(r#""Hello World".to_url_encode()"#)
+                .unwrap(),
+            "Hello+World"
+        );
+
+        // Teste com caracteres especiais
+        assert_eq!(
+            engine
+                .eval::<String>(r#""user@example.com".to_url_encode()"#)
+                .unwrap(),
+            "user%40example.com"
+        );
+
+        // Teste com caracteres que não precisam ser codificados
+        assert_eq!(
+            engine
+                .eval::<String>(r#""abc-123_test.file~".to_url_encode()"#)
+                .unwrap(),
+            "abc-123_test.file~"
+        );
+
+        // Teste com caracteres acentuados (UTF-8 de 1 byte)
+        assert_eq!(
+            engine
+                .eval::<String>(r#""café & maçã".to_url_encode()"#)
+                .unwrap(),
+            "caf%C3%A9+%26+ma%C3%A7%C3%A3"
+        );
+
+        // Teste string vazia
+        assert_eq!(engine.eval::<String>(r#""".to_url_encode()"#).unwrap(), "");
+    }
+
+    #[test]
+    fn test_to_base64() {
+        let engine = build_functions();
+
+        // Teste básico
+        assert_eq!(
+            engine
+                .eval::<String>(r#""Hello World".to_base64()"#)
+                .unwrap(),
+            "SGVsbG8gV29ybGQ="
+        );
+
+        // Teste com string vazia
+        assert_eq!(engine.eval::<String>(r#""".to_base64()"#).unwrap(), "");
+
+        // Teste com caracteres especiais
+        assert_eq!(
+            engine
+                .eval::<String>(r#""user@example.com".to_base64()"#)
+                .unwrap(),
+            "dXNlckBleGFtcGxlLmNvbQ=="
+        );
+
+        // Teste com caracteres acentuados
+        assert_eq!(
+            engine.eval::<String>(r#""café".to_base64()"#).unwrap(),
+            "Y2Fmw6k="
+        );
+
+        // Teste com números
+        assert_eq!(
+            engine.eval::<String>(r#""12345".to_base64()"#).unwrap(),
+            "MTIzNDU="
         );
     }
 

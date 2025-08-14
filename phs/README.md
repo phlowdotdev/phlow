@@ -1,4 +1,7 @@
-<p align="center"> <img src="../site/phlow.svg" alt="Phlow logo" width="140"/> </p> <h1 align="center">PHS – Phlow Script</h1>
+<p align="center"> <img src="../site/phlow.svg" al  - [🧪 Expressions & Statements](#-expressions--statements)
+  - [🔀 Ternary Expressions](#-ternary-expressions)
+  - [🔤 String Functions](#-string-functions)
+  - [🔎 Type Conversion Helpers](#-type-conversion-helpers)hlow logo" width="140"/> </p> <h1 align="center">PHS – Phlow Script</h1>
 
 
 **PHS** is a lightweight scripting format for [Phlow](https://github.com/phlowdotdev/phlow), built on top of [Rhai](https://rhai.rs/). It enables simple, dynamic behavior scripting using `.phs` files while deeply integrating with the Phlow runtime and module system.
@@ -467,7 +470,40 @@ Convert between different naming conventions. These functions automatically dete
 "Meu texto exemplo".to_kebab_case();  // "meu-texto-exemplo"
 ```
 
-### 📖 Additional String Methods
+### � `to_url_encode()` - URL Encoding
+Encode strings for safe use in URLs following RFC 3986:
+
+```rust
+"Hello World".to_url_encode();        // "Hello+World"
+"user@example.com".to_url_encode();   // "user%40example.com"
+"café & maçã".to_url_encode();        // "caf%C3%A9+%26+ma%C3%A7%C3%A3"
+"abc-123_test.file~".to_url_encode(); // "abc-123_test.file~" (unchanged)
+```
+
+**Encoding rules:**
+- **Safe characters:** Letters, numbers, `-`, `_`, `.`, `~` remain unchanged
+- **Spaces:** Converted to `+`
+- **Other characters:** Encoded as `%XX` (hexadecimal)
+- **UTF-8:** Full support for multi-byte characters
+
+### 🔐 `to_base64()` - Base64 Encoding
+Encode strings to Base64 format (RFC 4648):
+
+```rust
+"Hello World".to_base64();      // "SGVsbG8gV29ybGQ="
+"user@example.com".to_base64(); // "dXNlckBleGFtcGxlLmNvbQ=="
+"café".to_base64();             // "Y2Fmw6k="
+"12345".to_base64();            // "MTIzNDU="
+"".to_base64();                 // ""
+```
+
+**Features:**
+- **Standard encoding:** Uses the standard Base64 alphabet
+- **Automatic padding:** Adds `=` characters when needed
+- **UTF-8 support:** Handles special characters correctly
+- **Binary safe:** Works with any byte sequence
+
+### �📖 Additional String Methods
 For more string manipulation functions, refer to [Rhai Language Reference](https://rhai.rs/book/ref/index.html).
 
 ## 🔎 Type Conversion Helpers
