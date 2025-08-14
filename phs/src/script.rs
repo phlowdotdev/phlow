@@ -1,5 +1,5 @@
-use crate::variable::Variable;
 use crate::preprocessor::SpreadPreprocessor;
+use crate::variable::Variable;
 use regex::Regex;
 use rhai::{
     serde::{from_dynamic, to_dynamic},
@@ -154,7 +154,7 @@ impl Script {
                 let code = Self::to_code_string(&value.to_string());
 
                 let code_fixed = Self::replace_null_safe(&code);
-                
+
                 // Aplica o pré-processamento para spread syntax
                 let preprocessor = SpreadPreprocessor::new();
                 let code_with_spread = preprocessor.process(&code_fixed);
@@ -419,12 +419,12 @@ mod test {
         let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
         let result = payload.evaluate(&context).unwrap();
-        
+
         // Verifica se a estrutura está correta
         if let Value::Object(obj) = result {
             assert_eq!(obj.get("name").unwrap(), &Value::from("John"));
             assert_eq!(obj.get("age").unwrap(), &Value::from(30i64));
-            
+
             if let Some(Value::Object(profile)) = obj.get("profile") {
                 assert_eq!(profile.get("id").unwrap(), &Value::from(1i64));
                 assert_eq!(profile.get("verified").unwrap(), &Value::from(true));
@@ -463,7 +463,7 @@ mod test {
         let payload = Script::try_build(engine, &script.to_value()).unwrap();
 
         let result = payload.evaluate(&context).unwrap();
-        
+
         if let Value::Object(obj) = result {
             // Verifica o usuário completo
             if let Some(Value::Object(user)) = obj.get("user") {
@@ -475,7 +475,7 @@ mod test {
             } else {
                 panic!("User should be an object");
             }
-            
+
             // Verifica as permissões combinadas
             if let Some(Value::Array(permissions)) = obj.get("permissions") {
                 assert_eq!(permissions.len(), 5);
@@ -487,11 +487,41 @@ mod test {
             } else {
                 panic!("Permissions should be an array");
             }
-            
+
             // Verifica o total
             assert_eq!(obj.get("total_permissions").unwrap(), &Value::from(5i64));
         } else {
             panic!("Result should be an object");
+        }
+    }
+
+    #[test]
+    fn test_debug_spread_issue() {
+        let script = r#"{{
+            let val = 130;
+            let no = [1, 2, 3];
+            let obj = #{target: 1};
+
+            #{
+                item: val,
+                ...obj,
+                name: [...no,4,5,6],
+                it: #{a: 1}
+            }
+        }}"#;
+
+        let context = Context::new();
+        let engine = build_engine(None);
+        let result = Script::try_build(engine, &script.to_value());
+
+        match result {
+            Ok(payload) => {
+                let result = payload.evaluate(&context);
+                println!("Script executado com sucesso: {:?}", result);
+            }
+            Err(err) => {
+                println!("Erro ao construir script: {:?}", err);
+            }
         }
     }
 }

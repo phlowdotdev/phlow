@@ -1,15 +1,35 @@
+modules:
+  - module: log
 
 steps:
-  - condition:
-      assert: !phs main == "ok"
+  - assert: !phs main == 1
     then:
-      payload: yes
+      - payload: !phs main + 1
+      - log:
+          message: !phs main + 1
     else:
-      payload: other
+      !include inner.phlow
+  - payload: !phs payload + 10
+  - payload: !phs payload + 1
+  - log:
+      level: error
+      message: !phs {
+        let val = payload * 10;
+        let no = [1, 2, 3];
+        let obj = {target: 1};
+
+        {
+            item: val,
+            ...obj,
+            name: [...no,4,5,6],
+            it: {a: 1, b: [2, ...no, ...obj]}
+        }
+      }
+
 tests:
-  - describe: "Test Phlow Runtime"
-    main: ok
-    assert_eq: yes
-  - describe: "Test Phlow Runtime with condition"
-    main: other
-    assert_eq: other
+  - describe: Test
+    main: 1
+    assert_eq: 13
+  - describe: Test
+    main: 2
+    assert_eq: 14
