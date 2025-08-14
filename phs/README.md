@@ -50,7 +50,8 @@ You can inject modules directly into your PHS context via the `modules` section 
   - [🌐 Global Scope](#-global-scope)
   - [🧪 Expressions & Statements](#-expressions--statements)
   - [🔀 Ternary Expressions](#-ternary-expressions)
-  - [🔎 Type Conversion Helpers](#-type-conversion-helpers)
+  - [� String Functions](#-string-functions)
+  - [�🔎 Type Conversion Helpers](#-type-conversion-helpers)
   - [🛠 Working with Maps & Arrays](#-working-with-maps--arrays)
   - [🧯 Error Handling](#-error-handling)
   - [🪛 Debugging Tools](#-debugging-tools)
@@ -382,9 +383,80 @@ let upper = main.name.to_uppercase().trim();
 
 ## 🔀 Ternary Expressions
 
+PHS supports ternary expressions using the `when` keyword for conditional logic:
+
 ```rust
-let msg = main.name == "" ? "Anonymous" : `Hello, ${main.name}`;
+let msg = when main.name == "" ? "Anonymous" : `Hello, ${main.name}`;
+let status = when age >= 18 ? "adult" : "minor";
+let value = when condition ? true_value : false_value;
 ```
+
+## 🔤 String Functions
+
+PHS includes several custom string manipulation functions in addition to Rhai's built-in string methods:
+
+### 🔍 `search(pattern)` - Regex Pattern Matching
+Search for regex patterns in strings, returns `true` if found:
+
+```rust
+let text = "Hello World";
+let hasHello = text.search("Hello");        // true
+let startsWithH = text.search("^H");        // true (regex: starts with H)
+let endsWithD = text.search("d$");          // true (regex: ends with d)
+let hasNumbers = text.search("[0-9]");      // false
+```
+
+### 🔄 `replace(target, replacement)` - String Replacement
+⚠️ **Important:** Unlike native Rhai `replace`, this function **returns** the modified string instead of changing the variable in place:
+
+```rust
+let text = "Hello World";
+let newText = text.replace("World", "Universe");  // Returns "Hello Universe"
+// text is still "Hello World" - original unchanged
+```
+
+### ✂️ `slice(start, end)` - Substring Extraction
+Extract a portion of a string with bounds checking:
+
+```rust
+let text = "Hello World";
+let part = text.slice(0, 5);     // "Hello"
+let middle = text.slice(6, 11);  // "World"
+let safe = text.slice(0, 100);   // "Hello World" (auto-bounds)
+```
+
+### 🎩 `capitalize()` - First Letter Uppercase
+Capitalize the first character of a string:
+
+```rust
+let name = "joão";
+let capitalized = name.capitalize();  // "João"
+let empty = "".capitalize();         // ""
+```
+
+### 🐍 Case Conversion Functions
+Convert between different naming conventions. These functions automatically detect the current format:
+
+```rust
+// to_snake_case() - Convert to snake_case
+"meuTextoExemplo".to_snake_case();    // "meu_texto_exemplo"
+"MeuTextoExemplo".to_snake_case();    // "meu_texto_exemplo"  
+"meu-texto-exemplo".to_snake_case();  // "meu_texto_exemplo"
+"Meu texto exemplo".to_snake_case();  // "meu_texto_exemplo"
+
+// to_camel_case() - Convert to camelCase
+"meu_texto_exemplo".to_camel_case();  // "meuTextoExemplo"
+"meu-texto-exemplo".to_camel_case();  // "meuTextoExemplo"
+"Meu texto exemplo".to_camel_case();  // "meuTextoExemplo"
+
+// to_kebab_case() - Convert to kebab-case
+"meuTextoExemplo".to_kebab_case();    // "meu-texto-exemplo"
+"meu_texto_exemplo".to_kebab_case();  // "meu-texto-exemplo"
+"Meu texto exemplo".to_kebab_case();  // "meu-texto-exemplo"
+```
+
+### 📖 Additional String Methods
+For more string manipulation functions, refer to [Rhai Language Reference](https://rhai.rs/book/ref/index.html).
 
 ## 🔎 Type Conversion Helpers
 

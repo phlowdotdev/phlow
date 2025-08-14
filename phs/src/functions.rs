@@ -125,7 +125,7 @@ pub fn build_functions() -> Engine {
     engine.register_fn("to_kebab_case", |s: &str| split_words(s).join("-"));
 
     match engine.register_custom_syntax(
-        ["iff", "$expr$", "?", "$expr$", ":", "$expr$"],
+        ["when", "$expr$", "?", "$expr$", ":", "$expr$"],
         false,
         |context, inputs| match context.eval_expression_tree(&inputs[0])?.as_bool() {
             Ok(true) => context.eval_expression_tree(&inputs[1]),
@@ -139,7 +139,7 @@ pub fn build_functions() -> Engine {
     ) {
         Ok(engine) => engine,
         Err(_) => {
-            panic!("Error on register custom syntax iff");
+            panic!("Error on register custom syntax when");
         }
     };
 
@@ -378,5 +378,28 @@ mod tests {
                 .unwrap(),
             "meu-texto-exemplo"
         );
+    }
+
+    #[test]
+    fn test_when_ternary() {
+        let engine = build_functions();
+
+        // Teste quando condição é verdadeira
+        let result: i64 = engine.eval(r#"when true ? 42 : 0"#).unwrap();
+        assert_eq!(result, 42);
+
+        // Teste quando condição é falsa
+        let result: i64 = engine.eval(r#"when false ? 42 : 0"#).unwrap();
+        assert_eq!(result, 0);
+
+        // Teste com expressão condicional
+        let result: String = engine.eval(r#"when 5 > 3 ? "maior" : "menor""#).unwrap();
+        assert_eq!(result, "maior");
+
+        // Teste com strings
+        let result: String = engine
+            .eval(r#"when "abc".search("b") ? "encontrou" : "não encontrou""#)
+            .unwrap();
+        assert_eq!(result, "encontrou");
     }
 }

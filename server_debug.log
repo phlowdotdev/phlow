@@ -1,9 +1,0 @@
-[2025-08-12T22:08:07Z INFO  phlow::loader] Downloading modules...
-[2025-08-12T22:08:08Z INFO  phlow::loader] Module http_server (latest) already exists at phlow_packages/http_server/module.so, skipping download
-[2025-08-12T22:08:08Z INFO  phlow::loader] Module cache (latest) already exists at phlow_packages/cache/module.so, skipping download
-[2025-08-12T22:08:08Z INFO  phlow::loader] All modules downloaded and extracted successfully
-[2025-08-12T22:08:08Z INFO  phlow::loader] 🧪 Load Module: http_server (latest), in phlow_packages/http_server/module.so
-[2025-08-12T22:08:08Z INFO  phlow::loader] Loading binary module: phlow_packages/http_server/module.so
-[2m2025-08-12T22:08:08.014936Z[0m [32m INFO[0m [2mlog[0m[2m:[0m OpenAPI validator loaded successfully    
-[2m2025-08-12T22:08:08.015025Z[0m [31mERROR[0m [2mhttp_server[0m[2m:[0m Error in plugin: Os { code: 98, kind: AddrInUse, message: "Address already in use" }
-[2025-08-12T22:08:08Z ERROR phlow] Runtime Error: ModuleRegisterError
