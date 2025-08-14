@@ -82,6 +82,8 @@ pub struct StepWorker {
     pub(crate) modules: Arc<Modules>,
     pub(crate) return_case: Option<Script>,
     pub(crate) to: Option<StepReference>,
+    #[cfg(debug_assertions)]
+    pub(crate) step_raw: String,
 }
 
 impl StepWorker {
@@ -90,6 +92,11 @@ impl StepWorker {
         modules: Arc<Modules>,
         value: &Value,
     ) -> Result<Self, StepWorkerError> {
+        log::debug!(
+            "Parsing step worker from value: {}",
+            value.to_json(JsonMode::Indented)
+        );
+
         let id = match value.get("id") {
             Some(id) => ID::from(id),
             None => ID::new(),
@@ -174,6 +181,9 @@ impl StepWorker {
             None => None,
         };
 
+        #[cfg(debug_assertions)]
+        let step_raw = value.to_string();
+
         Ok(Self {
             id,
             label,
@@ -186,6 +196,8 @@ impl StepWorker {
             modules,
             return_case,
             to,
+            #[cfg(debug_assertions)]
+            step_raw,
         })
     }
 
@@ -271,6 +283,15 @@ impl StepWorker {
     }
 
     pub async fn execute(&self, context: &Context) -> Result<StepOutput, StepWorkerError> {
+        #[cfg(debug_assertions)]
+        log::debug!(
+            "Entering step: {}, with: \n\tmain={:?}\n\tpayload={:?}\n\tsetup={:?}",
+            self.step_raw,
+            &context.get_main().to_value().to_string(),
+            &context.get_payload().to_value().to_string(),
+            &context.get_setup().to_value().to_string()
+        );
+
         let span = tracing::info_span!(
             "step",
             otel.name = field::Empty,
@@ -289,6 +310,7 @@ impl StepWorker {
 
         {
             let step_name = self.label.clone().unwrap_or(self.id.to_string());
+
             span.record("otel.name", format!("step {}", step_name));
 
             if let Some(ref input) = context.get_input() {

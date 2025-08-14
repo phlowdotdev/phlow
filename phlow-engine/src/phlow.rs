@@ -79,6 +79,11 @@ impl Phlow {
         let mut current_step = 0;
 
         loop {
+            log::debug!(
+                "Executing pipeline {} step {}",
+                current_pipeline,
+                current_step
+            );
             let pipeline = self
                 .pipelines
                 .get(&current_pipeline)

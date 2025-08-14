@@ -1,3 +1,6 @@
+use phlow_sdk::prelude::log;
+use valu3::traits::ToValueBehavior;
+
 use crate::{
     context::Context,
     step_worker::{NextStep, StepOutput, StepWorker, StepWorkerError},
@@ -51,6 +54,13 @@ impl Pipeline {
                             context.add_step_id_output(step.get_id().clone(), payload.clone());
                         }
                     }
+
+                    #[cfg(debug_assertions)]
+                    log::debug!(
+                        "Step output: next={:?}, output={}",
+                        step_output.next_step,
+                        step_output.output.to_value().to_string()
+                    );
 
                     match step_output.next_step {
                         NextStep::Pipeline(_) | NextStep::Stop => {
