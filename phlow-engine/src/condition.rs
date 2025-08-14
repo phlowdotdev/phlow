@@ -1,6 +1,5 @@
 use std::{fmt::Display, sync::Arc};
 
-use phlow_sdk::{prelude::log, valu3};
 use rhai::Engine;
 use serde::Serialize;
 use valu3::{prelude::StringBehavior, traits::ToValueBehavior, value::Value};
@@ -208,9 +207,6 @@ impl Condition {
     }
 
     pub fn evaluate(&self, context: &Context) -> Result<bool, ConditionError> {
-        #[cfg(debug_assertions)]
-        log::debug!("Evaluating condition for step: {}", self.raw.to_string());
-
         let result = self
             .expression
             .evaluate(context)
