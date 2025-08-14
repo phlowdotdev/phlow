@@ -8,15 +8,15 @@ steps:
         // Testando spread de objetos
         let user = #{id: 1, name: "João"};
         let profile = #{email: "joao@test.com", active: true};
-        
+
         let combined_user = #{...user, ...profile, role: "admin"};
-        
+
         // Testando spread de arrays
         let basic_permissions = ["read", "write"];
         let admin_permissions = ["delete", "admin"];
-        
+
         let all_permissions = [...basic_permissions, "update", ...admin_permissions];
-        
+
         #{
           user: combined_user,
           permissions: all_permissions,

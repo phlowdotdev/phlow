@@ -18,7 +18,12 @@ steps:
         let no = [1, 2, 3];
         let obj = #{target: 1};
 
-        #{item: val, ...obj, name: [...no,4,5,6]}
+        #{
+            item: val,
+            ...obj,
+            name: [...no,4,5,6],
+            it: #{a: 1, b: [2, ...no, ...obj]}
+        }
       }
 
 tests:

@@ -287,7 +287,7 @@ pub fn build_functions() -> Engine {
     // Funções para spread de objetos e arrays
     engine.register_fn("__spread_object", |objects: rhai::Array| -> rhai::Dynamic {
         let mut result_map = rhai::Map::new();
-        
+
         for obj in objects {
             if let Some(map) = obj.try_cast::<rhai::Map>() {
                 for (key, value) in map {
@@ -295,13 +295,13 @@ pub fn build_functions() -> Engine {
                 }
             }
         }
-        
+
         rhai::Dynamic::from(result_map)
     });
 
     engine.register_fn("__spread_array", |arrays: rhai::Array| -> rhai::Dynamic {
         let mut result_array = rhai::Array::new();
-        
+
         for arr in arrays {
             if let Some(array) = arr.clone().try_cast::<rhai::Array>() {
                 result_array.extend(array);
@@ -310,7 +310,7 @@ pub fn build_functions() -> Engine {
                 result_array.push(arr);
             }
         }
-        
+
         rhai::Dynamic::from(result_array)
     });
 
