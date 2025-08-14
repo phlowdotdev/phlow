@@ -242,6 +242,14 @@ impl StepWorker {
                     .evaluate(context)
                     .map_err(StepWorkerError::PayloadError)?,
             );
+
+            #[cfg(debug_assertions)]
+            log::debug!(
+                "Evaluating return case for step {}: {}",
+                self.id,
+                value.as_ref().map_or("None".to_string(), |v| v.to_string())
+            );
+
             Ok(value)
         } else {
             Ok(None)
@@ -267,6 +275,9 @@ impl StepWorker {
                 .await
             {
                 Ok(response) => {
+                    #[cfg(debug_assertions)]
+                    log::debug!("Module response for step {}: {:?}", self.id, response);
+
                     if let Some(err) = response.error {
                         return Err(StepWorkerError::ModulesError(ModulesError::ModuleError(
                             err,
@@ -358,9 +369,22 @@ impl StepWorker {
                 context.clone()
             };
 
+            let output = self.evaluate_payload(&context, output)?;
+
+            if let Some(to) = &self.to {
+                debug!(
+                    "Define switching to step {} in pipeline {}",
+                    to.step, to.pipeline
+                );
+                return Ok(StepOutput {
+                    next_step: NextStep::GoToStep(to.clone()),
+                    output,
+                });
+            }
+
             return Ok(StepOutput {
                 next_step: NextStep::Next,
-                output: self.evaluate_payload(&context, output)?,
+                output,
             });
         }
 

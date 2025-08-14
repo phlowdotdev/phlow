@@ -57,7 +57,8 @@ impl Pipeline {
 
                     #[cfg(debug_assertions)]
                     log::debug!(
-                        "Step output: next={:?}, output={}",
+                        "Step output: pipeline={} next={:?}, output={}",
+                        self.id,
                         step_output.next_step,
                         step_output.output.to_value().to_string()
                     );

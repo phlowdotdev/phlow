@@ -13,12 +13,13 @@ steps:
           message: !phs payload + 1
 
   - payload:  !phs payload + 10
+  - payload:  !phs payload + 1
   - use: log
     input:
       level: error
-      message: !phs payload + 1
+      message: !phs payload
 
 tests:
   - describe: Test
     main: 1
-    assert_eq: 14
+    assert_eq: 13
