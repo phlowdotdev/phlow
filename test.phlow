@@ -1,0 +1,24 @@
+modules:
+  - module: log
+
+steps:
+  - assert: !phs main == 1
+    then:
+      - payload: !phs main + 1
+      - log:
+          message: !phs main + 1
+    else:
+      !include inner.phlow
+  - payload: !phs payload + 10
+  - payload: !phs payload + 1
+  - log:
+      level: error
+      message: !phs payload
+
+tests:
+  - describe: Test
+    main: 1
+    assert_eq: 13
+  - describe: Test
+    main: 2
+    assert_eq: 14
