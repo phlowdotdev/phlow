@@ -9,10 +9,174 @@ impl SpreadPreprocessor {
 
     /// Processa o código para transformar spread syntax em chamadas de função
     pub fn process(&self, code: &str) -> String {
-        // Estratégia simples: processa apenas os casos mais externos primeiro
-        let code = self.process_arrays_simple(code);
+        // Primeiro, converte objetos simples para a sintaxe Rhai com #
+        let code = self.process_object_literals(&code);
+        // Depois processa arrays com spread
+        let code = self.process_arrays_simple(&code);
+        // Por último, processa objetos com spread
         let code = self.process_objects_simple(&code);
         code
+    }
+
+    /// Converte objetos literais {key: value} para #{key: value} para compatibilidade com Rhai
+    fn process_object_literals(&self, code: &str) -> String {
+        let mut result = String::new();
+        let mut i = 0;
+        let chars: Vec<char> = code.chars().collect();
+
+        while i < chars.len() {
+            if chars[i] == '{' {
+                // Verifica se é um objeto literal ou outro tipo de bloco
+                if self.is_object_literal(&chars, i) {
+                    // É um objeto literal, adiciona o # na frente
+                    result.push('#');
+                    result.push('{');
+                    i += 1;
+                } else {
+                    // Não é um objeto literal, mantém como está
+                    result.push(chars[i]);
+                    i += 1;
+                }
+            } else {
+                result.push(chars[i]);
+                i += 1;
+            }
+        }
+
+        result
+    }
+
+    /// Determina se uma abertura de chaves '{' representa um objeto literal
+    fn is_object_literal(&self, chars: &[char], start_pos: usize) -> bool {
+        if start_pos >= chars.len() || chars[start_pos] != '{' {
+            return false;
+        }
+
+        // Encontra o conteúdo entre as chaves
+        if let Some((_end_pos, content)) =
+            self.find_matching_brace_from(chars, start_pos + 1, '{', '}')
+        {
+            return self.analyze_brace_content(&content);
+        }
+
+        false
+    }
+
+    /// Analisa o conteúdo entre chaves para determinar se é um objeto literal
+    fn analyze_brace_content(&self, content: &str) -> bool {
+        let content = content.trim();
+
+        // Objeto vazio é um objeto literal
+        if content.is_empty() {
+            return true;
+        }
+
+        // Se tem declarações de let/const/var, é um bloco de código
+        if content.contains("let ") || content.contains("const ") || content.contains("var ") {
+            return false;
+        }
+
+        // Verifica se contém spread syntax (definitivamente um objeto)
+        // MAS apenas se não contém outras estruturas de código
+        if content.contains("...") {
+            // Verifica se não é um bloco complexo com múltiplas estruturas
+            let lines = content.lines().collect::<Vec<_>>();
+            let mut has_object_structure = false;
+            let mut has_code_structure = false;
+
+            for line in lines {
+                let line = line.trim();
+                if line.is_empty() {
+                    continue;
+                }
+
+                // Padrões de código
+                if line.starts_with("if ")
+                    || line.starts_with("for ")
+                    || line.starts_with("while ")
+                    || line.starts_with("return ")
+                    || line.starts_with("let ")
+                    || line.starts_with("const ")
+                    || line.starts_with("var ")
+                    || line.contains("();")
+                {
+                    has_code_structure = true;
+                }
+
+                // Padrões de objeto
+                if line.contains(":")
+                    && !line.contains("();")
+                    && !line.starts_with("if")
+                    && !line.starts_with("for")
+                    && !line.starts_with("while")
+                {
+                    has_object_structure = true;
+                }
+            }
+
+            // Se tem apenas estrutura de objeto, é um objeto
+            return has_object_structure && !has_code_structure;
+        }
+
+        // Verifica padrões que indicam que NÃO é um objeto literal
+        let non_object_patterns = [
+            // Estruturas de controle
+            r"^\s*if\s*\(",
+            r"^\s*for\s*\(",
+            r"^\s*while\s*\(",
+            r"^\s*switch\s*\(",
+            r"^\s*try\s*{",
+            r"^\s*catch\s*\(",
+            // Funções
+            r"^\s*function\s+",
+            r"^\s*fn\s+",
+            // Statements que indicam bloco de código
+            r"^\s*return\s+",
+            r"^\s*break\s*;",
+            r"^\s*continue\s*;",
+            // Múltiplas linhas com statements
+            r"\n\s*\w+\s*\(",
+        ];
+
+        for pattern in &non_object_patterns {
+            if let Ok(regex) = regex::Regex::new(pattern) {
+                if regex.is_match(content) {
+                    return false;
+                }
+            }
+        }
+
+        // Verifica se tem padrão de objeto: chave: valor ou "chave": valor
+        let object_patterns = [
+            // Chave simples seguida de dois pontos (no início da linha)
+            r"^\s*\w+\s*:\s*",
+            // Chave entre aspas seguida de dois pontos
+            r#"^\s*["']\w+["']\s*:\s*"#,
+            // Spread syntax (no início da linha)
+            r"^\s*\.\.\.\w+",
+        ];
+
+        for pattern in &object_patterns {
+            if let Ok(regex) = regex::Regex::new(pattern) {
+                if regex.is_match(content) {
+                    return true;
+                }
+            }
+        }
+
+        // Se chegou até aqui e tem dois pontos sem ponto e vírgula, pode ser objeto
+        // mas precisa ser mais cuidadoso
+        if content.contains(':') && !content.contains(';') {
+            // Verifica se não é um bloco complexo
+            let lines = content.lines().count();
+            if lines > 3 {
+                // Muitas linhas, provavelmente é código
+                return false;
+            }
+            return true;
+        }
+
+        false
     }
 
     /// Processa arrays com spread de forma simples
@@ -42,12 +206,12 @@ impl SpreadPreprocessor {
 
         while i < chars.len() {
             if i + 1 < chars.len() && chars[i] == '#' && chars[i + 1] == '{' {
-                // Encontrou início de objeto
+                // Encontrou início de objeto Rhai (já processado)
                 if let Some((end_pos, content)) =
                     self.find_matching_brace_from(&chars, i + 2, '{', '}')
                 {
                     if content.contains("...") {
-                        // Tem spread, transforma
+                        // Tem spread, processa
                         let transformed = self.transform_object_spread(&content);
                         result.push_str(&transformed);
                     } else {
@@ -288,7 +452,7 @@ mod tests {
     #[test]
     fn test_object_spread_simple() {
         let preprocessor = SpreadPreprocessor::new();
-        let code = "#{...a, b: 2, ...c}";
+        let code = "{...a, b: 2, ...c}";
         let result = preprocessor.process(code);
         assert_eq!(result, "__spread_object([a, #{b: 2}, c])");
     }
@@ -296,7 +460,7 @@ mod tests {
     #[test]
     fn test_object_without_spread() {
         let preprocessor = SpreadPreprocessor::new();
-        let code = "#{a: 1, b: 2}";
+        let code = "{a: 1, b: 2}";
         let result = preprocessor.process(code);
         assert_eq!(result, "#{a: 1, b: 2}");
     }
@@ -320,7 +484,7 @@ mod tests {
     #[test]
     fn test_complex_object_spread() {
         let preprocessor = SpreadPreprocessor::new();
-        let code = "#{...user, name: \"John\", ...settings, active: true}";
+        let code = "{...user, name: \"John\", ...settings, active: true}";
         let result = preprocessor.process(code);
         assert_eq!(
             result,
@@ -340,14 +504,149 @@ mod tests {
     }
 
     #[test]
-    fn test_complex_nested_case() {
+    fn test_object_literal_detection() {
         let preprocessor = SpreadPreprocessor::new();
-        let code = "#{item: val, ...obj, name: [...no,4,5,6], it: #{a: 1}}";
+
+        // Testa objetos literais simples
+        let code = "{key: value}";
+        let result = preprocessor.process(code);
+        assert_eq!(result, "#{key: value}");
+
+        // Testa objetos com múltiplas propriedades
+        let code = "{name: \"John\", age: 30}";
+        let result = preprocessor.process(code);
+        assert_eq!(result, "#{name: \"John\", age: 30}");
+
+        // Testa objeto vazio
+        let code = "{}";
+        let result = preprocessor.process(code);
+        assert_eq!(result, "#{}");
+    }
+
+    #[test]
+    fn test_object_literal_with_spread() {
+        let preprocessor = SpreadPreprocessor::new();
+
+        // Testa objeto com spread
+        let code = "{...user, name: \"John\"}";
+        let result = preprocessor.process(code);
+        assert_eq!(result, "__spread_object([user, #{name: \"John\"}])");
+    }
+
+    #[test]
+    fn test_code_blocks_not_converted() {
+        let preprocessor = SpreadPreprocessor::new();
+
+        // Bloco com declaração de variável
+        let code = "{ let x = 1; x + 1 }";
+        let result = preprocessor.process(code);
+        assert_eq!(result, "{ let x = 1; x + 1 }");
+
+        // Bloco com if
+        let code = "{ if (x > 0) { return x; } }";
+        let result = preprocessor.process(code);
+        assert_eq!(result, "{ if (x > 0) { return x; } }");
+
+        // Bloco com for loop
+        let code = "{ for i in 0..10 { print(i); } }";
+        let result = preprocessor.process(code);
+        assert_eq!(result, "{ for i in 0..10 { print(i); } }");
+
+        // Bloco com função
+        let code = "{ fn test() { return 1; } }";
+        let result = preprocessor.process(code);
+        assert_eq!(result, "{ fn test() { return 1; } }");
+    }
+
+    #[test]
+    fn test_mixed_objects_and_blocks() {
+        let preprocessor = SpreadPreprocessor::new();
+
+        // Objeto dentro de código
+        let code = "{ let obj = {name: \"test\"}; obj }";
+        let result = preprocessor.process(code);
+        assert_eq!(result, "{ let obj = #{name: \"test\"}; obj }");
+
+        // Múltiplos objetos
+        let code = "let a = {x: 1}; let b = {y: 2};";
+        let result = preprocessor.process(code);
+        assert_eq!(result, "let a = #{x: 1}; let b = #{y: 2};");
+    }
+
+    #[test]
+    fn test_nested_object_literals() {
+        let preprocessor = SpreadPreprocessor::new();
+
+        // Objetos aninhados
+        let code = "{user: {name: \"John\", data: {age: 30}}}";
+        let result = preprocessor.process(code);
+        assert_eq!(result, "#{user: #{name: \"John\", data: #{age: 30}}}");
+    }
+
+    #[test]
+    fn test_object_with_array_values() {
+        let preprocessor = SpreadPreprocessor::new();
+
+        // Objeto com arrays
+        let code = "{items: [1, 2, 3], tags: [\"a\", \"b\"]}";
+        let result = preprocessor.process(code);
+        assert_eq!(result, "#{items: [1, 2, 3], tags: [\"a\", \"b\"]}");
+    }
+
+    #[test]
+    fn test_complex_mixed_scenario() {
+        let preprocessor = SpreadPreprocessor::new();
+
+        // Cenário do test.phlow
+        let code = r#"{
+            let val = payload * 10;
+            let no = [1, 2, 3];
+            let obj = {target: 1};
+
+            {
+                item: val,
+                ...obj,
+                name: [...no,4,5,6],
+                it: {a: 1, b: [2, ...no, ...obj]}
+            }
+        }"#;
+
+        let result = preprocessor.process(code);
+
+        // Verifica se objetos literais foram convertidos
+        assert!(result.contains("#{target: 1}"));
+        assert!(result.contains("__spread_object"));
+        assert!(result.contains("__spread_array"));
+        // Verifica se o bloco principal não foi convertido (contém let statements)
+        assert!(!result.starts_with("#{"));
+    }
+
+    #[test]
+    fn test_debug_test_phlow_case() {
+        let preprocessor = SpreadPreprocessor::new();
+
+        // Caso exato do test.phlow
+        let code = r#"{
+        let val = payload * 10;
+        let no = [1, 2, 3];
+        let obj = {target: 1};
+
+        {
+            item: val,
+            ...obj,
+            name: [...no,4,5,6],
+            it: {a: 1, b: [2, ...no, ...obj]}
+        }
+      }"#;
+
         let result = preprocessor.process(code);
         println!("Input: {}", code);
         println!("Output: {}", result);
-        // Verifica se a transformação está correta
-        assert!(result.contains("__spread_object"));
-        assert!(result.contains("__spread_array"));
+
+        // O bloco principal não deve ser convertido (contém múltiplas declarações let)
+        assert!(!result.starts_with("#{"));
+
+        // Verifica que não tem __spread_object aplicado ao bloco principal
+        assert!(!result.starts_with("__spread_object"));
     }
 }
