@@ -935,37 +935,12 @@ mod tests {
 
         // Teste com Base64 que contém JSON: eyJlbWFpbCI6ImV4YW1wbGVAZXhhbXBsZS5jb20ifQ==
         // Que decodifica para: {"email":"example@example.com"}
-        let result: rhai::Dynamic = engine
-            .eval(r#""eyJlbWFpbCI6ImV4YW1wbGVAZXhhbXBsZS5jb20ifQ==".base64_to_utf8().parse()"#)
+        let result: String = engine
+            .eval(
+                r#""eyJlbWFpbCI6ImV4YW1wbGVAZXhhbXBsZS5jb20ifQ==".base64_to_utf8().parse().email"#,
+            )
             .unwrap();
 
-        // Verifica se é um Map
-        if let Some(map) = result.clone().try_cast::<rhai::Map>() {
-            // Verifica se contém a chave "email"
-            assert!(map.contains_key("email"));
-
-            // Verifica o valor da propriedade email
-            if let Some(email) = map.get("email") {
-                if let Some(email_str) = email.clone().try_cast::<String>() {
-                    assert_eq!(email_str, "example@example.com");
-                    println!("Email encontrado: {}", email_str);
-                }
-            }
-        } else {
-            panic!("Esperado um Map com propriedade email");
-        }
-
-        // Teste alternativo usando eval direto para verificar acesso via dot notation
-        let email_result: String = engine
-            .eval(r#"let obj = "eyJlbWFpbCI6ImV4YW1wbGVAZXhhbXBsZS5jb20ifQ==".base64_to_utf8().parse(); obj.email"#)
-            .unwrap();
-        assert_eq!(email_result, "example@example.com");
-
-        // Teste mostrando o JSON decodificado
-        let json_str: String = engine
-            .eval(r#""eyJlbWFpbCI6ImV4YW1wbGVAZXhhbXBsZS5jb20ifQ==".base64_to_utf8()"#)
-            .unwrap();
-        assert_eq!(json_str, r#"{"email":"example@example.com"}"#);
-        println!("JSON decodificado: {}", json_str);
+        assert_eq!(result, "example@example.com");
     }
 }
