@@ -20,7 +20,8 @@ pub fn preprocessor(
         return Err(errors);
     }
 
-    let yaml = preprocessor_eval(&phlow);
+    let yaml = preprocessor_auto_phs(&phlow);
+    let yaml = preprocessor_eval(&yaml);
     let yaml = preprocessor_modules(&yaml)?;
 
     if print_phlow {
@@ -119,6 +120,320 @@ fn preprocessor_directives(phlow: &str, base_path: &Path) -> (String, Vec<String
         .to_string();
 
     (result, errors)
+}
+
+fn preprocessor_auto_phs(phlow: &str) -> String {
+    // Implementação mais simples usando regex direta
+    let mut result = phlow.to_string();
+    
+    
+    // Padrão 1: assert: valor_sem_phs - Captura apenas valores que NÃO começam com !
+    let assert_regex = regex::Regex::new(r"(?m)^(\s*-\s+)(assert):\s*([^!][^\n]*)$").unwrap();
+    result = assert_regex.replace_all(&result, |caps: &regex::Captures| {
+        let indent = &caps[1];
+        let property = &caps[2];
+        let value = caps[3].trim();
+        
+        if needs_phs_prefix(value) {
+            format!("{}{}: !phs {}", indent, property, value)
+        } else {
+            caps[0].to_string()
+        }
+    }).to_string();
+    
+    // Padrão 2: return: valor_sem_phs
+    let return_regex = regex::Regex::new(r"(?m)^(\s*-\s+)(return):\s*([^!][^\n]*)$").unwrap();
+    result = return_regex.replace_all(&result, |caps: &regex::Captures| {
+        let indent = &caps[1];
+        let property = &caps[2];
+        let value = caps[3].trim();
+        
+        if needs_phs_prefix(value) {
+            format!("{}{}: !phs {}", indent, property, value)
+        } else {
+            caps[0].to_string()
+        }
+    }).to_string();
+    
+    // Padrão 3: payload: valor_sem_phs
+    let payload_regex = regex::Regex::new(r"(?m)^(\s*-\s+)(payload):\s*([^!][^\n]*)$").unwrap();
+    result = payload_regex.replace_all(&result, |caps: &regex::Captures| {
+        let indent = &caps[1];
+        let property = &caps[2];
+        let value = caps[3].trim();
+        
+        if needs_phs_prefix(value) {
+            format!("{}{}: !phs {}", indent, property, value)
+        } else {
+            caps[0].to_string()
+        }
+    }).to_string();
+    
+    // Padrão 4: input: valor_sem_phs
+    let input_regex = regex::Regex::new(r"(?m)^(\s*)(input):\s*([^!][^\n]+)$").unwrap();
+    result = input_regex.replace_all(&result, |caps: &regex::Captures| {
+        let indent = &caps[1];
+        let property = &caps[2];
+        let value = caps[3].trim();
+        
+        if needs_phs_prefix(value) {
+            format!("{}{}: !phs {}", indent, property, value)
+        } else {
+            caps[0].to_string()
+        }
+    }).to_string();
+    
+    // Padrão 5: message: valor_sem_phs (casos específicos como no teste)
+    let message_regex = regex::Regex::new(r"(?m)^(\s*)(message):\s*([^!][^\n]+)$").unwrap();
+    result = message_regex.replace_all(&result, |caps: &regex::Captures| {
+        let indent = &caps[1];
+        let property = &caps[2];
+        let value = caps[3].trim();
+        
+        if needs_phs_prefix(value) {
+            format!("{}{}: !phs {}", indent, property, value)
+        } else {
+            caps[0].to_string()
+        }
+    }).to_string();
+    
+    // Padrão 6: Blocos de código com chaves - pattern multi-line
+    let code_block_regex = regex::Regex::new(r"(?m)^(\s*)(message|payload|assert|return|input):\s*\{\s*$").unwrap();
+    
+    // Para blocos de código, precisamos de uma abordagem linha por linha
+    let lines: Vec<&str> = result.lines().collect();
+    let mut new_result = String::new();
+    let mut i = 0;
+    
+    while i < lines.len() {
+        let line = lines[i];
+        
+        // Verifica se é uma linha que inicia um bloco de código
+        if let Some(caps) = code_block_regex.captures(line) {
+            let indent = caps[1].len();
+            
+            // Coleta todo o bloco de código (incluindo a linha inicial)
+            let mut block_lines = Vec::new();
+            let mut brace_count = 1; // Primeira linha já tem uma chave aberta
+            
+            // Adiciona a linha inicial
+            block_lines.push(line);
+            i += 1;
+            
+            // Coleta o resto do bloco
+            while i < lines.len() && brace_count > 0 {
+                let block_line = lines[i];
+                
+                // Conta chaves para saber quando o bloco termina
+                for ch in block_line.chars() {
+                    if ch == '{' {
+                        brace_count += 1;
+                    } else if ch == '}' {
+                        brace_count -= 1;
+                    }
+                }
+                
+                block_lines.push(block_line);
+                i += 1;
+                
+                // Se fechou o bloco, para
+                if brace_count == 0 {
+                    break;
+                }
+            }
+            
+            // Verifica se o bloco precisa de !phs
+            let block_content = block_lines.join("\n");
+            if needs_phs_prefix_for_block(&block_content) {
+                // Reconstroi com !phs
+                // Primeira linha: propriedade:
+                let first_line_parts: Vec<&str> = block_lines[0].splitn(2, ':').collect();
+                if first_line_parts.len() == 2 {
+                    new_result.push_str(&format!("{}:\n", first_line_parts[0]));
+                    // Resto do bloco com !phs
+                    let code_part = block_lines.iter().skip(1).cloned().collect::<Vec<_>>();
+                    let joined_code = format!("{} {}", first_line_parts[1].trim(), code_part.join(" "));
+                    new_result.push_str(&format!("{}!phs {}\n", " ".repeat(indent + 2), joined_code));
+                } else {
+                    // Fallback - mantém como está
+                    new_result.push_str(&block_content);
+                    new_result.push('\n');
+                }
+            } else {
+                // Mantém o bloco como está
+                new_result.push_str(&block_content);
+                new_result.push('\n');
+            }
+        } else {
+            // Linha normal, apenas adiciona
+            new_result.push_str(line);
+            new_result.push('\n');
+            i += 1;
+        }
+    }
+    
+    // Remove a última nova linha extra se existir
+    if new_result.ends_with('\n') {
+        new_result.pop();
+    }
+    
+    new_result
+}
+
+// Função auxiliar para verificar se um valor precisa de !phs
+fn needs_phs_prefix(value: &str) -> bool {
+    let trimmed = value.trim();
+    
+    // Já tem !phs, !import ou !include
+    if trimmed.starts_with("!phs") || trimmed.starts_with("!import") || trimmed.starts_with("!include") {
+        return false;
+    }
+    
+    // É um valor primitivo simples (string quoted, number, boolean)
+    if is_simple_primitive(trimmed) {
+        return false;
+    }
+    
+    // É um bloco de código
+    if trimmed.starts_with('{') && trimmed.contains("let ") {
+        return true;
+    }
+    
+    // Contém operações ou referências a variáveis
+    if contains_script_operations(trimmed) {
+        return true;
+    }
+    
+    false
+}
+
+// Função auxiliar para verificar se um bloco de código precisa de !phs  
+fn needs_phs_prefix_for_block(content: &str) -> bool {
+    let trimmed = content.trim();
+    
+    // Já tem !phs, !import ou !include na primeira linha
+    let first_line = trimmed.lines().next().unwrap_or("").trim();
+    if first_line.starts_with("!") {
+        return false;
+    }
+    
+    // Verifica se o conteúdo contém padrões de código que precisam de !phs
+    if trimmed.contains("let ") || trimmed.contains("=>") || 
+       trimmed.contains("{") || trimmed.contains("}") {
+        return true;
+    }
+    
+    false
+}
+
+// Função auxiliar para verificar se é um valor primitivo simples
+fn is_simple_primitive(value: &str) -> bool {
+    // String com aspas
+    if (value.starts_with('"') && value.ends_with('"')) || 
+       (value.starts_with('\'') && value.ends_with('\'')) {
+        return true;
+    }
+    
+    // Números
+    if value.parse::<f64>().is_ok() {
+        return true;
+    }
+    
+    // Booleanos
+    if value == "true" || value == "false" {
+        return true;
+    }
+    
+    // null
+    if value == "null" || value == "~" {
+        return true;
+    }
+    
+    false
+}
+
+// Função auxiliar para verificar se contém operações de script
+fn contains_script_operations(value: &str) -> bool {
+    // Verifica operadores matemáticos
+    if value.contains(" + ") || value.contains(" - ") || value.contains(" * ") || value.contains(" / ") {
+        return true;
+    }
+    
+    // Verifica operadores de comparação
+    if value.contains(" == ") || value.contains(" != ") || value.contains(" > ") || 
+       value.contains(" < ") || value.contains(" >= ") || value.contains(" <= ") {
+        return true;
+    }
+    
+    // Verifica operadores lógicos
+    if value.contains(" && ") || value.contains(" || ") {
+        return true;
+    }
+    
+    // Verifica referências a variáveis (main, payload, etc.)
+    if value.contains("main.") || value.contains("payload.") || 
+       value.starts_with("main") || value.starts_with("payload") {
+        return true;
+    }
+    
+    // Template strings
+    if value.contains("${") {
+        return true;
+    }
+    
+    false
+}
+
+// Função auxiliar para extrair um bloco YAML com base na indentação
+fn extract_yaml_block(lines: &[&str], start_index: usize, base_indent: usize) -> (Vec<String>, usize) {
+    let mut block_lines = Vec::new();
+    let mut i = start_index;
+    
+    while i < lines.len() {
+        let line = lines[i];
+        
+        // Linha vazia
+        if line.trim().is_empty() {
+            block_lines.push(line.to_string());
+            i += 1;
+            continue;
+        }
+        
+        // Verifica a indentação
+        let line_indent = line.chars().take_while(|c| c.is_whitespace()).count();
+        
+        // Se a indentação é menor ou igual à base, saímos do bloco
+        if line_indent <= base_indent {
+            break;
+        }
+        
+        block_lines.push(line.to_string());
+        i += 1;
+    }
+    
+    (block_lines, i)
+}
+
+// Função auxiliar para formatar o conteúdo do bloco para uso com !phs
+fn format_block_content(content: &str) -> String {
+    let trimmed = content.trim();
+    
+    // Se já é um bloco de código com chaves, retorna como está
+    if trimmed.starts_with('{') {
+        return trimmed.to_string();
+    }
+    
+    // Remove indentação extra e junta em uma linha se necessário
+    let lines: Vec<&str> = trimmed.lines()
+        .map(|line| line.trim())
+        .filter(|line| !line.is_empty())
+        .collect();
+        
+    if lines.len() == 1 {
+        lines[0].to_string()
+    } else {
+        format!("{{{}}}", lines.join("; "))
+    }
 }
 
 fn preprocessor_eval(phlow: &str) -> String {
