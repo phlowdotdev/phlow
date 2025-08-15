@@ -4,12 +4,12 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
-pub fn yaml_helpers_transform(
-    yaml: &str,
+pub fn preprocessor(
+    phlow: &str,
     base_path: &Path,
-    print_yaml: bool,
+    print_phlow: bool,
 ) -> Result<String, Vec<String>> {
-    let (yaml, errors) = yaml_helpers_include(yaml, base_path);
+    let (phlow, errors) = preprocessor_directives(phlow, base_path);
 
     if !errors.is_empty() {
         eprintln!("❌ YAML Transformation Errors:");
@@ -20,10 +20,10 @@ pub fn yaml_helpers_transform(
         return Err(errors);
     }
 
-    let yaml = yaml_helpers_eval(&yaml);
-    let yaml = yaml_transform_modules(&yaml)?;
+    let yaml = preprocessor_eval(&phlow);
+    let yaml = preprocessor_modules(&yaml)?;
 
-    if print_yaml {
+    if print_phlow {
         println!("");
         println!("#####################################################################");
         println!("# YAML TRANSFORMED");
@@ -36,22 +36,22 @@ pub fn yaml_helpers_transform(
     Ok(yaml)
 }
 
-fn yaml_helpers_include(yaml: &str, base_path: &Path) -> (String, Vec<String>) {
+fn preprocessor_directives(phlow: &str, base_path: &Path) -> (String, Vec<String>) {
     let mut errors = Vec::new();
     let include_block_regex = match Regex::new(r"(?m)^(\s*)!include\s+([^\s]+)(.*)") {
         Ok(re) => re,
-        Err(_) => return (yaml.to_string(), errors),
+        Err(_) => return (phlow.to_string(), errors),
     };
     let include_inline_regex = match Regex::new(r"!include\s+([^\s]+)(.*)") {
         Ok(re) => re,
-        Err(_) => return (yaml.to_string(), errors),
+        Err(_) => return (phlow.to_string(), errors),
     };
     let import_inline_regex = match Regex::new(r"!import\s+(\S+)") {
         Ok(re) => re,
-        Err(_) => return (yaml.to_string(), errors),
+        Err(_) => return (phlow.to_string(), errors),
     };
 
-    let with_block_includes = include_block_regex.replace_all(yaml, |caps: &regex::Captures| {
+    let with_block_includes = include_block_regex.replace_all(phlow, |caps: &regex::Captures| {
         let indent = &caps[1];
         let rel_path = &caps[2];
         let args_str = caps.get(3).map(|m| m.as_str()).unwrap_or("").trim();
@@ -121,9 +121,9 @@ fn yaml_helpers_include(yaml: &str, base_path: &Path) -> (String, Vec<String>) {
     (result, errors)
 }
 
-fn yaml_helpers_eval(yaml: &str) -> String {
+fn preprocessor_eval(phlow: &str) -> String {
     let mut result = String::new();
-    let mut lines = yaml.lines().peekable();
+    let mut lines = phlow.lines().peekable();
 
     while let Some(line) = lines.next() {
         if let Some(pos) = line.find("!phs") {
@@ -320,12 +320,12 @@ fn process_include_file(path: &Path, args: &HashMap<String, String>) -> Result<S
 
     let parent = path.parent().unwrap_or_else(|| Path::new("."));
     let transformed =
-        yaml_helpers_transform(&with_args, parent, false).map_err(|errors| errors.join("; "))?;
+        preprocessor(&with_args, parent, false).map_err(|errors| errors.join("; "))?;
 
     Ok(transformed)
 }
 
-fn yaml_transform_modules(yaml: &str) -> Result<String, Vec<String>> {
+fn preprocessor_modules(phlow: &str) -> Result<String, Vec<String>> {
     // Lista de propriedades exclusivas do projeto
     let exclusive_properties = vec![
         "use",
@@ -343,9 +343,9 @@ fn yaml_transform_modules(yaml: &str) -> Result<String, Vec<String>> {
     ];
 
     // Parse o YAML para extrair módulos disponíveis
-    let parsed: Value = match serde_yaml::from_str(yaml) {
+    let parsed: Value = match serde_yaml::from_str(phlow) {
         Ok(val) => val,
-        Err(_) => return Ok(yaml.to_string()), // Se não conseguir parsear, retorna o original
+        Err(_) => return Ok(phlow.to_string()), // Se não conseguir parsear, retorna o original
     };
 
     let mut available_modules = std::collections::HashSet::new();
@@ -378,7 +378,7 @@ fn yaml_transform_modules(yaml: &str) -> Result<String, Vec<String>> {
     }
 
     if available_modules.is_empty() {
-        return Ok(yaml.to_string()); // Sem módulos para transformar
+        return Ok(phlow.to_string()); // Sem módulos para transformar
     }
 
     // Função recursiva para transformar o YAML
@@ -451,9 +451,9 @@ fn yaml_transform_modules(yaml: &str) -> Result<String, Vec<String>> {
     }
 
     // Parse novamente para modificar
-    let mut parsed_mut: Value = match serde_yaml::from_str(yaml) {
+    let mut parsed_mut: Value = match serde_yaml::from_str(phlow) {
         Ok(val) => val,
-        Err(_) => return Ok(yaml.to_string()),
+        Err(_) => return Ok(phlow.to_string()),
     };
 
     transform_value(
@@ -466,6 +466,6 @@ fn yaml_transform_modules(yaml: &str) -> Result<String, Vec<String>> {
     // Converte de volta para YAML
     match serde_yaml::to_string(&parsed_mut) {
         Ok(result) => Ok(result),
-        Err(_) => Ok(yaml.to_string()),
+        Err(_) => Ok(phlow.to_string()),
     }
 }

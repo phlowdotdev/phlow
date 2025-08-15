@@ -1,5 +1,5 @@
 use super::Error;
-use crate::yaml::yaml_helpers_transform;
+use crate::preprocessor::preprocessor;
 use flate2::read::GzDecoder;
 use log::debug;
 use phlow_sdk::prelude::*;
@@ -238,14 +238,13 @@ fn resolve_script(file: &str, main_file_path: String, print_yaml: bool) -> Resul
         let script_path = Path::new(&main_file_path)
             .parent()
             .unwrap_or_else(|| Path::new("."));
-        let script: String =
-            yaml_helpers_transform(&file, script_path, print_yaml).map_err(|errors| {
-                eprintln!("❌ Failed to transform YAML file: {}", main_file_path);
-                Error::ModuleLoaderError(format!(
-                    "YAML transformation failed with {} error(s)",
-                    errors.len()
-                ))
-            })?;
+        let script: String = preprocessor(&file, script_path, print_yaml).map_err(|errors| {
+            eprintln!("❌ Failed to transform YAML file: {}", main_file_path);
+            Error::ModuleLoaderError(format!(
+                "YAML transformation failed with {} error(s)",
+                errors.len()
+            ))
+        })?;
 
         if let Ok(yaml_show) = std::env::var("PHLOW_SCRIPT_SHOW") {
             if yaml_show == "true" {

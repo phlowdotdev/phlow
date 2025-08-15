@@ -234,7 +234,7 @@ mod test {
             let b = 20;
             let c = "hello";
             
-            #{
+            {
                 a: a,
                 b: b,
                 sum: a + b
@@ -354,9 +354,9 @@ mod test {
     #[test]
     fn test_object_spread_syntax() {
         let script = r#"{{
-            let a = #{x: 1, y: 2};
-            let b = #{z: 3};
-            #{...a, y: 20, ...b, w: 4}
+            let a = {x: 1, y: 2};
+            let b = {z: 3};
+            {...a, y: 20, ...b, w: 4}
         }}"#;
 
         let context = Context::new();
@@ -405,10 +405,10 @@ mod test {
     #[test]
     fn test_nested_spread_syntax() {
         let script = r#"{{
-            let user = #{name: "John", age: 30};
-            let meta = #{id: 1, verified: true};
+            let user = {name: "John", age: 30};
+            let meta = {id: 1, verified: true};
             
-            #{
+            {
                 ...user,
                 profile: meta
             }
@@ -440,18 +440,18 @@ mod test {
     fn test_complete_spread_example() {
         let script = r#"{{
             // Dados de exemplo
-            let user_base = #{id: 1, name: "João"};
-            let user_extra = #{email: "joao@email.com", active: true};
+            let user_base = {id: 1, name: "João"};
+            let user_extra = {email: "joao@email.com", active: true};
             let permissions = ["read", "write"];
             let admin_permissions = ["admin", "delete"];
             
             // Usando spread para combinar objetos
-            let complete_user = #{...user_base, ...user_extra, role: "user"};
+            let complete_user = {...user_base, ...user_extra, role: "user"};
             
             // Usando spread para combinar arrays
             let all_permissions = [...permissions, "update", ...admin_permissions];
             
-            #{
+            {
                 user: complete_user,
                 permissions: all_permissions,
                 total_permissions: all_permissions.len()
@@ -500,13 +500,13 @@ mod test {
         let script = r#"{{
             let val = 130;
             let no = [1, 2, 3];
-            let obj = #{target: 1};
+            let obj = {target: 1};
 
-            #{
+            {
                 item: val,
                 ...obj,
                 name: [...no,4,5,6],
-                it: #{a: 1}
+                it: {a: 1}
             }
         }}"#;
 
