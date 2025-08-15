@@ -2,7 +2,7 @@ modules:
   - module: log
 
 steps:
-  - assert:  main == 1
+  - assert: main == 1
     then:
       - payload: main + 1
       - assert: true
