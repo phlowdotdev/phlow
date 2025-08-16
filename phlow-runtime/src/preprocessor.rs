@@ -20,9 +20,9 @@ pub fn preprocessor(
         return Err(errors);
     }
 
-    let yaml = preprocessor_modules(&phlow)?;
-    let yaml = preprocessor_auto_phs(&yaml);
+    let yaml = preprocessor_auto_phs(&phlow);
     let yaml = preprocessor_eval(&yaml);
+    let yaml = preprocessor_modules(&yaml)?;
 
     if print_phlow {
         println!("");
@@ -684,12 +684,12 @@ fn preprocessor_modules(phlow: &str) -> Result<String, Vec<String>> {
         return Ok(phlow.to_string()); // Sem módulos para transformar
     }
 
-    // Função recursiva para transformar o YAML - versão simplificada
+    // Função recursiva para transformar o YAML
     fn transform_value(
         value: &mut Value,
         available_modules: &std::collections::HashSet<String>,
         exclusive_properties: &[&str],
-        is_transformable: bool,
+        is_in_transformable_context: bool,
     ) {
         match value {
             Value::Mapping(map) => {
@@ -697,16 +697,14 @@ fn preprocessor_modules(phlow: &str) -> Result<String, Vec<String>> {
 
                 for (key, val) in map.iter() {
                     if let Some(key_str) = key.as_str() {
-                        // Determina se devemos transformar esta chave
-                        let should_transform = is_transformable 
-                            && !exclusive_properties.contains(&key_str)
-                            && available_modules.contains(key_str)
-                            // Só transforma se não tem as chaves 'use' e 'input' no mesmo nível
-                            && !map.contains_key(&Value::String("use".to_string()))
-                            && !map.contains_key(&Value::String("input".to_string()));
-                        
-                        if should_transform {
-                            transformations.push((key.clone(), val.clone()));
+                        // Só transforma se estiver em um contexto transformável (raiz de steps, then ou else)
+                        if is_in_transformable_context {
+                            // Se não é uma propriedade exclusiva e é um módulo disponível
+                            if !exclusive_properties.contains(&key_str)
+                                && available_modules.contains(key_str)
+                            {
+                                transformations.push((key.clone(), val.clone()));
+                            }
                         }
                     }
                 }
@@ -730,12 +728,8 @@ fn preprocessor_modules(phlow: &str) -> Result<String, Vec<String>> {
                     let key_str = key.as_str().unwrap_or("");
 
                     // Determina se o próximo nível será transformável
-                    // Simplifica: sempre transformável se for steps/then/else, ou se já estamos em contexto transformável
-                    let next_is_transformable = 
-                        key_str == "steps" || 
-                        key_str == "then" || 
-                        key_str == "else" ||
-                        is_transformable; // Se já transformável, continua
+                    let next_is_transformable =
+                        key_str == "steps" || key_str == "then" || key_str == "else";
 
                     transform_value(
                         val,
@@ -747,12 +741,11 @@ fn preprocessor_modules(phlow: &str) -> Result<String, Vec<String>> {
             }
             Value::Sequence(seq) => {
                 for item in seq.iter_mut() {
-                    // Items dentro de sequências mantêm o contexto transformável
                     transform_value(
                         item,
                         available_modules,
                         exclusive_properties,
-                        is_transformable, // Mantém o contexto transformável
+                        is_in_transformable_context,
                     );
                 }
             }
