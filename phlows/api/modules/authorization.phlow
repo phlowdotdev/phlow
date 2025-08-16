@@ -1,0 +1,96 @@
+with:
+  type: object
+  properties:
+    url:
+      required: true
+      type: string
+      description: The URL of the Authorization service
+
+input:
+  type: object
+  properties:
+    data:
+      type: object
+      description: Data to be defined inside the JWT
+    action:
+      required: true
+      type: enum
+      enum:
+        - create
+        - verify
+      description: Action to be performed, create or verify
+
+output:
+  type: object
+  required: true
+  properties:
+    token:
+      type: string
+      description: Generated JWT token (for create action).
+      required: false
+    expires_at:
+      type: string
+      description: Token expiration timestamp in ISO 8601 format (for create action).
+      required: false
+    issued_at:
+      type: string
+      description: Token issue timestamp in ISO 8601 format (for create action).
+      required: false
+    valid:
+      type: boolean
+      description: Whether the token is valid (for verify action).
+      required: false
+    data:
+      type: object
+      description: Decoded token data (for verify action).
+      required: false
+    error:
+      type: string
+      description: Error message if token validation fails.
+      required: false
+    expired:
+      type: boolean
+      description: Whether the token has expired (for verify action).
+      required: false
+
+modules:
+  - module: http_request
+  - module: log
+
+steps:
+  - assert: main.action == "create"
+    then:
+      - http_request:
+          url: setup.url
+          method: POST
+          body: main.data
+      - log:
+          level: debug
+          message: payload
+      - assert: payload.is_success && !is_empty(payload.response) && !is_empty(payload.response.body)
+        then:
+          return:
+            success: true
+            data: payload.response.body
+        else:
+          return:
+            success: false
+
+  - assert: main.action == "verify"
+    then:
+      - http_request:
+          url: setup.url
+          method: GET
+          headers:
+            Authorization: main.token
+      - log:
+          level: debug
+          message: payload
+      - assert: payload.response.status_code == 200
+        then:
+          return:
+            success: true
+            data: payload.response.body
+        else:
+          return:
+            success: false

@@ -1,0 +1,58 @@
+steps:
+  - assert: main.path == "/callback" && main.method == "GET"
+    then:
+      - assert: !is_empty(main.query_params.error) || !is_empty(main.query_params.error_description)
+        then:
+          return:
+            status_code: 302
+            headers:
+              Location: `${envs.FRONTEND_URI}?error=${main.query_params.error}&error_description=${main.query_params.error_description}`
+
+      - assert: !is_empty(main.query_params.code) && len(main.query_params.code) > 10
+        then:
+          - http_request:
+              method: POST
+              url: `${envs.COGNITO_DOMAIN_APP_URI}/oauth2/token`
+              headers:
+                Content-Type: application/x-www-form-urlencoded
+              body: `code=${main.query_params.code}&client_id=${envs.COGNITO_CLIENT_ID}&redirect_uri=${envs.CALLBACK_URI}&grant_type=authorization_code`
+
+          - assert: payload.response.status_code == 200
+            then:
+              - authorization:
+                  action: create
+                  data: {
+                    let payload = payload.response.body.id_token.split(".")[1].base64_to_utf8().parse();
+
+                    {
+                      username: payload["cognito:username"],
+                      email: payload.email
+                    }
+                  }
+              - assert: payload.success
+                then:
+                  return:
+                    status_code: 302
+                    headers:
+                      Location: `${envs.FRONTEND_URI}?token=${payload.data.token}`
+                else:
+                  return:
+                    status_code: 302
+                    headers:
+                      Location: `${envs.FRONTEND_URI}?error=InvalidToken&error_description=Invalid token`
+            else:
+              return:
+                status_code: 302
+                headers:
+                  Location: `${envs.FRONTEND_URI}?error=InvalidToken&error_description=Invalid token`
+
+      - return:
+          status_code: 400
+          body:
+            error: "Bad Request"
+            message: "Missing required query parameters: code, error or error_description."
+
+  - return:
+      status_code: 404
+      body:
+        error: "Not Found"

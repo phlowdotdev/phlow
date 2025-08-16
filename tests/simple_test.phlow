@@ -1,0 +1,8 @@
+steps:
+  - payload: 5
+  - payload: payload + 10
+
+tests:
+  - describe: Simple test
+    main: 1
+    assert_eq: 15

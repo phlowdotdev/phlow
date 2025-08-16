@@ -1,0 +1,17 @@
+steps:
+  - assert: main == 1
+    then:
+      - payload: main + 1
+      - assert: true
+        then:
+          steps:
+            - payload: payload + 1
+    else:
+      steps:
+        - payload: main + 2
+  - payload: payload + 10
+
+tests:
+  - describe: Complex test
+    main: 1
+    assert_eq: 13

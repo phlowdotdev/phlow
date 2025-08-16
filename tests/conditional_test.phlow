@@ -1,0 +1,12 @@
+steps:
+  - assert: main == 1
+    then:
+      - payload: main + 1
+    else:
+      - payload: main + 2
+  - payload: payload + 10
+
+tests:
+  - describe: Conditional test
+    main: 1
+    assert_eq: 12

@@ -190,9 +190,9 @@ fn preprocessor_auto_phs(phlow: &str) -> String {
         })
         .to_string();
 
-    // Padrão 5: message: valor_sem_phs (casos específicos como no teste)
-    let message_regex = regex::Regex::new(r"(?m)^(\s*)(message):\s*([^!][^\n]+)$").unwrap();
-    result = message_regex
+    // Padrão 5: Propriedades aninhadas comuns que podem ter template strings ou expressões
+    let common_properties_regex = regex::Regex::new(r"(?m)^(\s{2,})(message|url|Location|Username|Password|ClientId|target|level|body|method|X-Amz-Target|Content-Type|Authorization):[ \t]*([^!\n][^\n]+)$").unwrap();
+    result = common_properties_regex
         .replace_all(&result, |caps: &regex::Captures| {
             let indent = &caps[1];
             let property = &caps[2];
@@ -206,9 +206,10 @@ fn preprocessor_auto_phs(phlow: &str) -> String {
         })
         .to_string();
 
-    // Padrão 6: Blocos de código com chaves - pattern multi-line
+    // Padrão 6: Blocos de código com chaves - pattern multi-line  
+    // Detecta qualquer propriedade (não só input) seguida de {
     let code_block_regex =
-        regex::Regex::new(r"(?m)^(\s*)(message|payload|assert|return|input):\s*\{\s*$").unwrap();
+        regex::Regex::new(r"(?m)^(\s*)(\w+):\s*\{\s*$").unwrap();
 
     // Para blocos de código, precisamos de uma abordagem linha por linha
     let lines: Vec<&str> = result.lines().collect();
@@ -410,7 +411,12 @@ fn contains_script_operations(value: &str) -> bool {
         return true;
     }
 
-    // Template strings
+    // Template strings - detecta QUALQUER coisa entre backticks
+    if value.starts_with('`') && value.ends_with('`') {
+        return true;
+    }
+
+    // Template strings com interpolação (mantido para compatibilidade)
     if value.contains("${") {
         return true;
     }

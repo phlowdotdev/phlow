@@ -1,0 +1,30 @@
+steps:
+  - cognito:
+      target: ConfirmSignUp
+      data:
+        ClientId: envs.COGNITO_CLIENT_ID
+        Username: main.body.username
+        ConfirmationCode: main.body.confirmation_code
+
+  - assert: payload.is_success && !is_empty(payload.response)
+    then:
+      - assert: payload.response.status_code == 200
+        then:
+          return:
+            status_code: 200
+            body:
+              message: "User confirmed successfully"
+
+      - assert: payload.response.status_code == 400
+        return:
+          status_code: 400
+          body:
+            message: payload.response.body.message
+
+  - log:
+      level: error
+      message: `Error during user signup: ${payload}`
+  - return:
+      status_code: 500
+      body:
+        message: "Internal Server Error"
