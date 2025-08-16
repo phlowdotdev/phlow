@@ -127,6 +127,8 @@ fn value_to_structs(
     pipelines_raw: &Vec<Value>,
 ) -> Result<PipelineMap, TransformError> {
     let (parents, go_to_step_id) = map_parents(pipelines_raw);
+    log::info!("Parent mappings: {:?}", parents);
+    log::info!("Pipeline structure: {}", pipelines_raw.to_value().to_json(JsonMode::Indented));
     let mut pipelines = HashMap::new();
 
     for (pipeline_index, pipeline_value) in pipelines_raw.iter().enumerate() {
@@ -145,37 +147,117 @@ fn value_to_structs(
                         if let Some(go_to_step) = go_to_step_id.get(to.to_string().as_str()) {
                             new_step.insert("to".to_string(), go_to_step.to_value());
                         }
-                    } else {
-                        log::debug!(
-                            "No 'to' found for step {} in pipeline {}, last {}, total {}",
-                            step_index,
-                            pipeline_index,
-                            step_index == arr.len() - 1,
-                            arr.len()
-                        );
-                        if step.get("then").is_none()
-                            && step.get("else").is_none()
-                            && step.get("return").is_none()
-                            && step_index == arr.len() - 1
-                        {
-                            if let Some(target) = parents.get(&StepReference {
-                                pipeline: pipeline_index,
-                                step: 0,
-                            }) {
-                                log::debug!(
-                                    "Resolving 'to' for step {} in pipeline {}: {:?}",
-                                    step_index,
-                                    pipeline_index,
-                                    target
-                                );
-                                let next_step = get_next_step(&pipelines_raw, target);
-                                log::debug!(
-                                    "Next step for step {} in pipeline {}: {:?}",
-                                    step_index,
-                                    pipeline_index,
-                                    next_step
-                                );
-                                new_step.insert("to".to_string(), next_step.to_value());
+                        } else {
+                            if step.get("then").is_none()
+                                && step.get("else").is_none()
+                                && step.get("return").is_none()
+                                && step_index == arr.len() - 1
+                            {
+                                if let Some(target) = parents.get(&StepReference {
+                                    pipeline: pipeline_index,
+                                    step: 0,
+                                }) {
+                                    let next_step_ref = get_next_step(&pipelines_raw, target);
+                                    // Validate that the next step actually exists
+                                    if is_valid_step(&pipelines_raw, &next_step_ref) {
+                                        log::info!("Setting up parent return: pipeline {} → pipeline {} step {}", pipeline_index, next_step_ref.pipeline, next_step_ref.step);
+                                        new_step.insert("to".to_string(), next_step_ref.to_value());
+                                    } else {
+                                        log::warn!("Invalid next step reference: pipeline {} step {} - looking for alternative", next_step_ref.pipeline, next_step_ref.step);
+                                        // Try to find a valid continuation point
+                                        if let Some(valid_step) = find_valid_continuation(&pipelines_raw, target) {
+                                            log::info!("Found valid continuation: pipeline {} → pipeline {} step {}", pipeline_index, valid_step.pipeline, valid_step.step);
+                                            new_step.insert("to".to_string(), valid_step.to_value());
+                                        } else {
+                                            log::warn!("No valid continuation found for pipeline {}", pipeline_index);
+                                        }
+                                    }
+                                } else {
+                                // BUGFIX: Se não tem parent e não é a pipeline principal, 
+                                // esta pipeline pode ser órfã e deve retornar ao pipeline principal
+                                let main_pipeline = pipelines_raw.len() - 1;
+                                if pipeline_index != main_pipeline {
+                                    // Check if this pipeline is referenced as a then/else branch  
+                                    let mut found_parent = false;
+                                    
+                                    // Search through all pipelines to find if this one is referenced as a then/else branch
+                                    for (parent_pipeline_idx, parent_pipeline) in pipelines_raw.iter().enumerate() {
+                                        if let Value::Array(parent_steps) = parent_pipeline {
+                                            for (parent_step_idx, parent_step) in parent_steps.values.iter().enumerate() {
+                                                if let Value::Object(step_obj) = parent_step {
+                                                    // Check if this step references our pipeline as a then branch
+                                                    if let Some(then_val) = step_obj.get("then").and_then(|v| v.to_u64()) {
+                                                        if then_val as usize == pipeline_index {
+                                                            // Find the next available step in the parent pipeline
+                                                            let next_step_idx = parent_step_idx + 1;
+                                                            if next_step_idx < parent_steps.values.len() {
+                                                                let next_step = StepReference {
+                                                                    pipeline: parent_pipeline_idx,
+                                                                    step: next_step_idx,
+                                                                };
+                                                                log::info!("Setting up then branch return: pipeline {} → pipeline {} step {}", pipeline_index, next_step.pipeline, next_step.step);
+                                                                new_step.insert("to".to_string(), next_step.to_value());
+                                                                found_parent = true;
+                                                                break;
+                                                            } else {
+                                                                // No more steps in parent pipeline, need to find its parent
+                                                                log::info!("Then branch pipeline {} has no next step in parent pipeline {}", pipeline_index, parent_pipeline_idx);
+                                                                // For now, let's see if this parent pipeline has a parent
+                                                                if let Some(parent_target) = parents.get(&StepReference { pipeline: parent_pipeline_idx, step: 0 }) {
+                                                                    let next_step = get_next_step(&pipelines_raw, parent_target);
+                                                                    log::info!("Setting up then branch return via grandparent: pipeline {} → pipeline {} step {}", pipeline_index, next_step.pipeline, next_step.step);
+                                                                    new_step.insert("to".to_string(), next_step.to_value());
+                                                                    found_parent = true;
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    // Check if this step references our pipeline as an else branch
+                                                    if let Some(else_val) = step_obj.get("else").and_then(|v| v.to_u64()) {
+                                                        if else_val as usize == pipeline_index {
+                                                            // Find the next available step in the parent pipeline
+                                                            let next_step_idx = parent_step_idx + 1;
+                                                            if next_step_idx < parent_steps.values.len() {
+                                                                let next_step = StepReference {
+                                                                    pipeline: parent_pipeline_idx,
+                                                                    step: next_step_idx,
+                                                                };
+                                                                log::info!("Setting up else branch return: pipeline {} → pipeline {} step {}", pipeline_index, next_step.pipeline, next_step.step);
+                                                                new_step.insert("to".to_string(), next_step.to_value());
+                                                                found_parent = true;
+                                                                break;
+                                                            } else {
+                                                                // No more steps in parent pipeline, need to find its parent
+                                                                log::info!("Else branch pipeline {} has no next step in parent pipeline {}", pipeline_index, parent_pipeline_idx);
+                                                                // For now, let's see if this parent pipeline has a parent
+                                                                if let Some(parent_target) = parents.get(&StepReference { pipeline: parent_pipeline_idx, step: 0 }) {
+                                                                    let next_step = get_next_step(&pipelines_raw, parent_target);
+                                                                    log::info!("Setting up else branch return via grandparent: pipeline {} → pipeline {} step {}", pipeline_index, next_step.pipeline, next_step.step);
+                                                                    new_step.insert("to".to_string(), next_step.to_value());
+                                                                    found_parent = true;
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            if found_parent { break; }
+                                        }
+                                    }
+                                    
+                                    if !found_parent {
+                                        // Esta é uma sub-pipeline órfã - deve retornar ao pipeline principal
+                                        // Return to the next step after the first step (which is the assert/conditional)
+                                        let next_step = StepReference {
+                                            pipeline: main_pipeline,
+                                            step: 1,  // Continue from step 1 in main pipeline
+                                        };
+                                        log::info!("Setting up orphan pipeline return: pipeline {} → pipeline {} step {}", pipeline_index, next_step.pipeline, next_step.step);
+                                        new_step.insert("to".to_string(), next_step.to_value());
+                                    }
+                                }
                             }
                         }
                     }
@@ -207,6 +289,54 @@ fn value_to_structs(
     Ok(pipelines)
 }
 
+/// Function to check if a step reference is valid
+fn is_valid_step(pipelines: &Vec<Value>, step_ref: &StepReference) -> bool {
+    if step_ref.pipeline >= pipelines.len() {
+        return false;
+    }
+    
+    if let Value::Array(arr) = &pipelines[step_ref.pipeline] {
+        return step_ref.step < arr.len();
+    }
+    
+    false
+}
+
+/// Function to find a valid continuation point when the direct next step is invalid
+fn find_valid_continuation(pipelines: &Vec<Value>, target: &StepReference) -> Option<StepReference> {
+    let main_pipeline = pipelines.len() - 1;
+    
+    // If we're looking for continuation and the target is in the main pipeline,
+    // we should go to the main pipeline's next available step
+    if target.pipeline == main_pipeline {
+        // Try the next step in main pipeline
+        let next_step_ref = StepReference {
+            pipeline: main_pipeline,
+            step: target.step + 1,
+        };
+        
+        if is_valid_step(pipelines, &next_step_ref) {
+            return Some(next_step_ref);
+        } else {
+            // No more steps in main pipeline - execution should end
+            return None;
+        }
+    }
+    
+    // For non-main pipelines, try to continue from the main pipeline
+    // starting from the step after the conditional
+    let main_continuation = StepReference {
+        pipeline: main_pipeline,
+        step: 1, // Step after the conditional
+    };
+    
+    if is_valid_step(pipelines, &main_continuation) {
+        return Some(main_continuation);
+    }
+    
+    None
+}
+
 /// Function to get the next step
 /// This function takes a vector of pipelines and a target step reference.
 fn get_next_step(pipelines: &Vec<Value>, target: &StepReference) -> StepReference {
@@ -217,9 +347,14 @@ fn get_next_step(pipelines: &Vec<Value>, target: &StepReference) -> StepReferenc
                 pipeline: target.pipeline,
                 step: next_step_index,
             };
+        } else {
+            // No more steps in this pipeline, need to find where to go next
+            // This should handle end-of-pipeline scenarios more gracefully
+            log::warn!("get_next_step: No next step found for pipeline {} step {}", target.pipeline, target.step);
         }
     }
 
+    // Fallback - should not reach here in normal execution
     return StepReference {
         pipeline: target.pipeline,
         step: target.step + 1,

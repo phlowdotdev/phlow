@@ -1,0 +1,40 @@
+modules:
+  - module: log
+
+steps:
+  - assert: main == 1
+    then:
+      - payload: main + 1
+      - assert: true
+        then:
+          log:
+            message:  main + 1
+      - assert: true
+        then:
+          !include inner.phlow
+    else:
+      !include inner.phlow
+  - payload: payload + 10
+  - payload: payload + 1
+  - log:
+      level: error
+      message: {
+        let val = payload * 10;
+        let no = [1, 2, 3];
+        let obj = {target: 1};
+
+        {
+            item: val,
+            ...obj,
+            name: [...no,4,5,6],
+            it: {a: 1, b: [2, ...no, ...obj]}
+        }
+      }
+
+tests:
+  - describe: Test
+    main: 1
+    assert_eq: 13
+  - describe: Test
+    main: 2
+    assert_eq: 14
