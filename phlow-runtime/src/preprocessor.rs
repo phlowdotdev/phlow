@@ -20,9 +20,9 @@ pub fn preprocessor(
         return Err(errors);
     }
 
-    let yaml = preprocessor_auto_phs(&phlow);
+    let yaml = preprocessor_modules(&phlow)?;
+    let yaml = preprocessor_auto_phs(&yaml);
     let yaml = preprocessor_eval(&yaml);
-    let yaml = preprocessor_modules(&yaml)?;
 
     if print_phlow {
         println!("");
@@ -190,9 +190,9 @@ fn preprocessor_auto_phs(phlow: &str) -> String {
         })
         .to_string();
 
-    // Padrão 5: message: valor_sem_phs (casos específicos como no teste)
-    let message_regex = regex::Regex::new(r"(?m)^(\s*)(message):\s*([^!][^\n]+)$").unwrap();
-    result = message_regex
+    // Padrão 5: Propriedades aninhadas comuns que podem ter template strings ou expressões
+    let common_properties_regex = regex::Regex::new(r"(?m)^(\s{2,})(message|url|Location|Username|Password|ClientId|target|level|body|method|X-Amz-Target|Content-Type|Authorization):[ \t]*([^!\n][^\n]+)$").unwrap();
+    result = common_properties_regex
         .replace_all(&result, |caps: &regex::Captures| {
             let indent = &caps[1];
             let property = &caps[2];
@@ -206,9 +206,10 @@ fn preprocessor_auto_phs(phlow: &str) -> String {
         })
         .to_string();
 
-    // Padrão 6: Blocos de código com chaves - pattern multi-line
+    // Padrão 6: Blocos de código com chaves - pattern multi-line  
+    // Detecta qualquer propriedade (não só input) seguida de {
     let code_block_regex =
-        regex::Regex::new(r"(?m)^(\s*)(message|payload|assert|return|input):\s*\{\s*$").unwrap();
+        regex::Regex::new(r"(?m)^(\s*)(\w+):\s*\{\s*$").unwrap();
 
     // Para blocos de código, precisamos de uma abordagem linha por linha
     let lines: Vec<&str> = result.lines().collect();
@@ -410,7 +411,12 @@ fn contains_script_operations(value: &str) -> bool {
         return true;
     }
 
-    // Template strings
+    // Template strings - detecta QUALQUER coisa entre backticks
+    if value.starts_with('`') && value.ends_with('`') {
+        return true;
+    }
+
+    // Template strings com interpolação (mantido para compatibilidade)
     if value.contains("${") {
         return true;
     }
@@ -678,12 +684,12 @@ fn preprocessor_modules(phlow: &str) -> Result<String, Vec<String>> {
         return Ok(phlow.to_string()); // Sem módulos para transformar
     }
 
-    // Função recursiva para transformar o YAML
+    // Função recursiva para transformar o YAML - versão simplificada
     fn transform_value(
         value: &mut Value,
         available_modules: &std::collections::HashSet<String>,
         exclusive_properties: &[&str],
-        is_in_transformable_context: bool,
+        is_transformable: bool,
     ) {
         match value {
             Value::Mapping(map) => {
@@ -691,14 +697,16 @@ fn preprocessor_modules(phlow: &str) -> Result<String, Vec<String>> {
 
                 for (key, val) in map.iter() {
                     if let Some(key_str) = key.as_str() {
-                        // Só transforma se estiver em um contexto transformável (raiz de steps, then ou else)
-                        if is_in_transformable_context {
-                            // Se não é uma propriedade exclusiva e é um módulo disponível
-                            if !exclusive_properties.contains(&key_str)
-                                && available_modules.contains(key_str)
-                            {
-                                transformations.push((key.clone(), val.clone()));
-                            }
+                        // Determina se devemos transformar esta chave
+                        let should_transform = is_transformable 
+                            && !exclusive_properties.contains(&key_str)
+                            && available_modules.contains(key_str)
+                            // Só transforma se não tem as chaves 'use' e 'input' no mesmo nível
+                            && !map.contains_key(&Value::String("use".to_string()))
+                            && !map.contains_key(&Value::String("input".to_string()));
+                        
+                        if should_transform {
+                            transformations.push((key.clone(), val.clone()));
                         }
                     }
                 }
@@ -722,8 +730,12 @@ fn preprocessor_modules(phlow: &str) -> Result<String, Vec<String>> {
                     let key_str = key.as_str().unwrap_or("");
 
                     // Determina se o próximo nível será transformável
-                    let next_is_transformable =
-                        key_str == "steps" || key_str == "then" || key_str == "else";
+                    // Simplifica: sempre transformável se for steps/then/else, ou se já estamos em contexto transformável
+                    let next_is_transformable = 
+                        key_str == "steps" || 
+                        key_str == "then" || 
+                        key_str == "else" ||
+                        is_transformable; // Se já transformável, continua
 
                     transform_value(
                         val,
@@ -735,11 +747,12 @@ fn preprocessor_modules(phlow: &str) -> Result<String, Vec<String>> {
             }
             Value::Sequence(seq) => {
                 for item in seq.iter_mut() {
+                    // Items dentro de sequências mantêm o contexto transformável
                     transform_value(
                         item,
                         available_modules,
                         exclusive_properties,
-                        is_in_transformable_context,
+                        is_transformable, // Mantém o contexto transformável
                     );
                 }
             }
