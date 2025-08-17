@@ -79,7 +79,7 @@ impl Phlow {
         let mut current_step = 0;
 
         loop {
-            log::info!(
+            log::debug!(
                 "Executing pipeline {} step {}",
                 current_pipeline,
                 current_step
@@ -92,38 +92,42 @@ impl Phlow {
             match pipeline.execute(context, current_step).await {
                 Ok(step_output) => match step_output {
                     Some(step_output) => {
-                        log::info!("Next step decision: {:?}, payload: {:?}", step_output.next_step, step_output.output);
+                        log::debug!(
+                            "Next step decision: {:?}, payload: {:?}",
+                            step_output.next_step,
+                            step_output.output
+                        );
                         match step_output.next_step {
-                        NextStep::Stop => {
-                            log::info!("NextStep::Stop - terminating execution");
-                            return Ok(step_output.output);
-                        }
-                        NextStep::Next => {
-                            log::info!("NextStep::Next - checking if sub-pipeline needs to return to parent");
-                            // Check if this is the main pipeline (highest index)
-                            let main_pipeline = self.pipelines.len() - 1;
-                            if current_pipeline == main_pipeline {
-                                log::info!("NextStep::Next - terminating execution (main pipeline completed)");
-                                return Ok(step_output.output);
-                            } else {
-                                log::info!("NextStep::Next - sub-pipeline completed, checking for parent return");
-                                // This is a sub-pipeline that completed - we should return to parent
-                                // For now, terminate execution but this needs proper parent tracking
+                            NextStep::Stop => {
+                                log::debug!("NextStep::Stop - terminating execution");
                                 return Ok(step_output.output);
                             }
-                        }
-                        NextStep::Pipeline(id) => {
-                            log::info!("NextStep::Pipeline({}) - jumping to pipeline", id);
-                            current_pipeline = id;
-                            current_step = 0;
-                        }
-                        NextStep::GoToStep(to) => {
-                            log::info!("NextStep::GoToStep({:?}) - jumping to step", to);
-                            current_pipeline = to.pipeline;
-                            current_step = to.step;
+                            NextStep::Next => {
+                                log::debug!("NextStep::Next - checking if sub-pipeline needs to return to parent");
+                                // Check if this is the main pipeline (highest index)
+                                let main_pipeline = self.pipelines.len() - 1;
+                                if current_pipeline == main_pipeline {
+                                    log::debug!("NextStep::Next - terminating execution (main pipeline completed)");
+                                    return Ok(step_output.output);
+                                } else {
+                                    log::debug!("NextStep::Next - sub-pipeline completed, checking for parent return");
+                                    // This is a sub-pipeline that completed - we should return to parent
+                                    // For now, terminate execution but this needs proper parent tracking
+                                    return Ok(step_output.output);
+                                }
+                            }
+                            NextStep::Pipeline(id) => {
+                                log::debug!("NextStep::Pipeline({}) - jumping to pipeline", id);
+                                current_pipeline = id;
+                                current_step = 0;
+                            }
+                            NextStep::GoToStep(to) => {
+                                log::debug!("NextStep::GoToStep({:?}) - jumping to step", to);
+                                current_pipeline = to.pipeline;
+                                current_step = to.step;
+                            }
                         }
                     }
-                    },
                     None => {
                         return Ok(None);
                     }
