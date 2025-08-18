@@ -52,7 +52,7 @@ fn preprocessor_directives(phlow: &str, base_path: &Path) -> (String, Vec<String
         Err(_) => return (phlow.to_string(), errors),
     };
 
-    let with_block_includes = include_block_regex.replace_all(phlow, |caps: &regex::Captures| {
+    let with_block_includes = include_block_regex.replace_all(&phlow, |caps: &regex::Captures| {
         let indent = &caps[1];
         let rel_path = &caps[2];
         let args_str = caps.get(3).map(|m| m.as_str()).unwrap_or("").trim();
@@ -129,9 +129,9 @@ fn preprocessor_auto_phs(phlow: &str) -> String {
     for i in 0..lines.len() {
         let line = lines[i];
 
-        // Regex para capturar assert, payload, return que NÃO começam com !
+        // Regex para capturar propriedades que podem conter expressões
         if let Some(caps) =
-            regex::Regex::new(r"^(\s*-?\s*)(assert|payload|return|assert_eq):\s*([^!][^\n].*)$")
+            regex::Regex::new(r"^(\s*-?\s*)(assert|payload|return|assert_eq|input|data|Location|url|body|message|level|X-Amz-Target|Authorization|Content-Type):\s*(.+)$")
                 .unwrap()
                 .captures(line)
         {
@@ -139,14 +139,21 @@ fn preprocessor_auto_phs(phlow: &str) -> String {
             let property = &caps[2];
             let value = caps[3].trim();
 
-            // Verifica se o valor é primitivo
-            let is_primitive = value == "true"
-                || value == "false"
-                || value.parse::<i64>().is_ok()
-                || value.parse::<f64>().is_ok()
-                || (value.starts_with('"') && value.ends_with('"'))
-                || value.starts_with("!phs")
-                || !(value.starts_with("!")
+            // Verifica se o valor precisa de !phs
+            let needs_phs = !value.starts_with("!phs")  // Não processar se já tem !phs
+                && !(value == "true"
+                    || value == "false"
+                    || value.parse::<i64>().is_ok()
+                    || value.parse::<f64>().is_ok()
+                    || (value.starts_with('"') && value.ends_with('"'))
+                    || value.starts_with("file://")
+                    || value.starts_with("postgre://")
+                    || value.starts_with("http://")
+                    || value.starts_with("https://")
+                    || value.starts_with("ftp://")
+                    || value.starts_with("ws://")
+                    || value.starts_with("wss://"))
+                && (value.starts_with("!")
                     || (value.starts_with('`') && value.ends_with('`'))
                     || value.contains("{")
                     || value.contains("(")
@@ -179,12 +186,12 @@ fn preprocessor_auto_phs(phlow: &str) -> String {
                     || value.contains("!")
                     || value.contains("&"));
 
-            if is_primitive {
-                // É um objeto ou primitivo, mantém como está
-                result_lines.push(line.to_string());
-            } else {
-                // Não é um objeto nem primitivo, adiciona !phs
+            if needs_phs {
+                // Precisa de !phs, adiciona
                 result_lines.push(format!("{}{}: !phs {}", indent, property, value));
+            } else {
+                // Não precisa de !phs, mantém como está
+                result_lines.push(line.to_string());
             }
         } else {
             // Não é uma linha que precisa ser processada
@@ -202,7 +209,11 @@ fn preprocessor_eval(phlow: &str) -> String {
     while let Some(line) = lines.next() {
         if let Some(pos) = line.find("!phs") {
             let before_eval = &line[..pos];
-            let after_eval = line[pos + 5..].trim();
+            let after_eval = if line.len() > pos + 4 {
+                line[pos + 4..].trim()
+            } else {
+                ""
+            };
             let indent = " ".repeat(pos);
 
             if after_eval.starts_with("```") {
@@ -282,26 +293,40 @@ fn preprocessor_eval(phlow: &str) -> String {
                     .collect::<Vec<_>>()
                     .join(" ");
 
+                // Escape apenas aspas duplas
                 let escaped = single_line.replace('"', "\\\"");
 
                 if before_eval.trim().is_empty() {
-                    result.push_str(&format!("{}\"{{{{ {{  {} }} }}}}\"\n", indent, escaped));
+                    result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", indent, escaped));
                 } else {
-                    result.push_str(&format!(
-                        "{}\"{{{{ {{  {} }} }}}}\"\n",
-                        before_eval, escaped
-                    ));
+                    result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", before_eval, escaped));
                 }
+            } else if after_eval.starts_with('`') && after_eval.ends_with('`') {
+                // Template string com crases - converte para sintaxe de template string
+                let inner_content = &after_eval[1..after_eval.len() - 1];
+                let escaped = inner_content.replace('"', "\\\"");
+                result.push_str(&format!("{}\"{{{{ `{}` }}}}\"\n", before_eval, escaped));
             } else if !after_eval.is_empty() {
                 let escaped = after_eval.replace('"', "\\\"");
                 result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", before_eval, escaped));
             } else {
                 // Bloco indentado
                 let mut block_lines = vec![];
+                let current_line_indent = line.chars().take_while(|c| c.is_whitespace()).count();
+
                 while let Some(&next_line) = lines.peek() {
                     let line_indent = next_line.chars().take_while(|c| c.is_whitespace()).count();
-                    if next_line.trim().is_empty() || line_indent > pos {
-                        block_lines.push(next_line[pos + 1..].trim().to_string());
+
+                    if next_line.trim().is_empty() {
+                        // Pula linhas vazias sem adicionar conteúdo
+                        lines.next();
+                        continue;
+                    } else if line_indent > current_line_indent {
+                        // Esta linha é mais indentada que a linha do !phs, então faz parte do bloco
+                        let content = next_line.trim().to_string();
+                        if !content.is_empty() {
+                            block_lines.push(content);
+                        }
                         lines.next();
                     } else {
                         break;
@@ -311,7 +336,17 @@ fn preprocessor_eval(phlow: &str) -> String {
                 let single_line = block_lines.join(" ");
                 let escaped = single_line.replace('"', "\\\"");
 
-                result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", indent, escaped));
+                // Só adiciona se houver conteúdo válido
+                if !escaped.trim().is_empty() {
+                    if before_eval.trim().is_empty() {
+                        result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", indent, escaped));
+                    } else {
+                        result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", before_eval, escaped));
+                    }
+                } else {
+                    // Se não há conteúdo válido, apenas preserva a linha original sem processamento
+                    result.push_str(&format!("{}\n", line));
+                }
             }
         } else {
             result.push_str(line);
@@ -393,8 +428,13 @@ fn process_include_file(path: &Path, args: &HashMap<String, String>) -> Result<S
     }
 
     let parent = path.parent().unwrap_or_else(|| Path::new("."));
-    let transformed =
-        preprocessor(&with_args, parent, false).map_err(|errors| errors.join("; "))?;
+    // Para arquivos incluídos, só aplicamos preprocessor_directives para processar outros !include
+    // mas não aplicamos modules, auto_phs e eval pois isso será feito no arquivo principal
+    let (transformed, errors) = preprocessor_directives(&with_args, parent);
+
+    if !errors.is_empty() {
+        return Err(errors.join("; "));
+    }
 
     Ok(transformed)
 }
@@ -407,6 +447,7 @@ fn preprocessor_modules(phlow: &str) -> Result<String, Vec<String>> {
         "id",
         "label",
         "assert",
+        "assert_eq",
         "condition",
         "return",
         "payload",
@@ -416,8 +457,11 @@ fn preprocessor_modules(phlow: &str) -> Result<String, Vec<String>> {
         "steps",
     ];
 
+    // Pre-processa o YAML para escapar valores que começam com ! para evitar problemas de parsing
+    let escaped_phlow = escape_yaml_exclamation_values(phlow);
+
     // Parse o YAML para extrair módulos disponíveis
-    let parsed: Value = match serde_yaml::from_str(phlow) {
+    let parsed: Value = match serde_yaml::from_str(&escaped_phlow) {
         Ok(val) => val,
         Err(_) => return Ok(phlow.to_string()), // Se não conseguir parsear, retorna o original
     };
@@ -524,8 +568,8 @@ fn preprocessor_modules(phlow: &str) -> Result<String, Vec<String>> {
         }
     }
 
-    // Parse novamente para modificar
-    let mut parsed_mut: Value = match serde_yaml::from_str(phlow) {
+    // Parse novamente para modificar, usando o YAML escapado
+    let mut parsed_mut: Value = match serde_yaml::from_str(&escaped_phlow) {
         Ok(val) => val,
         Err(_) => return Ok(phlow.to_string()),
     };
@@ -537,11 +581,61 @@ fn preprocessor_modules(phlow: &str) -> Result<String, Vec<String>> {
         false, // Começa como false, só será true dentro de steps, then ou else
     );
 
-    // Converte de volta para YAML
+    // Converte de volta para YAML e desfaz o escape
     match serde_yaml::to_string(&parsed_mut) {
-        Ok(result) => Ok(result),
+        Ok(result) => {
+            eprintln!("YAML AFTER SERIALIZATION:\n{}", result);
+            let final_result = unescape_yaml_exclamation_values(&result);
+            eprintln!("FINAL RESULT AFTER UNESCAPE:\n{}", final_result);
+            Ok(final_result)
+        }
         Err(_) => Ok(phlow.to_string()),
     }
+}
+
+// Função para escapar valores que começam com ! para evitar interpretação como tags YAML
+fn escape_yaml_exclamation_values(yaml: &str) -> String {
+    let regex = match Regex::new(r"((?::\s*|-\s+\w+:\s*))(!\w.*?)\s*$") {
+        Ok(re) => re,
+        Err(_) => return yaml.to_string(),
+    };
+
+    let result = regex
+        .replace_all(yaml, |caps: &regex::Captures| {
+            let prefix = &caps[1];
+            let exclamation_value = &caps[2];
+            eprintln!(
+                "ESCAPING: '{}' -> '{} \"__PHLOW_ESCAPE__{}\"",
+                caps.get(0).unwrap().as_str(),
+                prefix,
+                exclamation_value
+            );
+            format!(r#"{} "__PHLOW_ESCAPE__{}""#, prefix, exclamation_value)
+        })
+        .to_string();
+
+    result
+}
+
+// Função para desfazer o escape dos valores com !
+fn unescape_yaml_exclamation_values(yaml: &str) -> String {
+    let regex = match Regex::new(r"__PHLOW_ESCAPE__(!\w[^\s]*)") {
+        Ok(re) => re,
+        Err(_) => return yaml.to_string(),
+    };
+
+    let result = regex
+        .replace_all(yaml, |caps: &regex::Captures| {
+            let exclamation_value = &caps[1];
+            eprintln!(
+                "UNESCAPING: '__PHLOW_ESCAPE__{}' -> '{}'",
+                exclamation_value, exclamation_value
+            );
+            exclamation_value.to_string()
+        })
+        .to_string();
+
+    result
 }
 
 #[cfg(test)]
