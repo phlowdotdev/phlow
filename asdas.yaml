@@ -1,0 +1,690 @@
+main: http_server
+modules:
+  - module: http_server
+    version: latest
+    with:
+      port: 3001
+      openapi_spec:
+        openapi: 3.1.0
+        info:
+          title: Auth API
+          description: Authentication API using AWS Cognito
+          version: 1.0.0
+        servers:
+          - url: http://localhost:3001
+            description: Development server
+        
+        paths:
+          /signup/login:
+            post:
+              summary: Sign up with username and password
+              description: Creates a new user account using username and password
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      required:
+                        - username
+                        - password
+                        - type
+                      properties:
+                        username:
+                          type: string
+                          description: User's username or email address
+                        password:
+                          type: string
+                          format: password
+                          description: User's password
+                        type:
+                          type: string
+                          description: Type of identifier (e.g. email, phone_number)
+                          example: "email"
+              responses:
+                '201':
+                  description: User successfully created
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: "User created successfully"
+                          code_delivery:
+                            type: object
+                            properties:
+                              type:
+                                type: string
+                                description: The medium through which the confirmation code was sent (lowercase)
+                                example: "email"
+                              destination:
+                                type: string
+                                description: The destination where the code was sent (lowercase, partially masked)
+                                example: "j***@e***"
+                          user_confirmed:
+                            type: boolean
+                            description: Whether the user is already confirmed or needs confirmation
+                '400':
+                  description: Invalid input data
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            description: Error message from Cognito
+                '500':
+                  description: HTTP request error or unexpected server error
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: "Internal Server Error"
+        
+          /signup/social/{provider}:
+            get:
+              summary: Redirects to OAuth registration flow
+              description: Redirects the user to the selected identity provider registration page
+              parameters:
+                - in: path
+                  name: provider
+                  required: true
+                  schema:
+                    type: string
+                  description: Identity provider name (e.g. google, microsoft)
+              responses:
+                '302':
+                  description: Redirect to Cognito OAuth flow
+                  headers:
+                    Location:
+                      schema:
+                        type: string
+                      description: Cognito OAuth authorize URL with provider, redirect URI, client ID and scopes (openid, email, profile)
+                      example: "https://domain.com/oauth2/authorize?identity_provider=Google&redirect_uri=http%3A//localhost%3A3001/callback&response_type=code&client_id=client123&scope=openid+email+profile"
+                '400':
+                  description: Invalid or missing provider
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: "Invalid provider"
+        
+          /forgot:
+            post:
+              summary: Initiate password reset
+              description: Initiates the password reset process by sending a confirmation code to the user
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      required:
+                        - username
+                      properties:
+                        username:
+                          type: string
+                          description: User's username or email
+              responses:
+                '200':
+                  description: Reset code sent successfully
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          delivery_medium:
+                            type: string
+                            description: The medium used to send the code (e.g. email, sms)
+                            example: "email"
+                          destination:
+                            type: string
+                            description: The masked destination where the code was sent
+                            example: "j***@e***"
+                '400':
+                  description: Invalid username or user not found
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            description: Error message from Cognito
+                '500':
+                  description: Internal server error
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: "Internal Server Error"
+        
+          /forgot/confirm:
+            post:
+              summary: Confirm password reset
+              description: Confirms the password reset using the confirmation code and sets the new password
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      required:
+                        - username
+                        - confirmation_code
+                        - password
+                      properties:
+                        username:
+                          type: string
+                          description: User's username or email
+                        confirmation_code:
+                          type: string
+                          description: The confirmation code sent to the user
+                        password:
+                          type: string
+                          format: password
+                          description: The new password to set
+              responses:
+                '200':
+                  description: Password successfully reset
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: "Password reset successfully"
+                '400':
+                  description: Invalid code or password requirements not met
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            description: Error message from Cognito
+                '500':
+                  description: Internal server error
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: "Internal Server Error"
+        
+          /signin:
+            post:
+              summary: User authentication
+              description: Authenticates user using credentials via AWS Cognito using USER_PASSWORD_AUTH flow
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      required:
+                        - username
+                        - password
+                      properties:
+                        username:
+                          type: string
+                          description: User's username or email
+                        password:
+                          type: string
+                          format: password
+                          description: User's password
+              responses:
+                '200':
+                  description: Successful login
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          token:
+                            type: string
+                            description: Access token from Cognito
+                          token_type:
+                            type: string
+                            description: Type of the token (e.g. Bearer)
+                '400':
+                  description: Invalid credentials or user not found
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            description: Error message from Cognito
+                '500':
+                  description: Internal server error
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: "Internal Server Error"
+        
+          /confirm:
+            post:
+              summary: Confirm user signup
+              description: Confirms a user's registration using the confirmation code sent to their destination (e.g., email, SMS or other)
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      required:
+                        - username
+                        - confirmation_code
+                      properties:
+                        username:
+                          type: string
+                          description: The username of the user to confirm
+                        confirmation_code:
+                          type: string
+                          description: Confirmation code sent to the user
+              responses:
+                '200':
+                  description: User confirmed successfully
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: "User confirmed successfully"
+                '400':
+                  description: Invalid confirmation code or email
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            description: Error message from Cognito
+                '500':
+                  description: Internal server error
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: "Internal Server Error"
+        
+        
+          /callback:
+            get:
+              summary: OAuth flow callback
+              description: Callback endpoint to process OAuth flow return
+              parameters:
+                - in: query
+                  name: code
+                  schema:
+                    type: string
+                  description: Authorization code returned by OAuth provider
+                - in: query
+                  name: error
+                  schema:
+                    type: string
+                  description: Error returned by OAuth provider (if any)
+                - in: query
+                  name: error_description
+                  schema:
+                    type: string
+                  description: Description of the returned error (if any)
+              responses:
+                '302':
+                  description: Redirect after callback processing
+                  headers:
+                    Location:
+                      schema:
+                        type: string
+                      description: Redirect URL with token or error
+                '400':
+                  description: Invalid request
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+        
+        components:
+          schemas:
+            ErrorResponse:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: Error message
+              required:
+                - message
+            
+            SuccessResponse:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: Success message
+              required:
+                - message
+        
+          securitySchemes:
+            BearerAuth:
+              type: http
+              scheme: bearer
+              bearerFormat: JWT
+              description: JWT Token issued by AWS Cognito
+      cors:
+        origins:
+          - "http://localhost:5173"
+          - "http://localhost:5174"
+          - "http://localhost:5175"
+          - "https://myapp.com"
+        methods:
+          - "*"
+        headers:
+          - "*"
+        credentials: true
+        max_age: 86400
+  - module: http_request
+    version: latest
+  - module: log
+  - module: ./modules/authorization
+    with:
+      url: envs.AUTHORIZATION_URI
+  - module: ./modules/cognito
+    with:
+      url: envs.COGNITO_DOMAIN_API_URI
+
+steps:
+  - assert: "{{ main.path == \"/callback\" && main.method == \"GET\" }}"
+    then:
+      steps:
+        - assert: "{{ main.path == \"/callback\" && main.method == \"GET\" }}"
+          then:
+            - assert: "{{ !is_empty(main.query_params.error) || !is_empty(main.query_params.error_description) }}"
+              then:
+                return:
+                  status_code: 302
+                  headers:
+                    Location: `${envs.FRONTEND_URI}?error=${main.query_params.error}&error_description=${main.query_params.error_description}`
+      
+            - assert: "{{ !is_empty(main.query_params.code) && len(main.query_params.code) > 10 }}"
+              then:
+                - http_request:
+                    method: POST
+                    url: `${envs.COGNITO_DOMAIN_APP_URI}/oauth2/token`
+                    headers:
+                      Content-Type: application/x-www-form-urlencoded
+                    body: `code=${main.query_params.code}&client_id=${envs.COGNITO_CLIENT_ID}&redirect_uri=${envs.CALLBACK_URI}&grant_type=authorization_code`
+      
+                - assert: "{{ payload.response.status_code == 200 }}"
+                  then:
+                    - authorization:
+                        action: create
+                        data: {
+                          let payload = payload.response.body.id_token.split(".")[1].base64_to_utf8().parse();
+      
+                          {
+                            username: payload["cognito:username"],
+                            email: payload.email
+                          }
+                        }
+                    - assert: "{{ payload.success }}"
+                      then:
+                        return:
+                          status_code: 302
+                          headers:
+                            Location: `${envs.FRONTEND_URI}?token=${payload.data.token}`
+                      else:
+                        return:
+                          status_code: 302
+                          headers:
+                            Location: `${envs.FRONTEND_URI}?error="InvalidToken"&error_description="Invalid token"`
+                  else:
+                    return:
+                      status_code: 302
+                      headers:
+                        Location: `${envs.FRONTEND_URI}?error="InvalidToken"&error_description="Invalid token"`
+      
+            - return:
+                status_code: 400
+                body:
+                  error: "Bad Request"
+                  message: "Missing required query parameters: code, error or error_description."
+      
+        - return:
+            status_code: 404
+            body:
+              error: "Not Found"
+
+  - assert: "{{ main.path == \"/signup/social/{provider}\" && main.method == \"GET\" }}"
+    then:
+      steps:
+        - assert: "{{ !is_empty(main.path_params.provider) }}"
+          payload:
+            provider_name: main.path_params.provider.capitalize()
+          then:
+            return:
+              status_code: 302
+              headers:
+                Location: `${envs.COGNITO_DOMAIN_APP_URI}/oauth2/authorize?identity_provider=${payload.provider_name}&redirect_uri=${envs.CALLBACK_URI_ENCODED}&response_type=code&client_id=${envs.COGNITO_CLIENT_ID}&scope=openid+email+profile`
+      
+        - return:
+            status_code: 400
+            body:
+              message: "Invalid provider"
+
+  - assert: "{{ main.path == \"/signup/login\" && main.method == \"POST\" }}"
+    then:
+      steps:
+        - cognito:
+            target: SignUp
+            data:
+              ClientId: envs.COGNITO_CLIENT_ID
+              Username: main.body.username
+              Password: main.body.password
+              UserAttributes:
+                - Name: main.body.type
+                  Value: main.body.username
+      
+        - assert: "{{ payload.is_success && !is_empty(payload.response) }}"
+          then:
+            - assert: "{{ payload.response.status_code == 200 }}"
+              then:
+                return:
+                  status_code: 201
+                  body:
+                    message: "User created successfully"
+                    code_delivery:
+                      type: to_lower(payload.response.body.CodeDeliveryDetails.DeliveryMedium)
+                      destination: to_lower(payload.response.body.CodeDeliveryDetails.Destination)
+                    user_confirmed: payload.response.body.UserConfirmed
+      
+            - assert: "{{ payload.response.status_code == 400 }}"
+              return:
+                status_code: 400
+                body:
+                  message: payload.response.body.message
+      
+        - log:
+            level: error
+            message: `Error during user signup: ${payload}`
+        - return:
+            status_code: 500
+            body:
+              message: "Internal Server Error"
+
+  - assert: "{{ main.path == \"/confirm\" && main.method == \"POST\" }}"
+    then:
+      steps:
+        - cognito:
+            target: ConfirmSignUp
+            data:
+              ClientId: envs.COGNITO_CLIENT_ID
+              Username: main.body.username
+              ConfirmationCode: main.body.confirmation_code
+      
+        - assert: "{{ payload.is_success && !is_empty(payload.response) }}"
+          then:
+            - assert: "{{ payload.response.status_code == 200 }}"
+              then:
+                return:
+                  status_code: 200
+                  body:
+                    message: "User confirmed successfully"
+      
+            - assert: "{{ payload.response.status_code == 400 }}"
+              return:
+                status_code: 400
+                body:
+                  message: payload.response.body.message
+      
+        - log:
+            level: error
+            message: `Error during user signup: ${payload}`
+        - return:
+            status_code: 500
+            body:
+              message: "Internal Server Error"
+
+  - assert: "{{ main.path == \"/signin\" && main.method == \"POST\" }}"
+    then:
+      steps:
+        - cognito:
+            target: InitiateAuth
+            data:
+              ClientId: envs.COGNITO_CLIENT_ID
+              AuthFlow: "USER_PASSWORD_AUTH"
+              AuthParameters:
+                USERNAME: main.body.username
+                PASSWORD: main.body.password
+      
+        - assert: "{{ payload.is_success && !is_empty(payload.response) }}"
+          then:
+            - assert: "{{ payload.response.status_code == 200 }}"
+              then:
+                - authorization:
+                    action: create
+                    data:
+                      username: main.body.username
+                      email: main.body.username
+                - assert: "{{ payload.success }}"
+                  then:
+                    return:
+                      status_code: 200
+                      body:
+                        token: payload.data.token
+                        token_type: Bearer
+                - return:
+                    status_code: 401
+                    body:
+                      message: "Failed to create authorization token."
+      
+            - assert: "{{ payload.response.status_code == 400 }}"
+              return:
+                status_code: 400
+                body:
+                  message: payload.response.body.message
+      
+        - log:
+            level: error
+            message: `Error during user signup: ${payload}`
+        - return:
+            status_code: 500
+            body:
+              message: "Internal Server Error"
+
+  - assert: "{{ main.path == \"/forgot\" && main.method == \"POST\" }}"
+    then:
+      steps:
+        - cognito:
+            target: ForgotPassword
+            data:
+              ClientId: envs.COGNITO_CLIENT_ID
+              Username: main.body.username
+      
+        - assert: "{{ payload.is_success && !is_empty(payload.response) }}"
+          then:
+            - assert: "{{ payload.response.status_code == 200 }}"
+              then:
+                return:
+                  status_code: 200
+                  body:
+                    delivery_medium: to_lower(payload.response.body.CodeDeliveryDetails.DeliveryMedium)
+                    destination: to_lower(payload.response.body.CodeDeliveryDetails.Destination)
+      
+            - assert: "{{ payload.response.status_code == 400 }}"
+              return:
+                status_code: 400
+                body:
+                  message: payload.response.body.message
+      
+        - log:
+            level: error
+            message: `Error during user signup: ${payload}`
+        - return:
+            status_code: 500
+            body:
+              message: "Internal Server Error"
+
+  - assert: "{{ main.path == \"/forgot/confirm\" && main.method == \"POST\" }}"
+    then:
+      steps:
+        - cognito:
+            target: ConfirmForgotPassword
+            data:
+              ClientId: envs.COGNITO_CLIENT_ID
+              Username: main.body.username
+              ConfirmationCode: main.body.confirmation_code
+              Password: main.body.password
+      
+        - assert: "{{ payload.is_success && !is_empty(payload.response) }}"
+          then:
+            - assert: "{{ payload.response.status_code == 200 }}"
+              then:
+                return:
+                  status_code: 200
+                  body:
+                    message: "New password has been set successfully."
+      
+            - assert: "{{ payload.response.status_code == 400 }}"
+              return:
+                status_code: 400
+                body:
+                  message: payload.response.body.message
+      
+        - log:
+            level: error
+            message: `Error during user signup: ${payload}`
+        - return:
+            status_code: 500
+            body:
+              message: "Internal Server Error"

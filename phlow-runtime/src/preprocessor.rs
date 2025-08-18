@@ -145,7 +145,9 @@ fn preprocessor_auto_phs(phlow: &str) -> String {
                 || value.parse::<i64>().is_ok()
                 || value.parse::<f64>().is_ok()
                 || (value.starts_with('"') && value.ends_with('"'))
+                || value.starts_with("!phs")
                 || !(value.starts_with("!")
+                    || (value.starts_with('`') && value.ends_with('`'))
                     || value.contains("{")
                     || value.contains("(")
                     || value.starts_with("main")
@@ -557,6 +559,8 @@ mod test {
         - payload: My name
         - assert: 1
         - assert: false
+        - assert: `false`
+        - payload: {
         - then:
             steps:
                 return: main
@@ -573,6 +577,8 @@ mod test {
         - payload: My name
         - assert: 1
         - assert: false
+        - assert: !phs `false`
+        - payload: !phs {
         - then:
             steps:
                 return: !phs main

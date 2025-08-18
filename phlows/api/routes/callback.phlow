@@ -39,12 +39,12 @@ steps:
                   return:
                     status_code: 302
                     headers:
-                      Location: `${envs.FRONTEND_URI}?error=InvalidToken&error_description=Invalid token`
+                      Location: `${envs.FRONTEND_URI}?error="InvalidToken"&error_description="Invalid token"`
             else:
               return:
                 status_code: 302
                 headers:
-                  Location: `${envs.FRONTEND_URI}?error=InvalidToken&error_description=Invalid token`
+                  Location: `${envs.FRONTEND_URI}?error="InvalidToken"&error_description="Invalid token"`
 
       - return:
           status_code: 400
