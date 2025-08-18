@@ -1,10 +1,187 @@
-<p align="center"> <img src="../site/phlow.svg" al  - [🧪 Expressions & Statements](#-expressions--statements)
-  - [🔀 Ternary Expressions](#-ternary-expressions)
-  - [🔤 String Functions](#-string-functions)
-  - [🔎 Type Conversion Helpers](#-type-conversion-helpers)hlow logo" width="140"/> </p> <h1 align="center">PHS – Phlow Script</h1>
+<p align="center">
+  <img src="../site/phlow.svg" alt="phlow logo" width="140"/>
+</p>
 
+# PHS – Phlow Script
 
-**PHS** is a lightweight scripting format for [Phlow](https://github.com/phlowdotdev/phlow), built on top of [Rhai](https://rhai.rs/). It enables simple, dy**Features:**
+**PHS** (Phlow Script) é um formato de script leve para [Phlow](https://github.com/phlowdotdev/phlow), baseado em [Rhai](https://rhai.rs/). Permite lógica dinâmica, manipulação de dados e integração profunda com módulos Phlow, tudo em arquivos `.phs`.
+
+## ✨ Visão Geral
+
+PHS traz o poder do scripting embutido para workflows YAML, permitindo lógica dinâmica, manipulação de variáveis, funções, arrays, objetos e integração com módulos Rust customizados.
+
+Scripts `.phs` podem ser importados em flows Phlow via `!import`, e têm acesso global aos módulos declarados no YAML.
+
+## 📑 Sumário
+
+- [✨ Visão Geral](#-visão-geral)
+- [🔌 Injeção de Módulos via YAML](#-injeção-de-módulos-via-yaml)
+- [🧪 Exemplo](#-exemplo)
+- [📁 Extensões de Arquivo](#-extensões-de-arquivo)
+- [🔐 Módulos Suportados](#-módulos-suportados)
+- [🧠 Variáveis](#-variáveis)
+- [🧱 Arrays e Objetos (Maps)](#-arrays-e-objetos-maps)
+- [🧭 Condicionais](#-condicionais)
+- [🔁 Loops](#-loops)
+- [🧩 Funções](#-funções)
+- [🧬 Sintaxe e Recursos](#-sintaxe-e-recursos)
+
+## 🔌 Injeção de Módulos via YAML
+
+Todos os módulos declarados em `modules:` no YAML ficam disponíveis globalmente no script `.phs`.
+
+## 🧪 Exemplo
+### main.phlow
+```yaml
+main: cli
+modules:
+  - module: cli
+  - module: log
+steps:
+  - return: !import script.phs
+```
+### script.phs
+```rust
+log("warn", `Hello, ${main.name}`);
+```
+
+## 📁 Extensões de Arquivo
+Phlow carrega scripts `.phs` via `!import` e executa com engine Rhai estendida.
+
+## � Módulos Suportados
+Qualquer módulo com bindings de scripting pode ser usado: log, cli, http_server, etc.
+
+## 🧠 Variáveis
+Declare variáveis com `let`:
+```rust
+let nome = main.name;
+let saudacao = "Olá";
+let mensagem = `${saudacao}, ${nome}!`;
+log("info", mensagem);
+```
+Reatribuição:
+```rust
+let cont = 1;
+cont = cont + 1;
+```
+Funções podem retornar valores:
+```rust
+let status = "warn";
+let msg = "Algo aconteceu";
+log(status, msg);
+```
+
+## 🧱 Arrays e Objetos (Maps)
+Arrays:
+```rust
+let frutas = ["maçã", "banana", "laranja"];
+frutas.push("uva");
+```
+Objetos:
+```rust
+let usuario = #{ nome: main.name, idade: 30 };
+usuario.idade = 31;
+usuario.status = "online";
+```
+Nesting:
+```rust
+let config = #{ tags: ["dev"], options: #{ retries: 3 } };
+```
+
+## 🧭 Condicionais
+```rust
+if main.name == "Philippe" {
+  log("info", "Bem-vindo!");
+} else if main.name == "Alice" {
+  log("info", "Oi Alice!");
+} else {
+  log("info", "Olá, visitante!");
+}
+```
+
+## 🔁 Loops
+```rust
+for fruta in frutas {
+  log("info", `Fruta: ${fruta}`);
+}
+for i in 0..5 {
+  log("debug", `Índice: ${i}`);
+}
+```
+
+## 🧩 Funções
+Defina funções com `fn`:
+```rust
+fn saudacao(nome) {
+  log("info", `Olá, ${nome}!");
+}
+saudacao("Philippe");
+```
+Funções podem retornar valores:
+```rust
+fn dobro(n) { return n * 2; }
+let resultado = dobro(5);
+```
+
+## 🧬 Sintaxe e Recursos
+Tipos suportados: bool, string, int, float, array, null, map, fn
+Operadores: +, -, *, /, %, ==, !=, <, >, <=, >=, &&, ||, !
+Escopo global: main, modules, funções utilitárias
+
+### Expressões & Ternário
+```rust
+let msg = when main.name == "" ? "Anônimo" : `Olá, ${main.name}`;
+```
+
+### Funções de String
+- `search(pattern)` — regex
+- `starts_with(prefix)` — prefixo
+- `replace(target, replacement)` — substituição
+- `slice(start, end)` / `slice(start)` — substring
+- `capitalize()` — primeira letra maiúscula
+- `to_snake_case()`, `to_camel_case()`, `to_kebab_case()` — conversão de case
+- `to_url_encode()` — codificação URL
+- `to_base64()` — codificação Base64
+- `base64_to_utf8()` — decodificação Base64
+- `url_encode_to_utf8()` — decodificação URL
+
+### Conversão de Tipos
+```rust
+let numero = "42".to_int();
+let flag = "true".to_bool();
+```
+
+### Manipulação de Maps & Arrays
+```rust
+let chaves = usuario.keys();
+if frutas.contains("banana") { log("info", "Achou!"); }
+```
+
+### Debug
+```rust
+log("debug", `Debug: ${data}`);
+```
+
+### Acesso aninhado YAML
+```yaml
+config:
+  retries: 3
+  labels:
+    - core
+    - beta
+```
+```rust
+let retry = main.config.retries;
+let tag = main.config.labels[0];
+```
+
+### Notas Futuras
+- `break` / `continue` — não suportado
+- `match` — planejado
+- `try/catch` — TBD
+
+---
+Para mais detalhes, consulte a documentação oficial do Phlow e do Rhai.
 - **Standard encoding:** Uses the standard Base64 alphabet
 - **Automatic padding:** Adds `=` characters when needed
 - **UTF-8 support:** Handles special characters correctly

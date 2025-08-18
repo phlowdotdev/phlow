@@ -1,5 +1,8 @@
 use base64::{engine::general_purpose, Engine as Base64Engine};
-use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
+use chrono::Datelike;
+use chrono::TimeZone;
+use chrono::Timelike;
+use chrono::{DateTime, Utc};
 use regex::Regex;
 use rhai::{Engine, EvalAltResult};
 use valu3::value::Value;
@@ -7,9 +10,83 @@ use valu3::value::Value;
 pub fn build_functions() -> Engine {
     let mut engine = Engine::new();
     // --- Funções de tempo globais ---
+    // today() -> timestamp do início do dia UTC
+    engine.register_fn("today", || {
+        let now = Utc::now();
+        Utc.with_ymd_and_hms(now.year(), now.month(), now.day(), 0, 0, 0)
+            .unwrap()
+            .timestamp() as i64
+    });
     // now() -> timestamp atual (segundos)
-    engine.register_fn("now", || Utc::now().timestamp());
-
+    engine.register_fn("now", || Utc::now().timestamp() as i64);
+    // format(ts, fmt) -> string formatada
+    engine.register_fn("format", |ts: i64, fmt: &str| {
+        if let Some(dt) = DateTime::<Utc>::from_timestamp(ts, 0) {
+            dt.format(fmt).to_string()
+        } else {
+            String::new()
+        }
+    });
+    // diff(ts1, ts2) -> diferença em segundos
+    engine.register_fn("diff", |ts1: i64, ts2: i64| ts1 - ts2);
+    // add_days(ts, n)
+    engine.register_fn("add_days", |ts: i64, n: i64| ts + n * 86400);
+    // weekday(ts) -> 0=Domingo, 1=Segunda, ...
+    engine.register_fn("weekday", |ts: i64| {
+        if let Some(dt) = DateTime::<Utc>::from_timestamp(ts, 0) {
+            dt.weekday().num_days_from_sunday() as i64
+        } else {
+            -1i64
+        }
+    });
+    // year(ts)
+    engine.register_fn("year", |ts: i64| {
+        if let Some(dt) = DateTime::<Utc>::from_timestamp(ts, 0) {
+            dt.year() as i64
+        } else {
+            0i64
+        }
+    });
+    // month(ts)
+    engine.register_fn("month", |ts: i64| {
+        if let Some(dt) = DateTime::<Utc>::from_timestamp(ts, 0) {
+            dt.month() as i64
+        } else {
+            0i64
+        }
+    });
+    // day(ts)
+    engine.register_fn("day", |ts: i64| {
+        if let Some(dt) = DateTime::<Utc>::from_timestamp(ts, 0) {
+            dt.day() as i64
+        } else {
+            0i64
+        }
+    });
+    // hour(ts)
+    engine.register_fn("hour", |ts: i64| {
+        if let Some(dt) = DateTime::<Utc>::from_timestamp(ts, 0) {
+            dt.hour() as i64
+        } else {
+            0i64
+        }
+    });
+    // minute(ts)
+    engine.register_fn("minute", |ts: i64| {
+        if let Some(dt) = DateTime::<Utc>::from_timestamp(ts, 0) {
+            dt.minute() as i64
+        } else {
+            0i64
+        }
+    });
+    // second(ts)
+    engine.register_fn("second", |ts: i64| {
+        if let Some(dt) = DateTime::<Utc>::from_timestamp(ts, 0) {
+            dt.second() as i64
+        } else {
+            0i64
+        }
+    });
     // add_seconds(ts, n)
     engine.register_fn("add_seconds", |ts: i64, n: i64| ts + n);
     // add_minutes(ts, n)
@@ -20,19 +97,15 @@ pub fn build_functions() -> Engine {
     engine.register_fn("sub_seconds", |ts: i64, n: i64| ts - n);
     // sub_minutes(ts, n)
     engine.register_fn("sub_minutes", |ts: i64, n: i64| ts - n * 60);
-
     // from_iso(iso_str) -> timestamp (segundos)
     engine.register_fn("from_iso", |iso: &str| {
         DateTime::parse_from_rfc3339(iso)
-            .map(|dt| dt.timestamp())
+            .map(|dt| dt.timestamp() as i64)
             .unwrap_or(0)
     });
-
     // to_iso(ts) -> string ISO
     engine.register_fn("to_iso", |ts: i64| {
-        let ndt = NaiveDateTime::from_timestamp_opt(ts, 0);
-        if let Some(ndt) = ndt {
-            let dt: DateTime<Utc> = DateTime::<Utc>::from_utc(ndt, Utc);
+        if let Some(dt) = DateTime::<Utc>::from_timestamp(ts, 0) {
             dt.to_rfc3339()
         } else {
             String::new()
@@ -371,6 +444,43 @@ pub fn build_functions() -> Engine {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn test_time_extras() {
+        let engine = build_functions();
+        // today
+        let today: i64 = engine.eval("today()").unwrap();
+        let now: i64 = engine.eval("now()").unwrap();
+        assert!(now >= today);
+        assert!(now - today < 86400);
+
+        // format
+        let iso: String = engine.eval("to_iso(1692362096)").unwrap();
+        let custom: String = engine
+            .eval(r#"format(1692362096, "%d/%m/%Y %H:%M:%S")"#)
+            .unwrap();
+        assert_eq!(custom, "18/08/2023 12:34:56");
+
+        // diff
+        assert_eq!(engine.eval::<i64>("diff(100, 50)").unwrap(), 50);
+
+        // add_days
+        assert_eq!(
+            engine.eval::<i64>("add_days(1000, 2)").unwrap(),
+            1000 + 2 * 86400
+        );
+
+        // weekday
+        let wd: i64 = engine.eval("weekday(1692362096)").unwrap();
+        assert_eq!(wd, 5); // 2023-08-18 é sexta-feira
+
+        // year, month, day, hour, minute, second
+        assert_eq!(engine.eval::<i64>("year(1692362096)").unwrap(), 2023);
+        assert_eq!(engine.eval::<i64>("month(1692362096)").unwrap(), 8);
+        assert_eq!(engine.eval::<i64>("day(1692362096)").unwrap(), 18);
+        assert_eq!(engine.eval::<i64>("hour(1692362096)").unwrap(), 12);
+        assert_eq!(engine.eval::<i64>("minute(1692362096)").unwrap(), 34);
+        assert_eq!(engine.eval::<i64>("second(1692362096)").unwrap(), 56);
+    }
     use super::*;
 
     #[test]

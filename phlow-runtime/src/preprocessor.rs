@@ -139,41 +139,45 @@ fn preprocessor_auto_phs(phlow: &str) -> String {
             let property = &caps[2];
             let value = caps[3].trim();
 
-            // Verifica se a próxima linha é mais indentada (indicando que é um objeto)
-            let is_object = if i + 1 < lines.len() {
-                let next_line = lines[i + 1];
-                if next_line.trim().is_empty() {
-                    false // Linha vazia, não é objeto
-                } else {
-                    let current_indent = line.chars().take_while(|c| c.is_whitespace()).count();
-                    let next_indent = next_line.chars().take_while(|c| c.is_whitespace()).count();
-                    next_indent > current_indent
-                }
-            } else {
-                false
-            };
-
             // Verifica se o valor é primitivo
             let is_primitive = value == "true"
                 || value == "false"
                 || value.parse::<i64>().is_ok()
                 || value.parse::<f64>().is_ok()
                 || (value.starts_with('"') && value.ends_with('"'))
-                || !value.starts_with("!")
-                || !value.starts_with("main")
-                || !value.starts_with("envs")
-                || !value.starts_with("setup")
-                || !value.starts_with("args")
-                || !value.starts_with("steps")
-                || !value.starts_with("time")
-                || !value.starts_with("when")
-                || !value.starts_with("if")
-                || !value.starts_with("iff")
-                || !value.starts_with("switch")
-                || !value.starts_with("case")
-                || !value.starts_with("payload");
+                || !(value.starts_with("!")
+                    || value.contains("{")
+                    || value.contains("(")
+                    || value.starts_with("main")
+                    || value.starts_with("envs")
+                    || value.starts_with("setup")
+                    || value.starts_with("args")
+                    || value.starts_with("steps")
+                    || value.starts_with("time")
+                    || value.starts_with("when")
+                    || value.starts_with("if")
+                    || value.starts_with("iff")
+                    || value.starts_with("switch")
+                    || value.starts_with("case")
+                    || value.starts_with("payload")
+                    || value.contains("&&")
+                    || value.contains("||")
+                    || value.contains("==")
+                    || value.contains("!=")
+                    || value.contains(">=")
+                    || value.contains("<=")
+                    || value.contains(">")
+                    || value.contains("<")
+                    || value.contains("+")
+                    || value.contains("-")
+                    || value.contains("*")
+                    || value.contains("/")
+                    || value.contains("%")
+                    || value.contains("^")
+                    || value.contains("!")
+                    || value.contains("&"));
 
-            if is_object || is_primitive {
+            if is_primitive {
                 // É um objeto ou primitivo, mantém como está
                 result_lines.push(line.to_string());
             } else {
