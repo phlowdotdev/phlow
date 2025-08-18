@@ -20,21 +20,21 @@ pub fn preprocessor(
         return Err(errors);
     }
 
-    let yaml = preprocessor_auto_phs(&phlow);
-    let yaml = preprocessor_eval(&yaml);
-    let yaml = preprocessor_modules(&yaml)?;
+    let phlow = preprocessor_auto_phs(&phlow);
+    let phlow = preprocessor_eval(&phlow);
+    let phlow = preprocessor_modules(&phlow)?;
 
     if print_phlow {
         println!("");
         println!("#####################################################################");
-        println!("# YAML TRANSFORMED");
+        println!("# PHLOW TRANSFORMED");
         println!("#####################################################################");
-        println!("{}", yaml);
+        println!("{}", phlow);
         println!("#####################################################################");
         println!("");
     }
 
-    Ok(yaml)
+    Ok(phlow)
 }
 
 fn preprocessor_directives(phlow: &str, base_path: &Path) -> (String, Vec<String>) {
@@ -153,11 +153,31 @@ fn preprocessor_auto_phs(phlow: &str) -> String {
                 false
             };
 
-            if is_object {
-                // É um objeto, mantém como está
+            // Verifica se o valor é primitivo
+            let is_primitive = value == "true"
+                || value == "false"
+                || value.parse::<i64>().is_ok()
+                || value.parse::<f64>().is_ok()
+                || (value.starts_with('"') && value.ends_with('"'))
+                || !value.starts_with("!")
+                || !value.starts_with("main")
+                || !value.starts_with("envs")
+                || !value.starts_with("setup")
+                || !value.starts_with("args")
+                || !value.starts_with("steps")
+                || !value.starts_with("time")
+                || !value.starts_with("when")
+                || !value.starts_with("if")
+                || !value.starts_with("iff")
+                || !value.starts_with("switch")
+                || !value.starts_with("case")
+                || !value.starts_with("payload");
+
+            if is_object || is_primitive {
+                // É um objeto ou primitivo, mantém como está
                 result_lines.push(line.to_string());
             } else {
-                // Não é um objeto, adiciona !phs
+                // Não é um objeto nem primitivo, adiciona !phs
                 result_lines.push(format!("{}{}: !phs {}", indent, property, value));
             }
         } else {
@@ -526,7 +546,13 @@ mod test {
         - assert: 1 == 1
         - payload: { user_id: 123 }
         - return: payload
+        - return: is_null()
+        - return: !is_null()
         - assert_eq: !main
+        - payload: "My name"
+        - payload: My name
+        - assert: 1
+        - assert: false
         - then:
             steps:
                 return: main
@@ -536,7 +562,13 @@ mod test {
         - assert: !phs 1 == 1
         - payload: !phs { user_id: 123 }
         - return: !phs payload
+        - return: !phs is_null()
+        - return: !phs !is_null()
         - assert_eq: !phs !main
+        - payload: "My name"
+        - payload: My name
+        - assert: 1
+        - assert: false
         - then:
             steps:
                 return: !phs main

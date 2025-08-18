@@ -1,10 +1,43 @@
 use base64::{engine::general_purpose, Engine as Base64Engine};
+use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
 use regex::Regex;
 use rhai::{Engine, EvalAltResult};
 use valu3::value::Value;
 
 pub fn build_functions() -> Engine {
     let mut engine = Engine::new();
+    // --- Funções de tempo globais ---
+    // now() -> timestamp atual (segundos)
+    engine.register_fn("now", || Utc::now().timestamp());
+
+    // add_seconds(ts, n)
+    engine.register_fn("add_seconds", |ts: i64, n: i64| ts + n);
+    // add_minutes(ts, n)
+    engine.register_fn("add_minutes", |ts: i64, n: i64| ts + n * 60);
+    // add_hours(ts, n)
+    engine.register_fn("add_hours", |ts: i64, n: i64| ts + n * 3600);
+    // sub_seconds(ts, n)
+    engine.register_fn("sub_seconds", |ts: i64, n: i64| ts - n);
+    // sub_minutes(ts, n)
+    engine.register_fn("sub_minutes", |ts: i64, n: i64| ts - n * 60);
+
+    // from_iso(iso_str) -> timestamp (segundos)
+    engine.register_fn("from_iso", |iso: &str| {
+        DateTime::parse_from_rfc3339(iso)
+            .map(|dt| dt.timestamp())
+            .unwrap_or(0)
+    });
+
+    // to_iso(ts) -> string ISO
+    engine.register_fn("to_iso", |ts: i64| {
+        let ndt = NaiveDateTime::from_timestamp_opt(ts, 0);
+        if let Some(ndt) = ndt {
+            let dt: DateTime<Utc> = DateTime::<Utc>::from_utc(ndt, Utc);
+            dt.to_rfc3339()
+        } else {
+            String::new()
+        }
+    });
 
     engine.register_fn("is_null", |x: rhai::Dynamic| x.is_unit());
 
@@ -341,6 +374,34 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_time_functions() {
+        let engine = build_functions();
+        // now deve retornar algo próximo do tempo atual
+        let now: i64 = engine.eval("now()").unwrap();
+        let sys_now = Utc::now().timestamp();
+        assert!((now - sys_now).abs() < 5); // tolerância de 5s
+
+        // add_seconds
+        assert_eq!(engine.eval::<i64>("add_seconds(1000, 10)").unwrap(), 1010);
+        // add_minutes
+        assert_eq!(engine.eval::<i64>("add_minutes(1000, 2)").unwrap(), 1120);
+        // add_hours
+        assert_eq!(engine.eval::<i64>("add_hours(1000, 1)").unwrap(), 4600);
+        // sub_seconds
+        assert_eq!(engine.eval::<i64>("sub_seconds(1000, 10)").unwrap(), 990);
+        // sub_minutes
+        assert_eq!(engine.eval::<i64>("sub_minutes(1000, 2)").unwrap(), 880);
+
+        // from_iso
+        let ts: i64 = engine.eval(r#"from_iso("2023-08-18T12:34:56Z")"#).unwrap();
+        assert_eq!(ts, 1692362096);
+
+        // to_iso
+        let iso: String = engine.eval("to_iso(1692362096)").unwrap();
+        assert!(iso.starts_with("2023-08-18T12:34:56"));
+    }
+
+    #[test]
     fn test_search_function() {
         let engine = build_functions();
 
@@ -462,6 +523,12 @@ mod tests {
         assert!(!result);
         let result: bool = engine.eval(r#"is_empty(())"#).unwrap();
         assert!(result);
+        let result: bool = engine.eval(r#""".is_empty()"#).unwrap();
+        assert!(result);
+        let result: bool = engine.eval(r#""   ".is_empty()"#).unwrap();
+        assert!(result);
+        let result: bool = engine.eval(r#""abc".is_empty()"#).unwrap();
+        assert!(!result);
     }
 
     #[test]
