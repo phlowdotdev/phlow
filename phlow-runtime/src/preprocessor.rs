@@ -20,7 +20,6 @@ pub fn preprocessor(
         return Err(errors);
     }
 
-    let phlow = preprocessor_auto_phs(&phlow);
     let phlow = preprocessor_eval(&phlow);
     let phlow = preprocessor_modules(&phlow)?;
 
@@ -120,86 +119,6 @@ fn preprocessor_directives(phlow: &str, base_path: &Path) -> (String, Vec<String
         .to_string();
 
     (result, errors)
-}
-
-fn preprocessor_auto_phs(phlow: &str) -> String {
-    let lines: Vec<&str> = phlow.lines().collect();
-    let mut result_lines = Vec::new();
-
-    for i in 0..lines.len() {
-        let line = lines[i];
-
-        // Regex para capturar propriedades que podem conter expressões
-        if let Some(caps) =
-            regex::Regex::new(r"^(\s*-?\s*)(assert|payload|return|assert_eq|input|data|Location|url|body|message|level|X-Amz-Target|Authorization|Content-Type):\s*(.+)$")
-                .unwrap()
-                .captures(line)
-        {
-            let indent = &caps[1];
-            let property = &caps[2];
-            let value = caps[3].trim();
-
-            // Verifica se o valor precisa de !phs
-            let needs_phs = !value.starts_with("!phs")  // Não processar se já tem !phs
-                && !(value == "true"
-                    || value == "false"
-                    || value.parse::<i64>().is_ok()
-                    || value.parse::<f64>().is_ok()
-                    || (value.starts_with('"') && value.ends_with('"'))
-                    || value.starts_with("file://")
-                    || value.starts_with("postgre://")
-                    || value.starts_with("http://")
-                    || value.starts_with("https://")
-                    || value.starts_with("ftp://")
-                    || value.starts_with("ws://")
-                    || value.starts_with("wss://"))
-                && (value.starts_with("!")
-                    || (value.starts_with('`') && value.ends_with('`'))
-                    || value.contains("{")
-                    || value.contains("(")
-                    || value.starts_with("main")
-                    || value.starts_with("envs")
-                    || value.starts_with("setup")
-                    || value.starts_with("args")
-                    || value.starts_with("steps")
-                    || value.starts_with("time")
-                    || value.starts_with("when")
-                    || value.starts_with("if")
-                    || value.starts_with("iff")
-                    || value.starts_with("switch")
-                    || value.starts_with("case")
-                    || value.starts_with("payload")
-                    || value.contains("&&")
-                    || value.contains("||")
-                    || value.contains("==")
-                    || value.contains("!=")
-                    || value.contains(">=")
-                    || value.contains("<=")
-                    || value.contains(">")
-                    || value.contains("<")
-                    || value.contains("+")
-                    || value.contains("-")
-                    || value.contains("*")
-                    || value.contains("/")
-                    || value.contains("%")
-                    || value.contains("^")
-                    || value.contains("!")
-                    || value.contains("&"));
-
-            if needs_phs {
-                // Precisa de !phs, adiciona
-                result_lines.push(format!("{}{}: !phs {}", indent, property, value));
-            } else {
-                // Não precisa de !phs, mantém como está
-                result_lines.push(line.to_string());
-            }
-        } else {
-            // Não é uma linha que precisa ser processada
-            result_lines.push(line.to_string());
-        }
-    }
-
-    result_lines.join("\n")
 }
 
 fn preprocessor_eval(phlow: &str) -> String {
@@ -583,12 +502,7 @@ fn preprocessor_modules(phlow: &str) -> Result<String, Vec<String>> {
 
     // Converte de volta para YAML e desfaz o escape
     match serde_yaml::to_string(&parsed_mut) {
-        Ok(result) => {
-            eprintln!("YAML AFTER SERIALIZATION:\n{}", result);
-            let final_result = unescape_yaml_exclamation_values(&result);
-            eprintln!("FINAL RESULT AFTER UNESCAPE:\n{}", final_result);
-            Ok(final_result)
-        }
+        Ok(result) => Ok(unescape_yaml_exclamation_values(&result)),
         Err(_) => Ok(phlow.to_string()),
     }
 }
@@ -604,12 +518,6 @@ fn escape_yaml_exclamation_values(yaml: &str) -> String {
         .replace_all(yaml, |caps: &regex::Captures| {
             let prefix = &caps[1];
             let exclamation_value = &caps[2];
-            eprintln!(
-                "ESCAPING: '{}' -> '{} \"__PHLOW_ESCAPE__{}\"",
-                caps.get(0).unwrap().as_str(),
-                prefix,
-                exclamation_value
-            );
             format!(r#"{} "__PHLOW_ESCAPE__{}""#, prefix, exclamation_value)
         })
         .to_string();
@@ -627,58 +535,9 @@ fn unescape_yaml_exclamation_values(yaml: &str) -> String {
     let result = regex
         .replace_all(yaml, |caps: &regex::Captures| {
             let exclamation_value = &caps[1];
-            eprintln!(
-                "UNESCAPING: '__PHLOW_ESCAPE__{}' -> '{}'",
-                exclamation_value, exclamation_value
-            );
             exclamation_value.to_string()
         })
         .to_string();
 
     result
-}
-
-#[cfg(test)]
-mod test {
-    #[test]
-    fn test_preprocessor_auto_phs() {
-        let input = r#"
-        - assert: 1 == 1
-        - payload: { user_id: 123 }
-        - return: payload
-        - return: is_null()
-        - return: !is_null()
-        - assert_eq: !main
-        - payload: "My name"
-        - payload: My name
-        - assert: 1
-        - assert: false
-        - assert: `false`
-        - payload: {
-        - then:
-            steps:
-                return: main
-        "#;
-
-        let expected = r#"
-        - assert: !phs 1 == 1
-        - payload: !phs { user_id: 123 }
-        - return: !phs payload
-        - return: !phs is_null()
-        - return: !phs !is_null()
-        - assert_eq: !phs !main
-        - payload: "My name"
-        - payload: My name
-        - assert: 1
-        - assert: false
-        - assert: !phs `false`
-        - payload: !phs {
-        - then:
-            steps:
-                return: !phs main
-        "#;
-
-        let result = super::preprocessor_auto_phs(input);
-        assert_eq!(result, expected.to_string());
-    }
 }
