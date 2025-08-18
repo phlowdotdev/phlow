@@ -126,6 +126,22 @@ fn preprocessor_auto_phs(phlow: &str) -> String {
     // Implementação mais simples usando regex direta
     let mut result = phlow.to_string();
 
+    // Padrão 0: assert: "expressão" - Captura expressões dentro de aspas
+    let quoted_assert_regex = regex::Regex::new(r#"(?m)^(\s*-\s+)(assert):\s*"([^"]+)"$"#).unwrap();
+    result = quoted_assert_regex
+        .replace_all(&result, |caps: &regex::Captures| {
+            let indent = &caps[1];
+            let property = &caps[2];
+            let value = caps[3].trim();
+
+            if needs_phs_prefix(value) {
+                format!("{}{}: !phs {}", indent, property, value)
+            } else {
+                caps[0].to_string()
+            }
+        })
+        .to_string();
+
     // Padrão 1: assert: valor_sem_phs - Captura apenas valores que NÃO começam com !
     let assert_regex = regex::Regex::new(r"(?m)^(\s*-\s+)(assert):\s*([^!][^\n]*)$").unwrap();
     result = assert_regex
@@ -190,8 +206,24 @@ fn preprocessor_auto_phs(phlow: &str) -> String {
         })
         .to_string();
 
-    // Padrão 5: Propriedades aninhadas comuns que podem ter template strings ou expressões
-    let common_properties_regex = regex::Regex::new(r"(?m)^(\s{2,})(message|url|Location|Username|Password|ClientId|target|level|body|method|X-Amz-Target|Content-Type|Authorization):[ \t]*([^!\n][^\n]+)$").unwrap();
+    // Padrão 5: Propriedades indentadas (contexto then/else) - captura qualquer propriedade: valor
+    let indented_property_regex = regex::Regex::new(r"(?m)^(\s{6,})(\w+):\s*([^!\n][^\n]+)$").unwrap();
+    result = indented_property_regex
+        .replace_all(&result, |caps: &regex::Captures| {
+            let indent = &caps[1];
+            let property = &caps[2];
+            let value = caps[3].trim();
+
+            if needs_phs_prefix(value) {
+                format!("{}{}: !phs {}", indent, property, value)
+            } else {
+                caps[0].to_string()
+            }
+        })
+        .to_string();
+
+    // Padrão 6: Propriedades aninhadas comuns que podem ter template strings ou expressões
+    let common_properties_regex = regex::Regex::new(r"(?m)^(\s{2,})(message|url|Location|Username|Password|ClientId|target|level|body|method|X-Amz-Target|Content-Type|Authorization|token|data):[ \t]*([^!\n][^\n]+)$").unwrap();
     result = common_properties_regex
         .replace_all(&result, |caps: &regex::Captures| {
             let indent = &caps[1];
@@ -418,6 +450,28 @@ fn contains_script_operations(value: &str) -> bool {
 
     // Template strings com interpolação (mantido para compatibilidade)
     if value.contains("${") {
+        return true;
+    }
+
+    // Verifica chamadas de funções Rhai comuns
+    if value.contains("!is_empty(") 
+        || value.contains(".slice(") 
+        || value.contains(".starts_with(") 
+        || value.contains(".ends_with(")
+        || value.contains(".split(")
+        || value.contains(".parse(")
+        || value.contains(".trim(")
+    {
+        return true;
+    }
+
+    // Verifica propriedades de objetos e arrays
+    if value.contains(".valid") 
+        || value.contains(".length")
+        || value.contains(".response")
+        || value.contains(".body")
+        || value.contains(".headers")
+    {
         return true;
     }
 
