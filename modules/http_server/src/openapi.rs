@@ -410,9 +410,6 @@ impl OpenAPIValidator {
         if let Some(properties) = schema.as_ref().and_then(|s| s.get("properties")) {
             // Validate based on actual OpenAPI schema using the correct HTTP method and route
             self.validate_properties_with_schema(obj, properties, errors, schema.as_ref());
-        } else {
-            // Fallback to basic validation with method awareness
-            self.validate_basic_user_schema_with_method(obj, errors, method);
         }
     }
 
@@ -598,7 +595,6 @@ impl OpenAPIValidator {
         schema: &Value,
         errors: &mut Vec<ValidationError>,
     ) {
-        log::warn!("validate_string_field called for field '{}'", field_name);
         let Value::String(string_val) = value else {
             errors.push(ValidationError {
                 error_type: ValidationErrorType::InvalidFieldType,
@@ -609,16 +605,6 @@ impl OpenAPIValidator {
         };
 
         let str_val = string_val.as_str();
-        
-        // Check for empty string after trimming (names with only spaces)
-        if field_name == "name" && str_val.trim().is_empty() {
-            errors.push(ValidationError {
-                error_type: ValidationErrorType::InvalidFieldValue,
-                message: format!("Field '{}' cannot be empty or contain only spaces", field_name),
-                field: Some(field_name.to_string()),
-            });
-            return;
-        }
 
         // Check minLength
         if let Some(min_len) = schema.get("minLength").and_then(|v| {
@@ -626,13 +612,28 @@ impl OpenAPIValidator {
                 .unwrap_or(Value::from(0).as_number().unwrap())
                 .to_i64()
         }) {
-            if str_val.len() < min_len as usize {
-                errors.push(ValidationError {
-                    error_type: ValidationErrorType::InvalidFieldValue,
-                    message: format!(
+            // For minLength validation, consider trimmed length to handle whitespace-only strings
+            let effective_length = if min_len > 0 {
+                str_val.trim().len()
+            } else {
+                str_val.len()
+            };
+
+            if effective_length < min_len as usize {
+                let message = if min_len > 0 && str_val.trim().is_empty() {
+                    format!(
+                        "Field '{}' cannot be empty or contain only whitespace",
+                        field_name
+                    )
+                } else {
+                    format!(
                         "Field '{}' must be at least {} characters long",
                         field_name, min_len
-                    ),
+                    )
+                };
+                errors.push(ValidationError {
+                    error_type: ValidationErrorType::InvalidFieldValue,
+                    message,
                     field: Some(field_name.to_string()),
                 });
             }
@@ -675,36 +676,38 @@ impl OpenAPIValidator {
             while unescaped_pattern.contains("\\\\") {
                 unescaped_pattern = unescaped_pattern.replace("\\\\", "\\");
             }
-            println!(
+
+            log::debug!(
                 "Pattern before unescaping: '{}', after: '{}'",
-                pattern, unescaped_pattern
+                pattern,
+                unescaped_pattern
             );
+
             match Regex::new(&unescaped_pattern) {
                 Ok(regex) => {
-                    println!(
+                    log::debug!(
                         "Validating field '{}' with value '{}' against pattern '{}'",
-                        field_name, str_val, unescaped_pattern
+                        field_name,
+                        str_val,
+                        unescaped_pattern
                     );
                     if !regex.is_match(str_val) {
-                        println!(
+                        log::debug!(
                             "Pattern match failed for '{}' with pattern '{}'",
-                            str_val, unescaped_pattern
+                            str_val,
+                            unescaped_pattern
                         );
-                        let message = if field_name == "email" {
-                            format!("Field '{}' must be a valid email address", field_name)
-                        } else {
-                            format!("Field '{}' format is invalid", field_name)
-                        };
+                        let message = format!("Field '{}' format is invalid", field_name);
                         errors.push(ValidationError {
                             error_type: ValidationErrorType::InvalidFieldValue,
                             message,
                             field: Some(field_name.to_string()),
                         });
                     } else {
-                        log::warn!(
+                        log::debug!(
                             "Pattern match successful for '{}' with pattern '{}'",
                             str_val,
-                            pattern
+                            unescaped_pattern
                         );
                     }
                 }
@@ -722,25 +725,6 @@ impl OpenAPIValidator {
                         field: Some(field_name.to_string()),
                     });
                 }
-            }
-        }
-
-        // Check format (built-in formats like 'email')
-        if let Some(format) = schema.get("format").and_then(|v| {
-            let string = v.to_string();
-
-            if string.is_empty() {
-                None
-            } else {
-                Some(string)
-            }
-        }) {
-            if format == "email" && !self.is_valid_email_format(str_val) {
-                errors.push(ValidationError {
-                    error_type: ValidationErrorType::InvalidFieldValue,
-                    message: format!("Field '{}' must be a valid email address", field_name),
-                    field: Some(field_name.to_string()),
-                });
             }
         }
     }
@@ -982,133 +966,6 @@ impl OpenAPIValidator {
         }
     }
 
-    /// Basic email format validation (fallback)
-    fn is_valid_email_format(&self, email: &str) -> bool {
-        // Basic validation checks first
-        if email.is_empty() || !email.contains('@') {
-            return false;
-        }
-
-        let parts: Vec<&str> = email.split('@').collect();
-        if parts.len() != 2 {
-            return false; // Should have exactly one @
-        }
-
-        let username = parts[0];
-        let domain = parts[1];
-
-        // Username checks
-        if username.is_empty()
-            || username.starts_with('.')
-            || username.ends_with('.')
-            || username.contains("..")
-        {
-            return false;
-        }
-
-        // Domain checks
-        if domain.is_empty()
-            || domain.starts_with('.')
-            || domain.ends_with('.')
-            || domain.starts_with('-')
-            || domain.ends_with('-')
-            || domain.contains("..")
-            || !domain.contains('.')
-        {
-            return false;
-        }
-
-        // Check if domain has a valid TLD (at least 2 characters after last dot)
-        let domain_parts: Vec<&str> = domain.split('.').collect();
-        if domain_parts.len() < 2 {
-            return false; // Must have at least domain.tld
-        }
-
-        let tld = domain_parts.last().unwrap();
-        if tld.len() < 2 || tld.is_empty() {
-            return false;
-        }
-
-        // More permissive regex that accepts common email formats
-        let email_regex = match Regex::new(
-            r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$",
-        ) {
-            Ok(regex) => regex,
-            Err(_) => {
-                // If regex compilation fails, use basic validation
-                return username.len() > 0
-                    && domain.len() > 3
-                    && domain.contains('.')
-                    && !domain.ends_with('.');
-            }
-        };
-
-        email_regex.is_match(email)
-    }
-
-    /// Fallback basic validation with HTTP method awareness
-    fn validate_basic_user_schema_with_method(
-        &self,
-        obj: &Object,
-        errors: &mut Vec<ValidationError>,
-        method: &str,
-    ) {
-        // For POST requests, require name and email fields (strict validation)
-        // For PUT/PATCH requests, allow partial updates (no required fields)
-        let is_create_operation = method.to_uppercase() == "POST";
-
-        if is_create_operation {
-            // POST requires name and email
-            if !obj.contains_key(&"name") {
-                errors.push(ValidationError {
-                    error_type: ValidationErrorType::MissingRequiredField,
-                    message: "Missing required field: name".to_string(),
-                    field: Some("name".to_string()),
-                });
-            }
-
-            if !obj.contains_key(&"email") {
-                errors.push(ValidationError {
-                    error_type: ValidationErrorType::MissingRequiredField,
-                    message: "Missing required field: email".to_string(),
-                    field: Some("email".to_string()),
-                });
-            }
-        }
-        // For PUT/PATCH, we don't require any fields (allow partial updates)
-
-        // Validate field types for any fields that are present
-        if let Some(name_value) = obj.get("name") {
-            if !matches!(name_value, Value::String(_)) {
-                errors.push(ValidationError {
-                    error_type: ValidationErrorType::InvalidFieldType,
-                    message: "Field 'name' must be a string".to_string(),
-                    field: Some("name".to_string()),
-                });
-            }
-        }
-
-        if let Some(email_value) = obj.get("email") {
-            if !matches!(email_value, Value::String(_)) {
-                errors.push(ValidationError {
-                    error_type: ValidationErrorType::InvalidFieldType,
-                    message: "Field 'email' must be a string".to_string(),
-                    field: Some("email".to_string()),
-                });
-            }
-        }
-
-        if let Some(age_value) = obj.get("age") {
-            if !matches!(age_value, Value::Number(_)) {
-                errors.push(ValidationError {
-                    error_type: ValidationErrorType::InvalidFieldType,
-                    message: "Field 'age' must be a number".to_string(),
-                    field: Some("age".to_string()),
-                });
-            }
-        }
-    }
-
     /// Validate query parameters (basic implementation)
     fn validate_query_parameters(
         &self,
@@ -1158,38 +1015,105 @@ mod tests {
     }
 
     #[test]
-    fn test_method_aware_validation() {
-        let mut obj_map = HashMap::new();
-        obj_map.insert("age".to_string(), Value::Number(30.into()));
-        let obj = Object::from(obj_map);
-        let spec_map: HashMap<String, Value> = HashMap::new();
+    fn test_generic_validation_based_on_schema() {
+        use phlow_sdk::prelude::*;
 
-        let validator = OpenAPIValidator {
-            spec_json: String::new(),
-            spec: Value::from(spec_map).as_object().unwrap().clone(),
-            config: ValidationConfig::default(),
-            route_patterns: Vec::new(),
-        };
+        // Test that validation is now generic and based on schema, not field names
+        let openapi_spec = r#"{
+            "openapi": "3.0.0",
+            "info": {"title": "Test API", "version": "1.0.0"},
+            "paths": {
+                "/users": {
+                    "post": {
+                        "requestBody": {
+                            "required": true,
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "required": ["username", "email"],
+                                        "properties": {
+                                            "username": {
+                                                "type": "string",
+                                                "minLength": 3,
+                                                "pattern": "^[a-zA-Z0-9_]+$"
+                                            },
+                                            "email": {
+                                                "type": "string",
+                                                "minLength": 5,
+                                                "pattern": "^[^@]+@[^@]+\\.[^@]+$"
+                                            },
+                                            "name": {
+                                                "type": "string",
+                                                "minLength": 2
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }"#;
 
-        let mut post_errors = Vec::new();
-        let mut put_errors = Vec::new();
+        let config = ValidationConfig::default();
+        let validator = OpenAPIValidator::from_spec_content(openapi_spec, config).unwrap();
 
-        // Test POST - should require name and email
-        validator.validate_basic_user_schema_with_method(&obj, &mut post_errors, "POST");
+        // Test that field validation is based on schema properties, not field names
+        let query_params = std::collections::HashMap::new();
 
-        // Test PUT - should allow partial update (no required fields)
-        validator.validate_basic_user_schema_with_method(&obj, &mut put_errors, "PUT");
+        // Test valid request
+        let valid_body = Value::json_to_value(
+            r#"{
+            "username": "john_doe",
+            "email": "john@example.com",
+            "name": "John Doe"
+        }"#,
+        )
+        .unwrap();
 
-        // POST should have 2 errors (missing name and email)
-        assert_eq!(post_errors.len(), 2);
-        assert!(post_errors
+        let result = validator.validate_request("POST", "/users", &query_params, &valid_body);
+        assert!(result.is_valid, "Valid data should pass validation");
+
+        // Test that any field with minLength > 0 rejects whitespace-only values
+        let whitespace_name = Value::json_to_value(
+            r#"{
+            "username": "john_doe",
+            "email": "john@example.com",
+            "name": "   "
+        }"#,
+        )
+        .unwrap();
+
+        let result = validator.validate_request("POST", "/users", &query_params, &whitespace_name);
+        assert!(
+            !result.is_valid,
+            "Whitespace-only strings should fail minLength validation"
+        );
+        assert!(result
+            .errors
             .iter()
-            .any(|e| e.message.contains("Missing required field: name")));
-        assert!(post_errors
-            .iter()
-            .any(|e| e.message.contains("Missing required field: email")));
+            .any(|e| e.field.as_ref().map_or(false, |f| f == "name")));
 
-        // PUT should have no errors (allows partial updates)
-        assert_eq!(put_errors.len(), 0);
+        // Test that pattern validation works generically
+        let invalid_email = Value::json_to_value(
+            r#"{
+            "username": "john_doe",
+            "email": "invalid-email",
+            "name": "John Doe"
+        }"#,
+        )
+        .unwrap();
+
+        let result = validator.validate_request("POST", "/users", &query_params, &invalid_email);
+        assert!(
+            !result.is_valid,
+            "Invalid email pattern should fail validation"
+        );
+        assert!(result
+            .errors
+            .iter()
+            .any(|e| e.field.as_ref().map_or(false, |f| f == "email")));
     }
 }
