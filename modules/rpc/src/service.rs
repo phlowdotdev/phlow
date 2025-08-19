@@ -5,16 +5,16 @@ use tarpc::context;
 use tracing::{Dispatch, Level};
 
 // Use serde_json::Value for serialization with tarpc
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToValue)]
 pub struct RpcRequest {
     pub method: String,
-    pub params: serde_json::Value,
+    pub params: Value,
     pub headers: HashMap<String, String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToValue)]
 pub struct RpcResponse {
-    pub result: serde_json::Value,
+    pub result: Value,
     pub error: Option<String>,
     pub headers: HashMap<String, String>,
 }
@@ -48,23 +48,7 @@ impl PhlowRpc for PhlowRpcServer {
             request.params
         );
 
-        // Convert RPC request to phlow_sdk::Value format
-        let mut internal_request = serde_json::Map::new();
-        internal_request.insert(
-            "method".to_string(),
-            serde_json::Value::String(request.method.clone()),
-        );
-        internal_request.insert("params".to_string(), request.params.clone());
-        internal_request.insert(
-            "headers".to_string(),
-            serde_json::to_value(request.headers.clone()).unwrap_or(serde_json::Value::Null),
-        );
-
-        let request_json =
-            serde_json::to_string(&internal_request).unwrap_or_else(|_| "{}".to_string());
-        let request_value = request_json.to_value();
-
-        log::debug!("Sending RPC request to steps: {:?}", request_value);
+        log::debug!("Sending RPC request to steps: {:?}", request);
 
         // Execute the request through the phlow pipeline system
         // This integrates with the steps defined in the YAML configuration
@@ -85,7 +69,7 @@ impl PhlowRpc for PhlowRpcServer {
                         self.dispatch.clone(),
                         self.id.clone(),
                         self.main_sender.clone(),
-                        Some(request_value)
+                        Some(request.to_value())
                     )
                     .await
                     .unwrap_or(Value::Null);
@@ -98,13 +82,8 @@ impl PhlowRpc for PhlowRpcServer {
 
         log::debug!("Final response from steps: {:?}", response_value);
 
-        // Convert response back to RPC format
-        let result_json = response_value.to_string();
-        let result: serde_json::Value = serde_json::from_str(&result_json)
-            .unwrap_or_else(|_| serde_json::Value::String(result_json));
-
         let response = RpcResponse {
-            result,
+            result: response_value.to_value(),
             error: None,
             headers: HashMap::new(),
         };

@@ -9,7 +9,6 @@ modules:
     with:
       capacity: 1000
       default_ttl: 1800  # 30 minutes default session timeout
-      enable_events: false
   - module: log
 
 # Simulate user login and session management

@@ -26,22 +26,10 @@ pub async fn cache_handler(
 
     // Initialize cache instance
     let cache = if let Some(default_ttl) = config.default_ttl {
-        if config.enable_events {
-            let (tx, _rx) = std::sync::mpsc::channel();
-            Arc::new(Mutex::new(Quickleaf::with_sender_and_ttl(
-                config.capacity,
-                tx,
-                Duration::from_secs(default_ttl),
-            )))
-        } else {
-            Arc::new(Mutex::new(Quickleaf::with_default_ttl(
-                config.capacity,
-                Duration::from_secs(default_ttl),
-            )))
-        }
-    } else if config.enable_events {
-        let (tx, _rx) = std::sync::mpsc::channel();
-        Arc::new(Mutex::new(Quickleaf::with_sender(config.capacity, tx)))
+        Arc::new(Mutex::new(Quickleaf::with_default_ttl(
+            config.capacity,
+            Duration::from_secs(default_ttl),
+        )))
     } else {
         Arc::new(Mutex::new(Quickleaf::new(config.capacity)))
     };

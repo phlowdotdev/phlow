@@ -143,7 +143,7 @@ let msg = when main.name == "" ? "Anônimo" : `Olá, ${main.name}`;
 - `to_url_encode()` — codificação URL
 - `to_base64()` — codificação Base64
 - `base64_to_utf8()` — decodificação Base64
-- `url_encode_to_utf8()` — decodificação URL
+- `url_decode()` — decodificação URL
 
 ### Conversão de Tipos
 ```rust
@@ -206,18 +206,18 @@ Decode Base64 strings back to UTF-8 text:
 - **Error handling:** Returns empty string for invalid Base64 input
 - **Safe operation:** Never crashes on malformed input
 
-### 🔓 `url_encode_to_utf8()` - URL Decoding
+### 🔓 `url_decode()` - URL Decoding
 
 Decode URL-encoded strings back to UTF-8 text:
 
 ```rust
-"Hello+World".url_encode_to_utf8();              // "Hello World"
-"user%40example.com".url_encode_to_utf8();       // "user@example.com"
-"caf%C3%A9+%26+ma%C3%A7%C3%A3".url_encode_to_utf8(); // "café & maçã"
-"abc-123_test.file~".url_encode_to_utf8();       // "abc-123_test.file~" (unchanged)
-"Ol%C3%A1+mundo%21".url_encode_to_utf8();        // "Olá mundo!"
-"%ZZ".url_encode_to_utf8();                      // "%ZZ" (invalid hex preserved)
-"test%".url_encode_to_utf8();                    // "test%" (incomplete sequence preserved)
+"Hello+World".url_decode();              // "Hello World"
+"user%40example.com".url_decode();       // "user@example.com"
+"caf%C3%A9+%26+ma%C3%A7%C3%A3".url_decode(); // "café & maçã"
+"abc-123_test.file~".url_decode();       // "abc-123_test.file~" (unchanged)
+"Ol%C3%A1+mundo%21".url_decode();        // "Olá mundo!"
+"%ZZ".url_decode();                      // "%ZZ" (invalid hex preserved)
+"test%".url_decode();                    // "test%" (incomplete sequence preserved)
 ```
 
 **Features:**

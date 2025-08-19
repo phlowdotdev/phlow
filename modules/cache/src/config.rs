@@ -5,7 +5,6 @@ use phlow_sdk::prelude::*;
 pub struct CacheConfig {
     pub capacity: usize,
     pub default_ttl: Option<u64>,
-    pub enable_events: bool,
 }
 
 impl Default for CacheConfig {
@@ -13,7 +12,6 @@ impl Default for CacheConfig {
         Self {
             capacity: 1000,
             default_ttl: None,
-            enable_events: false,
         }
     }
 }
@@ -50,10 +48,6 @@ impl TryFrom<&Value> for CacheConfig {
                     return Err("Invalid default_ttl value".to_string());
                 }
             }
-        }
-
-        if let Some(events) = value.get("enable_events") {
-            config.enable_events = events.as_bool().map(|b| *b).unwrap_or(false);
         }
 
         Ok(config)

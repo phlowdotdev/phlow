@@ -78,11 +78,6 @@ with:
       type: number
       description: "Default TTL in seconds for all cached items"
       required: false
-    enable_events:
-      type: boolean
-      description: "Enable cache operation events (insert, remove, clear)"
-      default: false
-      required: false
 
 input:
   type: object

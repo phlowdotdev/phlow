@@ -297,8 +297,8 @@ pub fn build_functions() -> Engine {
         }
     });
 
-    // Adiciona função url_encode_to_utf8 para decodificar URL encoding
-    engine.register_fn("url_encode_to_utf8", |s: &str| -> String {
+    // Adiciona função url_decode para decodificar URL encoding
+    engine.register_fn("url_decode", |s: &str| -> String {
         let mut result = Vec::new();
         let mut chars = s.chars().peekable();
 
@@ -455,6 +455,7 @@ mod tests {
 
         // format
         let iso: String = engine.eval("to_iso(1692362096)").unwrap();
+        assert_eq!(iso, "2023-08-18T12:34:56Z");
         let custom: String = engine
             .eval(r#"format(1692362096, "%d/%m/%Y %H:%M:%S")"#)
             .unwrap();
@@ -959,13 +960,13 @@ mod tests {
     }
 
     #[test]
-    fn test_url_encode_to_utf8() {
+    fn test_url_decode() {
         let engine = build_functions();
 
         // Teste básico com espaços (representados por +)
         assert_eq!(
             engine
-                .eval::<String>(r#""Hello+World".url_encode_to_utf8()"#)
+                .eval::<String>(r#""Hello+World".url_decode()"#)
                 .unwrap(),
             "Hello World"
         );
@@ -973,7 +974,7 @@ mod tests {
         // Teste com caracteres especiais codificados
         assert_eq!(
             engine
-                .eval::<String>(r#""user%40example.com".url_encode_to_utf8()"#)
+                .eval::<String>(r#""user%40example.com".url_decode()"#)
                 .unwrap(),
             "user@example.com"
         );
@@ -981,7 +982,7 @@ mod tests {
         // Teste com caracteres que não precisam decodificação
         assert_eq!(
             engine
-                .eval::<String>(r#""abc-123_test.file~".url_encode_to_utf8()"#)
+                .eval::<String>(r#""abc-123_test.file~".url_decode()"#)
                 .unwrap(),
             "abc-123_test.file~"
         );
@@ -989,45 +990,36 @@ mod tests {
         // Teste com caracteres acentuados codificados em UTF-8
         assert_eq!(
             engine
-                .eval::<String>(r#""caf%C3%A9+%26+ma%C3%A7%C3%A3".url_encode_to_utf8()"#)
+                .eval::<String>(r#""caf%C3%A9+%26+ma%C3%A7%C3%A3".url_decode()"#)
                 .unwrap(),
             "café & maçã"
         );
 
         // Teste string vazia
-        assert_eq!(
-            engine.eval::<String>(r#""".url_encode_to_utf8()"#).unwrap(),
-            ""
-        );
+        assert_eq!(engine.eval::<String>(r#""".url_decode()"#).unwrap(), "");
 
         // Teste com % sem códigos hex válidos (deve manter literal)
         assert_eq!(
-            engine
-                .eval::<String>(r#""%ZZ".url_encode_to_utf8()"#)
-                .unwrap(),
+            engine.eval::<String>(r#""%ZZ".url_decode()"#).unwrap(),
             "%ZZ"
         );
 
         // Teste com % no final da string
         assert_eq!(
-            engine
-                .eval::<String>(r#""test%".url_encode_to_utf8()"#)
-                .unwrap(),
+            engine.eval::<String>(r#""test%".url_decode()"#).unwrap(),
             "test%"
         );
 
         // Teste com % seguido de apenas um caractere
         assert_eq!(
-            engine
-                .eval::<String>(r#""test%2".url_encode_to_utf8()"#)
-                .unwrap(),
+            engine.eval::<String>(r#""test%2".url_decode()"#).unwrap(),
             "test%2"
         );
 
         // Teste complexo misturando diferentes tipos de codificação
         assert_eq!(
             engine
-                .eval::<String>(r#""Ol%C3%A1+mundo%21+Como+vai%3F".url_encode_to_utf8()"#)
+                .eval::<String>(r#""Ol%C3%A1+mundo%21+Como+vai%3F".url_decode()"#)
                 .unwrap(),
             "Olá mundo! Como vai?"
         );

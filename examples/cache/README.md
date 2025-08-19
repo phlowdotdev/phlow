@@ -133,7 +133,6 @@ modules:
     with:
       capacity: 10           # Small capacity for testing
       default_ttl: 300       # 5 minutes
-      enable_events: false
 ```
 
 ### Production - High Performance
@@ -143,7 +142,6 @@ modules:
     with:
       capacity: 10000        # Large capacity
       default_ttl: 1800      # 30 minutes
-      enable_events: true    # Enable for monitoring
 ```
 
 ### Production - Memory Constrained
@@ -153,7 +151,6 @@ modules:
     with:
       capacity: 1000         # Moderate capacity
       default_ttl: 600       # 10 minutes
-      enable_events: false
 ```
 
 ## Best Practices Demonstrated
