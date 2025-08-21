@@ -36,18 +36,23 @@ pub async fn proxy(
             .cloned()
             .expect("RequestContext not found");
 
-        let origin = req.headers()
-            .get("origin")
-            .and_then(|h| h.to_str().ok());
+        let origin = req.headers().get("origin").and_then(|h| h.to_str().ok());
 
-        let cors_response = ResponseHandler::create_preflight_response(context.cors.as_ref(), origin);
-        
+        let cors_response =
+            ResponseHandler::create_preflight_response(context.cors.as_ref(), origin);
+
         // Record CORS preflight in tracing
-        context.span.record("http.response.status_code", cors_response.status_code);
-        context.span.record("http.response.body.size", cors_response.body.len());
-        
+        context
+            .span
+            .record("http.response.status_code", cors_response.status_code);
+        context
+            .span
+            .record("http.response.body.size", cors_response.body.len());
+
         cors_response.headers.iter().for_each(|(key, value)| {
-            context.span.record(to_span_format!("http.response.header.{}", key), value);
+            context
+                .span
+                .record(to_span_format!("http.response.header.{}", key), value);
         });
 
         return Ok(cors_response.build());
@@ -103,54 +108,59 @@ pub async fn proxy(
     // Check Content-Type for POST, PUT, PATCH requests
     let method_requires_content_type = matches!(method.as_str(), "POST" | "PUT" | "PATCH");
     if method_requires_content_type {
-        let content_type = headers_clone.get("content-type")
+        let content_type = headers_clone
+            .get("content-type")
             .and_then(|ct| ct.to_str().ok())
             .unwrap_or("");
-        
+
         // Define accepted Content-Types
         let accepted_content_types = [
             "application/json",
             "application/octet-stream",
-            // Adicione outros content-types conforme necessário:
-            // "application/xml",
-            // "text/plain",
+            "application/xml",
+            "text/plain",
+            "text/html",
+            "application/x-www-form-urlencoded",
+            "multipart/form-data",
         ];
-        
+
         // For POST, PUT, PATCH methods, if Content-Type is specified, validate it
         let has_explicit_content_type = !content_type.is_empty();
-        
+
         if has_explicit_content_type {
-            let is_accepted_content_type = accepted_content_types.iter()
+            let is_accepted_content_type = accepted_content_types
+                .iter()
                 .any(|&accepted| content_type.starts_with(accepted));
-            
+
             if !is_accepted_content_type {
                 let accepted_types_str = accepted_content_types.join(", ");
-                let error_message = format!(
-                    "Content-Type must be one of: {}", 
-                    accepted_types_str
-                );
-                
+                let error_message = format!("Content-Type must be one of: {}", accepted_types_str);
+
                 let error_response_json = format!(
                     r#"{{"error":"Validation failed","details":[{{"type":"InvalidRequestBody","message":"{}","field":"content-type"}}]}}"#,
                     error_message
                 );
                 let error_body_size = error_response_json.len();
-                
+
                 let response = Response::builder()
                     .status(400)
                     .header("content-type", "application/json")
                     .body(Full::new(Bytes::from(error_response_json)))
                     .unwrap();
-                    
+
                 context.span.record("http.response.status_code", 400);
-                context.span.record("http.response.body.size", error_body_size);
-                context.span.record("http.response.header.content-type", "application/json");
-                
+                context
+                    .span
+                    .record("http.response.body.size", error_body_size);
+                context
+                    .span
+                    .record("http.response.header.content-type", "application/json");
+
                 return Ok(response);
             }
         }
     }
-    
+
     let headers = resolve_headers(
         headers_clone,
         &context.span,
@@ -241,11 +251,12 @@ pub async fn proxy(
     let mut response = ResponseHandler::from(response_value);
 
     // Apply CORS headers to the response
-    let origin = data_map.get("headers")
+    let origin = data_map
+        .get("headers")
         .and_then(|h| h.get("origin"))
         .and_then(|o| o.as_string_b())
         .map(|s| s.as_str());
-    
+
     response.apply_cors_headers(context.cors.as_ref(), origin);
 
     context

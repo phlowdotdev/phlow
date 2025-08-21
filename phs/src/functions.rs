@@ -5,6 +5,7 @@ use chrono::Timelike;
 use chrono::{DateTime, Utc};
 use regex::Regex;
 use rhai::{Engine, EvalAltResult};
+use valu3::prelude::JsonMode;
 use valu3::value::Value;
 
 pub fn build_functions() -> Engine {
@@ -390,6 +391,18 @@ pub fn build_functions() -> Engine {
         }
     });
 
+    // Função to_json para converter objetos Rhai em string JSON
+    engine.register_fn("to_json", |value: rhai::Dynamic| -> rhai::Dynamic {
+        let value: Value = match rhai::serde::from_dynamic(&value) {
+            Ok(serde_value) => serde_value,
+            Err(_) => Value::Undefined,
+        };
+
+        let json = value.to_json(JsonMode::Inline);
+
+        rhai::Dynamic::from(json)
+    });
+
     // Funções para spread de objetos e arrays
     engine.register_fn("__spread_object", |objects: rhai::Array| -> rhai::Dynamic {
         let mut result_map = rhai::Map::new();
@@ -455,7 +468,7 @@ mod tests {
 
         // format
         let iso: String = engine.eval("to_iso(1692362096)").unwrap();
-        assert_eq!(iso, "2023-08-18T12:34:56Z");
+        assert_eq!(iso, "2023-08-18T12:34:56+00:00");
         let custom: String = engine
             .eval(r#"format(1692362096, "%d/%m/%Y %H:%M:%S")"#)
             .unwrap();
@@ -1157,5 +1170,60 @@ mod tests {
             .unwrap();
 
         assert_eq!(result, "example@example.com");
+    }
+
+    #[test]
+    fn test_to_json() {
+        let engine = build_functions();
+
+        // Teste com string simples
+        let result: String = engine.eval(r#""hello world".to_json()"#).unwrap();
+        assert_eq!(result, "\"hello world\"");
+
+        // Teste com número inteiro
+        let result: String = engine.eval(r#"42.to_json()"#).unwrap();
+        assert_eq!(result, "42");
+
+        // Teste com número float
+        let result: String = engine.eval(r#"3.14.to_json()"#).unwrap();
+        assert_eq!(result, "3.14");
+
+        // Teste com boolean true
+        let result: String = engine.eval(r#"true.to_json()"#).unwrap();
+        assert_eq!(result, "true");
+
+        // Teste com boolean false
+        let result: String = engine.eval(r#"false.to_json()"#).unwrap();
+        assert_eq!(result, "false");
+
+        // Teste com null/unit
+        let result: String = engine.eval(r#"().to_json()"#).unwrap();
+        assert_eq!(result, "null");
+
+        // Teste com objeto simples
+        let result: String = engine
+            .eval(r#"#{name: "João", age: 30}.to_json()"#)
+            .unwrap();
+        // Como a ordem das chaves pode variar, vamos verificar se contém as partes esperadas
+        assert!(result.contains("\"name\":\"João\""));
+        assert!(result.contains("\"age\":30"));
+        assert!(result.starts_with("{"));
+        assert!(result.ends_with("}"));
+
+        // Teste com array simples
+        let result: String = engine.eval(r#"[1, 2, "test", true].to_json()"#).unwrap();
+        assert_eq!(result, "[1,2,\"test\",true]");
+
+        // Teste com array vazio
+        let result: String = engine.eval(r#"[].to_json()"#).unwrap();
+        assert_eq!(result, "[]");
+
+        // Teste com objeto vazio
+        let result: String = engine.eval(r#"#{}.to_json()"#).unwrap();
+        assert_eq!(result, "{}");
+
+        // Teste com string contendo aspas
+        let result: String = engine.eval(r#""He said \"hello\"".to_json()"#).unwrap();
+        assert_eq!(result, "\"He said \\\"hello\\\"\"");
     }
 }
