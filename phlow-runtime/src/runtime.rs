@@ -71,10 +71,15 @@ impl Runtime {
                     Err(err) => return Err(RuntimeError::ModuleWithError(err)),
                 };
 
-                let with = script
+                let with: Value = script
                     .evaluate_without_context()
                     .map_err(|err| RuntimeError::ModuleWithError(err))?;
 
+                println!(
+                    "Module '{}' with: {}",
+                    module.name,
+                    with.to_json(phlow_sdk::prelude::JsonMode::Indented)
+                ); // Debug print
                 with
             };
 
@@ -94,7 +99,7 @@ impl Runtime {
             let settings = settings.clone();
 
             std::thread::spawn(move || {
-                let result =
+                let result: Result<(), crate::loader::error::Error> =
                     load_module(setup, &module_target, &module_version, local_path, settings);
 
                 if let Err(err) = result {

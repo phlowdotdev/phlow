@@ -46,12 +46,9 @@ pub async fn start_server(
     let config: Config = Config::from(setup.with);
     let settings = Arc::new(Settings::load());
 
-    let addr: SocketAddr = format!(
-        "{}:{}",
-        config.host.as_deref().unwrap_or("0.0.0.0"),
-        config.port.unwrap_or(4000),
-    )
-    .parse()?;
+    let addr: SocketAddr = format!("{}:{}", config.host, config.port).parse()?;
+
+    log::debug!("Binding to {}", addr);
 
     let listener = TcpListener::bind(addr).await?;
 

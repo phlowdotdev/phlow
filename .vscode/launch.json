@@ -29,10 +29,29 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Run phlow-runtime with current file",
+            "name": "Run phlow-runtime with current file test",
             "args": [
                 "${relativeFile}",
                 "--test"
+            ],
+            "cwd": "${workspaceFolder}",
+            "cargo": {
+                "args": [
+                    "run",
+                    "-p",
+                    "phlow-runtime"
+                ]
+            },
+            "env": {
+                "PHLOW_LOG": "debug"
+            }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Run phlow-runtime with current file runtime",
+            "args": [
+                "${relativeFile}"
             ],
             "cwd": "${workspaceFolder}",
             "cargo": {
