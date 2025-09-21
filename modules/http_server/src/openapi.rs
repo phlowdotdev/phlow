@@ -1,6 +1,73 @@
 use phlow_sdk::prelude::*;
 use regex::Regex;
-use std::{collections::HashMap, path::Path};
+use std::{collections::HashMap, path::Path, sync::OnceLock};
+
+// Cached email validation regex - initialized on first use
+static EMAIL_REGEX: OnceLock<Regex> = OnceLock::new();
+
+fn get_email_regex() -> &'static Regex {
+    EMAIL_REGEX.get_or_init(|| {
+        // Basic structure: username@domain.tld
+        // This regex validates the basic structure, additional checks are done in is_valid_email
+        // Pattern allows 1+ chars in local part, multi-label domains with hyphens (not at start/end of labels),
+        // requires at least one dot in domain, TLD must be 2+ chars
+        Regex::new(
+            r"^[a-zA-Z0-9]([a-zA-Z0-9._+%-]*[a-zA-Z0-9])?@[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$"
+        ).unwrap()
+    })
+}
+
+fn is_valid_email(email: &str) -> bool {
+    // First check if it's empty or has spaces
+    if email.is_empty() || email.contains(' ') || email.contains(',') {
+        return false;
+    }
+
+    // Check for multiple @ symbols
+    if email.matches('@').count() != 1 {
+        return false;
+    }
+
+    // Split at @ to validate username and domain parts
+    let parts: Vec<&str> = email.split('@').collect();
+    if parts.len() != 2 {
+        return false;
+    }
+
+    let username = parts[0];
+    let domain = parts[1];
+
+    // Username validation
+    if username.is_empty()
+        || username.contains("..")
+        || username.starts_with('.')
+        || username.ends_with('.')
+    {
+        return false;
+    }
+
+    // Domain validation
+    if domain.is_empty()
+        || domain.contains("..")
+        || domain.starts_with('.')
+        || domain.ends_with('.')
+        || domain.starts_with('-')
+        || domain.ends_with('-')
+        || !domain.contains('.')
+    {
+        return false;
+    }
+
+    // Check TLD (part after last dot)
+    if let Some(tld) = domain.rsplit('.').next() {
+        if tld.len() < 2 || !tld.chars().all(|c| c.is_alphabetic()) {
+            return false;
+        }
+    }
+
+    // Finally check against the basic regex pattern
+    get_email_regex().is_match(email)
+}
 
 #[derive(Debug, Clone)]
 pub struct OpenAPIValidator {
@@ -727,6 +794,39 @@ impl OpenAPIValidator {
                 }
             }
         }
+
+        // Check format (e.g., email, date, etc.)
+        if let Some(format) = schema.get("format").and_then(|v| {
+            let string = match v {
+                Value::String(s) => s.as_str().to_string(),
+                _ => v.to_string(),
+            };
+            if string.is_empty() {
+                None
+            } else {
+                Some(string)
+            }
+        }) {
+            match format.as_str() {
+                "email" => {
+                    if !is_valid_email(str_val) {
+                        errors.push(ValidationError {
+                            error_type: ValidationErrorType::InvalidFieldValue,
+                            message: format!(
+                                "Field '{}' must be a valid email address",
+                                field_name
+                            ),
+                            field: Some(field_name.to_string()),
+                        });
+                    }
+                }
+                // Other formats can be added here in the future (date, date-time, uri, etc.)
+                _ => {
+                    // Unknown or unsupported format - log but don't fail
+                    log::debug!("Unsupported format '{}' for field '{}'", format, field_name);
+                }
+            }
+        }
     }
 
     /// Validate numeric field with min/max constraints
@@ -1012,6 +1112,85 @@ mod tests {
 
         let params3 = OpenAPIValidator::extract_param_names_from_openapi("/users/static/path");
         assert_eq!(params3, Vec::<String>::new());
+    }
+
+    #[test]
+    fn test_email_validation() {
+        // Test valid emails including short ones like a@bc.co
+        assert!(is_valid_email("a@bc.co"), "a@bc.co should be valid");
+        assert!(
+            is_valid_email("user@example.com"),
+            "user@example.com should be valid"
+        );
+        assert!(
+            is_valid_email("test.user+tag@sub.example.org"),
+            "test.user+tag@sub.example.org should be valid"
+        );
+        assert!(
+            is_valid_email("user123@test-domain.co.uk"),
+            "user123@test-domain.co.uk should be valid"
+        );
+
+        // Test invalid emails
+        assert!(!is_valid_email(""), "Empty string should be invalid");
+        assert!(!is_valid_email("no-at-sign"), "Missing @ should be invalid");
+        assert!(!is_valid_email("user@"), "Missing domain should be invalid");
+        assert!(
+            !is_valid_email("@domain.com"),
+            "Missing local part should be invalid"
+        );
+        assert!(
+            !is_valid_email("user@domain"),
+            "Missing TLD should be invalid"
+        );
+        assert!(
+            !is_valid_email("user@domain."),
+            "Ending with dot should be invalid"
+        );
+        assert!(
+            !is_valid_email("user@.domain.com"),
+            "Starting domain with dot should be invalid"
+        );
+        assert!(
+            !is_valid_email("user..name@domain.com"),
+            "Consecutive dots should be invalid"
+        );
+        assert!(
+            !is_valid_email("user@domain..com"),
+            "Consecutive dots in domain should be invalid"
+        );
+        assert!(
+            !is_valid_email("user name@domain.com"),
+            "Spaces should be invalid"
+        );
+        assert!(
+            !is_valid_email("user,name@domain.com"),
+            "Commas should be invalid"
+        );
+        assert!(
+            !is_valid_email("user@@domain.com"),
+            "Multiple @ should be invalid"
+        );
+        assert!(
+            !is_valid_email("user@domain.c"),
+            "TLD too short should be invalid"
+        );
+        assert!(
+            !is_valid_email(".user@domain.com"),
+            "Starting with dot should be invalid"
+        );
+        assert!(
+            !is_valid_email("user.@domain.com"),
+            "Ending with dot should be invalid"
+        );
+        assert!(
+            !is_valid_email("user@-domain.com"),
+            "Domain starting with hyphen should be invalid"
+        );
+        assert!(
+            !is_valid_email("user@domain-.com"),
+            "Domain ending with hyphen should be invalid"
+        );
     }
 
     #[test]

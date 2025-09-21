@@ -1,9 +1,9 @@
+use crate::setup::CorsConfig;
 use http_body_util::Full;
 use hyper::body::Bytes;
 use hyper::Response;
 use phlow_sdk::prelude::*;
 use std::collections::HashMap;
-use crate::setup::CorsConfig;
 
 #[derive(ToValue)]
 pub struct ResponseHandler {
@@ -48,9 +48,9 @@ impl ResponseHandler {
             "*".to_string()
         } else if let Some(origin) = origin {
             if cors_config.origins.iter().any(|allowed| {
-                allowed == origin || 
-                (allowed.starts_with("http") && origin.starts_with(allowed)) ||
-                allowed == "*"
+                allowed == origin
+                    || (allowed.starts_with("http") && origin.starts_with(allowed))
+                    || allowed == "*"
             }) {
                 origin.to_string()
             } else {
@@ -58,13 +58,15 @@ impl ResponseHandler {
                 return;
             }
         } else {
-            cors_config.origins.get(0).unwrap_or(&"*".to_string()).clone()
+            cors_config
+                .origins
+                .get(0)
+                .unwrap_or(&"*".to_string())
+                .clone()
         };
 
-        self.headers.insert(
-            "access-control-allow-origin".to_string(),
-            allowed_origin,
-        );
+        self.headers
+            .insert("access-control-allow-origin".to_string(), allowed_origin);
 
         // Access-Control-Allow-Methods
         self.headers.insert(
@@ -94,13 +96,16 @@ impl ResponseHandler {
     }
 
     /// Create a preflight CORS response
-    pub fn create_preflight_response(cors_config: Option<&CorsConfig>, origin: Option<&str>) -> Self {
+    pub fn create_preflight_response(
+        cors_config: Option<&CorsConfig>,
+        origin: Option<&str>,
+    ) -> Self {
         let mut response = Self {
             status_code: 200,
             headers: HashMap::new(),
             body: String::new(),
         };
-        
+
         response.apply_cors_headers(cors_config, origin);
         response
     }

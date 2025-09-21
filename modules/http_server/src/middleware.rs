@@ -1,4 +1,4 @@
-use crate::{settings::AuthorizationSpanMode, router::Router, openapi::OpenAPIValidator};
+use crate::{openapi::OpenAPIValidator, router::Router, settings::AuthorizationSpanMode};
 use hyper::{body::Incoming, service::Service, Request};
 use phlow_sdk::{
     prelude::*,
