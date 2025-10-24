@@ -3,8 +3,8 @@ use crate::preprocessor::preprocessor;
 use flate2::read::GzDecoder;
 use log::debug;
 use phlow_sdk::prelude::*;
-use reqwest::header::AUTHORIZATION;
 use reqwest::Client;
+use reqwest::header::AUTHORIZATION;
 use std::fs;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
@@ -57,7 +57,7 @@ fn get_remote_path() -> Result<PathBuf, Error> {
 }
 
 fn clone_git_repo(url: &str, branch: Option<&str>) -> Result<String, Error> {
-    use git2::{build::RepoBuilder, FetchOptions, RemoteCallbacks};
+    use git2::{FetchOptions, RemoteCallbacks, build::RepoBuilder};
 
     let remote_path = get_remote_path()?;
 
@@ -190,6 +190,7 @@ async fn download_file(url: &str, inner_folder: Option<&str>) -> Result<String, 
 
     // Check if a specific file is requested via environment variable
     let main_path = if let Ok(main_file) = std::env::var("PHLOW_MAIN_FILE") {
+        println!("Using specified main file: {}", main_file);
         let specific_file_path = effective_path.join(&main_file);
         if specific_file_path.exists() {
             specific_file_path.to_str().unwrap_or_default().to_string()
