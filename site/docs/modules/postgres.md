@@ -4,12 +4,6 @@ title: Postgres Module
 hide_title: true
 ---
 
----
-sidebar_position: 7
-title: Postgres Module
-hide_title: true
----
-
 # PostgreSQL Module
 
 The PostgreSQL module provides complete PostgreSQL database operations with connection pooling, query caching, SSL support, and batch operations.

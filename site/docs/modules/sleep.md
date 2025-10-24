@@ -4,12 +4,6 @@ title: Sleep Module
 hide_title: true
 ---
 
----
-sidebar_position: 9
-title: Sleep Module
-hide_title: true
----
-
 # Sleep Module
 
 The Sleep module provides functionality to pause execution for a specific period, useful for delays, throttling, and synchronization in workflows.

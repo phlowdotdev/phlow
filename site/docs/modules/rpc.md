@@ -4,12 +4,6 @@ title: RPC Module
 hide_title: true
 ---
 
----
-sidebar_position: 8
-title: RPC Module
-hide_title: true
----
-
 # RPC Module
 
 The RPC module provides Remote Procedure Call (RPC) functionality using tarpc for high-performance client-server communication.

@@ -4,12 +4,6 @@ title: HTTP Server Module
 hide_title: true
 ---
 
----
-sidebar_position: 5
-title: HTTP Server Module
-hide_title: true
----
-
 # HTTP Server Module
 
 The HTTP Server module provides a complete, high-performance web server for building REST APIs, webhooks, and web services. Built with Hyper and Tokio, it offers complete observability with OpenTelemetry and comprehensive OpenAPI 3.0 validation.

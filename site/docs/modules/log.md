@@ -4,12 +4,6 @@ title: Log Module
 hide_title: true
 ---
 
----
-sidebar_position: 6
-title: Log Module
-hide_title: true
----
-
 # Log Module
 
 The Log module provides structured logging functionality for Phlow applications, allowing you to record messages with different severity levels.
