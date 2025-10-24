@@ -1,51 +1,65 @@
+use openai_api_rust::completions::CompletionsBody;
+use openai_api_rust::images::ImagesBody;
+use openai_api_rust::{Message, Role};
 use phlow_sdk::prelude::*;
 use std::collections::HashMap;
+use std::convert::TryFrom;
+use std::fs::File;
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Role {
+pub enum LocalRole {
     System,
     Assistant,
     User,
 }
 
-impl Default for Role {
+impl Default for LocalRole {
     fn default() -> Self {
-        Role::User
+        LocalRole::User
     }
 }
 
-impl FromValueBehavior for Role {
-    type Item = Role;
+impl TryFrom<Value> for LocalRole {
+    type Error = String;
 
-    fn from_value(value: Value) -> Option<Self::Item> {
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value.as_str() {
-            "system" => Some(Role::System),
-            "assistant" => Some(Role::Assistant),
-            "user" => Some(Role::User),
-            _ => None,
+            "system" => Ok(LocalRole::System),
+            "assistant" => Ok(LocalRole::Assistant),
+            "user" => Ok(LocalRole::User),
+            _ => Err(format!("invalid role: {:?}", value)),
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
-pub struct Message {
-    pub role: Role,
+pub struct LocalMessage {
+    pub role: LocalRole,
     pub content: String,
 }
 
-impl FromValueBehavior for Message {
-    type Item = Message;
+impl TryFrom<Value> for LocalMessage {
+    type Error = String;
 
-    fn from_value(value: Value) -> Option<Self::Item> {
-        let role = Role::from_value(value.get("role")?.clone())?;
-        let content = value.get("content")?.to_string();
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        let role_val = value
+            .get("role")
+            .ok_or_else(|| "missing field 'role' for Message".to_string())?
+            .clone();
 
-        Some(Message { role, content })
+        let role = LocalRole::try_from(role_val)?;
+
+        let content = value
+            .get("content")
+            .ok_or_else(|| "missing field 'content' for Message".to_string())?
+            .to_string();
+
+        Ok(LocalMessage { role, content })
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
-pub struct CompletionsBody {
+pub struct LocalCompletionsBody {
     pub model: String,
     pub prompt: Option<Vec<String>>,
     pub suffix: Option<String>,
@@ -64,17 +78,21 @@ pub struct CompletionsBody {
     pub user: Option<String>,
 }
 
-impl FromValueBehavior for CompletionsBody {
-    type Item = CompletionsBody;
+impl TryFrom<Value> for LocalCompletionsBody {
+    type Error = String;
 
-    fn from_value(value: Value) -> Option<Self::Item> {
-        let model = value.get("model")?.to_string();
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        let model = value
+            .get("model")
+            .ok_or_else(|| "missing field 'model' for CompletionsBody".to_string())?
+            .to_string();
 
         let prompt = match value.get("prompt") {
             Some(p) => {
                 if p.is_array() {
                     Some(
-                        p.as_array()?
+                        p.as_array()
+                            .ok_or_else(|| "invalid 'prompt' array".to_string())?
                             .into_iter()
                             .map(|s| s.to_string())
                             .collect::<Vec<String>>(),
@@ -106,7 +124,8 @@ impl FromValueBehavior for CompletionsBody {
             Some(s) => {
                 if s.is_array() {
                     Some(
-                        s.as_array()?
+                        s.as_array()
+                            .ok_or_else(|| "invalid 'stop' array".to_string())?
                             .into_iter()
                             .map(|st| st.to_string())
                             .collect::<Vec<String>>(),
@@ -138,7 +157,7 @@ impl FromValueBehavior for CompletionsBody {
                             bias_map.insert(k.to_string(), v.to_string());
                         }
                     }
-                    None => return None,
+                    None => return Err("invalid 'logit_bias' object".to_string()),
                 }
 
                 Some(bias_map)
@@ -148,7 +167,7 @@ impl FromValueBehavior for CompletionsBody {
 
         let user = value.get("user").map(|u| u.to_string());
 
-        Some(CompletionsBody {
+        Ok(LocalCompletionsBody {
             model,
             prompt,
             suffix,
@@ -169,10 +188,33 @@ impl FromValueBehavior for CompletionsBody {
     }
 }
 
+impl Into<CompletionsBody> for LocalCompletionsBody {
+    fn into(self) -> CompletionsBody {
+        CompletionsBody {
+            model: self.model,
+            prompt: self.prompt,
+            suffix: self.suffix,
+            max_tokens: self.max_tokens,
+            temperature: self.temperature,
+            top_p: self.top_p,
+            n: self.n,
+            stream: self.stream,
+            logprobs: self.logprobs,
+            echo: self.echo,
+            stop: self.stop,
+            presence_penalty: self.presence_penalty,
+            frequency_penalty: self.frequency_penalty,
+            best_of: self.best_of,
+            logit_bias: self.logit_bias,
+            user: self.user,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
-pub struct ChatBody {
+pub struct LocalChatBody {
     pub model: String,
-    pub messages: Vec<Message>,
+    pub messages: Vec<LocalMessage>,
     pub temperature: Option<f32>,
     pub top_p: Option<f32>,
     pub n: Option<i32>,
@@ -185,18 +227,25 @@ pub struct ChatBody {
     pub user: Option<String>,
 }
 
-impl FromValueBehavior for ChatBody {
-    type Item = ChatBody;
+impl TryFrom<Value> for LocalChatBody {
+    type Error = String;
 
-    fn from_value(value: Value) -> Option<Self::Item> {
-        let model = value.get("model")?.to_string();
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        let model = value
+            .get("model")
+            .ok_or_else(|| "missing field 'model' for ChatBody".to_string())?
+            .to_string();
 
-        let messages_value = value.get("messages")?;
-        let messages_array = messages_value.as_array()?;
+        let messages_value = value
+            .get("messages")
+            .ok_or_else(|| "missing field 'messages' for ChatBody".to_string())?;
+        let messages_array = messages_value
+            .as_array()
+            .ok_or_else(|| "invalid 'messages' array".to_string())?;
 
         let mut messages = Vec::new();
         for msg_value in messages_array {
-            let msg = Message::from_value(msg_value.clone())?;
+            let msg = LocalMessage::try_from(msg_value.clone())?;
             messages.push(msg);
         }
 
@@ -212,7 +261,8 @@ impl FromValueBehavior for ChatBody {
             Some(s) => {
                 if s.is_array() {
                     Some(
-                        s.as_array()?
+                        s.as_array()
+                            .ok_or_else(|| "invalid 'stop' array".to_string())?
                             .into_iter()
                             .map(|st| st.to_string())
                             .collect::<Vec<String>>(),
@@ -244,7 +294,7 @@ impl FromValueBehavior for ChatBody {
                             bias_map.insert(k.to_string(), v.to_string());
                         }
                     }
-                    None => return None,
+                    None => return Err("invalid 'logit_bias' object".to_string()),
                 }
 
                 Some(bias_map)
@@ -254,7 +304,7 @@ impl FromValueBehavior for ChatBody {
 
         let user = value.get("user").map(|u| u.to_string());
 
-        Some(ChatBody {
+        Ok(LocalChatBody {
             model,
             messages,
             temperature,
@@ -271,8 +321,40 @@ impl FromValueBehavior for ChatBody {
     }
 }
 
+impl Into<openai_api_rust::chat::ChatBody> for LocalChatBody {
+    fn into(self) -> openai_api_rust::chat::ChatBody {
+        let messages_converted = self
+            .messages
+            .into_iter()
+            .map(|m| Message {
+                role: match m.role {
+                    LocalRole::System => Role::System,
+                    LocalRole::Assistant => Role::Assistant,
+                    LocalRole::User => Role::User,
+                },
+                content: m.content,
+            })
+            .collect();
+
+        openai_api_rust::chat::ChatBody {
+            model: self.model,
+            messages: messages_converted,
+            temperature: self.temperature,
+            top_p: self.top_p,
+            n: self.n,
+            stream: self.stream,
+            stop: self.stop,
+            max_tokens: self.max_tokens,
+            presence_penalty: self.presence_penalty,
+            frequency_penalty: self.frequency_penalty,
+            logit_bias: self.logit_bias,
+            user: self.user,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
-pub struct ImagesBody {
+pub struct LocalImagesBody {
     pub prompt: String,
     pub n: Option<i32>,
     pub size: Option<String>,
@@ -280,11 +362,14 @@ pub struct ImagesBody {
     pub user: Option<String>,
 }
 
-impl FromValueBehavior for ImagesBody {
-    type Item = ImagesBody;
+impl TryFrom<Value> for LocalImagesBody {
+    type Error = String;
 
-    fn from_value(value: Value) -> Option<Self::Item> {
-        let prompt = value.get("prompt")?.to_string();
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        let prompt = value
+            .get("prompt")
+            .ok_or_else(|| "missing field 'prompt' for ImagesBody".to_string())?
+            .to_string();
 
         let n = value.get("n").map(|n| n.to_i64().unwrap() as i32);
 
@@ -294,7 +379,7 @@ impl FromValueBehavior for ImagesBody {
 
         let user = value.get("user").map(|u| u.to_string());
 
-        Some(ImagesBody {
+        Ok(LocalImagesBody {
             prompt,
             n,
             size,
@@ -304,25 +389,42 @@ impl FromValueBehavior for ImagesBody {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct ImagesEditBody {
-    pub image: String,
-    pub mask: Option<String>,
-    pub images_body: ImagesBody,
+impl Into<openai_api_rust::images::ImagesBody> for LocalImagesBody {
+    fn into(self) -> openai_api_rust::images::ImagesBody {
+        openai_api_rust::images::ImagesBody {
+            prompt: self.prompt,
+            n: self.n,
+            size: self.size,
+            response_format: self.response_format,
+            user: self.user,
+        }
+    }
 }
 
-impl FromValueBehavior for ImagesEditBody {
-    type Item = ImagesEditBody;
+#[derive(Debug, Clone, PartialEq)]
+pub struct LocalImagesEditBody {
+    pub image: String,
+    pub mask: Option<String>,
+    pub images_body: LocalImagesBody,
+}
 
-    fn from_value(value: Value) -> Option<Self::Item> {
-        let image = value.get("image")?.to_string();
+impl TryFrom<Value> for LocalImagesEditBody {
+    type Error = String;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        let image = value
+            .get("image")
+            .ok_or_else(|| "missing field 'image' for ImagesEditBody".to_string())?
+            .to_string();
 
         let mask = value.get("mask").map(|m| m.to_string());
 
-        let images_body_value = value.get("images_body")?;
-        let images_body = ImagesBody::from_value(images_body_value.clone())?;
+        let images_body_value = value
+            .get("images_body")
+            .ok_or_else(|| "missing field 'images_body' for ImagesEditBody".to_string())?;
+        let images_body = LocalImagesBody::try_from(images_body_value.clone())?;
 
-        Some(ImagesEditBody {
+        Ok(LocalImagesEditBody {
             image,
             mask,
             images_body,
@@ -330,21 +432,41 @@ impl FromValueBehavior for ImagesEditBody {
     }
 }
 
+impl Into<openai_api_rust::images::ImagesEditBody> for LocalImagesEditBody {
+    fn into(self) -> openai_api_rust::images::ImagesEditBody {
+        let image = File::open(self.image).unwrap();
+        let mask = self.mask.map(|m| File::open(m).unwrap());
+
+        openai_api_rust::images::ImagesEditBody {
+            image,
+            mask,
+            images_body: self.images_body.into(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
-pub struct EmbeddingsBody {
+pub struct LocalEmbeddingsBody {
     pub model: String,
     pub input: Vec<String>,
     pub user: Option<String>,
 }
 
-impl FromValueBehavior for EmbeddingsBody {
-    type Item = EmbeddingsBody;
+impl TryFrom<Value> for LocalEmbeddingsBody {
+    type Error = String;
 
-    fn from_value(value: Value) -> Option<Self::Item> {
-        let model = value.get("model")?.to_string();
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        let model = value
+            .get("model")
+            .ok_or_else(|| "missing field 'model' for EmbeddingsBody".to_string())?
+            .to_string();
 
-        let input_value = value.get("input")?;
-        let input_array = input_value.as_array()?;
+        let input_value = value
+            .get("input")
+            .ok_or_else(|| "missing field 'input' for EmbeddingsBody".to_string())?;
+        let input_array = input_value
+            .as_array()
+            .ok_or_else(|| "invalid 'input' array".to_string())?;
 
         let mut input = Vec::new();
         for inp in input_array {
@@ -353,12 +475,22 @@ impl FromValueBehavior for EmbeddingsBody {
 
         let user = value.get("user").map(|u| u.to_string());
 
-        Some(EmbeddingsBody { model, input, user })
+        Ok(LocalEmbeddingsBody { model, input, user })
+    }
+}
+
+impl Into<openai_api_rust::embeddings::EmbeddingsBody> for LocalEmbeddingsBody {
+    fn into(self) -> openai_api_rust::embeddings::EmbeddingsBody {
+        openai_api_rust::embeddings::EmbeddingsBody {
+            model: self.model,
+            input: self.input,
+            user: self.user,
+        }
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct AudioBody {
+pub struct LocalAudioBody {
     pub file: String,
     pub model: String,
     pub prompt: Option<String>,
@@ -367,13 +499,19 @@ pub struct AudioBody {
     pub language: Option<String>,
 }
 
-impl FromValueBehavior for AudioBody {
-    type Item = AudioBody;
+impl TryFrom<Value> for LocalAudioBody {
+    type Error = String;
 
-    fn from_value(value: Value) -> Option<Self::Item> {
-        let file = value.get("file")?.to_string();
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        let file = value
+            .get("file")
+            .ok_or_else(|| "missing field 'file' for AudioBody".to_string())?
+            .to_string();
 
-        let model = value.get("model")?.to_string();
+        let model = value
+            .get("model")
+            .ok_or_else(|| "missing field 'model' for AudioBody".to_string())?
+            .to_string();
 
         let prompt = value.get("prompt").map(|p| p.to_string());
 
@@ -383,7 +521,7 @@ impl FromValueBehavior for AudioBody {
 
         let language = value.get("language").map(|l| l.to_string());
 
-        Some(AudioBody {
+        Ok(LocalAudioBody {
             file,
             model,
             prompt,
@@ -394,14 +532,29 @@ impl FromValueBehavior for AudioBody {
     }
 }
 
+impl Into<openai_api_rust::audio::AudioBody> for LocalAudioBody {
+    fn into(self) -> openai_api_rust::audio::AudioBody {
+        let file = File::open(self.file).unwrap();
+
+        openai_api_rust::audio::AudioBody {
+            file,
+            model: self.model,
+            prompt: self.prompt,
+            response_format: self.response_format,
+            temperature: self.temperature,
+            language: self.language,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum OpenaiApi {
-    Completions(CompletionsBody),
-    Chat(ChatBody),
-    Images(ImagesBody),
-    ImagesEdit(ImagesEditBody),
-    Embeddings(EmbeddingsBody),
-    Audio(AudioBody),
+    Completions(LocalCompletionsBody),
+    Chat(LocalChatBody),
+    Images(LocalImagesBody),
+    ImagesEdit(LocalImagesEditBody),
+    Embeddings(LocalEmbeddingsBody),
+    Audio(LocalAudioBody),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -420,11 +573,14 @@ pub struct OpenaiConfig {
     pub with: OpenaiApi,
 }
 
-impl FromValueBehavior for OpenaiConfig {
-    type Item = OpenaiConfig;
+impl TryFrom<Value> for OpenaiConfig {
+    type Error = String;
 
-    fn from_value(value: Value) -> Option<Self::Item> {
-        let action_str = value.get("action")?.as_str();
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        let action_str = value
+            .get("action")
+            .ok_or_else(|| "missing field 'action' for OpenaiConfig".to_string())?
+            .as_str();
 
         let action = match action_str {
             "completions" => OpenaiAction::Completions,
@@ -433,38 +589,40 @@ impl FromValueBehavior for OpenaiConfig {
             "images_edit" => OpenaiAction::ImagesEdit,
             "embeddings" => OpenaiAction::Embeddings,
             "audio" => OpenaiAction::Audio,
-            _ => return None,
+            _ => return Err(format!("invalid action: {}", action_str)),
         };
 
-        let with_value = value.get("with")?;
+        let with_value = value
+            .get("with")
+            .ok_or_else(|| "missing field 'with' for OpenaiConfig".to_string())?;
 
         let with = match action {
             OpenaiAction::Completions => {
-                let body = CompletionsBody::from_value(with_value.clone())?;
+                let body = LocalCompletionsBody::try_from(with_value.clone())?;
                 OpenaiApi::Completions(body)
             }
             OpenaiAction::Chat => {
-                let body = ChatBody::from_value(with_value.clone())?;
+                let body = LocalChatBody::try_from(with_value.clone())?;
                 OpenaiApi::Chat(body)
             }
             OpenaiAction::Images => {
-                let body = ImagesBody::from_value(with_value.clone())?;
+                let body = LocalImagesBody::try_from(with_value.clone())?;
                 OpenaiApi::Images(body)
             }
             OpenaiAction::ImagesEdit => {
-                let body = ImagesEditBody::from_value(with_value.clone())?;
+                let body = LocalImagesEditBody::try_from(with_value.clone())?;
                 OpenaiApi::ImagesEdit(body)
             }
             OpenaiAction::Embeddings => {
-                let body = EmbeddingsBody::from_value(with_value.clone())?;
+                let body = LocalEmbeddingsBody::try_from(with_value.clone())?;
                 OpenaiApi::Embeddings(body)
             }
             OpenaiAction::Audio => {
-                let body = AudioBody::from_value(with_value.clone())?;
+                let body = LocalAudioBody::try_from(with_value.clone())?;
                 OpenaiApi::Audio(body)
             }
         };
 
-        Some(OpenaiConfig { action, with })
+        Ok(OpenaiConfig { action, with })
     }
 }
