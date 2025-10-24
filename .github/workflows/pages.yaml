@@ -2,10 +2,10 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-      branches:
+    branches:
       - main
-      paths:
-      - 'site/**' # Só roda se houver mudanças dentro de site
+    paths:
+      - "site/**" # Só roda se houver mudanças dentro de site
   workflow_dispatch: # Para permitir também rodar manualmente se quiser
 
 jobs:
@@ -18,7 +18,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
       - name: Install dependencies
         working-directory: site
