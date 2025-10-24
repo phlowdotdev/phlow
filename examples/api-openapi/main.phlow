@@ -12,13 +12,17 @@ modules:
   - module: cache
     with:
       capacity: 1000
+  - module: log
 
 steps:
+  - payload: OKOKOK
+  - log:
+      level: info
+      message: !phs payload
   # Create a user
   - assert: !phs main.method == "POST" && main.path == "/users"
     then:
-      - use: cache
-        input:
+      - cache:
           action: get
           key: !phs main.body.email
 
@@ -29,8 +33,7 @@ steps:
             body:
               message: "User already exists"
 
-      - use: cache
-        input:
+      - cache:
           action: set
           key: !phs main.body.email
           value: !phs main.body
@@ -44,8 +47,7 @@ steps:
   # Get a user
   - assert: !phs main.method == "GET" && main.path == "/users/{userId}"
     then:
-      - use: cache
-        input:
+      - cache:
           action: get
           key: !phs main.path_params.userId
 
@@ -63,16 +65,14 @@ steps:
   # Edit a user
   - assert: !phs main.method == "PUT" && main.path == "/users/{userId}"
     then:
-      - use: cache
-        input:
+      - cache:
           action: get
           key: !phs main.path_params.userId
           value: !phs main.body
 
       - assert: !phs payload.success && !is_empty(payload.value)
         then:
-          - use: cache
-            input:
+          - cache:
               action: set
               key: !phs main.path_params.userId
               value: !phs merge(payload.value, main.body)
@@ -91,15 +91,13 @@ steps:
   # Delete a user
   - assert: !phs main.method == "DELETE" && main.path == "/users/{userId}"
     then:
-      - use: cache
-        input:
+      - cache:
           action: get
           key: !phs main.path_params.userId
 
       - assert: !phs payload.success && payload.found
         then:
-          - use: cache
-            input:
+          - cache:
               action: remove
               key: !phs main.path_params.userId
 
@@ -115,8 +113,7 @@ steps:
   # List a users
   - assert: !phs main.method == "GET" && main.path == "/users"
     then:
-      - use: cache
-        input:
+      - cache:
           action: list
 
       - return:

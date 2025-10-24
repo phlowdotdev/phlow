@@ -212,7 +212,7 @@ impl Loader {
             let base_url = match &module.repository {
                 Some(repo) => repo.clone(),
                 None => format!(
-                    "{}/refs/heads/main/packages/{}",
+                    "{}/{}",
                     if regex::Regex::new(r"^(https?://|\.git|.*@.*)")
                         .unwrap()
                         .is_match(default_package_repository_url)
