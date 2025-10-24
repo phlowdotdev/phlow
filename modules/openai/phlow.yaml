@@ -1,0 +1,101 @@
+name: openai
+description: |
+  Módulo que expõe recursos da OpenAI (chat/completion/embeddings).
+  Suporta as ações `chat`, `completion` e `embeddings` e pode ser configurado com uma chave de API
+  via `with: { api_key: "..." }` ou pela variável de ambiente `OPENAI_API_KEY`.
+version: 0.1.0
+author: Phlow Contributors <dev@phlow.local>
+type: step
+
+tags:
+  - openai
+  - ai
+  - nlp
+
+with:
+  type: object
+  required: false
+  properties:
+    api_key:
+      type: string
+      description: Chave de API OpenAI (se omitida, será lida de env OPENAI_API_KEY)
+      required: false
+
+input:
+  type: object
+  required: true
+  properties:
+    action:
+      type: string
+      enum:
+        [
+          "chat",
+          "completion",
+          "embeddings",
+          "audio_transcribe",
+          "audio_translate",
+          "image_generate",
+          "image_edit",
+        ]
+      required: true
+
+    # Para chat
+    messages:
+      type: array
+      required: false
+      description: Lista de mensagens no formato [{"role":"user","content":"..."}, ...]
+    model:
+      type: string
+      required: false
+      description: "Modelo a ser utilizado (ex: gpt-4o-mini)"
+
+    # Para completion
+    prompt:
+      type: string
+      required: false
+    temperature:
+      type: number
+      required: false
+
+    # Para embeddings
+    input_text:
+      type: string
+      required: false
+
+    # Para audio
+    audio_base64:
+      type: string
+      required: false
+      description: "Áudio codificado em base64 para transcrição/tradução (por exemplo, formato WAV/MP3)"
+    language:
+      type: string
+      required: false
+      description: "Código de idioma desejado para transcrição (opcional)"
+
+    # Para imagens
+    image_prompt:
+      type: string
+      required: false
+      description: "Prompt para geração de imagem"
+    image_base64:
+      type: string
+      required: false
+      description: "Imagem codificada em base64 (usada para edição)"
+    size:
+      type: string
+      required: false
+      description: "Tamanho da imagem (ex: 1024x1024)"
+
+output:
+  type: object
+  required: true
+  properties:
+    success:
+      type: boolean
+      required: true
+    data:
+      type: any
+      required: false
+    error:
+      type: string
+      required: false
