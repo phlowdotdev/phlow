@@ -2730,7 +2730,7 @@ dependencies = [
  "rhai",
  "serde",
  "tokio",
- "valu3",
+ "valu3 0.9.0",
 ]
 
 [[package]]
@@ -2799,7 +2799,7 @@ dependencies = [
  "tracing-log",
  "tracing-opentelemetry",
  "tracing-subscriber",
- "valu3",
+ "valu3 0.9.0",
 ]
 
 [[package]]
@@ -2820,7 +2820,7 @@ dependencies = [
  "rhai",
  "serde",
  "tokio",
- "valu3",
+ "valu3 0.9.0",
 ]
 
 [[package]]
@@ -3092,7 +3092,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "007cd40a48bd155237148f1b8f309c80b6658aa05c47ba90104dca7c772e9977"
 dependencies = [
- "valu3",
+ "valu3 0.8.2",
 ]
 
 [[package]]
@@ -4512,7 +4512,22 @@ dependencies = [
  "pest_derive",
  "regex",
  "serde",
- "valu3-derive",
+ "valu3-derive 0.8.2",
+]
+
+[[package]]
+name = "valu3"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1272a2bc45d66ef1051d194ceae60b67bad89a0512bace12a1d29c5f8b63cb39"
+dependencies = [
+ "bincode",
+ "chrono",
+ "pest",
+ "pest_derive",
+ "regex",
+ "serde",
+ "valu3-derive 0.9.0",
 ]
 
 [[package]]
@@ -4520,6 +4535,17 @@ name = "valu3-derive"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37439740c1661f75854357e3878a7b731393ed48b141dd61c0a1b76244ff2327"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "valu3-derive"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb0a7d6c88768af4eecedda18b5cd6253dce9181c38ebae92136c275deb0ed41"
 dependencies = [
  "proc-macro2",
  "quote",

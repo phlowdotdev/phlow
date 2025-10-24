@@ -1,5 +1,4 @@
 use openai_api_rust::completions::CompletionsBody;
-use openai_api_rust::images::ImagesBody;
 use openai_api_rust::{Message, Role};
 use phlow_sdk::prelude::*;
 use std::collections::HashMap;
@@ -551,20 +550,22 @@ impl Into<openai_api_rust::audio::AudioBody> for LocalAudioBody {
 pub enum OpenaiApi {
     Completions(LocalCompletionsBody),
     Chat(LocalChatBody),
-    Images(LocalImagesBody),
+    ImagesCreate(LocalImagesBody),
     ImagesEdit(LocalImagesEditBody),
     Embeddings(LocalEmbeddingsBody),
-    Audio(LocalAudioBody),
+    AudioTranslate(LocalAudioBody),
+    AudioTranscribe(LocalAudioBody),
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum OpenaiAction {
     Completions,
     Chat,
-    Images,
+    ImagesCreate,
     ImagesEdit,
     Embeddings,
-    Audio,
+    AudioTranslate,
+    AudioTranscribe,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -585,10 +586,11 @@ impl TryFrom<Value> for OpenaiConfig {
         let action = match action_str {
             "completions" => OpenaiAction::Completions,
             "chat" => OpenaiAction::Chat,
-            "images" => OpenaiAction::Images,
+            "images_create" => OpenaiAction::ImagesCreate,
             "images_edit" => OpenaiAction::ImagesEdit,
             "embeddings" => OpenaiAction::Embeddings,
-            "audio" => OpenaiAction::Audio,
+            "audio_translate" => OpenaiAction::AudioTranslate,
+            "audio_transcribe" => OpenaiAction::AudioTranscribe,
             _ => return Err(format!("invalid action: {}", action_str)),
         };
 
@@ -605,9 +607,9 @@ impl TryFrom<Value> for OpenaiConfig {
                 let body = LocalChatBody::try_from(with_value.clone())?;
                 OpenaiApi::Chat(body)
             }
-            OpenaiAction::Images => {
+            OpenaiAction::ImagesCreate => {
                 let body = LocalImagesBody::try_from(with_value.clone())?;
-                OpenaiApi::Images(body)
+                OpenaiApi::ImagesCreate(body)
             }
             OpenaiAction::ImagesEdit => {
                 let body = LocalImagesEditBody::try_from(with_value.clone())?;
@@ -617,9 +619,13 @@ impl TryFrom<Value> for OpenaiConfig {
                 let body = LocalEmbeddingsBody::try_from(with_value.clone())?;
                 OpenaiApi::Embeddings(body)
             }
-            OpenaiAction::Audio => {
+            OpenaiAction::AudioTranslate => {
                 let body = LocalAudioBody::try_from(with_value.clone())?;
-                OpenaiApi::Audio(body)
+                OpenaiApi::AudioTranslate(body)
+            }
+            OpenaiAction::AudioTranscribe => {
+                let body = LocalAudioBody::try_from(with_value.clone())?;
+                OpenaiApi::AudioTranscribe(body)
             }
         };
 
