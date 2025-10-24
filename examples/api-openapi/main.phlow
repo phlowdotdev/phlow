@@ -12,13 +12,8 @@ modules:
   - module: cache
     with:
       capacity: 1000
-  - module: log
 
 steps:
-  - payload: OKOKOK
-  - log:
-      level: info
-      message: !phs payload
   # Create a user
   - assert: !phs main.method == "POST" && main.path == "/users"
     then:
