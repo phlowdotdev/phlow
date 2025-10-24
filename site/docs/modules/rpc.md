@@ -4,6 +4,12 @@ title: RPC Module
 hide_title: true
 ---
 
+---
+sidebar_position: 8
+title: RPC Module
+hide_title: true
+---
+
 # RPC Module
 
 The RPC module provides Remote Procedure Call (RPC) functionality using tarpc for high-performance client-server communication.
@@ -20,9 +26,9 @@ The RPC module provides Remote Procedure Call (RPC) functionality using tarpc fo
 - ✅ **Connection pool**: Automatic connection management
 - ✅ **Observability**: Complete tracing with OpenTelemetry
 
-## 📋 Configuração
+## 📋 Configuration
 
-### Servidor RPC (Main)
+### RPC Server (Main)
 
 ```phlow
 name: "rpc-server"
@@ -50,7 +56,7 @@ steps:
         active: true
 ```
 
-### Cliente RPC (Steps)
+### RPC Client (Steps)
 
 ```phlow
 modules:
@@ -74,31 +80,31 @@ steps:
         "X-Request-ID": "123"
 ```
 
-## 🔧 Parâmetros
+## 🔧 Parameters
 
-### Configuração (with)
-- `host` (string): IP ou hostname (padrão: "127.0.0.1")
-- `port` (integer): Porta (padrão: 8080)
-- `timeout_ms` (integer): Timeout em ms (padrão: 5000)
-- `max_connections` (integer): Conexões máximas (padrão: 100)
-- `service_name` (string): Nome do serviço (padrão: "default")
+### Configuration (with)
+- `host` (string): IP or hostname (default: "127.0.0.1")
+- `port` (integer): Port (default: 8080)
+- `timeout_ms` (integer): Timeout in ms (default: 5000)
+- `max_connections` (integer): Maximum connections (default: 100)
+- `service_name` (string): Service name (default: "default")
 
-### Entrada Cliente (input)
-- `action` (string): Ação especial ["health", "info"]
-- `method` (string): Método remoto a chamar
-- `params` (any): Parâmetros do método
-- `headers` (object): Headers da chamada
+### Client Input (input)
+- `action` (string): Special action ["health", "info"]
+- `method` (string): Remote method to call
+- `params` (any): Method parameters
+- `headers` (object): Call headers
 
-### Saída (output)
-- `result` (any): Resultado do método remoto
-- `error` (string): Mensagem de erro se houver
-- `headers` (object): Headers de resposta
-- `healthy` (boolean): Status de saúde (action="health")
-- `service_name` (string): Nome do serviço (action="info")
+### Output (output)
+- `result` (any): Result of the remote method
+- `error` (string): Error message if any
+- `headers` (object): Response headers
+- `healthy` (boolean): Health status (action="health")
+- `service_name` (string): Service name (action="info")
 
-## 💻 Exemplos de Uso
+## 💻 Usage Examples
 
-### Servidor RPC Completo
+### Full RPC Server
 
 ```phlow
 name: "user-rpc-server"
@@ -158,7 +164,7 @@ steps:
           available_methods: ["get_user", "create_user"]
 ```
 
-### Cliente RPC com Health Check
+### RPC Client with Health Check
 
 ```phlow
 name: "rpc-client-example"
@@ -189,7 +195,7 @@ steps:
       operator: "equals"
       right: true
     then:
-      # Serviço saudável, fazer chamada
+      # Service is healthy, perform call
       use: "user_service"
       input:
         method: "get_user"
@@ -204,7 +210,7 @@ steps:
         health_status: "{{ $health_check }}"
 ```
 
-### Microserviços com RPC
+### Microservices with RPC
 
 ```phlow
 name: "order-processing"
@@ -287,9 +293,9 @@ steps:
       }
 ```
 
-## 📊 Estrutura de Dados
+## 📊 Data Structures
 
-### Dados do Servidor (main input)
+### Server Data (main input)
 
 ```json
 {
@@ -305,7 +311,7 @@ steps:
 }
 ```
 
-### Resposta do Cliente
+### Client Response
 
 ```json
 {
@@ -347,7 +353,7 @@ steps:
 
 ---
 
-**Versão**: 0.0.1  
-**Autor**: Philippe Assis `<codephilippe@gmail.com>`  
-**Licença**: MIT  
-**Repositório**: https://github.com/phlowdotdev/phlow
+**Version**: 0.0.1  
+**Author**: Philippe Assis `<codephilippe@gmail.com>`  
+**License**: MIT  
+**Repository**: https://github.com/phlowdotdev/phlow

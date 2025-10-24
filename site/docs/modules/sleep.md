@@ -4,6 +4,12 @@ title: Sleep Module
 hide_title: true
 ---
 
+---
+sidebar_position: 9
+title: Sleep Module
+hide_title: true
+---
+
 # Sleep Module
 
 The Sleep module provides functionality to pause execution for a specific period, useful for delays, throttling, and synchronization in workflows.
@@ -225,13 +231,13 @@ steps:
               milliseconds: 200
 ```
 
-## 📊 Casos de Uso Comuns
+## 📊 Common Use Cases
 
 ### 1. Debouncing
 ```phlow
 steps:
   - name: "user_input"
-    # Captura entrada do usuário
+    # Capture user input
     
   - name: "debounce_delay"
     use: "sleep_module"
@@ -239,7 +245,7 @@ steps:
       milliseconds: 300
       
   - name: "process_input"
-    # Processa apenas se não houver nova entrada
+    # Process only if no new input
 ```
 
 ### 2. Scheduling
@@ -248,7 +254,7 @@ steps:
   - name: "schedule_check"
     script: |
       let now = new Date();
-      let targetTime = new Date(now.getTime() + 3600000); // 1 hora
+      let targetTime = new Date(now.getTime() + 3600000); // 1 hour
       targetTime
       
   - name: "wait_until_scheduled"
@@ -257,7 +263,7 @@ steps:
       hours: 1
       
   - name: "execute_scheduled_task"
-    # Executa tarefa agendada
+    # Execute scheduled task
 ```
 
 ### 3. Circuit Breaker
@@ -278,22 +284,22 @@ steps:
         minutes: 5
 ```
 
-## 🔧 Configuração Avançada
+## 🔧 Advanced Configuration
 
-### Combinação de Unidades
+### Unit Combination
 ```phlow
-# Note: Apenas a primeira unidade encontrada é usada
+# Note: Only the first unit found is used
 steps:
   - name: "complex_sleep"
     use: "sleep_module"
     input:
-      # Apenas seconds será usado (primeiro encontrado)
+      # Only seconds will be used (first found)
       seconds: 30
-      minutes: 1  # Ignorado
-      hours: 1    # Ignorado
+      minutes: 1  # Ignored
+      hours: 1    # Ignored
 ```
 
-### Sleep Dinâmico
+### Dynamic Sleep
 ```phlow
 steps:
   - name: "calculate_delay"
@@ -317,7 +323,7 @@ steps:
 
 ---
 
-**Versão**: 0.0.1  
-**Autor**: Philippe Assis `<codephilippe@gmail.com>`  
-**Licença**: MIT  
-**Repositório**: https://github.com/phlowdotdev/phlow
+**Version**: 0.0.1  
+**Author**: Philippe Assis `<codephilippe@gmail.com>`
+**License**: MIT  
+**Repository**: https://github.com/phlowdotdev/phlow

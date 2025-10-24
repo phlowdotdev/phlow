@@ -4,6 +4,12 @@ title: Log Module
 hide_title: true
 ---
 
+---
+sidebar_position: 6
+title: Log Module
+hide_title: true
+---
+
 # Log Module
 
 The Log module provides structured logging functionality for Phlow applications, allowing you to record messages with different severity levels.
@@ -18,94 +24,94 @@ The Log module provides structured logging functionality for Phlow applications,
 - ✅ **Observability**: Integration with OpenTelemetry
 - ✅ **Performance**: Asynchronous logging without blocking
 
-## 📋 Configuração
+## 📋 Configuration
 
-### Configuração Básica (Sintaxe Recomendada)
+### Basic Configuration (Recommended Syntax)
 
 ```phlow
 steps:
   - use: log
     input:
       level: "info"
-      message: "Aplicação iniciada com sucesso"
+      message: "Application started successfully"
 ```
 
-### Configuração Básica (Sintaxe Legada - Ainda Suportada)
+### Basic Configuration (Legacy Syntax - Still Supported)
 
 ```phlow
 steps:
   - log:
       level: "info"
-      message: "Aplicação iniciada com sucesso"
+      message: "Application started successfully"
 ```
 
-**Nota:** Ambas as sintaxes são suportadas. A sintaxe legada é automaticamente transformada para a nova sintaxe durante o processamento.
+**Note:** Both syntaxes are supported. The legacy syntax is automatically transformed to the new syntax during processing.
 
-### Configuração com Variáveis de Ambiente
+### Configuration with Environment Variables
 
 ```bash
-# Nível de log padrão
+# Default log level
 export PHLOW_LOG="debug"  # info, debug, warn, error
 ```
 
-## 🔧 Parâmetros
+## 🔧 Parameters
 
-### Entrada (input)
-- `level` (string, opcional): Nível do log [info, debug, warn, error] (padrão: "info")
-- `message` (string, obrigatório): Mensagem a ser registrada
+### Input
+- `level` (string, optional): Log level [info, debug, warn, error] (default: "info")
+- `message` (string, required): Message to be logged
 
-### Saída (output)
-- Retorna `null` após processar o log
+### Output
+- Returns `null` after processing the log
 
-## 💻 Exemplos de Uso
+## 💻 Usage Examples
 
-### Logs de Diferentes Níveis (Nova Sintaxe)
+### Different Log Levels (New Syntax)
 
 ```phlow
 steps:
   - use: log
     input:
       level: "info"
-      message: "Processamento iniciado"
+      message: "Processing started"
       
   - use: log
     input:
       level: "debug"
-      message: !phs `Variável x = ${main.x}`
+      message: !phs `Variable x = ${main.x}`
       
   - use: log
     input:
       level: "warn"
-      message: "Configuração não encontrada, usando padrão"
+      message: "Configuration not found, using default"
       
   - use: log
     input:
       level: "error"
-      message: "Falha na conexão com banco de dados"
+      message: "Database connection failed"
 ```
 
-### Logs de Diferentes Níveis (Sintaxe Legada - Transformada Automaticamente)
+### Different Log Levels (Legacy Syntax - Automatically Transformed)
 
 ```phlow
 steps:
   - log:
       level: "info"
-      message: "Processamento iniciado"
+      message: "Processing started"
       
   - log:
       level: "debug"
-      message: !phs `Variável x = ${main.x}`
+      message: !phs `Variable x = ${main.x}`
       
   - log:
       level: "warn"
-      message: "Configuração não encontrada, usando padrão"
+      message: "Configuration not found, using default"
       
   - log:
       level: "error"
-      message: "Falha na conexão com banco de dados"
+      message: "Database connection failed"
 ```
 
-### Logging com Blocos de Código
+### Logging with Code Blocks
 
 ```phlow
 steps:
@@ -132,13 +138,13 @@ steps:
       }
 ```
 
-### Logging em Pipeline
+### Pipeline Logging
 
 ```phlow
 steps:
   - use: log
     input:
-      message: !phs `Iniciando processamento do usuário ${main.user_id}`
+      message: !phs `Starting user processing ${main.user_id}`
       
   - payload: !phs {
       let userId = main.user_id;
@@ -155,23 +161,23 @@ steps:
   - use: log
     input:
       level: "info"
-      message: !phs `Usuário ${payload.id} processado com sucesso`
+      message: !phs `User ${payload.id} processed successfully`
       
   - use: log
     input:
       level: "debug"
       message: !phs {
         let data = JSON.stringify(payload, null, 2);
-        `Dados do usuário processado: ${data}`
+        `Processed user data: ${data}`
       }
 ```
 
-## 🌐 Exemplo Completo
+## 🌐 Complete Example
 
 ```phlow
 name: "logging-example"
 version: "1.0.0"
-description: "Exemplo de uso do módulo Log com novas funcionalidades"
+description: "Example using the Log module with new features"
 
 modules:
   - module: log
@@ -183,11 +189,11 @@ steps:
       level: "info"
       message: !phs {
         let timestamp = new Date().toISOString();
-        `Aplicação iniciada em ${timestamp}`
+        `Application started at ${timestamp}`
       }
       
   - payload: !phs {
-      // Simular carregamento de configuração
+      // Simulate configuration loading
       let config = {
         database: "postgresql://localhost:5432/mydb",
         port: 3000,
@@ -203,7 +209,7 @@ steps:
       level: "debug"
       message: !phs {
         let configStr = JSON.stringify(payload, null, 2);
-        `Configuração carregada: ${configStr}`
+        `Configuration loaded: ${configStr}`
       }
       
   - assert: !phs payload.database != null
@@ -211,12 +217,12 @@ steps:
       - use: log
         input:
           level: "info"
-          message: "Configuração de banco de dados válida"
+          message: "Database configuration valid"
     else:
       - use: log
         input:
           level: "error"
-          message: "Configuração de banco de dados ausente"
+          message: "Database configuration missing"
         
   - assert: !phs payload.debug === true
     then:
@@ -225,7 +231,7 @@ steps:
           level: "warn"
           message: !phs {
             let version = payload.version;
-            `Modo debug ativado na versão ${version} - performance pode ser afetada`
+            `Debug mode enabled in version ${version} - performance may be affected`
           }
         
   - use: log
@@ -235,28 +241,28 @@ steps:
         let port = payload.port;
         let dbHost = payload.database.split("://")[1].split("/")[0];
         
-        `Aplicação configurada - Porta: ${port}, DB: ${dbHost}`
+        `Application configured - Port: ${port}, DB: ${dbHost}`
       }
 ```
 
-### Exemplo com Sintaxe Mista (Legada + Nova)
+### Example with Mixed Syntax (Legacy + New)
 
 ```phlow
 modules:
   - module: log
 
 steps:
-  # Nova sintaxe
+  # New syntax
   - use: log
     input:
-      message: "Iniciando com nova sintaxe"
+      message: "Starting with new syntax"
       
-  # Sintaxe legada (será transformada automaticamente)
+  # Legacy syntax (will be automatically transformed)
   - log:
       level: "debug"
-      message: "Esta é a sintaxe legada"
+      message: "This is legacy syntax"
       
-  # Nova sintaxe com bloco de código
+  # New syntax with code block
   - use: log
     input:
       level: "info"
@@ -264,45 +270,45 @@ steps:
         let mode = "mixed";
         let timestamp = new Date().toISOString();
         
-        `Modo ${mode} ativo em ${timestamp}`
+        `Mode ${mode} active at ${timestamp}`
       }
 ```
 
-## 🔧 Configuração Avançada
+## 🔧 Advanced Configuration
 
-### Níveis de Log
+### Log Levels
 
 ```bash
-# Apenas erros
+# Errors only
 export PHLOW_LOG="error"
 
-# Warnings e erros
+# Warnings and errors
 export PHLOW_LOG="warn"
 
-# Informações, warnings e erros
+# Info, warnings and errors
 export PHLOW_LOG="info"
 
-# Todos os logs incluindo debug
+# All logs including debug
 export PHLOW_LOG="debug"
 ```
 
-### Formatação de Logs
+### Log Formatting
 
-O módulo usa env_logger, que pode ser configurado:
+The module uses env_logger, which can be configured:
 
 ```bash
-# Formato personalizado
+# Custom format
 export RUST_LOG_STYLE="always"
 export PHLOW_LOG="debug"
 ```
 
-## 📊 Saída de Exemplo
+## 📊 Sample Output
 
 ```
-[2024-01-01T00:00:00Z INFO  phlow] Aplicação iniciada com sucesso
-[2024-01-01T00:00:01Z DEBUG phlow] Variável x = 42
-[2024-01-01T00:00:02Z WARN  phlow] Configuração não encontrada, usando padrão
-[2024-01-01T00:00:03Z ERROR phlow] Falha na conexão com banco de dados
+[2024-01-01T00:00:00Z INFO  phlow] Application started successfully
+[2024-01-01T00:00:01Z DEBUG phlow] Variable x = 42
+[2024-01-01T00:00:02Z WARN  phlow] Configuration not found, using default
+[2024-01-01T00:00:03Z ERROR phlow] Database connection failed
 ```
 
 ## 🏷️ Tags

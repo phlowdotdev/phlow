@@ -22,75 +22,75 @@ The Cache module provides comprehensive in-memory caching functionality for Phlo
 - ✅ **Action-based API**: Multiple operations through a unified interface
 - ✅ **Manual Cleanup**: Manual cleanup of expired items when needed
 
-## 📋 Configuração
+## 📋 Configuration
 
-### Configuração Básica
-
-```phlow
-modules:
-  - module: cache
-    with:
-      capacity: 1000      # Máximo de 1000 itens
-      default_ttl: 3600   # TTL padrão de 1 hora
-```
-
-### Configuração para Produção
+### Basic Configuration
 
 ```phlow
 modules:
   - module: cache
     with:
-      capacity: 10000     # Alta capacidade para produção
-      default_ttl: 1800   # 30 minutos padrão
+      capacity: 1000      # Maximum of 1000 items
+      default_ttl: 3600   # Default TTL of 1 hour
 ```
 
-### Configuração para Desenvolvimento/Teste
+### Production Configuration
 
 ```phlow
 modules:
   - module: cache
     with:
-      capacity: 100       # Capacidade pequena para testes
-      default_ttl: 300    # 5 minutos para desenvolvimento
+      capacity: 10000     # High capacity for production
+      default_ttl: 1800   # 30 minutes default
 ```
 
-## 🔧 Parâmetros de Configuração
+### Development/Test Configuration
 
-### Configuração do Módulo (with)
-- `capacity` (integer, opcional): Número máximo de itens no cache (padrão: 1000)
-- `default_ttl` (integer, opcional): TTL padrão em segundos para novos itens
+```phlow
+modules:
+  - module: cache
+    with:
+      capacity: 100       # Small capacity for testing
+      default_ttl: 300    # 5 minutes for development
+```
 
-### Entrada (input)
-- `action` (string, obrigatório): Ação a executar ["set", "get", "remove", "clear", "exists", "list", "cleanup", "stats"]
-- `key` (string): Chave do item (obrigatório para set, get, remove, exists)
-- `value` (any): Valor a armazenar (obrigatório para set)
-- `ttl` (integer, opcional): TTL em segundos para o item específico
-- `filter_type` (string, opcional): Tipo de filtro para list ["prefix", "suffix", "pattern"]
-- `filter_prefix` (string, opcional): Prefixo para filtrar (usado com list)
-- `filter_suffix` (string, opcional): Sufixo para filtrar (usado com list)  
-- `order` (string, opcional): Ordenação para list ["asc", "desc"] (padrão: "asc")
-- `limit` (integer, opcional): Número máximo de itens para list
-- `offset` (integer, opcional): Número de itens para pular em list (padrão: 0)
+## 🔧 Configuration Parameters
 
-### Saída (output)
-- `success` (boolean): Se a operação foi bem-sucedida
-- `error` (string): Mensagem de erro (se falhou)
-- `found` (boolean): Se o item foi encontrado (get, exists)
-- `value` (any): Valor recuperado (get)
-- `cached` (boolean): Se o item foi armazenado (set)
-- `removed` (boolean): Se o item foi removido (remove)
-- `previous_size` (integer): Tamanho anterior do cache (clear)
-- `items` (array): Lista de itens (list)
-- `total_count` (integer): Total de itens encontrados (list)
-- `has_more` (boolean): Se há mais itens disponíveis (list)
-- `cleaned_count` (integer): Número de itens limpos (cleanup)
-- `stats` (object): Estatísticas detalhadas do cache (stats)
+### Module Configuration (with)
+- `capacity` (integer, optional): Maximum number of items in cache (default: 1000)
+- `default_ttl` (integer, optional): Default TTL in seconds for new items
 
-## 💻 Exemplos de Uso
+### Input
+- `action` (string, required): Action to execute ["set", "get", "remove", "clear", "exists", "list", "cleanup", "stats"]
+- `key` (string): Item key (required for set, get, remove, exists)
+- `value` (any): Value to store (required for set)
+- `ttl` (integer, optional): TTL in seconds for the specific item
+- `filter_type` (string, optional): Filter type for list ["prefix", "suffix", "pattern"]
+- `filter_prefix` (string, optional): Prefix to filter (used with list)
+- `filter_suffix` (string, optional): Suffix to filter (used with list)  
+- `order` (string, optional): Sort order for list ["asc", "desc"] (default: "asc")
+- `limit` (integer, optional): Maximum number of items for list
+- `offset` (integer, optional): Number of items to skip in list (default: 0)
 
-### Operações Básicas de Cache
+### Output
+- `success` (boolean): Whether the operation was successful
+- `error` (string): Error message (if failed)
+- `found` (boolean): Whether the item was found (get, exists)
+- `value` (any): Retrieved value (get)
+- `cached` (boolean): Whether the item was stored (set)
+- `removed` (boolean): Whether the item was removed (remove)
+- `previous_size` (integer): Previous cache size (clear)
+- `items` (array): List of items (list)
+- `total_count` (integer): Total items found (list)
+- `has_more` (boolean): Whether there are more items available (list)
+- `cleaned_count` (integer): Number of items cleaned (cleanup)
+- `stats` (object): Detailed cache statistics (stats)
 
-#### Armazenar Dados (Set)
+## 💻 Usage Examples
+
+### Basic Cache Operations
+
+#### Store Data (Set)
 
 ```phlow
 steps:
@@ -100,13 +100,13 @@ steps:
       key: "user:123"
       value:
         id: 123
-        name: "João Silva"
-        email: "joao@example.com"
+        name: "John Smith"
+        email: "john@example.com"
         role: "admin"
-      ttl: 3600  # Expira em 1 hora
+      ttl: 3600  # Expires in 1 hour
 ```
 
-#### Recuperar Dados (Get)
+#### Retrieve Data (Get)
 
 ```phlow
 steps:
@@ -120,10 +120,10 @@ steps:
       - return: !phs payload.value
     else:
       - return: 
-          error: "Usuário não encontrado no cache"
+          error: "User not found in cache"
 ```
 
-#### Verificar Existência (Exists)
+#### Check Existence (Exists)
 
 ```phlow
 steps:
@@ -132,10 +132,10 @@ steps:
       action: exists
       key: "user:123"
   
-  - return: !phs `Usuário existe no cache: ${payload.found}`
+  - return: !phs `User exists in cache: ${payload.found}`
 ```
 
-#### Remover Item (Remove)
+#### Remove Item
 
 ```phlow
 steps:
@@ -146,12 +146,12 @@ steps:
   
   - assert: !phs payload.removed
     then:
-      - return: "Usuário removido com sucesso"
+      - return: "User removed successfully"
     else:
-      - return: "Usuário não estava no cache"
+      - return: "User was not in cache"
 ```
 
-#### Limpar Cache Completo (Clear)
+#### Clear Entire Cache
 
 ```phlow
 steps:
@@ -159,14 +159,14 @@ steps:
     input:
       action: clear
   
-  - return: !phs `Cache limpo, ${payload.previous_size} itens removidos`
+  - return: !phs `Cache cleared, ${payload.previous_size} items removed`
 ```
 
-### Operações Avançadas
+### Advanced Operations
 
-#### Listagem com Filtros
+#### Listing with Filters
 
-##### Filtrar por Prefixo
+##### Filter by Prefix
 ```phlow
 steps:
   - use: cache
@@ -178,7 +178,7 @@ steps:
       limit: 10
 ```
 
-##### Filtrar por Sufixo
+##### Filter by Suffix
 ```phlow
 steps:
   - use: cache
@@ -190,7 +190,7 @@ steps:
       limit: 20
 ```
 
-##### Filtrar por Padrão (Prefixo + Sufixo)
+##### Filter by Pattern (Prefix + Suffix)
 ```phlow
 steps:
   - use: cache
@@ -202,11 +202,11 @@ steps:
       limit: 50
 ```
 
-#### Paginação
+#### Pagination
 
 ```phlow
 steps:
-  # Primeira página
+  # First page
   - use: cache
     input:
       action: list
@@ -214,7 +214,7 @@ steps:
       limit: 10
       offset: 0
   
-  # Segunda página
+  # Second page
   - use: cache
     input:
       action: list
@@ -223,7 +223,7 @@ steps:
       offset: 10
 ```
 
-#### Limpeza Manual (Cleanup)
+#### Manual Cleanup
 
 ```phlow
 steps:
@@ -231,10 +231,10 @@ steps:
     input:
       action: cleanup
   
-  - return: !phs `${payload.cleaned_count} itens expirados removidos`
+  - return: !phs `${payload.cleaned_count} expired items removed`
 ```
 
-#### Estatísticas do Cache (Stats)
+#### Cache Statistics (Stats)
 
 ```phlow
 steps:
@@ -245,7 +245,7 @@ steps:
   - return: !phs payload.stats
 ```
 
-## 📊 Tipos de Dados Suportados
+## 📊 Supported Data Types
 
 ### Strings
 ```phlow
@@ -253,11 +253,11 @@ steps:
   input:
     action: set
     key: "message"
-    value: "Olá, mundo!"
+    value: "Hello, world!"
     ttl: 300
 ```
 
-### Números
+### Numbers
 ```phlow
 - use: cache
   input:
@@ -267,18 +267,18 @@ steps:
     ttl: 600
 ```
 
-### Objetos Complexos
+### Complex Objects
 ```phlow
 - use: cache
   input:
     action: set
     key: "user:profile"
-    value:
-      id: 123
-      name: "Ana Costa"
-      preferences:
-        theme: "dark"
-        language: "pt-BR"
+      value:
+        id: 123
+        name: "Ana Costa"
+        preferences:
+          theme: "dark"
+          language: "en-US"
       settings:
         notifications: true
         privacy: "public"
@@ -295,24 +295,24 @@ steps:
     ttl: 3600
 ```
 
-## 🌐 Exemplos Completos
+## 🌐 Complete Examples
 
-### Sistema de Sessões de Usuário
+### User Session System
 
 ```phlow
 name: "user-session-cache"
 version: "1.0.0"
-description: "Sistema completo de cache para sessões de usuário"
+description: "Complete cache system for user sessions"
 
 modules:
   - module: cache
     with:
       capacity: 5000
-      default_ttl: 1800  # 30 minutos padrão
+      default_ttl: 1800  # 30 minutes default
   - module: log
 
 steps:
-  # Criar sessão de usuário
+  # Create user session
   - use: cache
     input:
       action: set
@@ -325,14 +325,14 @@ steps:
         last_activity: "2025-08-06T23:10:00Z"
         permissions: ["read", "write", "profile"]
         is_active: true
-      ttl: 3600  # 1 hora para esta sessão específica
+      ttl: 3600  # 1 hour for this specific session
 
   - use: log
     input:
       level: info
-      message: "✅ Sessão criada para usuário joao.silva"
+      message: "✅ Session created for user joao.silva"
 
-  # Validar sessão existe
+  # Validate session exists
   - use: cache
     input:
       action: exists
@@ -343,14 +343,14 @@ steps:
       - use: log
         input:
           level: info
-          message: "✅ Validação de sessão bem-sucedida"
+          message: "✅ Session validation successful"
     else:
       - use: log
         input:
           level: error
-          message: "❌ Sessão não encontrada"
+          message: "❌ Session not found"
 
-  # Recuperar dados da sessão
+  # Retrieve session data
   - use: cache
     input:
       action: get
@@ -361,9 +361,9 @@ steps:
       - use: log
         input:
           level: info
-          message: !phs `👤 Sessão recuperada para ${payload.value.username}`
+          message: !phs `👤 Session retrieved for ${payload.value.username}`
       
-      # Renovar sessão (atualizar last_activity)
+      # Renew session (update last_activity)
       - use: cache
         input:
           action: set
@@ -376,14 +376,14 @@ steps:
             last_activity: "2025-08-06T23:15:00Z"
             permissions: !phs payload.value.permissions
             is_active: true
-          ttl: 3600  # Renovar por mais 1 hora
+          ttl: 3600  # Renew for another hour
       
       - use: log
         input:
           level: info
-          message: "🔄 Sessão renovada com sucesso"
+          message: "🔄 Session renewed successfully"
 
-  # Listar todas as sessões ativas (admin)
+  # List all active sessions (admin)
   - use: cache
     input:
       action: list
@@ -395,9 +395,9 @@ steps:
   - use: log
     input:
       level: info
-      message: !phs `📊 Total de ${payload.total_count} sessões ativas`
+      message: !phs `📊 Total of ${payload.total_count} active sessions`
 
-  # Logout (remover sessão)
+  # Logout (remove session)
   - use: cache
     input:
       action: remove
@@ -408,9 +408,9 @@ steps:
       - use: log
         input:
           level: info
-          message: "🚪 Logout realizado com sucesso"
+          message: "🚪 Logout performed successfully"
 
-  # Verificar se sessão foi removida
+  # Check if session was removed
   - use: cache
     input:
       action: exists
@@ -421,34 +421,34 @@ steps:
       - use: log
         input:
           level: info
-          message: "✅ Confirmado: sessão foi removida"
+          message: "✅ Confirmed: session was removed"
 
-  # Estatísticas finais
+  # Final statistics
   - use: cache
     input:
       action: stats
 
   - return:
-      message: "Sistema de sessões processado com sucesso"
+      message: "Session system processed successfully"
       cache_stats: !phs payload.stats
 ```
 
-### Cache de Respostas de API
+### API Response Cache
 
 ```phlow
 name: "api-response-cache"
 version: "1.0.0"
-description: "Sistema de cache para respostas de API com diferentes estratégias de TTL"
+description: "Cache system for API responses with different TTL strategies"
 
 modules:
   - module: cache
     with:
       capacity: 2000
-      default_ttl: 600  # 10 minutos padrão
+      default_ttl: 600  # 10 minutes default
   - module: log
 
 steps:
-  # Cache de dados que mudam frequentemente (TTL curto)
+  # Cache data that changes frequently (short TTL)
   - use: cache
     input:
       action: set
@@ -463,14 +463,14 @@ steps:
           page: 1
           cached_at: "2025-08-06T23:10:00Z"
         query_time_ms: 245
-      ttl: 300  # 5 minutos - dados que mudam rapidamente
+      ttl: 300  # 5 minutes - rapidly changing data
 
   - use: log
     input:
       level: info
-      message: "📋 Lista de usuários cached (TTL: 5 min)"
+      message: "📋 User list cached (TTL: 5 min)"
 
-  # Cache de perfil individual (TTL médio)
+  # Cache individual profile (medium TTL)
   - use: cache
     input:
       action: set
@@ -480,20 +480,20 @@ steps:
         name: "Alice Johnson"
         email: "alice@example.com"
         profile:
-          bio: "Desenvolvedora de Software"
-          location: "São Paulo, SP"
+          bio: "Software Developer"
+          location: "New York, NY"
           joined: "2023-01-15"
         preferences:
           theme: "dark"
           notifications: true
-      ttl: 1800  # 30 minutos - dados de perfil
+      ttl: 1800  # 30 minutes - profile data
 
   - use: log
     input:
       level: info
-      message: "👤 Perfil de usuário cached (TTL: 30 min)"
+      message: "👤 User profile cached (TTL: 30 min)"
 
-  # Cache de estatísticas computadas (TTL longo)
+  # Cache computed statistics (long TTL)
   - use: cache
     input:
       action: set
@@ -508,14 +508,14 @@ steps:
           api_calls: 12456
         computed_at: "2025-08-06T23:10:00Z"
         computation_time_ms: 1850
-      ttl: 86400  # 24 horas - estatísticas diárias
+      ttl: 86400  # 24 hours - daily statistics
 
   - use: log
     input:
       level: info
-      message: "📊 Estatísticas diárias cached (TTL: 24h)"
+      message: "📊 Daily statistics cached (TTL: 24h)"
 
-  # Cache de configuração (TTL muito longo)
+  # Cache configuration (very long TTL)
   - use: cache
     input:
       action: set
@@ -533,14 +533,14 @@ steps:
         endpoints:
           - {path: "/api/users", methods: ["GET", "POST"]}
           - {path: "/api/users/:id", methods: ["GET", "PUT", "DELETE"]}
-      ttl: 604800  # 7 dias - configuração da aplicação
+      ttl: 604800  # 7 days - application configuration
 
   - use: log
     input:
       level: info
-      message: "⚙️ Configuração da app cached (TTL: 7 dias)"
+      message: "⚙️ App configuration cached (TTL: 7 days)"
 
-  # Simular cache hit para lista de usuários
+  # Simulate cache hit for user list
   - use: cache
     input:
       action: get
@@ -551,13 +551,13 @@ steps:
       - use: log
         input:
           level: info
-          message: !phs `✅ Cache HIT: Lista com ${payload.value.metadata.total_count} usuários`
+          message: !phs `✅ Cache HIT: List with ${payload.value.metadata.total_count} users`
       - use: log
         input:
           level: info  
-          message: !phs `⏱️ Query original levou ${payload.value.query_time_ms}ms`
+          message: !phs `⏱️ Original query took ${payload.value.query_time_ms}ms`
 
-  # Listar todos os caches de API
+  # List all API caches
   - use: cache
     input:
       action: list
@@ -568,9 +568,9 @@ steps:
   - use: log
     input:
       level: info
-      message: !phs `📂 Total de ${payload.total_count} respostas de API em cache`
+      message: !phs `📂 Total of ${payload.total_count} API responses in cache`
 
-  # Invalidar cache de usuário específico (após atualização)
+  # Invalidate specific user cache (after update)
   - use: cache
     input:
       action: remove
@@ -581,9 +581,9 @@ steps:
       - use: log
         input:
           level: info
-          message: "🗑️ Cache do usuário 42 invalidado (ex: após update)"
+          message: "🗑️ User 42 cache invalidated (e.g., after update)"
 
-  # Verificar cache miss após invalidação
+  # Check cache miss after invalidation
   - use: cache
     input:
       action: get
@@ -594,13 +594,13 @@ steps:
       - use: log
         input:
           level: info
-          message: "✅ Confirmado: Cache invalidado corretamente"
+          message: "✅ Confirmed: Cache invalidated correctly"
       - use: log
         input:
           level: info
-          message: "💡 Próxima chamada da API fará query no banco"
+          message: "💡 Next API call will query the database"
 
-  # Estatísticas de performance
+  # Performance statistics
   - use: cache
     input:
       action: stats
@@ -608,117 +608,117 @@ steps:
   - use: log
     input:
       level: info
-      message: !phs `📈 Hit rate: ${payload.stats.hit_rate.toFixed(1)}%, Memória: ${(payload.stats.memory_usage/1024).toFixed(1)}KB`
+      message: !phs `📨 Hit rate: ${payload.stats.hit_rate.toFixed(1)}%, Memory: ${(payload.stats.memory_usage/1024).toFixed(1)}KB`
 
   - return:
-      message: "Sistema de cache de API processado"
+      message: "API cache system processed"
       hit_rate: !phs payload.stats.hit_rate
       memory_usage_kb: !phs (payload.stats.memory_usage/1024).toFixed(1)
       categories_cached:
-        - "Lista de usuários (TTL: 5 min)"
-        - "Perfis individuais (TTL: 30 min)"
-        - "Estatísticas diárias (TTL: 24h)"
-        - "Configuração (TTL: 7 dias)"
+        - "User list (TTL: 5 min)"
+        - "Individual profiles (TTL: 30 min)"
+        - "Daily statistics (TTL: 24h)"
+        - "Configuration (TTL: 7 days)"
 ```
 
-## 🔍 Estratégias de TTL
+## 🔍 TTL Strategies
 
-### TTL Curto (1-10 minutos)
-**Ideal para**: Dados que mudam frequentemente
+### Short TTL (1-10 minutes)
+**Ideal for**: Data that changes frequently
 ```phlow
-ttl: 300  # 5 minutos
-# Exemplos: listas de usuários, status em tempo real, cotações
+ttl: 300  # 5 minutes
+# Examples: user lists, real-time status, quotes
 ```
 
-### TTL Médio (30-60 minutos)  
-**Ideal para**: Dados específicos do usuário
+### Medium TTL (30-60 minutes)  
+**Ideal for**: User-specific data
 ```phlow
-ttl: 1800  # 30 minutos
-# Exemplos: perfis de usuário, preferências, sessões
+ttl: 1800  # 30 minutes
+# Examples: user profiles, preferences, sessions
 ```
 
-### TTL Longo (horas)
-**Ideal para**: Dados computados/agregados
+### Long TTL (hours)
+**Ideal for**: Computed/aggregated data
 ```phlow
-ttl: 86400  # 24 horas
-# Exemplos: relatórios, estatísticas, dashboards
+ttl: 86400  # 24 hours
+# Examples: reports, statistics, dashboards
 ```
 
-### TTL Muito Longo (dias)
-**Ideal para**: Configurações e dados estáticos
+### Very Long TTL (days)
+**Ideal for**: Configuration and static data
 ```phlow
-ttl: 604800  # 7 dias
-# Exemplos: configurações da app, features flags, metadados
+ttl: 604800  # 7 days
+# Examples: app configuration, feature flags, metadata
 ```
 
-## 📈 Monitoramento e Estatísticas
+## 📨 Monitoring and Statistics
 
-### Métricas Disponíveis
+### Available Metrics
 
 ```phlow
 - use: cache
   input:
     action: stats
 
-# Retorna:
+# Returns:
 # {
 #   "stats": {
-#     "size": 150,              // Itens atuais no cache
-#     "capacity": 1000,         // Capacidade máxima  
-#     "hit_rate": 85.4,         // Taxa de sucesso (%)
-#     "memory_usage": 33024,    // Uso de memória estimado (bytes)
-#     "total_gets": 500,        // Total de operações get
-#     "total_hits": 427,        // Total de cache hits
-#     "total_sets": 150,        // Total de operações set
-#     "total_removes": 23       // Total de operações remove
+#     "size": 150,              // Current items in cache
+#     "capacity": 1000,         // Maximum capacity
+#     "hit_rate": 85.4,         // Success rate (%)
+#     "memory_usage": 33024,    // Estimated memory usage (bytes)
+#     "total_gets": 500,        // Total get operations
+#     "total_hits": 427,        // Total cache hits
+#     "total_sets": 150,        // Total set operations
+#     "total_removes": 23       // Total remove operations
 #   }
 # }
 ```
 
-### Interpretação das Métricas
+### Interpreting Metrics
 
-- **Hit Rate**: Taxa de sucesso do cache (quanto maior, melhor)
-  - `> 80%`: Excelente performance
-  - `60-80%`: Boa performance  
-  - `< 60%`: Considerar ajustar TTL ou capacidade
+- **Hit Rate**: Cache success rate (higher is better)
+  - `> 80%`: Excellent performance
+  - `60-80%`: Good performance  
+  - `< 60%`: Consider adjusting TTL or capacity
 
-- **Memory Usage**: Uso de memória estimado
-  - ~220 bytes por item armazenado
-  - Monitore para evitar consumo excessivo
+- **Memory Usage**: Estimated memory usage
+  - ~220 bytes per stored item
+  - Monitor to avoid excessive consumption
 
-- **Size vs Capacity**: Utilização do cache
-  - Se próximo da capacidade, itens antigos serão removidos (LRU)
+- **Size vs Capacity**: Cache utilization
+  - If close to capacity, old items will be removed (LRU)
 
-## ⚡ Performance e Boas Práticas
+## ⚡ Performance and Best Practices
 
-### Complexidade das Operações
+### Operation Complexity
 
-- **Get Operations**: O(1) - Tempo constante
-- **Set Operations**: O(log n) - Inserção ordenada
-- **List Operations**: O(n) - Com filtros aplicados
-- **Exists Operations**: O(1) - Tempo constante
-- **Remove Operations**: O(1) - Tempo constante
+- **Get Operations**: O(1) - Constant time
+- **Set Operations**: O(log n) - Sorted insertion
+- **List Operations**: O(n) - With filters applied
+- **Exists Operations**: O(1) - Constant time
+- **Remove Operations**: O(1) - Constant time
 
-### Padrões de Nomenclatura de Chaves
+### Key Naming Patterns
 
 ```phlow
-# ✅ Bons padrões
-"user:123"              # Dados de usuário
-"session:abc123"        # Sessão de usuário  
-"api:users:list"        # Lista da API
-"api:user:123"          # Usuário específico da API
-"config:feature_flags"  # Configurações
-"stats:daily:2025-08-06" # Estatísticas por data
+# ✅ Good patterns
+"user:123"              # User data
+"session:abc123"        # User session
+"api:users:list"        # API list
+"api:user:123"          # Specific API user
+"config:feature_flags"  # Configuration
+"stats:daily:2025-08-06" # Statistics by date
 
-# ❌ Evitar
-"userdata"              # Muito genérico
-"temp123"               # Não descritivo
-"a:b:c:d:e:f"          # Muito profundo
+# ❌ Avoid
+"userdata"              # Too generic
+"temp123"               # Not descriptive
+"a:b:c:d:e:f"          # Too deeply nested
 ```
 
-### Configurações Recomendadas
+### Recommended Configurations
 
-#### Desenvolvimento
+#### Development
 ```phlow
 modules:
   - module: cache
@@ -736,7 +736,7 @@ modules:
       default_ttl: 600
 ```
 
-#### Produção
+#### Production
 ```phlow
 modules:
   - module: cache
@@ -745,87 +745,87 @@ modules:
       default_ttl: 1800
 ```
 
-## 🧪 Testes
+## 🧪 Tests
 
-### Tipos de Testes Disponíveis
+### Available Test Types
 
-#### 1. Testes Unitários (Rust)
+#### 1. Unit Tests (Rust)
 ```bash
-# Executar testes unitários do módulo
+# Run module unit tests
 cd modules/cache
 cargo test
 
-# Resultado esperado: 8 testes aprovados
-# - Testes de parsing de inputs (CacheInput)
-# - Testes de estatísticas (CacheStats) 
-# - Validação de parâmetros e ações
+# Expected result: 8 tests passed
+# - Input parsing tests (CacheInput)
+# - Statistics tests (CacheStats)
+# - Parameter and action validation
 ```
 
-#### 2. Testes Funcionais Básicos
+#### 2. Basic Functional Tests
 ```bash
-# Teste linear simples com operações fundamentais
+# Simple linear test with fundamental operations
 phlow modules/cache/test-basic.phlow
 
-# Cobertura:
-# - Set/Get operações com diferentes tipos de dados
-# - Exists, Remove, Clear operações
-# - List e Stats operações
-# - TTL básico
+# Coverage:
+# - Set/Get operations with different data types
+# - Exists, Remove, Clear operations
+# - List and Stats operations
+# - Basic TTL
 ```
 
-#### 3. Testes Funcionais Completos
+#### 3. Complete Functional Tests
 ```bash
-# Teste abrangente com casos avançados
+# Comprehensive test with advanced cases
 phlow modules/cache/test-complete.phlow
 
-# Cobertura:
-# - Filtros (prefix, suffix, pattern)
-# - Paginação (limit/offset)
-# - Ordenação (asc/desc)
-# - Objetos complexos e arrays
-# - TTL com diferentes estratégias
-# - Casos edge (chaves inexistentes)
+# Coverage:
+# - Filters (prefix, suffix, pattern)
+# - Pagination (limit/offset)
+# - Sorting (asc/desc)
+# - Complex objects and arrays
+# - TTL with different strategies
+# - Edge cases (nonexistent keys)
 ```
 
-#### 4. Exemplos de Uso Real
+#### 4. Real Use Examples
 ```bash
-# Sistema de sessões de usuário
+# User session system
 phlow examples/cache/user-sessions.phlow
 
-# Sistema de cache de API (em desenvolvimento)
+# API cache system (in development)
 phlow examples/cache/api-data-cache.phlow
 ```
 
-### Executar Todos os Testes
+### Run All Tests
 
 ```bash
-# Executar testes unitários
+# Run unit tests
 cd modules/cache && cargo test
 
-# Executar testes funcionais
+# Run functional tests
 phlow modules/cache/test-basic.phlow
 phlow modules/cache/test-complete.phlow
 
-# Executar exemplos práticos
+# Run practical examples
 phlow examples/cache/user-sessions.phlow
 ```
 
-### Resultados de Teste
+### Test Results
 
-**✅ Status Atual**: Todos os testes aprovados
-- **Testes unitários**: 8/8 ✅
-- **Testes funcionais**: 2/2 ✅  
-- **Exemplos práticos**: 1/1 ✅
-- **Cobertura**: ~95% das funcionalidades
+**✅ Current Status**: All tests passed
+- **Unit tests**: 8/8 ✅
+- **Functional tests**: 2/2 ✅
+- **Practical examples**: 1/1 ✅
+- **Coverage**: ~95% of functionality
 
-## 🚨 Tratamento de Erros
+## 🚨 Error Handling
 
-### Erro de Chave Vazia
+### Empty Key Error
 ```phlow
-# Input inválido
+# Invalid input
 input:
   action: set
-  key: ""           # ❌ Chave vazia
+  key: ""           # ❌ Empty key
   value: "test"
 
 # Response
@@ -835,38 +835,38 @@ input:
 }
 ```
 
-### Erro de Ação Inválida
+### Invalid Action Error
 ```phlow
-# Input inválido
+# Invalid input
 input:
-  action: "invalid"   # ❌ Ação não suportada
+  action: "invalid"   # ❌ Unsupported action
 
-# Response  
+# Response
 {
   "success": false,
   "error": "Invalid action 'invalid'. Must be one of: set, get, remove, clear, exists, list, cleanup, stats"
 }
 ```
 
-### Cache Miss (Não é erro)
+### Cache Miss (Not an error)
 ```phlow
-# Input válido
+# Valid input
 input:
   action: get
   key: "nonexistent"
 
-# Response (sucesso, mas item não encontrado)
+# Response (success, but item not found)
 {
   "success": true,
   "found": false,
-  "key": "nonexistent", 
+  "key": "nonexistent",
   "value": null
 }
 ```
 
-## 🔗 Integração com Outros Módulos
+## 🔗 Integration with Other Modules
 
-### Com HTTP Server
+### With HTTP Server
 ```phlow
 modules:
   - module: http_server
@@ -876,7 +876,7 @@ modules:
       default_ttl: 1800
 
 steps:
-  # Verificar cache antes de processar request
+  # Check cache before processing request
   - use: cache
     input:
       action: get
@@ -884,11 +884,11 @@ steps:
   
   - assert: !phs payload.found
     then:
-      # Cache hit - retornar dados cached
+      # Cache hit - return cached data
       - return: !phs payload.value
     else:
-      # Cache miss - processar e armazenar
-      # ... lógica de processamento ...
+      # Cache miss - process and store
+      # ... processing logic ...
       - use: cache
         input:
           action: set
@@ -898,14 +898,14 @@ steps:
       - return: !phs processed_data
 ```
 
-### Com Database (PostgreSQL)
+### With Database (PostgreSQL)
 ```phlow
 modules:
   - module: postgres
   - module: cache
 
 steps:
-  # Tentar buscar no cache primeiro
+  # Try to fetch from cache first
   - use: cache
     input:
       action: get
@@ -913,12 +913,12 @@ steps:
   
   - assert: !phs !payload.found
     then:
-      # Cache miss - executar query no banco
+      # Cache miss - execute database query
       - use: postgres
         input:
           query: "SELECT * FROM complex_view WHERE conditions..."
       
-      # Armazenar resultado no cache
+      # Store result in cache
       - use: cache
         input:
           action: set
@@ -928,7 +928,7 @@ steps:
       
       - return: !phs payload
     else:
-      # Cache hit - retornar dados cached
+      # Cache hit - return cached data
       - return: !phs payload.value
 ```
 
@@ -945,7 +945,7 @@ steps:
 
 ---
 
-**Versão**: 0.1.0  
-**Autor**: Philippe Assis \<codephilippe@gmail.com\>
-**Licença**: MIT  
-**Repositório**: https://github.com/phlowdotdev/phlow
+**Version**: 0.1.0  
+**Author**: Philippe Assis \<codephilippe@gmail.com\>
+**License**: MIT  
+**Repository**: https://github.com/phlowdotdev/phlow

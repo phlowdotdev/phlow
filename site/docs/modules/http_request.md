@@ -22,9 +22,9 @@ The HTTP Request module provides comprehensive functionality for making HTTP/HTT
 - ✅ **Error handling**: Structured responses with status codes
 - ✅ **Observability**: Complete tracing with OpenTelemetry
 
-## 📋 Configuração
+## 📋 Configuration
 
-### Configuração Básica
+### Basic Configuration
 
 ```phlow
 modules:
@@ -35,40 +35,40 @@ modules:
       verify_ssl: true
 ```
 
-### Configuração com Variáveis de Ambiente
+### Configuration with Environment Variables
 
 ```bash
-# User-Agent customizado
+# Custom User-Agent
 export PHLOW_HTTP_REQUEST_USER_AGENT="MyApp/1.0.0"
 
-# Desabilitar User-Agent padrão
+# Disable default User-Agent
 export PHLOW_HTTP_REQUEST_USER_AGENT_DISABLE="true"
 ```
 
-## 🔧 Parâmetros de Configuração
+## 🔧 Configuration Parameters
 
-### Configuração do Módulo (with)
-- `timeout` (number, opcional): Timeout em segundos (padrão: 29)
-- `verify_ssl` (boolean, opcional): Verificar certificados SSL (padrão: true)
+### Module Configuration (with)
+- `timeout` (number, optional): Timeout in seconds (default: 29)
+- `verify_ssl` (boolean, optional): Verify SSL certificates (default: true)
 
-### Entrada (input)
-- `method` (string, obrigatório): Método HTTP
-- `url` (string, obrigatório): URL de destino
-- `headers` (object, opcional): Headers HTTP
-- `body` (string, opcional): Corpo da requisição
+### Input
+- `method` (string, required): HTTP method
+- `url` (string, required): Target URL
+- `headers` (object, optional): HTTP headers
+- `body` (string, optional): Request body
 
-### Saída (output)
-- `response` (object): Resposta HTTP completa
-  - `status_code` (number): Código de status HTTP
-  - `headers` (object): Headers da resposta
-  - `body` (string): Corpo da resposta (parsed JSON se aplicável)
-- `is_success` (boolean): Se a requisição foi bem-sucedida (200-299)
-- `is_error` (boolean): Se houve erro (400-599)
-- `message` (string): Mensagem de erro ou sucesso
+### Output
+- `response` (object): Complete HTTP response
+  - `status_code` (number): HTTP status code
+  - `headers` (object): Response headers
+  - `body` (string): Response body (parsed JSON if applicable)
+- `is_success` (boolean): Whether the request was successful (200-299)
+- `is_error` (boolean): Whether there was an error (400-599)
+- `message` (string): Error or success message
 
-## 💻 Exemplos de Uso
+## 💻 Usage Examples
 
-### Requisição GET Simples
+### Simple GET Request
 
 ```phlow
 steps:
@@ -79,7 +79,7 @@ steps:
       url: "https://jsonplaceholder.typicode.com/users"
 ```
 
-### Requisição POST com JSON
+### POST Request with JSON
 
 ```phlow
 steps:
@@ -93,13 +93,13 @@ steps:
         "Content-Type": "application/json"
       body: |
         {
-          "name": "João Silva",
-          "email": "joao@example.com",
+          "name": "John Smith",
+          "email": "john@example.com",
           "age": 30
         }
 ```
 
-### Requisição PUT com Headers Customizados
+### PUT Request with Custom Headers
 
 ```phlow
 steps:
@@ -115,12 +115,12 @@ steps:
         "X-User-Agent": "MyApp/1.0.0"
       body: |
         {
-          "name": "João Silva Updated",
-          "email": "joao.updated@example.com"
+          "name": "John Smith Updated",
+          "email": "john.updated@example.com"
         }
 ```
 
-### Requisição DELETE
+### DELETE Request
 
 ```phlow
 steps:
@@ -133,15 +133,15 @@ steps:
         "Authorization": "Bearer {{ $auth_token }}"
 ```
 
-### Requisição com Timeout Customizado
+### Request with Custom Timeout
 
 ```phlow
 modules:
   - name: "slow_api_client"
     module: "http_request"
     with:
-      timeout: 60  # 60 segundos
-      verify_ssl: false  # Para APIs de desenvolvimento
+      timeout: 60  # 60 seconds
+      verify_ssl: false  # For development APIs
 
 steps:
   - name: "slow_operation"
@@ -152,9 +152,9 @@ steps:
       body: "{{ $large_data }}"
 ```
 
-## 🔍 Métodos HTTP Suportados
+## 🔍 Supported HTTP Methods
 
-### GET - Buscar Dados
+### GET - Retrieve Data
 ```phlow
 input:
   method: "GET"
@@ -163,56 +163,56 @@ input:
     "Accept": "application/json"
 ```
 
-### POST - Criar Recurso
+### POST - Create Resource
 ```phlow
 input:
   method: "POST"
   url: "https://api.example.com/users"
   headers:
     "Content-Type": "application/json"
-  body: '{"name": "Novo Usuário"}'
+  body: '{"name": "New User"}'
 ```
 
-### PUT - Atualizar Recurso Completo
+### PUT - Update Complete Resource
 ```phlow
 input:
   method: "PUT"
   url: "https://api.example.com/users/123"
-  body: '{"name": "Nome Atualizado", "email": "novo@email.com"}'
+  body: '{"name": "Updated Name", "email": "new@email.com"}'
 ```
 
-### PATCH - Atualizar Recurso Parcial
+### PATCH - Update Partial Resource
 ```phlow
 input:
   method: "PATCH"
   url: "https://api.example.com/users/123"
-  body: '{"name": "Apenas Nome Atualizado"}'
+  body: '{"name": "Only Name Updated"}'
 ```
 
-### DELETE - Remover Recurso
+### DELETE - Remove Resource
 ```phlow
 input:
   method: "DELETE"
   url: "https://api.example.com/users/123"
 ```
 
-### OPTIONS - Verificar Opções
+### OPTIONS - Check Options
 ```phlow
 input:
   method: "OPTIONS"
   url: "https://api.example.com/users"
 ```
 
-### HEAD - Buscar Headers
+### HEAD - Retrieve Headers
 ```phlow
 input:
   method: "HEAD"
   url: "https://api.example.com/users"
 ```
 
-## 📊 Formato de Resposta
+## 📊 Response Format
 
-### Resposta de Sucesso
+### Success Response
 
 ```json
 {
@@ -225,8 +225,8 @@ input:
     },
     "body": {
       "id": 1,
-      "name": "João Silva",
-      "email": "joao@example.com"
+      "name": "John Smith",
+      "email": "john@example.com"
     }
   },
   "is_success": true,
@@ -235,7 +235,7 @@ input:
 }
 ```
 
-### Resposta de Erro HTTP
+### HTTP Error Response
 
 ```json
 {
@@ -254,7 +254,7 @@ input:
 }
 ```
 
-### Erro de Conexão
+### Connection Error
 
 ```json
 {
@@ -265,12 +265,12 @@ input:
 }
 ```
 
-## 🌐 Exemplo Completo - API Client
+## 🌐 Complete Example - API Client
 
 ```phlow
 name: "user-api-client"
 version: "1.0.0"
-description: "Cliente completo para API de usuários"
+description: "Complete client for user API"
 
 modules:
   - name: "api_client"
@@ -283,7 +283,7 @@ modules:
     module: "http_request"
     with:
       timeout: 60
-      verify_ssl: false  # Para desenvolvimento
+      verify_ssl: false  # For development
 
 steps:
   - name: "authenticate"
@@ -376,7 +376,7 @@ steps:
       }
 ```
 
-## 🔒 Configuração de Segurança
+## 🔒 Security Configuration
 
 ### SSL/TLS
 ```phlow
@@ -384,15 +384,15 @@ modules:
   - name: "secure_client"
     module: "http_request"
     with:
-      verify_ssl: true  # Produção
+      verify_ssl: true  # Production
       
   - name: "dev_client"
     module: "http_request"
     with:
-      verify_ssl: false  # Desenvolvimento
+      verify_ssl: false  # Development
 ```
 
-### Headers de Segurança
+### Security Headers
 ```phlow
 input:
   headers:
@@ -402,9 +402,9 @@ input:
     "X-Forwarded-For": "{{ $client_ip }}"
 ```
 
-## 🚨 Tratamento de Erros
+## 🚨 Error Handling
 
-### Verificação de Status
+### Status Verification
 ```phlow
 steps:
   - name: "api_call"
@@ -419,14 +419,14 @@ steps:
       operator: "equals"
       right: true
     then:
-      # Processar dados de sucesso
+      # Process success data
       script: "Success: {{ $api_call.response.body }}"
     else:
-      # Tratar erro
+      # Handle error
       script: "Error {{ $api_call.response.status_code }}: {{ $api_call.message }}"
 ```
 
-### Diferentes Tipos de Erro
+### Different Error Types
 ```phlow
 steps:
   - name: "check_error_type"
@@ -455,12 +455,12 @@ modules:
   - name: "fast_api"
     module: "http_request"
     with:
-      timeout: 5  # 5 segundos para APIs rápidas
+      timeout: 5  # 5 seconds for fast APIs
       
   - name: "slow_api"
     module: "http_request"
     with:
-      timeout: 120  # 2 minutos para processamento longo
+      timeout: 120  # 2 minutes for long processing
 ```
 
 ## 🏷️ Tags
@@ -475,7 +475,7 @@ modules:
 
 ---
 
-**Versão**: 0.0.1  
-**Autor**: Philippe Assis `<codephilippe@gmail.com>`
-**Licença**: MIT  
-**Repositório**: https://github.com/phlowdotdev/phlow
+**Version**: 0.0.1  
+**Author**: Philippe Assis `<codephilippe@gmail.com>`
+**License**: MIT  
+**Repository**: https://github.com/phlowdotdev/phlow

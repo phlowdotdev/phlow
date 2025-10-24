@@ -4,6 +4,12 @@ title: HTTP Server Module
 hide_title: true
 ---
 
+---
+sidebar_position: 5
+title: HTTP Server Module
+hide_title: true
+---
+
 # HTTP Server Module
 
 The HTTP Server module provides a complete, high-performance web server for building REST APIs, webhooks, and web services. Built with Hyper and Tokio, it offers complete observability with OpenTelemetry and comprehensive OpenAPI 3.0 validation.
@@ -28,9 +34,9 @@ The HTTP Server module provides a complete, high-performance web server for buil
 - ✅ **Tracing middleware** for all requests
 - ✅ **Keep-alive support** for persistent connections
 
-## 📋 Configuração
+## 📋 Configuration
 
-### Configuração Básica
+### Basic Configuration
 
 ```phlow
 name: "my-api-server"
@@ -45,16 +51,16 @@ modules:
       port: 8080
 ```
 
-### Configuração com Variáveis de Ambiente
+### Configuration with Environment Variables
 
 ```bash
-# Controle de exibição do header Authorization nos spans
+# Control how Authorization header appears in spans
 export PHLOW_AUTHORIZATION_SPAN_MODE="prefix"  # none, hidden, prefix, suffix, all
 ```
 
-### Configuração com OpenAPI
+### Configuration with OpenAPI
 
-Para APIs que seguem especificação OpenAPI 3.0, configure o caminho para o arquivo de especificação:
+For APIs following OpenAPI 3.0 specification, configure the path to the specification file:
 
 ```phlow
 name: "openapi-server"
@@ -67,16 +73,16 @@ modules:
     with:
       host: "0.0.0.0"
       port: 8080
-      openapi_spec: "./openapi.yaml"  # Caminho para a especificação OpenAPI
+      openapi_spec: "./openapi.yaml"  # Path to OpenAPI specification
 ```
 
-### Configuração com CORS
+### Configuration with CORS
 
-**CORS é opcional** - os headers CORS só são aplicados quando explicitamente configurados.
+**CORS is optional** - CORS headers are only applied when explicitly configured.
 
-#### Comportamento Padrão (sem CORS)
+#### Default Behavior (without CORS)
 
-Quando nenhuma configuração `cors` é fornecida, **nenhum header CORS é aplicado**:
+When no `cors` configuration is provided, **no CORS headers are applied**:
 
 ```phlow
 name: "api-no-cors"
@@ -89,12 +95,12 @@ modules:
     with:
       host: "0.0.0.0"
       port: 8080
-      # Sem configuração CORS = Nenhum header CORS aplicado
+      # No CORS configuration = No CORS headers applied
 ```
 
-#### Habilitando CORS
+#### Enabling CORS
 
-Para habilitar CORS, adicione uma seção `cors` à configuração:
+To enable CORS, add a `cors` section to the configuration:
 
 ```phlow
 name: "api-cors-enabled"
@@ -111,7 +117,7 @@ modules:
         origins:
           - "http://localhost:3000"
           - "http://localhost:5173"  # Vite dev server
-          - "https://myapp.com"       # Domínio de produção
+          - "https://myapp.com"       # Production domain
         methods:
           - "GET"
           - "POST"
@@ -125,38 +131,38 @@ modules:
           - "X-Requested-With"
           - "X-Custom-Header"
         credentials: true
-        max_age: 86400  # 24 horas
+        max_age: 86400  # 24 hours
 ```
 
-#### Parâmetros de Configuração CORS
+#### CORS Configuration Parameters
 
-| Parâmetro | Tipo | Padrão | Descrição |
+| Parameter | Type | Default | Description |
 |-----------|------|--------|-----------|
-| `origins` | Array de strings | `["*"]` | Origins permitidos para requisições cross-origin |
-| `methods` | Array de strings | `["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]` | Métodos HTTP permitidos |
-| `headers` | Array de strings | `["Content-Type", "Authorization", "X-Requested-With"]` | Headers de requisição permitidos |
-| `credentials` | Boolean | `true` | Se deve permitir credenciais (cookies, headers de autorização) |
-| `max_age` | Number | `86400` | Duração do cache para requisições preflight (em segundos) |
+| `origins` | Array of strings | `["*"]` | Allowed origins for cross-origin requests |
+| `methods` | Array of strings | `["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]` | Allowed HTTP methods |
+| `headers` | Array of strings | `["Content-Type", "Authorization", "X-Requested-With"]` | Allowed request headers |
+| `credentials` | Boolean | `true` | Whether to allow credentials (cookies, authorization headers) |
+| `max_age` | Number | `86400` | Cache duration for preflight requests (in seconds) |
 
-#### Considerações de Segurança CORS
+#### CORS Security Considerations
 
-- **Origins wildcard com credenciais**: Não é possível usar `"*"` como origin quando `credentials: true`. O sistema automaticamente definirá `credentials: false` se origins wildcard forem detectados e registrará um aviso de segurança.
+- **Wildcard origins with credentials**: Cannot use `"*"` as origin when `credentials: true`. The system will automatically set `credentials: false` if wildcard origins are detected and log a security warning.
 
-- **Origins específicos**: Para aplicações em produção com credenciais, sempre especifique origins exatos em vez de usar wildcards.
+- **Specific origins**: For production applications with credentials, always specify exact origins instead of using wildcards.
 
-#### Exemplos de Configuração CORS
+#### CORS Configuration Examples
 
-**CORS para desenvolvimento (permissivo):**
+**CORS for development (permissive):**
 ```yaml
 cors:
   origins: ["*"]
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
   headers: ["Content-Type", "Authorization"]
-  credentials: false  # Obrigatório com wildcard origins
+  credentials: false  # Required with wildcard origins
   max_age: 86400
 ```
 
-**CORS para produção (restritivo):**
+**CORS for production (restrictive):**
 ```yaml
 cors:
   origins:
