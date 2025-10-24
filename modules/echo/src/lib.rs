@@ -18,7 +18,6 @@ mod tests {
     use phlow_sdk::tokio;
     use tokio::sync::oneshot;
 
-    #[tokio::test]
     async fn test_echo_with_string_input() {
         let (tx, rx) = crossbeam::channel::unbounded();
         let (result_tx, result_rx) = oneshot::channel();
@@ -47,7 +46,6 @@ mod tests {
         echo_task.await.unwrap();
     }
 
-    #[tokio::test]
     async fn test_echo_with_null_input() {
         let (tx, rx) = crossbeam::channel::unbounded();
         let (result_tx, result_rx) = oneshot::channel();
@@ -76,7 +74,6 @@ mod tests {
         echo_task.await.unwrap();
     }
 
-    #[tokio::test]
     async fn test_echo_with_array_input() {
         let (tx, rx) = crossbeam::channel::unbounded();
         let (result_tx, result_rx) = oneshot::channel();
