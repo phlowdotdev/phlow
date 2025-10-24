@@ -1,11 +1,11 @@
 [package]
 name = "jwt"
 version = "0.1.0"
-edition = "2021"
+edition = { workspace = true }
 
 [dependencies]
 phlow-sdk = { workspace = true }
-jsonwebtoken = "9.3"
+jsonwebtoken = { version = "10.1.0", features = ["rust_crypto"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 chrono = { version = "0.4", features = ["serde"] }

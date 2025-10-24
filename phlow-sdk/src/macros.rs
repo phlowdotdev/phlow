@@ -95,7 +95,7 @@ macro_rules! module_channel {
 #[macro_export]
 macro_rules! create_step {
     ($handler:ident(setup)) => {
-        #[no_mangle]
+        #[unsafe(export_name = "plugin")]
         pub extern "C" fn plugin(setup: $crate::structs::ModuleSetup) {
             use_log!();
 
@@ -111,7 +111,7 @@ macro_rules! create_step {
     };
 
     ($handler:ident(rx)) => {
-        #[no_mangle]
+        #[unsafe(export_name = "plugin")]
         pub extern "C" fn plugin(setup: $crate::structs::ModuleSetup) {
             let dispatch = setup.dispatch.clone();
             $crate::tracing::dispatcher::with_default(&dispatch, || {
@@ -148,7 +148,7 @@ macro_rules! create_step {
 #[macro_export]
 macro_rules! create_main {
     ($handler:ident(setup)) => {
-        #[no_mangle]
+        #[unsafe(export_name = "plugin")]
         pub extern "C" fn plugin(setup: $crate::structs::ModuleSetup) {
             let dispatch = setup.dispatch.clone();
             $crate::tracing::dispatcher::with_default(&dispatch, || {

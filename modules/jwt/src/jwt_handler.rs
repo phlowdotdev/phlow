@@ -1,6 +1,6 @@
 use crate::config::JwtConfig;
 use chrono::Utc;
-use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use phlow_sdk::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -8,7 +8,7 @@ use std::collections::HashMap;
 const DEFAULT_EXPIRES_IN: u64 = 3600; // Default expiration time in seconds
 
 /// JWT Claims structure
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct Claims {
     /// Issued at (timestamp)
     iat: i64,
@@ -104,26 +104,39 @@ impl JwtHandler {
         token: String,
     ) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
         log::debug!("Verifying JWT token with value: {}", token);
-        
+
         let current_timestamp = Utc::now().timestamp();
         log::debug!("Current timestamp: {}", current_timestamp);
 
         let mut validation = Validation::new(Algorithm::HS256);
         validation.validate_exp = true;
         validation.validate_nbf = false;
-        
-        log::debug!("Validation settings - validate_exp: {}, validate_nbf: {}", validation.validate_exp, validation.validate_nbf);
+
+        log::debug!(
+            "Validation settings - validate_exp: {}, validate_nbf: {}",
+            validation.validate_exp,
+            validation.validate_nbf
+        );
 
         match decode::<Claims>(&token, &self.decoding_key, &validation) {
             Ok(token_data) => {
                 log::debug!("JWT token verified successfully");
 
                 let claims = token_data.claims;
-                log::debug!("Token claims - iat: {}, exp: {}, current: {}", claims.iat, claims.exp, current_timestamp);
-                
+                log::debug!(
+                    "Token claims - iat: {}, exp: {}, current: {}",
+                    claims.iat,
+                    claims.exp,
+                    current_timestamp
+                );
+
                 // Manual expiration check as backup
                 if current_timestamp > claims.exp {
-                    log::warn!("Token manually detected as expired: {} > {}", current_timestamp, claims.exp);
+                    log::warn!(
+                        "Token manually detected as expired: {} > {}",
+                        current_timestamp,
+                        claims.exp
+                    );
                     let result = HashMap::from([
                         ("valid", false.to_value()),
                         ("data", Value::Null),
@@ -133,7 +146,7 @@ impl JwtHandler {
                     .to_value();
                     return Ok(result);
                 }
-                
+
                 let mut data_map = claims.data;
 
                 // Add standard claims if they don't exist
