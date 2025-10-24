@@ -404,38 +404,67 @@ pub enum OpenaiApi {
     Audio(AudioBody),
 }
 
-impl FromValueBehavior for OpenaiApi {
-    type Item = OpenaiApi;
+#[derive(Debug, Clone, PartialEq)]
+pub enum OpenaiAction {
+    Completions,
+    Chat,
+    Images,
+    ImagesEdit,
+    Embeddings,
+    Audio,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct OpenaiConfig {
+    pub action: OpenaiAction,
+    pub with: OpenaiApi,
+}
+
+impl FromValueBehavior for OpenaiConfig {
+    type Item = OpenaiConfig;
 
     fn from_value(value: Value) -> Option<Self::Item> {
-        let config_type = value.as_str();
+        let action_str = value.get("action")?.as_str();
 
-        match config_type {
-            "completions" => {
-                let body = CompletionsBody::from_value(value.get("body")?.clone())?;
-                Some(OpenaiApi::Completions(body))
+        let action = match action_str {
+            "completions" => OpenaiAction::Completions,
+            "chat" => OpenaiAction::Chat,
+            "images" => OpenaiAction::Images,
+            "images_edit" => OpenaiAction::ImagesEdit,
+            "embeddings" => OpenaiAction::Embeddings,
+            "audio" => OpenaiAction::Audio,
+            _ => return None,
+        };
+
+        let with_value = value.get("with")?;
+
+        let with = match action {
+            OpenaiAction::Completions => {
+                let body = CompletionsBody::from_value(with_value.clone())?;
+                OpenaiApi::Completions(body)
             }
-            "chat" => {
-                let body = ChatBody::from_value(value.get("body")?.clone())?;
-                Some(OpenaiApi::Chat(body))
+            OpenaiAction::Chat => {
+                let body = ChatBody::from_value(with_value.clone())?;
+                OpenaiApi::Chat(body)
             }
-            "images" => {
-                let body = ImagesBody::from_value(value.get("body")?.clone())?;
-                Some(OpenaiApi::Images(body))
+            OpenaiAction::Images => {
+                let body = ImagesBody::from_value(with_value.clone())?;
+                OpenaiApi::Images(body)
             }
-            "images_edit" => {
-                let body = ImagesEditBody::from_value(value.get("body")?.clone())?;
-                Some(OpenaiApi::ImagesEdit(body))
+            OpenaiAction::ImagesEdit => {
+                let body = ImagesEditBody::from_value(with_value.clone())?;
+                OpenaiApi::ImagesEdit(body)
             }
-            "embeddings" => {
-                let body = EmbeddingsBody::from_value(value.get("body")?.clone())?;
-                Some(OpenaiApi::Embeddings(body))
+            OpenaiAction::Embeddings => {
+                let body = EmbeddingsBody::from_value(with_value.clone())?;
+                OpenaiApi::Embeddings(body)
             }
-            "audio" => {
-                let body = AudioBody::from_value(value.get("body")?.clone())?;
-                Some(OpenaiApi::Audio(body))
+            OpenaiAction::Audio => {
+                let body = AudioBody::from_value(with_value.clone())?;
+                OpenaiApi::Audio(body)
             }
-            _ => None,
-        }
+        };
+
+        Some(OpenaiConfig { action, with })
     }
 }
