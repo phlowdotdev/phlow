@@ -216,7 +216,7 @@ Converts `!phs` blocks into executable format for the Rhai engine.
 ```
 
 #### Markdown-Style Code Blocks
-```yaml
+````yaml
 # Input
 - script: !phs ```
     let data = fetch_user(main.id);
@@ -225,7 +225,7 @@ Converts `!phs` blocks into executable format for the Rhai engine.
 
 # Output
 - script: "{{ let data = fetch_user(main.id); process_data(data) }}"
-```
+````
 
 #### Indented Code Blocks
 ```yaml
