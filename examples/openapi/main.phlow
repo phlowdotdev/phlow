@@ -8,25 +8,16 @@
       with:
         capacity: 1000
   steps:
-    - cache:
-        action: set
-        key: "chat_messages"
-        value:
-          - role: user
-            content: "Você gostaria de conversar comigo?"
     - id: storage
-      use: cache
-      input:
-        action: get
-        key: "chat_messages"
+      payload: !phs payload ?? main
     - log:
-        level: !phs when steps.storage.value.len % 2 == 0 ? "warn" : "error"
-        message: !phs steps.storage.value[-1].content
+        level: !phs when steps.storage.len % 2 == 0 ? "warn" : "error"
+        message: !phs steps.storage[-1].content
     - openai:
         action: chat
-        messages: !phs steps.storage.value
+        messages: !phs steps.storage
     - payload: !phs {
-        let storage = [...steps.storage.value];
+        let storage = [...steps.storage];
         storage.push(payload.data.choices[0].message);
 
         let messages = [];
@@ -52,8 +43,4 @@
         }
         messages
       }
-    - cache:
-        action: set
-        key: "chat_messages"
-        value: !phs payload
     - to: storage
