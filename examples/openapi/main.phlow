@@ -20,11 +20,8 @@
         action: get
         key: "chat_messages"
     - log:
-        level: !phs when steps.storage.value[-1].role == "user" ? "warn" : "error"
+        level: !phs when steps.storage.value.len % 2 == 0 ? "warn" : "error"
         message: !phs steps.storage.value[-1].content
-    - log:
-        level: error
-        message: !phs steps.storage.value
     - openai:
         action: chat
         messages: !phs steps.storage.value
