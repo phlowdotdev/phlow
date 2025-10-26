@@ -11,7 +11,7 @@ use crate::config::{OpenaiApi, OpenaiConfig};
 create_step!(openapi(rx));
 
 pub async fn openapi(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    listen!(rx, move |package: ModulePackage| {
+    listen!(rx, move |package: ModulePackage| async {
         let input = package.input().unwrap_or(Value::Null);
         let config = match OpenaiConfig::try_from(input) {
             Ok(cfg) => cfg,
