@@ -1,9 +1,7 @@
 [package]
 name = "openai"
 version = "0.1.0"
-edition = "2021"
-authors = ["Phlow <dev@phlow.local>"]
-description = "Módulo Phlow para expor recursos OpenAI (chat, completions, embeddings)"
+edition = { workspace = true }
 
 [lib]
 name = "openai"

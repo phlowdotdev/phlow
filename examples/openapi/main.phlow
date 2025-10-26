@@ -1,0 +1,15 @@
+modules:
+  - module: log
+  - module: openai
+    with:
+      api_key: !phs envs.OPENAI_API_KEY
+
+steps:
+  - payload: Hello!
+  - openai:
+      level: info
+      message: !phs payload
+tests:
+  - describe: Basic Arithmetic Tests
+    payload: 10
+    assert_eq: Total is 20

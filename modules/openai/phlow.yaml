@@ -5,8 +5,8 @@ description: |
   via `with: { api_key: "..." }` or through the `OPENAI_API_KEY` environment variable.
 version: 0.1.0
 author: Philippe Assis <codephilippe@gmail.com>
-type: step
 license: MIT
+type: step
 tags:
   - openai
   - ai
@@ -19,6 +19,10 @@ with:
     api_key:
       type: string
       description: OpenAI API key (if omitted, will be read from OPENAI_API_KEY env)
+      required: false
+    model:
+      type: string
+      description: "Default model to be used (ex: gpt-5-mini)"
       required: false
 
 input:
