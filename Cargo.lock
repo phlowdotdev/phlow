@@ -2452,6 +2452,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4895175b425cb1f87721b59f0f286c2092bd4af812243672510e1ac53e2e0ad"
 
 [[package]]
+name = "openai"
+version = "0.1.0"
+dependencies = [
+ "openai_api_rust",
+ "phlow-sdk",
+]
+
+[[package]]
 name = "openai_api_rust"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2864,14 +2872,6 @@ dependencies = [
  "tracing-opentelemetry",
  "tracing-subscriber",
  "valu3",
-]
-
-[[package]]
-name = "phlow_openai"
-version = "0.1.0"
-dependencies = [
- "openai_api_rust",
- "phlow-sdk",
 ]
 
 [[package]]

@@ -130,22 +130,3 @@ impl Cli {
         })
     }
 }
-
-#[derive(Debug)]
-pub enum ModuleExtension {
-    Json,
-    Yaml,
-    Toml,
-}
-
-impl From<&str> for ModuleExtension {
-    fn from(extension: &str) -> Self {
-        match extension {
-            "json" => ModuleExtension::Json,
-            "yaml" => ModuleExtension::Yaml,
-            "yml" => ModuleExtension::Yaml,
-            "toml" => ModuleExtension::Toml,
-            _ => ModuleExtension::Json,
-        }
-    }
-}

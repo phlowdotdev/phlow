@@ -1,15 +1,14 @@
 pub mod error;
 pub mod loader;
-use crate::scripts::run_script;
-use crate::settings::Settings;
 use crate::MODULE_EXTENSION;
 use crate::RUNTIME_ARCH;
+use crate::scripts::run_script;
+use crate::settings::Settings;
 use error::{Error, ModuleError};
 use libloading::{Library, Symbol};
 use loader::{load_external_module_info, load_local_module_info, load_script};
 use log::debug;
 use log::info;
-use phlow_sdk::prelude::ToValueBehavior;
 use phlow_sdk::prelude::Value;
 use phlow_sdk::structs::{ApplicationData, ModuleData, ModuleSetup};
 use phlow_sdk::valu3::json;
@@ -252,7 +251,7 @@ impl Loader {
                     None => {
                         return Err(Error::VersionNotFound(ModuleError {
                             module: module.name.clone(),
-                        }))
+                        }));
                     }
                 }
             } else {

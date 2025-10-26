@@ -1,12 +1,12 @@
 [package]
-name = "phlow_openai"
+name = "openai"
 version = "0.1.0"
 edition = "2021"
 authors = ["Phlow <dev@phlow.local>"]
 description = "Módulo Phlow para expor recursos OpenAI (chat, completions, embeddings)"
 
 [lib]
-name = "phlow_openai"
+name = "openai"
 crate-type = ["cdylib"]
 
 [dependencies]

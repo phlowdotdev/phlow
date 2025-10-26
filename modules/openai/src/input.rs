@@ -569,12 +569,12 @@ pub enum OpenaiAction {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct OpenaiConfig {
+pub struct OpenaiInput {
     pub action: OpenaiAction,
     pub with: OpenaiApi,
 }
 
-impl TryFrom<Value> for OpenaiConfig {
+impl TryFrom<Value> for OpenaiInput {
     type Error = String;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
@@ -629,6 +629,6 @@ impl TryFrom<Value> for OpenaiConfig {
             }
         };
 
-        Ok(OpenaiConfig { action, with })
+        Ok(OpenaiInput { action, with })
     }
 }

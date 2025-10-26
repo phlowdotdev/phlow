@@ -1,12 +1,12 @@
 name: openai
 description: |
-  Módulo que expõe recursos da OpenAI (chat/completion/embeddings).
-  Suporta as ações `chat`, `completion` e `embeddings` e pode ser configurado com uma chave de API
-  via `with: { api_key: "..." }` ou pela variável de ambiente `OPENAI_API_KEY`.
+  Module that exposes OpenAI resources (chat/completion/embeddings).
+  Supports `chat`, `completion` and `embeddings` actions and can be configured with an API key
+  via `with: { api_key: "..." }` or through the `OPENAI_API_KEY` environment variable.
 version: 0.1.0
-author: Phlow Contributors <dev@phlow.local>
+author: Philippe Assis <codephilippe@gmail.com>
 type: step
-
+license: MIT
 tags:
   - openai
   - ai
@@ -18,7 +18,7 @@ with:
   properties:
     api_key:
       type: string
-      description: Chave de API OpenAI (se omitida, será lida de env OPENAI_API_KEY)
+      description: OpenAI API key (if omitted, will be read from OPENAI_API_KEY env)
       required: false
 
 input:
@@ -39,17 +39,17 @@ input:
         ]
       required: true
 
-    # Para chat
+    # For chat
     messages:
       type: array
       required: false
-      description: Lista de mensagens no formato [{"role":"user","content":"..."}, ...]
+      description: List of messages in the format [{"role":"user","content":"..."}, ...]
     model:
       type: string
       required: false
-      description: "Modelo a ser utilizado (ex: gpt-4o-mini)"
+      description: "Model to be used (ex: gpt-4o-mini)"
 
-    # Para completion
+    # For completion
     prompt:
       type: string
       required: false
@@ -57,34 +57,34 @@ input:
       type: number
       required: false
 
-    # Para embeddings
+    # For embeddings
     input_text:
       type: string
       required: false
 
-    # Para audio
+    # For audio
     audio_base64:
       type: string
       required: false
-      description: "Áudio codificado em base64 para transcrição/tradução (por exemplo, formato WAV/MP3)"
+      description: "Base64 encoded audio for transcription/translation (e.g., WAV/MP3 format)"
     language:
       type: string
       required: false
-      description: "Código de idioma desejado para transcrição (opcional)"
+      description: "Desired language code for transcription (optional)"
 
-    # Para imagens
+    # For images
     image_prompt:
       type: string
       required: false
-      description: "Prompt para geração de imagem"
+      description: "Prompt for image generation"
     image_base64:
       type: string
       required: false
-      description: "Imagem codificada em base64 (usada para edição)"
+      description: "Base64 encoded image (used for editing)"
     size:
       type: string
       required: false
-      description: "Tamanho da imagem (ex: 1024x1024)"
+      description: "Image size (ex: 1024x1024)"
 
 output:
   type: object
