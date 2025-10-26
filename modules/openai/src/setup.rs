@@ -26,10 +26,10 @@ impl TryFrom<Value> for Setup {
         }
 
         let auth: Auth = {
-            if let Some(key) = value.get("api_key") {
-                Auth::new(key.to_string().as_str())
-            } else if let Ok(key) = std::env::var("OPENAI_API_KEY") {
-                Auth::new(&key)
+            if let Some(api_key) = value.get("api_key") {
+                Auth::new(api_key.to_string().as_str())
+            } else if let Ok(api_key) = std::env::var("OPENAI_API_KEY") {
+                Auth::new(&api_key)
             } else {
                 return Err(
                     "OpenAI API key not provided in config or OPENAI_API_KEY env variable".into(),

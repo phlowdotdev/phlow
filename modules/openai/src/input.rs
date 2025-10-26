@@ -594,37 +594,33 @@ impl TryFrom<Value> for OpenaiInput {
             _ => return Err(format!("invalid action: {}", action_str)),
         };
 
-        let with_value = value
-            .get("with")
-            .ok_or_else(|| "missing field 'with' for OpenaiConfig".to_string())?;
-
         let with = match action {
             OpenaiAction::Completions => {
-                let body = LocalCompletionsBody::try_from(with_value.clone())?;
+                let body = LocalCompletionsBody::try_from(value)?;
                 OpenaiApi::Completions(body)
             }
             OpenaiAction::Chat => {
-                let body = LocalChatBody::try_from(with_value.clone())?;
+                let body = LocalChatBody::try_from(value)?;
                 OpenaiApi::Chat(body)
             }
             OpenaiAction::ImagesCreate => {
-                let body = LocalImagesBody::try_from(with_value.clone())?;
+                let body = LocalImagesBody::try_from(value)?;
                 OpenaiApi::ImagesCreate(body)
             }
             OpenaiAction::ImagesEdit => {
-                let body = LocalImagesEditBody::try_from(with_value.clone())?;
+                let body = LocalImagesEditBody::try_from(value)?;
                 OpenaiApi::ImagesEdit(body)
             }
             OpenaiAction::Embeddings => {
-                let body = LocalEmbeddingsBody::try_from(with_value.clone())?;
+                let body = LocalEmbeddingsBody::try_from(value)?;
                 OpenaiApi::Embeddings(body)
             }
             OpenaiAction::AudioTranslate => {
-                let body = LocalAudioBody::try_from(with_value.clone())?;
+                let body = LocalAudioBody::try_from(value)?;
                 OpenaiApi::AudioTranslate(body)
             }
             OpenaiAction::AudioTranscribe => {
-                let body = LocalAudioBody::try_from(with_value.clone())?;
+                let body = LocalAudioBody::try_from(value)?;
                 OpenaiApi::AudioTranscribe(body)
             }
         };

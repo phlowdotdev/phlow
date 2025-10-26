@@ -1,15 +1,62 @@
-modules:
-  - module: log
-  - module: openai
-    with:
-      api_key: !phs envs.OPENAI_API_KEY
+  modules:
+    - module: log
+    - module: openai
+      with:
+        model: gpt-5
+        api_key: !phs envs.OPENAI_API_KEY
+    - module: cache
+      with:
+        capacity: 1000
+  steps:
+    - cache:
+        action: set
+        key: "chat_messages"
+        value:
+          - role: user
+            content: "Você gostaria de conversar comigo?"
+    - id: storage
+      use: cache
+      input:
+        action: get
+        key: "chat_messages"
+    - log:
+        level: !phs when steps.storage.value[-1].role == "user" ? "warn" : "error"
+        message: !phs steps.storage.value[-1].content
+    - log:
+        level: error
+        message: !phs steps.storage.value
+    - openai:
+        action: chat
+        messages: !phs steps.storage.value
+    - payload: !phs {
+        let storage = [...steps.storage.value];
+        storage.push(payload.data.choices[0].message);
 
-steps:
-  - payload: Hello!
-  - openai:
-      level: info
-      message: !phs payload
-tests:
-  - describe: Basic Arithmetic Tests
-    payload: 10
-    assert_eq: Total is 20
+        let messages = [];
+
+        for (msg, index) in storage {
+            let role = if storage.len % 2 == 0 {
+                if index % 2 == 0 {
+                    "assistant"
+                } else {
+                    "user"
+                }
+            } else {
+                if index % 2 == 0 {
+                    "user"
+                } else {
+                    "assistant"
+                }
+            };
+            messages.push({
+                role: role,
+                content: msg.content
+            });
+        }
+        messages
+      }
+    - cache:
+        action: set
+        key: "chat_messages"
+        value: !phs payload
+    - to: storage
