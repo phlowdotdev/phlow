@@ -5,6 +5,7 @@ pub struct Setup {
     pub auth: Auth,
     pub model: Value,
     pub proxy: Option<String>,
+    pub api_url: String,
 }
 
 impl TryFrom<Value> for Setup {
@@ -24,6 +25,7 @@ impl TryFrom<Value> for Setup {
                 auth,
                 model: "gpt-5-mini".to_value(),
                 proxy: None,
+                api_url: "https://api.openai.com/v1/".to_string(),
             });
         }
 
@@ -46,6 +48,16 @@ impl TryFrom<Value> for Setup {
 
         let proxy = value.get("proxy").map(|v| v.to_string());
 
-        Ok(Setup { auth, model, proxy })
+        let api_url = value
+            .get("api_url")
+            .map(|v| v.to_string())
+            .unwrap_or("https://api.openai.com/v1/".to_string());
+
+        Ok(Setup {
+            auth,
+            model,
+            proxy,
+            api_url,
+        })
     }
 }

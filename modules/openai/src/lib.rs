@@ -37,11 +37,11 @@ pub async fn openai(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error 
     let rx = module_channel!(setup);
 
     let setup = Setup::try_from(setup.with)?;
-    let openai = OpenAI::new(setup.auth.clone(), "https://api.openai.com/v1/");
-
-    if let Some(proxy_url) = setup.proxy.clone() {
-        openai.set_proxy(&proxy_url);
-    }
+    let openai = if let Some(proxy) = &setup.proxy {
+        OpenAI::new(setup.auth, &setup.api_url).set_proxy(proxy)
+    } else {
+        OpenAI::new(setup.auth, &setup.api_url)
+    };
 
     println!("OpenAI module initialized with model: {}", setup.model);
 
