@@ -35,8 +35,7 @@
                 "scopeName": "source.rhai",
                 "path": "./syntaxes/rhai.tmLanguage.json"
             }
-        ]
-        ,
+        ],
         "configuration": {
             "title": "Phlow",
             "properties": {
