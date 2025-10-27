@@ -20,6 +20,7 @@ pub fn preprocessor(
         return Err(errors);
     }
 
+    let phlow = preprocessor_transform_phs_hidden(&phlow);
     let phlow = preprocessor_eval(&phlow);
     let phlow = preprocessor_modules(&phlow)?;
 
@@ -119,6 +120,63 @@ fn preprocessor_directives(phlow: &str, base_path: &Path) -> (String, Vec<String
         .to_string();
 
     (result, errors)
+}
+
+// Essa função identifica qualquer valore de propriedade que inicie com
+//palavras reservadas do phs ou seja um algoritimo e inclui a tag !phs automaticamente
+fn preprocessor_transform_phs_hidden(phlow: &str) -> String {
+    let operators = vec![
+        "+", "-", "*", "/", "%", "==", "!=", "<", ">", "<=", ">=", "&&", "||", "??", "?:",
+    ];
+    let mut reserved_keywords = vec![
+        "if", "else", "for", "while", "loop", "match", "let", "const", "fn", "return", "switch",
+        "case", "default", "try", "catch", "throw", "when", "payload", "input", "steps", "main",
+        "setup", "envs", "{", "!",
+    ];
+    reserved_keywords.extend(&operators);
+
+    let mut result = String::new();
+
+    for line in phlow.lines() {
+        let trimmed_line = line.trim_start();
+        if let Some(colon_pos) = trimmed_line.find(':') {
+            let key = &trimmed_line[..colon_pos].trim();
+            let value = &trimmed_line[colon_pos + 1..].trim();
+            let first_word = value
+                .trim()
+                .split_whitespace()
+                .next()
+                .unwrap_or("")
+                .split('.')
+                .next()
+                .unwrap_or("");
+
+            // se for !phs ignore
+            if first_word == "!phs" {
+                result.push_str(line);
+                result.push_str("\n");
+                continue;
+            }
+
+            if reserved_keywords.contains(&first_word)
+                || (operators
+                    .iter()
+                    .any(|op| value.contains(&format!(" {} ", op)))
+                    && !value.starts_with('"'))
+            {
+                let indent = &line[..line.len() - trimmed_line.len()];
+                result.push_str(&format!("{}{}: !phs {}\n", indent, key, value));
+                continue;
+            }
+
+            // identifica se é uma expressão com operadores comuns
+        }
+        result.push_str(line);
+        result.push_str("\n");
+    }
+
+    result.pop();
+    result.to_string()
 }
 
 fn preprocessor_eval(phlow: &str) -> String {

@@ -3,20 +3,20 @@
     - module: openai
       with:
         model: gpt-5
-        api_key: !phs envs.OPENAI_API_KEY
+        api_key: envs.OPENAI_API_KEY
     - module: cache
       with:
         capacity: 1000
   steps:
     - id: storage
-      payload: !phs payload ?? main
+      payload: payload ?? main
     - log:
-        level: !phs when steps.storage.len % 2 == 0 ? "warn" : "error"
-        message: !phs steps.storage[-1].content
+        level: when steps.storage.len % 2 == 0 ? "warn" : "error"
+        message: steps.storage[-1].content
     - openai:
         action: chat
-        messages: !phs steps.storage
-    - payload: !phs {
+        messages: steps.storage
+    - payload: {
         let storage = [...steps.storage];
         storage.push(payload.data.choices[0].message);
 
