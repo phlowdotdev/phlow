@@ -36,6 +36,26 @@
                 "path": "./syntaxes/rhai.tmLanguage.json"
             }
         ]
+        ,
+        "configuration": {
+            "title": "Phlow",
+            "properties": {
+                "phlow.stepsRainbow.colors": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        "rgba(230,57,70,0.15)",
+                        "rgba(251,133,0,0.15)",
+                        "rgba(255,209,102,0.15)",
+                        "rgba(6,214,160,0.12)",
+                        "rgba(17,138,178,0.12)"
+                    ],
+                    "description": "Array of CSS color strings used as translucent background colors for items inside steps blocks. The colors are applied cyclically."
+                }
+            }
+        }
     },
     "scripts": {
         "test": "echo \"No tests\" && exit 0",
