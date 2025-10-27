@@ -1,0 +1,18 @@
+steps:
+  - payload: {
+      // this string contains braces that should be ignored by the scanner
+      let s = "this is a string with { and } inside";
+      let nested = { brace_inside: "{ not a block }" };
+      let arr = [ "{", "}", "text" ];
+      // nested actual braces that should be counted
+      let obj = {
+        inner: {
+          a: 1,
+          b: "string with } char"
+        }
+      };
+      // final value
+      42
+    }
+  - id: other
+    payload: "simple"

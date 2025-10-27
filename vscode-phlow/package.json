@@ -52,6 +52,11 @@
                         "rgba(17,138,178,0.12)"
                     ],
                     "description": "Array of CSS color strings used as translucent background colors for items inside steps blocks. The colors are applied cyclically."
+                },
+                "phlow.keys.color": {
+                    "type": "string",
+                    "default": "#000000",
+                    "description": "Foreground color used for all keys (e.g. id:, payload:, action:). Use any CSS color string."
                 }
             }
         }
@@ -59,7 +64,9 @@
     "scripts": {
         "test": "echo \"No tests\" && exit 0",
         "test-grammar": "node ./test/grammar.test.js",
-        "test-key": "node test/key_value.test.js"
+        "test-key": "node test/key_value.test.js",
+        "test-brace": "node test/brace_block.test.js",
+        "test-key-dash": "node test/key_dash.test.js"
     },
     "license": "MIT",
     "devDependencies": {

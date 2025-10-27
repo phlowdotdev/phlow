@@ -17,6 +17,8 @@ function activate(context) {
 
     // Decoration types are created from configuration so users can customize colors
     let decorationTypes = [];
+    // single key decoration (unified color) will be created from configuration
+    let unifiedKeyDecoration = null;
 
     const DEFAULT_BG = [
         'rgba(230,57,70,0.15)',   // #E63946
@@ -41,12 +43,24 @@ function activate(context) {
             colors = DEFAULT_BG.slice();
         }
 
+        // helper: pick a fallback foreground if needed
+        function pickFallbackFg() { return '#ffffff'; }
+
         for (const bg of colors) {
             const dt = vscode.window.createTextEditorDecorationType({ backgroundColor: bg, borderRadius: '3px' });
             decorationTypes.push(dt);
-            // keep for disposal when extension deactivates
             context.subscriptions.push(dt);
         }
+
+        // create (or recreate) unified key decoration from configuration
+        if (unifiedKeyDecoration) {
+            try { unifiedKeyDecoration.dispose(); } catch (e) { /* ignore */ }
+            unifiedKeyDecoration = null;
+        }
+        const keyColor = vscode.workspace.getConfiguration('yaml').get('keys.color', '#ffffff');
+        const fgColor = keyColor || pickFallbackFg();
+        unifiedKeyDecoration = vscode.window.createTextEditorDecorationType({ color: fgColor });
+        context.subscriptions.push(unifiedKeyDecoration);
 
         // re-apply decorations to the active editor
         const activeEditor = vscode.window.activeTextEditor;
@@ -64,7 +78,8 @@ function activate(context) {
     }));
 
     function findStepsItemRanges(doc) {
-        const rangesPerColor = decorationTypes.map(() => []);
+    const rangesPerColor = decorationTypes.map(() => []);
+    const keyRangesPerColor = decorationTypes.map(() => []);
         const lines = doc.getText().split(/\r?\n/);
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
@@ -90,6 +105,76 @@ function activate(context) {
                         const indent = itemMatch[1].length;
                         // include the whole list item and its child/indented lines (recursive properties)
                         let endLine = j;
+                        // check if this item starts an explicit brace block (e.g. '- payload: {')
+                        const lineAfterDash = lines[j].slice(itemMatch[1].length + 2); // content after '- '
+                        const firstBraceIdxInLine = lines[j].indexOf('{', itemMatch[1].length + 2);
+                        let foundBrace = firstBraceIdxInLine !== -1;
+                        if (foundBrace) {
+                            // perform simple brace matching across lines (counts { and })
+                            let braceCount = 0;
+                            let closed = false;
+                            let endCol = null;
+                            // scan across lines counting braces, but ignore braces inside strings
+                            let inString = null; // current string delimiter ('"', '\'', '`') or null
+                            let escaped = false; // previous char was backslash
+                            for (let k = j; k < lines.length; k++) {
+                                const text = lines[k];
+                                // start scanning from where we first found '{' on the first line
+                                let startIdx = 0;
+                                if (k === j) startIdx = firstBraceIdxInLine;
+                                for (let p = startIdx; p < text.length; p++) {
+                                    const ch = text[p];
+                                    if (escaped) {
+                                        // escaped char inside a string, skip
+                                        escaped = false;
+                                        continue;
+                                    }
+                                    if (ch === '\\') {
+                                        // escape next char
+                                        escaped = true;
+                                        continue;
+                                    }
+                                    if (inString) {
+                                        if (ch === inString) {
+                                            // end of string
+                                            inString = null;
+                                        }
+                                        continue; // ignore braces inside strings
+                                    } else {
+                                        // not inside a string
+                                        if (ch === '"' || ch === '\'' || ch === '`') {
+                                            inString = ch;
+                                            continue;
+                                        }
+                                        if (ch === '{') braceCount++;
+                                        else if (ch === '}') braceCount--;
+                                        if (braceCount === 0 && k >= j) {
+                                            endLine = k;
+                                            endCol = p + 1; // include the closing brace
+                                            closed = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (closed) break;
+                            }
+                            // if brace block closed, set range from the opening brace to the line with closing brace
+                                if (closed) {
+                                    // start from the dash (include '- ' and key) rather than from the '{'
+                                    const startCol = itemMatch[1].length; // column of the dash
+                                    const startPos = new vscode.Position(j, startCol);
+                                    const finalEndCol = (endCol !== null && typeof endCol !== 'undefined') ? endCol : (lines[endLine].indexOf('}') + 1 || lines[endLine].length);
+                                    const endPos = new vscode.Position(endLine, finalEndCol);
+                                    const range = new vscode.Range(startPos, endPos);
+                                    rangesPerColor[colorIdx % rangesPerColor.length].push(range);
+                                    colorIdx++;
+                                    j = endLine; // skip to the end of the brace block
+                                    continue;
+                                }
+                            // if not closed, fallthrough to indentation-based expansion below
+                        }
+
+                        // fallback: include indented child lines as before
                         for (let k = j + 1; k < lines.length; k++) {
                             const next = lines[k];
                             const leadingNext = next.match(/^\s*/)[0].length;
@@ -112,7 +197,33 @@ function activate(context) {
                         const startPos = new vscode.Position(j, itemMatch[1].length); // include the dash
                         const endPos = new vscode.Position(endLine, lines[endLine].length);
                         const range = new vscode.Range(startPos, endPos);
-                        rangesPerColor[colorIdx % rangesPerColor.length].push(range);
+                        const idx = colorIdx % rangesPerColor.length;
+                        rangesPerColor[idx].push(range);
+                        // find key tokens inside the block (e.g. 'name:' 'image:' 'commands:') and add key ranges
+                        for (let ln = j; ln <= endLine; ln++) {
+                            const textLine = lines[ln];
+                            // first, try to match list-item keys like '- id:'
+                            const dashKeyMatch = textLine.match(/^(\s*)-\s+([A-Za-z0-9_\-\.]+)\s*:/);
+                            if (dashKeyMatch) {
+                                const keyIndent = dashKeyMatch[1].length;
+                                const keyName = dashKeyMatch[2];
+                                const keyStart = keyIndent + 2; // after '- '
+                                const keyEnd = keyStart + keyName.length;
+                                const keyRange = new vscode.Range(new vscode.Position(ln, keyStart), new vscode.Position(ln, keyEnd));
+                                keyRangesPerColor[idx].push(keyRange);
+                                continue;
+                            }
+                            // match keys at start of property lines (optionally preceded by whitespace)
+                            const keyMatch = textLine.match(/^(\s*)([A-Za-z0-9_\-\.]+)\s*:/);
+                            if (keyMatch) {
+                                const keyIndent = keyMatch[1].length;
+                                const keyName = keyMatch[2];
+                                const keyStart = keyIndent;
+                                const keyEnd = keyIndent + keyName.length;
+                                const keyRange = new vscode.Range(new vscode.Position(ln, keyStart), new vscode.Position(ln, keyEnd));
+                                keyRangesPerColor[idx].push(keyRange);
+                            }
+                        }
                         colorIdx++;
                         // advance j to endLine so outer loop continues after the item's block
                         j = endLine;
@@ -127,16 +238,22 @@ function activate(context) {
                 }
             }
         }
-        return rangesPerColor;
+        // also return flat list of keys for unified decoration
+        const flatKeyRanges = [].concat(...keyRangesPerColor);
+        return { bg: rangesPerColor, keys: keyRangesPerColor, flatKeys: flatKeyRanges };
     }
 
     function updateDecorationsForEditor(editor) {
         if (!editor) return;
         const doc = editor.document;
         if (!doc || !doc.fileName.endsWith('.phlow')) return;
-        const rangesPerColor = findStepsItemRanges(doc);
+        const ranges = findStepsItemRanges(doc);
         for (let k = 0; k < decorationTypes.length; k++) {
-            editor.setDecorations(decorationTypes[k], rangesPerColor[k]);
+            editor.setDecorations(decorationTypes[k], ranges.bg[k] || []);
+        }
+        // apply unified key decoration to all detected keys
+        if (unifiedKeyDecoration) {
+            editor.setDecorations(unifiedKeyDecoration, ranges.flatKeys || []);
         }
     }
 
