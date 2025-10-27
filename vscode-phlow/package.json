@@ -1,0 +1,33 @@
+{
+    "name": "phlow-vscode",
+    "displayName": "Phlow",
+    "publisher": "lowcarboncode",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.60.0"
+    },
+    "main": "extension.js",
+    "activationEvents": [
+        "onLanguage:phlow"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "phlow",
+                "aliases": [
+                    "Phlow",
+                    "phlow"
+                ],
+                "extensions": [
+                    ".phlow"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ]
+    },
+    "scripts": {
+        "test": "echo \"No tests\" && exit 0"
+    },
+    "license": "MIT",
+    "devDependencies": {}
+}

@@ -64,6 +64,30 @@
             "env": {
                 "PHLOW_LOG": "debug"
             }
+        },
+        {
+            "name": "Run Phlow Extension (examples)",
+            "type": "extensionHost",
+            "request": "launch",
+            "runtimeExecutable": "${execPath}",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/vscode-phlow",
+                "${workspaceFolder}/examples"
+            ],
+            "outFiles": [],
+            "env": {
+                "PFLOW_DEBUG_BREAK": "1"
+            }
+        },
+        {
+            "name": "Run Phlow Extension (workspace)",
+            "type": "extensionHost",
+            "request": "launch",
+            "runtimeExecutable": "${execPath}",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/vscode-phlow"
+            ],
+            "outFiles": []
         }
     ]
 }
