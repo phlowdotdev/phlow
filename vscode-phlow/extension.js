@@ -21,11 +21,11 @@ function activate(context) {
     let unifiedKeyDecoration = null;
 
     const DEFAULT_BG = [
-        'rgba(230,57,70,0.15)',   // #E63946
-        'rgba(251,133,0,0.15)',   // #FB8500
-        'rgba(255,209,102,0.15)', // #FFD166
-        'rgba(6,214,160,0.12)',   // #06D6A0
-        'rgba(17,138,178,0.12)',  // #118AB2
+        'rgba(230,57,70,0.05)',   // #E63946
+        'rgba(251,133,0,0.05)',   // #FB8500
+        'rgba(255,209,102,0.05)', // #FFD166
+        'rgba(6,214,160,0.05)',   // #06D6A0
+        'rgba(17,138,178,0.05)',  // #118AB2
     ];
 
     function createDecorationTypesFromConfig() {
@@ -58,10 +58,10 @@ function activate(context) {
             try { unifiedKeyDecoration.dispose(); } catch (e) { /* ignore */ }
             unifiedKeyDecoration = null;
         }
-        const keyColor = vscode.workspace.getConfiguration('yaml').get('keys.color', '#ffffff');
-        const fgColor = keyColor || pickFallbackFg();
-        unifiedKeyDecoration = vscode.window.createTextEditorDecorationType({ color: fgColor });
-        context.subscriptions.push(unifiedKeyDecoration);
+        // const keyColor = vscode.workspace.getConfiguration('phlow').get('keys.color', '#ffffff');
+        // const fgColor = keyColor || pickFallbackFg();
+        // unifiedKeyDecoration = vscode.window.createTextEditorDecorationType({ color: fgColor });
+        // context.subscriptions.push(unifiedKeyDecoration);
 
         // re-apply decorations to the active editor
         const activeEditor = vscode.window.activeTextEditor;
@@ -81,6 +81,8 @@ function activate(context) {
     function findStepsItemRanges(doc) {
     const rangesPerColor = decorationTypes.map(() => []);
     const keyRangesPerColor = decorationTypes.map(() => []);
+    const flatDashKeyRanges = [];
+    const flatNonDashKeyRanges = [];
         const lines = doc.getText().split(/\r?\n/);
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
@@ -212,6 +214,7 @@ function activate(context) {
                                 const keyEnd = keyStart + keyName.length;
                                 const keyRange = new vscode.Range(new vscode.Position(ln, keyStart), new vscode.Position(ln, keyEnd));
                                 keyRangesPerColor[idx].push(keyRange);
+                                flatDashKeyRanges.push(keyRange);
                                 continue;
                             }
                             // match keys at start of property lines (optionally preceded by whitespace)
@@ -223,6 +226,7 @@ function activate(context) {
                                 const keyEnd = keyIndent + keyName.length;
                                 const keyRange = new vscode.Range(new vscode.Position(ln, keyStart), new vscode.Position(ln, keyEnd));
                                 keyRangesPerColor[idx].push(keyRange);
+                                flatNonDashKeyRanges.push(keyRange);
                             }
                         }
                         colorIdx++;
@@ -239,9 +243,9 @@ function activate(context) {
                 }
             }
         }
-        // also return flat list of keys for unified decoration
+        // also return flat lists of keys: dash-prefixed and non-dash (so we can let the grammar/style handle dash keys)
         const flatKeyRanges = [].concat(...keyRangesPerColor);
-        return { bg: rangesPerColor, keys: keyRangesPerColor, flatKeys: flatKeyRanges };
+        return { bg: rangesPerColor, keys: keyRangesPerColor, flatKeys: flatKeyRanges, flatDashKeys: flatDashKeyRanges, flatNonDashKeys: flatNonDashKeyRanges };
     }
 
     function updateDecorationsForEditor(editor) {
@@ -252,9 +256,9 @@ function activate(context) {
         for (let k = 0; k < decorationTypes.length; k++) {
             editor.setDecorations(decorationTypes[k], ranges.bg[k] || []);
         }
-        // apply unified key decoration to all detected keys
+        // apply unified key decoration only to non-dash keys so list-item keys ("- key:") keep their TextMate scope and theme styling
         if (unifiedKeyDecoration) {
-            editor.setDecorations(unifiedKeyDecoration, ranges.flatKeys || []);
+            editor.setDecorations(unifiedKeyDecoration, ranges.flatNonDashKeys || []);
         }
     }
 

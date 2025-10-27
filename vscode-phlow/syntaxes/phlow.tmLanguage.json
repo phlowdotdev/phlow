@@ -51,8 +51,18 @@
         "keys": {
             "patterns": [
                 {
-                    "name": "entity.name.tag.phlow",
-                    "match": "(?m)^(\\s*)([a-zA-Z0-9_\\-\\.]+)(?=\\s*:)"
+                    "//": "dash list-item keys like '- id:' capture the key in group 2 and assign entity.name.tag.phlow",
+                    "match": "(?m)^(\\s*)(?:-\\s*)([a-zA-Z0-9_\\-\\.]+)(?=\\s*:)",
+                    "captures": {
+                        "2": { "name": "entity.name.tag.phlow" }
+                    }
+                },
+                {
+                    "//": "regular property keys at start of line (without leading '-')",
+                    "match": "(?m)^(\\s*)([a-zA-Z0-9_\\-\\.]+)(?=\\s*:)",
+                    "captures": {
+                        "2": { "name": "entity.name.tag.phlow" }
+                    }
                 }
             ]
         },
