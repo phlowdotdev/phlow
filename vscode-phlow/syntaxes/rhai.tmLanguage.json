@@ -1,0 +1,89 @@
+{
+    "scopeName": "source.rhai",
+    "name": "Rhai",
+    "patterns": [
+        {
+            "include": "#comments"
+        },
+        {
+            "include": "#strings"
+        },
+        {
+            "include": "#numbers"
+        },
+        {
+            "include": "#keywords"
+        },
+        {
+            "include": "#operators"
+        }
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.line.double-slash.rhai",
+                    "match": "//.*$"
+                },
+                {
+                    "name": "comment.block.rhai",
+                    "begin": "/\\*",
+                    "end": "\\*/"
+                }
+            ]
+        },
+        "strings": {
+            "patterns": [
+                {
+                    "name": "string.quoted.single.rhai",
+                    "begin": "'",
+                    "end": "'"
+                },
+                {
+                    "name": "string.quoted.double.rhai",
+                    "begin": "\"",
+                    "end": "\"",
+                    "patterns": [
+                        {
+                            "name": "constant.character.escape.rhai",
+                            "match": "\\\\."
+                        }
+                    ]
+                },
+                {
+                    "name": "string.template.rhai",
+                    "begin": "`",
+                    "end": "`"
+                }
+            ]
+        },
+        "numbers": {
+            "patterns": [
+                {
+                    "name": "constant.numeric.rhai",
+                    "match": "\\b\\d+(?:\\.\\d+)?\\b"
+                }
+            ]
+        },
+        "keywords": {
+            "patterns": [
+                {
+                    "name": "keyword.control.rhai",
+                    "match": "\\b(?:if|else|for|while|loop|match|let|const|fn|return|switch|case|default|try|catch|throw|when|payload|input|steps|main|setup|envs)\\b"
+                },
+                {
+                    "name": "constant.language.rhai",
+                    "match": "\\b(?:true|false|null)\\b"
+                }
+            ]
+        },
+        "operators": {
+            "patterns": [
+                {
+                    "name": "keyword.operator.rhai",
+                    "match": "\\+|\\-|\\*|/|%|==|!=|<=|>=|<|>|\\|\\||&&|\\?|:|\\?\\?"
+                }
+            ]
+        }
+    }
+}

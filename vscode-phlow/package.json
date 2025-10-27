@@ -23,11 +23,28 @@
                 ],
                 "configuration": "./language-configuration.json"
             }
+        ],
+        "grammars": [
+            {
+                "language": "phlow",
+                "scopeName": "source.phlow",
+                "path": "./syntaxes/phlow.tmLanguage.json"
+            },
+            {
+                "language": "rhai",
+                "scopeName": "source.rhai",
+                "path": "./syntaxes/rhai.tmLanguage.json"
+            }
         ]
     },
     "scripts": {
-        "test": "echo \"No tests\" && exit 0"
+        "test": "echo \"No tests\" && exit 0",
+        "test-grammar": "node ./test/grammar.test.js",
+        "test-key": "node test/key_value.test.js"
     },
     "license": "MIT",
-    "devDependencies": {}
+    "devDependencies": {
+        "vscode-textmate": "^5.3.0",
+        "onigasm": "^2.2.1"
+    }
 }

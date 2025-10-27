@@ -1,0 +1,210 @@
+{
+    "scopeName": "source.phlow",
+    "name": "Phlow",
+    "fileTypes": [
+        "phlow"
+    ],
+    "patterns": [
+        {
+            "include": "#comments"
+        },
+        {
+            "include": "#keys"
+        },
+        {
+            "include": "#directives"
+        },
+        {
+            "include": "#phs-fenced"
+        },
+        {
+            "include": "#phs-brace-block"
+        },
+        {
+            "include": "#phs-auto-brace"
+        },
+        {
+            "include": "#phs-inline"
+        },
+        {
+            "include": "#phs-auto-inline"
+        },
+        {
+            "include": "#strings"
+        },
+        {
+            "include": "#numbers"
+        },
+        {
+            "include": "#booleans"
+        }
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.line.number-sign.phlow",
+                    "match": "#.*$"
+                }
+            ]
+        },
+        "keys": {
+            "patterns": [
+                {
+                    "name": "entity.name.tag.phlow",
+                    "match": "(?m)^(\\s*)([a-zA-Z0-9_\\-\\.]+)(?=\\s*:)"
+                }
+            ]
+        },
+        "directives": {
+            "patterns": [
+                {
+                    "name": "keyword.directive.phlow",
+                    "match": "\\b!(include|import|phs|arg)\\b"
+                }
+            ]
+        },
+        "phs-fenced": {
+            "begin": "!phs\\s*```",
+            "beginCaptures": {
+                "0": {
+                    "name": "punctuation.definition.fenced.begin.phs"
+                }
+            },
+            "end": "```",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.definition.fenced.end.phs"
+                }
+            },
+            "name": "meta.embedded.block.phs",
+            "patterns": [
+                {
+                    "include": "source.rhai"
+                }
+            ]
+        },
+        "phs-brace-block": {
+            "begin": "!phs\\s*\\{",
+            "beginCaptures": {
+                "0": {
+                    "name": "punctuation.section.block.begin.phs"
+                }
+            },
+            "end": "\\}",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.section.block.end.phs"
+                }
+            },
+            "name": "meta.embedded.block.phs",
+            "patterns": [
+                {
+                    "include": "source.rhai"
+                }
+            ]
+        },
+        "phs-auto-brace": {
+            "begin": "(?m)^(\\s*(?:-\\s*)?[a-zA-Z0-9_\\-\\.]+\\s*:\\s*)\\{",
+            "beginCaptures": {
+                "1": {
+                    "name": "punctuation.separator.key-value.phlow"
+                },
+                "0": {
+                    "name": "punctuation.section.block.begin.phs"
+                }
+            },
+            "end": "\\}",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.section.block.end.phs"
+                }
+            },
+            "name": "meta.embedded.block.phs",
+            "patterns": [
+                {
+                    "include": "source.rhai"
+                }
+            ]
+        },
+        "phs-inline": {
+            "patterns": [
+                {
+                    "begin": "!phs\\s+",
+                    "beginCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.inline.phs"
+                        }
+                    },
+                    "end": "$",
+                    "name": "meta.embedded.inline.phs",
+                    "patterns": [
+                        {
+                            "include": "source.rhai"
+                        }
+                    ]
+                }
+            ]
+        },
+        "phs-auto-inline": {
+            "patterns": [
+                {
+                    "begin": "(?m)^(\\s*(?:-\\s*)?[a-zA-Z0-9_\\-\\.]+\\s*:\\s*)(?!(?:\"|'|`|\\s*$))(?:(?:if|else|for|while|loop|match|let|const|fn|return|switch|case|default|try|catch|throw|when|payload|input|steps|main|setup|envs)\\b|[+\\-\\*\\/%]|==|!=|<=|>=|\\?\\?|\\?|:)",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "punctuation.separator.key-value.phlow"
+                        }
+                    },
+                    "end": "$",
+                    "name": "meta.embedded.inline.phs",
+                    "patterns": [
+                        {
+                            "include": "source.rhai"
+                        }
+                    ]
+                }
+            ]
+        },
+        "strings": {
+            "patterns": [
+                {
+                    "name": "string.quoted.double.phlow",
+                    "begin": "\"",
+                    "end": "\"",
+                    "patterns": [
+                        {
+                            "name": "constant.character.escape.phlow",
+                            "match": "\\\\."
+                        }
+                    ]
+                },
+                {
+                    "name": "string.quoted.single.phlow",
+                    "begin": "'",
+                    "end": "'"
+                },
+                {
+                    "name": "string.template.phlow",
+                    "begin": "`",
+                    "end": "`"
+                }
+            ]
+        },
+        "numbers": {
+            "patterns": [
+                {
+                    "name": "constant.numeric.phlow",
+                    "match": "\\b\\d+(?:\\.\\d+)?\\b"
+                }
+            ]
+        },
+        "booleans": {
+            "patterns": [
+                {
+                    "name": "constant.language.boolean.phlow",
+                    "match": "\\b(?:true|false|null)\\b"
+                }
+            ]
+        }
+    }
+}
