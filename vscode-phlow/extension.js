@@ -47,7 +47,8 @@ function activate(context) {
         function pickFallbackFg() { return '#ffffff'; }
 
         for (const bg of colors) {
-            const dt = vscode.window.createTextEditorDecorationType({ backgroundColor: bg, borderRadius: '3px' });
+            // apply background to the whole line so items appear as solid blocks
+            const dt = vscode.window.createTextEditorDecorationType({ backgroundColor: bg, borderRadius: '3px', isWholeLine: true });
             decorationTypes.push(dt);
             context.subscriptions.push(dt);
         }
@@ -160,9 +161,8 @@ function activate(context) {
                             }
                             // if brace block closed, set range from the opening brace to the line with closing brace
                                 if (closed) {
-                                    // start from the dash (include '- ' and key) rather than from the '{'
-                                    const startCol = itemMatch[1].length; // column of the dash
-                                    const startPos = new vscode.Position(j, startCol);
+                                    // start from beginning of line so whole-line decoration covers the block
+                                    const startPos = new vscode.Position(j, 0);
                                     const finalEndCol = (endCol !== null && typeof endCol !== 'undefined') ? endCol : (lines[endLine].indexOf('}') + 1 || lines[endLine].length);
                                     const endPos = new vscode.Position(endLine, finalEndCol);
                                     const range = new vscode.Range(startPos, endPos);
@@ -194,7 +194,8 @@ function activate(context) {
                             // stop if we hit another sibling item or a line at same/lower indent
                             break;
                         }
-                        const startPos = new vscode.Position(j, itemMatch[1].length); // include the dash
+                        // start at column 0 so whole-line decoration paints the full visible width
+                        const startPos = new vscode.Position(j, 0);
                         const endPos = new vscode.Position(endLine, lines[endLine].length);
                         const range = new vscode.Range(startPos, endPos);
                         const idx = colorIdx % rangesPerColor.length;
