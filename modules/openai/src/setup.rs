@@ -4,6 +4,7 @@ use phlow_sdk::prelude::{ToValueBehavior, Value};
 pub struct Setup {
     pub auth: Auth,
     pub model: Value,
+    pub proxy: Option<String>,
 }
 
 impl TryFrom<Value> for Setup {
@@ -22,6 +23,7 @@ impl TryFrom<Value> for Setup {
             return Ok(Setup {
                 auth,
                 model: "gpt-5-mini".to_value(),
+                proxy: None,
             });
         }
 
@@ -42,6 +44,8 @@ impl TryFrom<Value> for Setup {
             .map(|v| v.clone())
             .unwrap_or("gpt-5-mini".to_value());
 
-        Ok(Setup { auth, model })
+        let proxy = value.get("proxy").map(|v| v.to_string());
+
+        Ok(Setup { auth, model, proxy })
     }
 }

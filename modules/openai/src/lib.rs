@@ -39,6 +39,10 @@ pub async fn openai(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error 
     let setup = Setup::try_from(setup.with)?;
     let openai = OpenAI::new(setup.auth.clone(), "https://api.openai.com/v1/");
 
+    if let Some(proxy_url) = setup.proxy.clone() {
+        openai.set_proxy(&proxy_url);
+    }
+
     println!("OpenAI module initialized with model: {}", setup.model);
 
     for package in rx {
@@ -117,8 +121,6 @@ pub async fn openai(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error 
 
         sender_safe!(package.sender, response.into());
     }
-
-    println!("OpenAI module shutting down...");
 
     Ok(())
 }
