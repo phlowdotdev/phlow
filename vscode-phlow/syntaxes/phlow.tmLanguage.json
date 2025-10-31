@@ -37,6 +37,12 @@
         },
         {
             "include": "#booleans"
+        },
+        {
+            "include": "#objects"
+        },
+        {
+            "include": "#arrays"
         }
     ],
     "repository": {
@@ -119,11 +125,8 @@
             ]
         },
         "phs-auto-brace": {
-            "begin": "(?m)^(\\s*(?:-\\s*)?[a-zA-Z0-9_\\-\\.]+\\s*:\\s*)\\{",
+            "begin": "(?m)^\\s*(?:-\\s*)?[a-zA-Z0-9_\\-\\.]+\\s*: \\s*\\{",
             "beginCaptures": {
-                "1": {
-                    "name": "punctuation.separator.key-value.phlow"
-                },
                 "0": {
                     "name": "punctuation.section.block.begin.phs"
                 }
@@ -216,7 +219,65 @@
             "patterns": [
                 {
                     "name": "constant.language.boolean.phlow",
-                    "match": "\\b(?:true|false|null)\\b"
+                    "match": "\\b(?:true|false|null|undefined)\\b"
+                }
+            ]
+        },
+        "objects": {
+            "begin": "\\{",
+            "beginCaptures": {
+                "0": {
+                    "name": "punctuation.section.object.begin.phlow"
+                }
+            },
+            "end": "\\}",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.section.object.end.phlow"
+                }
+            },
+            "name": "meta.structure.object.phlow",
+            "patterns": [
+                {
+                    "include": "#strings"
+                },
+                {
+                    "include": "#numbers"
+                },
+                {
+                    "include": "#booleans"
+                },
+                {
+                    "include": "#phs-inline"
+                }
+            ]
+        },
+        "arrays": {
+            "begin": "\\[",
+            "beginCaptures": {
+                "0": {
+                    "name": "punctuation.section.array.begin.phlow"
+                }
+            },
+            "end": "\\]",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.section.array.end.phlow"
+                }
+            },
+            "name": "meta.structure.array.phlow",
+            "patterns": [
+                {
+                    "include": "#strings"
+                },
+                {
+                    "include": "#numbers"
+                },
+                {
+                    "include": "#booleans"
+                },
+                {
+                    "include": "#phs-inline"
                 }
             ]
         }

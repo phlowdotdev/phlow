@@ -3,19 +3,19 @@ modules:
 steps:
   - use: log
     input:
-      message: Hello, this is a log module test.
+      message: [1,"true", false]
       level: info
   - use: log
     input:
-      message: This is an error log message.
+      message: true
       level: error
   - use: log
     input:
-      message: Debugging information here.
-      level: debug
+      message: !phs if { condition: true } then "debug" else "info"
+      level: if { condition: true } then "debug" else "info"
   - use: log
     input:
-      message: Warning! Something might be wrong.
+      message: "Warning! Something might be wrong."
       level: warning
   - log:
       level: warn

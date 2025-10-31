@@ -3,6 +3,7 @@ modules:
 steps:
   - id: storage
     payload: payload ?? main
+    - do: !phs { let __test_phs = 1; }
   - log:
       level: when steps.storage.len % 2 == 0 ? "warn" : "error"
       message: steps.storage[-1].content

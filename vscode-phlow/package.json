@@ -29,11 +29,74 @@
                 "language": "phlow",
                 "scopeName": "source.phlow",
                 "path": "./syntaxes/phlow.tmLanguage.json"
+            }
+        ],
+        "tokenColors": [
+            {
+                "scope": "string.quoted.double.phlow",
+                "settings": {
+                    "foreground": "#CE9178"
+                }
             },
             {
-                "language": "rhai",
-                "scopeName": "source.rhai",
-                "path": "./syntaxes/rhai.tmLanguage.json"
+                "scope": "string.quoted.single.phlow",
+                "settings": {
+                    "foreground": "#CE9178"
+                }
+            },
+            {
+                "scope": "string.template.phlow",
+                "settings": {
+                    "foreground": "#CE9178"
+                }
+            },
+            {
+                "scope": "constant.numeric.phlow",
+                "settings": {
+                    "foreground": "#B5CEA8"
+                }
+            },
+            {
+                "scope": "constant.language.boolean.phlow",
+                "settings": {
+                    "foreground": "#569CD6"
+                }
+            },
+            {
+                "scope": "punctuation.section.array.begin.phlow",
+                "settings": {
+                    "foreground": "#D7BA7D"
+                }
+            },
+            {
+                "scope": "punctuation.section.array.end.phlow",
+                "settings": {
+                    "foreground": "#D7BA7D"
+                }
+            },
+            {
+                "scope": "punctuation.section.object.begin.phlow",
+                "settings": {
+                    "foreground": "#D7BA7D"
+                }
+            },
+            {
+                "scope": "punctuation.section.object.end.phlow",
+                "settings": {
+                    "foreground": "#D7BA7D"
+                }
+            },
+            {
+                "scope": "meta.structure.array.phlow",
+                "settings": {
+                    "foreground": "#D7BA7D"
+                }
+            },
+            {
+                "scope": "meta.structure.object.phlow",
+                "settings": {
+                    "foreground": "#D7BA7D"
+                }
             }
         ],
         "configuration": {
