@@ -20,6 +20,7 @@ pub fn preprocessor(
         return Err(errors);
     }
 
+    let phlow = processor_transform_phs_hidden_object_and_arrays(&phlow);
     let phlow = preprocessor_transform_phs_hidden(&phlow);
     let phlow = preprocessor_eval(&phlow);
     let phlow = preprocessor_modules(&phlow)?;
@@ -122,16 +123,57 @@ fn preprocessor_directives(phlow: &str, base_path: &Path) -> (String, Vec<String
     (result, errors)
 }
 
+// identifica blocos de codigo sem phs que são objetos ou arrays, E envole eles com !phs ${ ... }
+fn processor_transform_phs_hidden_object_and_arrays(phlow: &str) -> String {
+    let mut result = String::new();
+    let mut lines = phlow.lines().peekable();
+
+    while let Some(line) = lines.next() {
+        let trimmed_line = line.trim_start();
+
+        if let Some(colon_pos) = trimmed_line.find(':') {
+            let key = &trimmed_line[..colon_pos].trim();
+            let value = &trimmed_line[colon_pos + 1..].trim();
+
+            if value.starts_with('{') || value.starts_with('[') {
+                let indent = &line[..line.len() - trimmed_line.len()];
+                let mut block_lines = vec![value.to_string()];
+
+                // Verifica se o bloco fecha na mesma linha
+                if !(value.ends_with('}') || value.ends_with(']')) {
+                    // Continua lendo até encontrar o fechamento
+                    while let Some(next_line) = lines.next() {
+                        block_lines.push(next_line.trim().to_string());
+                        if next_line.trim().ends_with('}') || next_line.trim().ends_with(']') {
+                            break;
+                        }
+                    }
+                }
+
+                let single_line = block_lines.join(" ");
+                result.push_str(&format!("{}{}: !phs ${{ {} }}\n", indent, key, single_line));
+                continue;
+            }
+        }
+
+        result.push_str(line);
+        result.push_str("\n");
+    }
+
+    result.pop();
+    result.to_string()
+}
+
 // Essa função identifica qualquer valore de propriedade que inicie com
 //palavras reservadas do phs ou seja um algoritimo e inclui a tag !phs automaticamente
 fn preprocessor_transform_phs_hidden(phlow: &str) -> String {
-    let operators = vec![
+    let operators: Vec<&'static str> = vec![
         "+", "-", "*", "/", "%", "==", "!=", "<", ">", "<=", ">=", "&&", "||", "??", "?:",
     ];
     let mut reserved_keywords = vec![
         "if", "else", "for", "while", "loop", "match", "let", "const", "fn", "return", "switch",
         "case", "default", "try", "catch", "throw", "when", "payload", "input", "steps", "main",
-        "setup", "envs", "{", "!",
+        "setup", "envs", "!",
     ];
     reserved_keywords.extend(&operators);
 
@@ -139,9 +181,11 @@ fn preprocessor_transform_phs_hidden(phlow: &str) -> String {
 
     for line in phlow.lines() {
         let trimmed_line = line.trim_start();
+
         if let Some(colon_pos) = trimmed_line.find(':') {
             let key = &trimmed_line[..colon_pos].trim();
             let value = &trimmed_line[colon_pos + 1..].trim();
+
             let first_word = value
                 .trim()
                 .split_whitespace()
@@ -149,15 +193,18 @@ fn preprocessor_transform_phs_hidden(phlow: &str) -> String {
                 .unwrap_or("")
                 .split('.')
                 .next()
-                .unwrap_or("")
-                .split('[')
-                .next()
                 .unwrap_or("");
 
-            // se for !phs ignore
             if first_word == "!phs" {
                 result.push_str(line);
                 result.push_str("\n");
+                continue;
+            }
+
+            if first_word.starts_with("`") || first_word.starts_with("${") {
+                let indent = &line[..line.len() - trimmed_line.len()];
+                let content = &format!("{}{}: !phs {}\n", indent, key, value);
+                result.push_str(content);
                 continue;
             }
 
@@ -171,9 +218,43 @@ fn preprocessor_transform_phs_hidden(phlow: &str) -> String {
                 result.push_str(&format!("{}{}: !phs {}\n", indent, key, value));
                 continue;
             }
+        } else if trimmed_line.starts_with("-") {
+            let after_dash = trimmed_line[1..].trim_start();
+            let first_word = after_dash
+                .split_whitespace()
+                .next()
+                .unwrap_or("")
+                .split('.')
+                .next()
+                .unwrap_or("")
+                .split('[')
+                .next()
+                .unwrap_or("");
 
-            // identifica se é uma expressão com operadores comuns
+            if first_word == "!phs" {
+                result.push_str(line);
+                result.push_str("\n");
+                continue;
+            }
+
+            if first_word.starts_with("`") {
+                let indent = &line[..line.len() - trimmed_line.len()];
+                result.push_str(&format!("{}- !phs {}\n", indent, after_dash));
+                continue;
+            }
+
+            if reserved_keywords.contains(&first_word)
+                || (operators
+                    .iter()
+                    .any(|op| after_dash.contains(&format!(" {} ", op)))
+                    && !after_dash.starts_with('"'))
+            {
+                let indent = &line[..line.len() - trimmed_line.len()];
+                result.push_str(&format!("{}- !phs {}\n", indent, after_dash));
+                continue;
+            }
         }
+
         result.push_str(line);
         result.push_str("\n");
     }
@@ -188,6 +269,7 @@ fn preprocessor_eval(phlow: &str) -> String {
 
     while let Some(line) = lines.next() {
         if let Some(pos) = line.find("!phs") {
+            println!("Processing !phs line: {}, pos={}", line, pos);
             let before_eval = &line[..pos];
             let after_eval = if line.len() > pos + 4 {
                 line[pos + 4..].trim()
@@ -195,7 +277,7 @@ fn preprocessor_eval(phlow: &str) -> String {
                 ""
             };
             let indent = " ".repeat(pos);
-
+            // Verifica se o bloco é markdown-style ```
             if after_eval.starts_with("```") {
                 // Bloco markdown-style
                 let mut block_lines = vec![];
@@ -220,17 +302,29 @@ fn preprocessor_eval(phlow: &str) -> String {
                 } else {
                     result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", before_eval, escaped));
                 }
-            } else if after_eval.starts_with("{") {
-                // Bloco de código delimitado por {}
+            }
+            // Verifica se o bloco é delimitado por ${}
+            else if after_eval.starts_with("${") {
+                // Bloco de código delimitado por ${}
                 let mut block_content = String::new();
                 let mut brace_count = 0;
+                let mut dollar_brace_started = false;
 
                 // Primeiro, verifica se há conteúdo na mesma linha
-                for ch in after_eval.chars() {
+                let mut chars = after_eval.chars().peekable();
+                while let Some(ch) = chars.next() {
                     block_content.push(ch);
-                    if ch == '{' {
+
+                    if ch == '$' && chars.peek() == Some(&'{') {
+                        // Consome o '{'
+                        if let Some(next_ch) = chars.next() {
+                            block_content.push(next_ch);
+                            brace_count += 1;
+                            dollar_brace_started = true;
+                        }
+                    } else if ch == '{' && dollar_brace_started {
                         brace_count += 1;
-                    } else if ch == '}' {
+                    } else if ch == '}' && dollar_brace_started {
                         brace_count -= 1;
                         if brace_count == 0 {
                             break;
@@ -257,10 +351,10 @@ fn preprocessor_eval(phlow: &str) -> String {
                     }
                 }
 
-                // Remove as chaves externas e processa o conteúdo
+                // Remove as chaves externas ${} e processa o conteúdo
                 let inner_content =
-                    if block_content.starts_with('{') && block_content.ends_with('}') {
-                        &block_content[1..block_content.len() - 1]
+                    if block_content.starts_with("${") && block_content.ends_with('}') {
+                        &block_content[2..block_content.len() - 1]
                     } else {
                         &block_content
                     };
@@ -281,15 +375,21 @@ fn preprocessor_eval(phlow: &str) -> String {
                 } else {
                     result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", before_eval, escaped));
                 }
-            } else if after_eval.starts_with('`') && after_eval.ends_with('`') {
+            }
+            // Verifica se o bloco é uma template string com crases
+            else if after_eval.starts_with('`') && after_eval.ends_with('`') {
                 // Template string com crases - converte para sintaxe de template string
                 let inner_content = &after_eval[1..after_eval.len() - 1];
                 let escaped = inner_content.replace('"', "\\\"");
                 result.push_str(&format!("{}\"{{{{ `{}` }}}}\"\n", before_eval, escaped));
-            } else if !after_eval.is_empty() {
+            }
+            // Verifica se o bloco é uma única linha
+            else if !after_eval.is_empty() {
                 let escaped = after_eval.replace('"', "\\\"");
                 result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", before_eval, escaped));
-            } else {
+            }
+            // Caso contrário, processa como um bloco indentado
+            else {
                 // Bloco indentado
                 let mut block_lines = vec![];
                 let current_line_indent = line.chars().take_while(|c| c.is_whitespace()).count();

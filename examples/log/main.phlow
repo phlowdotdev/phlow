@@ -19,9 +19,15 @@ steps:
       level: warning
   - log:
       level: warn
-      message: main
+      message: {
+        level: "warn",
+        mains: [1,2,3,...main],
+        ...main
+      }
   - log:
-      level: debug
-      message: main[0].content
+      level: error
+      message:
+        - 1 + 1 
+        - main[0].content
 tests:
   - describe: All logs
