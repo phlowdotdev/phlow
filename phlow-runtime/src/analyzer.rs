@@ -334,9 +334,36 @@ fn analyze_internal<'a>(
                                     if let Some(mn) = module_name {
                                         let mn_str = mn.to_string();
                                         let clean = normalize_module_name(&mn_str);
-                                        let downloaded =
+                                        // determine downloaded: if local module (starts with '.') check the resolved path,
+                                        // otherwise check phlow_packages
+                                        let mut downloaded =
                                             Path::new(&format!("phlow_packages/{}", clean))
                                                 .exists();
+                                        if mn_str.starts_with('.') {
+                                            let base = main_path.parent().unwrap_or(Path::new("."));
+                                            let mut candidate = base.join(&mn_str);
+                                            if candidate.is_dir() {
+                                                let mut found = None;
+                                                for c in ["main.phlow", "mod.phlow", "module.phlow"]
+                                                {
+                                                    let p = candidate.join(c);
+                                                    if p.exists() {
+                                                        found = Some(p);
+                                                        break;
+                                                    }
+                                                }
+                                                if let Some(p) = found {
+                                                    candidate = p;
+                                                }
+                                            } else if candidate.extension().is_none() {
+                                                let mut with_ext = candidate.clone();
+                                                with_ext.set_extension("phlow");
+                                                if with_ext.exists() {
+                                                    candidate = with_ext;
+                                                }
+                                            }
+                                            downloaded = candidate.exists();
+                                        }
                                         modules_json.push(json!({"declared": mn_str, "name": clean, "downloaded": downloaded}));
 
                                         // If module declared is local (starts with '.') try to analyze it recursively
@@ -485,7 +512,33 @@ fn analyze_internal<'a>(
                     if let Some(m) = cap.get(1) {
                         let mn_str = m.as_str().trim().to_string();
                         let clean = normalize_module_name(&mn_str);
-                        let downloaded = Path::new(&format!("phlow_packages/{}", clean)).exists();
+                        // determine downloaded: if local module (starts with '.') check resolved path, otherwise check phlow_packages
+                        let mut downloaded =
+                            Path::new(&format!("phlow_packages/{}", clean)).exists();
+                        if mn_str.starts_with('.') {
+                            let base = main_path.parent().unwrap_or(Path::new("."));
+                            let mut candidate = base.join(&mn_str);
+                            if candidate.is_dir() {
+                                let mut found = None;
+                                for c in ["main.phlow", "mod.phlow", "module.phlow"] {
+                                    let p = candidate.join(c);
+                                    if p.exists() {
+                                        found = Some(p);
+                                        break;
+                                    }
+                                }
+                                if let Some(p) = found {
+                                    candidate = p;
+                                }
+                            } else if candidate.extension().is_none() {
+                                let mut with_ext = candidate.clone();
+                                with_ext.set_extension("phlow");
+                                if with_ext.exists() {
+                                    candidate = with_ext;
+                                }
+                            }
+                            downloaded = candidate.exists();
+                        }
                         modules_json.push(
                             json!({"declared": mn_str, "name": clean, "downloaded": downloaded}),
                         );

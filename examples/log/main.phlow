@@ -20,9 +20,11 @@ steps:
   - log:
       level: warn
       message: main
-  - log:
-      level: error
-      message: payload
+  - case: when 1 == 1
+    then: 
+      payload: "Condition met"
+    else:
+      payload: "Condition not met"
   - log:
       level: error
       message: !import handler.phs
