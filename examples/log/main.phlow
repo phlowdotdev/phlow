@@ -17,7 +17,7 @@ steps:
     input:
       message: Warning! Something might be wrong.
       level: warning
-  - log:
+  - logger:
       level: warn
       message: main
   - case: when 1 == 1

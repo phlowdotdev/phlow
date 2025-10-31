@@ -48,14 +48,8 @@ function activate(context) {
                     }
                     try {
                         const parsed = stdout && stdout.trim() ? JSON.parse(stdout) : {};
-                        // build normalized project tree (prefer `name` attribute for modules)
-                        const tree = buildProjectTree(mainPath, parsed);
-                        projects.set(mainPath, { data: parsed, tree: tree, updatedAt: Date.now() });
+                        projects.set(mainPath, { data: parsed, updatedAt: Date.now() });
                         analyzerOutput.appendLine(`Analyzer finished for ${mainPath}`);
-                        // log resolved module names for debugging
-                        if (tree.modules && tree.modules.length) {
-                            analyzerOutput.appendLine(`Modules for ${mainPath}: ${tree.modules.map(m => m.name || m.declared).join(', ')}`);
-                        }
                     } catch (e) {
                         analyzerOutput.appendLine(`Failed to parse phlow JSON for ${mainPath}: ${e.message}`);
                         projects.set(mainPath, { error: `json parse: ${e.message}`, raw: stdout, updatedAt: Date.now() });
@@ -82,6 +76,42 @@ function activate(context) {
             await runAnalyzerForMain(m);
         }
         analyzerOutput.appendLine('Analyzer pass complete.');
+        // rebuild module name index and refresh decorations
+        try {
+            rebuildModuleNames();
+            updateAllOpenEditorsDecorations();
+        } catch (e) {
+            analyzerOutput.appendLine(`Error rebuilding modules: ${e.message}`);
+        }
+    }
+
+    function rebuildModuleNames() {
+        moduleNames = new Set();
+        for (const [, v] of projects.entries()) {
+            if (!v || !v.data || !Array.isArray(v.data.modules)) continue;
+            for (const m of v.data.modules) {
+                if (!m) continue;
+                if (m.name) moduleNames.add(String(m.name));
+                if (m.declared) {
+                    const d = String(m.declared);
+                    moduleNames.add(d);
+                    // also add stripped './' variant
+                    moduleNames.add(stripLeadingDotSlash(d));
+                    // add basename for paths like ./inner
+                    try {
+                        const bn = path.basename(d);
+                        if (bn) moduleNames.add(bn);
+                    } catch (e) { /* ignore */ }
+                }
+            }
+        }
+        analyzerOutput.appendLine(`Indexed modules: ${Array.from(moduleNames).join(', ')}`);
+    }
+
+    function updateAllOpenEditorsDecorations() {
+        for (const ed of vscode.window.visibleTextEditors) {
+            updateDecorationsForEditor(ed);
+        }
     }
 
     // Find all main.phlow files in workspace
@@ -118,49 +148,6 @@ function activate(context) {
             current = parent;
         }
         return null;
-    }
-
-    // Normalize module entry: prefer `name` attribute, fall back to declared/module value
-    function normalizeModuleEntry(mod) {
-        if (!mod) return null;
-        if (typeof mod === 'string') {
-            return { declared: mod, name: mod, raw: mod };
-        }
-        if (typeof mod === 'object') {
-            // possible keys: name, declared, module
-            const name = (mod.name && String(mod.name).trim()) || null;
-            const declared = mod.declared || mod.module || mod.source || null;
-            const resolvedName = name || declared || null;
-            return { declared: declared, name: resolvedName, raw: mod };
-        }
-        return { declared: String(mod), name: String(mod), raw: mod };
-    }
-
-    function buildProjectTree(mainPath, parsed) {
-        const tree = {
-            main: mainPath,
-            files: Array.isArray(parsed.files) ? parsed.files.slice() : [],
-            filesResolved: [],
-            modules: []
-        };
-        try {
-            // resolve file paths relative to main
-            const base = path.dirname(mainPath);
-            tree.filesResolved = tree.files.map(f => {
-                try {
-                    return path.isAbsolute(f) ? f : path.resolve(base, f);
-                } catch (e) { return f; }
-            });
-        } catch (e) {
-            // ignore
-        }
-
-        const mods = Array.isArray(parsed.modules) ? parsed.modules : [];
-        for (const m of mods) {
-            const n = normalizeModuleEntry(m) || { declared: null, name: null, raw: m };
-            tree.modules.push({ declared: n.declared, name: n.name, raw: n.raw });
-        }
-        return tree;
     }
 
     // Setup a global watcher for changes and re-run analyzers on changes (debounced)
@@ -202,6 +189,10 @@ function activate(context) {
     let decorationTypes = [];
     // single key decoration (unified color) will be created from configuration
     let unifiedKeyDecoration = null;
+    // decoration for module names (from analyzer)
+    let moduleDecoration = null;
+    // set of module names collected from analyzer results
+    let moduleNames = new Set();
 
     const DEFAULT_BG = [
         'rgba(230,57,70,0.05)',   // #E63946
@@ -248,6 +239,14 @@ function activate(context) {
 
         // re-apply decorations to the active editor
         const activeEditor = vscode.window.activeTextEditor;
+        // ensure module decoration exists
+        if (moduleDecoration) {
+            try { moduleDecoration.dispose(); } catch (e) { /* ignore */ }
+            moduleDecoration = null;
+        }
+        const modColor = vscode.workspace.getConfiguration('phlow').get('modules.color', '#C586C0');
+        moduleDecoration = vscode.window.createTextEditorDecorationType({ color: modColor, fontWeight: 'bold' });
+        context.subscriptions.push(moduleDecoration);
         if (activeEditor) updateDecorationsForEditor(activeEditor);
     }
 
@@ -443,6 +442,46 @@ function activate(context) {
         if (unifiedKeyDecoration) {
             editor.setDecorations(unifiedKeyDecoration, ranges.flatNonDashKeys || []);
         }
+        // highlight module names where they appear
+        try {
+            const text = doc.getText();
+            const lines = text.split(/\r?\n/);
+            const modRanges = [];
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                // match list-item keys: '- logger:'
+                const dashKeyMatch = line.match(/^\s*-\s+([A-Za-z0-9_\-\.\/]+)\s*:/);
+                if (dashKeyMatch) {
+                    const name = dashKeyMatch[1];
+                    if (moduleNames.has(name) || moduleNames.has(stripLeadingDotSlash(name))) {
+                        const startCol = line.indexOf(name);
+                        const endCol = startCol + name.length;
+                        modRanges.push(new vscode.Range(new vscode.Position(i, startCol), new vscode.Position(i, endCol)));
+                        continue;
+                    }
+                }
+                // match use: logger or - use: logger
+                const useMatch = line.match(/^\s*(?:-\s*)?use\s*:\s*(?:"([^"]+)"|'([^']+)'|([^\s]+))/i);
+                if (useMatch) {
+                    const name = useMatch[1] || useMatch[2] || useMatch[3];
+                    if (moduleNames.has(name) || moduleNames.has(stripLeadingDotSlash(name))) {
+                        const idx = line.indexOf(name);
+                        if (idx >= 0) {
+                            modRanges.push(new vscode.Range(new vscode.Position(i, idx), new vscode.Position(i, idx + name.length)));
+                        }
+                    }
+                }
+            }
+            if (moduleDecoration) editor.setDecorations(moduleDecoration, modRanges);
+        } catch (e) {
+            // ignore decoration errors
+            analyzerOutput.appendLine(`module decoration error: ${e.message}`);
+        }
+    }
+
+    function stripLeadingDotSlash(s) {
+        if (!s) return s;
+        return s.replace(/^\.\//, '');
     }
 
     // Update decorations for the currently active editor

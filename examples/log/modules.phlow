@@ -1,4 +1,5 @@
 - module: log
 - module: ./inner
+  name: innerCache
 - module: log
   name: logger

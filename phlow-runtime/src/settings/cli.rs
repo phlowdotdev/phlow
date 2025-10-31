@@ -24,6 +24,7 @@ pub struct Cli {
     pub analyzer_total_steps: bool,
     pub analyzer_total_pipelines: bool,
     pub analyzer_json: bool,
+    pub analyzer_inner: bool,
     pub analyzer_all: bool,
 }
 
@@ -148,6 +149,14 @@ impl Cli {
                     .action(ArgAction::SetTrue),
             );
 
+        // analyzer --inner: enable recursive analysis/loading of internal modules (./module)
+        let command = command.arg(
+            Arg::new("inner")
+                .long("inner")
+                .help("When used with analyzer, allow analysis/recursive loading of internal modules (those declared with a leading '.')")
+                .action(ArgAction::SetTrue),
+        );
+
         // analyzer --all: print everything available
         let command = command.arg(
             Arg::new("all")
@@ -187,6 +196,7 @@ impl Cli {
         let analyzer_total_pipelines =
             *matches.get_one::<bool>("total_pipelines").unwrap_or(&false);
         let analyzer_json = *matches.get_one::<bool>("json").unwrap_or(&false);
+        let analyzer_inner = *matches.get_one::<bool>("inner").unwrap_or(&false);
         let analyzer_all = *matches.get_one::<bool>("all").unwrap_or(&false);
 
         Ok(Cli {
@@ -205,6 +215,7 @@ impl Cli {
             analyzer_total_steps,
             analyzer_total_pipelines,
             analyzer_json,
+            analyzer_inner,
             analyzer_all,
         })
     }

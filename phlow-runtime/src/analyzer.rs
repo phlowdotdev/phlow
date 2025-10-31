@@ -19,6 +19,7 @@ pub struct Analyzer {
     pub json: bool,
     pub script_target: String,
     pub all: bool,
+    pub inner: bool,
 }
 
 impl Analyzer {
@@ -32,6 +33,7 @@ impl Analyzer {
             json: settings.analyzer_json,
             script_target: settings.script_main_absolute_path.clone(),
             all: settings.analyzer_all,
+            inner: settings.analyzer_inner, // Assuming this is how inner is set from settings
         }
     }
 
@@ -49,7 +51,7 @@ impl Analyzer {
             atp = true;
         }
 
-        let result = analyze(&self.script_target, af, am, ats, atp).await?;
+        let result = analyze(&self.script_target, af, am, ats, atp, self.inner).await?;
         Ok(result)
     }
 
@@ -253,6 +255,7 @@ fn analyze_internal<'a>(
     include_modules: bool,
     include_total_steps: bool,
     include_total_pipelines: bool,
+    include_inner: bool,
     visited: &'a mut HashSet<String>,
 ) -> Pin<Box<dyn Future<Output = Result<Value, LoaderError>> + 'a>> {
     Box::pin(async move {
@@ -382,7 +385,8 @@ fn analyze_internal<'a>(
                                 modules_json.push(json!({"declared": declared, "name": clean, "downloaded": downloaded}));
 
                                 // If declared is local, try recursive analyze when it resolves to main.phlow
-                                if declared.starts_with('.') {
+                                // only perform recursive analysis when `include_inner` is true
+                                if declared.starts_with('.') && include_inner {
                                     let base = main_path.parent().unwrap_or(Path::new("."));
                                     let mut candidate = base.join(&declared);
                                     if candidate.is_dir() {
@@ -412,6 +416,7 @@ fn analyze_internal<'a>(
                                                     include_modules,
                                                     include_total_steps,
                                                     include_total_pipelines,
+                                                    include_inner,
                                                     visited,
                                                 )
                                                 .await
@@ -582,6 +587,7 @@ pub async fn analyze(
     include_modules: bool,
     include_total_steps: bool,
     include_total_pipelines: bool,
+    include_inner: bool,
 ) -> Result<Value, LoaderError> {
     let mut visited: HashSet<String> = HashSet::new();
     analyze_internal(
@@ -590,6 +596,7 @@ pub async fn analyze(
         include_modules,
         include_total_steps,
         include_total_pipelines,
+        include_inner,
         &mut visited,
     )
     .await
