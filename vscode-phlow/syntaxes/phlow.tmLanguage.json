@@ -15,6 +15,9 @@
             "include": "#directives"
         },
         {
+            "include": "#special-keys"
+        },
+        {
             "include": "#phs-fenced"
         },
         {
@@ -69,6 +72,46 @@
                 {
                     "name": "comment.line.number-sign.phlow",
                     "match": "#.*$"
+                }
+            ]
+        },
+        "special-keys": {
+            "patterns": [
+                {
+                    "//": "Main Phlow structure keys",
+                    "match": "(?m)^(\\s*(?:-\\s*)?)\\b(main|name|description|version|author|modules|steps|input|output|condition|then|else|return|use|id|assert|with|setup|envs)\\b(?=\\s*:)",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "keyword.control.phlow"
+                        }
+                    }
+                },
+                {
+                    "//": "HTTP specific keys",
+                    "match": "(?m)^(\\s*(?:-\\s*)?)\\b(status_code|body|headers|method|path|query|params)\\b(?=\\s*:)",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "keyword.other.http.phlow"
+                        }
+                    }
+                },
+                {
+                    "//": "Module configuration keys",
+                    "match": "(?m)^(\\s*(?:-\\s*)?)\\b(module|type|repository|license|tags|required|properties|default|enum)\\b(?=\\s*:)",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "keyword.other.module.phlow"
+                        }
+                    }
                 }
             ]
         },
@@ -190,12 +233,12 @@
                 {
                     "//": "double quoted path/value",
                     "match": "\"[^\"]+\"",
-                    "name": "string.quoted.path.phlow"
+                    "name": "string.quoted.double.phlow"
                 },
                 {
                     "//": "single quoted path/value",
                     "match": "'[^']+'",
-                    "name": "string.quoted.path.phlow"
+                    "name": "string.quoted.single.phlow"
                 },
                 {
                     "//": "unquoted path/value (single token)",
@@ -382,6 +425,7 @@
         "phs-auto-inline": {
             "patterns": [
                 {
+                    "//": "Boolean values",
                     "match": "(?m)^(\\s*(?:-\\s*)?)([a-zA-Z0-9_\\-\\.]+)(\\s*:\\s*)(\\b(?:true|false|null|undefined)\\b)",
                     "captures": {
                         "1": {
@@ -399,7 +443,8 @@
                     }
                 },
                 {
-                    "match": "(?m)^(\\s*(?:-\\s*)?)([a-zA-Z0-9_\\-\\.]+)(\\s*:\\s*)(\\b\\d+(?:\\.\\d+)?\\b)",
+                    "//": "Numeric values",
+                    "match": "(?m)^(\\s*(?:-\\s*)?)([a-zA-Z0-9_\\-\\.]+)(\\s*:\\s*)([-+]?\\b\\d+(?:\\.\\d+)?(?:[eE][-+]?\\d+)?\\b)",
                     "captures": {
                         "1": {
                             "name": "punctuation.whitespace.leading.phlow"
@@ -416,7 +461,44 @@
                     }
                 },
                 {
-                    "match": "(?m)^(\\s*(?:-\\s*)?)([a-zA-Z0-9_\\-\\.]+)(\\s*:\\s*)(?!(?:\\s*(?:if|for|while|loop|match|let|const|fn|return|switch|case|default|try|catch|throw|when|payload|input|steps|main|setup|envs|!phs|\\{|\\[|true|false|null|undefined)))([A-Za-z0-9_\\-\\.]+)",
+                    "//": "HTTP status codes",
+                    "match": "(?m)^(\\s*(?:-\\s*)?)\\b(status_code)\\b(\\s*:\\s*)(\\b[1-5]\\d{2}\\b)",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "keyword.other.http.phlow"
+                        },
+                        "3": {
+                            "name": "punctuation.separator.key-value.phlow"
+                        },
+                        "4": {
+                            "name": "constant.numeric.http-status.phlow"
+                        }
+                    }
+                },
+                {
+                    "//": "Version strings",
+                    "match": "(?m)^(\\s*(?:-\\s*)?)\\b(version)\\b(\\s*:\\s*)(\\b(?:latest|\\d+(?:\\.\\d+)*(?:-[a-zA-Z0-9]+)*)\\b)",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "keyword.other.module.phlow"
+                        },
+                        "3": {
+                            "name": "punctuation.separator.key-value.phlow"
+                        },
+                        "4": {
+                            "name": "string.unquoted.version.phlow"
+                        }
+                    }
+                },
+                {
+                    "//": "Simple unquoted string values (excluding keywords)",
+                    "match": "(?m)^(\\s*(?:-\\s*)?)([a-zA-Z0-9_\\-\\.]+)(\\s*:\\s*)(?!(?:\\s*(?:if|for|while|loop|match|let|const|fn|return|switch|case|default|try|catch|throw|when|payload|input|steps|main|setup|envs|!phs|\\{|\\[|true|false|null|undefined|\\d)))([A-Za-z0-9_\\-\\./]+)(?=\\s*$)",
                     "captures": {
                         "1": {
                             "name": "punctuation.whitespace.leading.phlow"
@@ -433,7 +515,8 @@
                     }
                 },
                 {
-                    "begin": "(?m)^(\\s*(?:-\\s*)?)([a-zA-Z0-9_\\-\\.]+)(\\s*:\\s*)(?:(?=\\s*(?:if|for|while|loop|match|let|const|fn|return|switch|case|default|try|catch|throw|when|payload|input|steps|main|setup|envs)\\b)|(?=\\s*(?!(!phs|\\{|\\[))))",
+                    "//": "PHS expressions and keywords",
+                    "begin": "(?m)^(\\s*(?:-\\s*)?)([a-zA-Z0-9_\\-\\.]+)(\\s*:\\s*)(?=\\s*(?:if|for|while|loop|match|let|const|fn|return|switch|case|default|try|catch|throw|when|payload|input|steps|main|setup|envs)\\b)",
                     "beginCaptures": {
                         "1": {
                             "name": "punctuation.whitespace.leading.phlow"
@@ -516,13 +599,24 @@
                         {
                             "name": "constant.character.escape.phlow",
                             "match": "\\\\."
+                        },
+                        {
+                            "//": "Template variables in strings",
+                            "match": "\\$\\{[^}]+\\}",
+                            "name": "variable.other.template.phlow"
                         }
                     ]
                 },
                 {
                     "name": "string.quoted.single.phlow",
                     "begin": "'",
-                    "end": "'"
+                    "end": "'",
+                    "patterns": [
+                        {
+                            "name": "constant.character.escape.phlow",
+                            "match": "\\\\."
+                        }
+                    ]
                 }
             ]
         },
@@ -530,7 +624,7 @@
             "patterns": [
                 {
                     "name": "constant.numeric.phlow",
-                    "match": "\\b\\d+(?:\\.\\d+)?\\b"
+                    "match": "[-+]?\\b\\d+(?:\\.\\d+)?(?:[eE][-+]?\\d+)?\\b"
                 }
             ]
         },
@@ -568,6 +662,9 @@
                 },
                 {
                     "include": "#phs-inline"
+                },
+                {
+                    "include": "#keys"
                 }
             ]
         },
@@ -597,6 +694,12 @@
                 },
                 {
                     "include": "#phs-inline"
+                },
+                {
+                    "include": "#objects"
+                },
+                {
+                    "include": "#arrays"
                 }
             ]
         }
