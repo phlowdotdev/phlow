@@ -180,9 +180,18 @@
             ]
         },
         "phs-auto-brace": {
-            "begin": "(?m)^\\s*(?:-\\s*)?[a-zA-Z0-9_\\-\\.]+\\s*: \\s*\\{",
+            "begin": "(?m)^(\\s*(?:-\\s*)?)([a-zA-Z0-9_\\-\\.]+)(\\s*:\\s*)(\\{)",
             "beginCaptures": {
-                "0": {
+                "1": {
+                    "name": "punctuation.whitespace.leading.phlow"
+                },
+                "2": {
+                    "name": "entity.name.tag.phlow"
+                },
+                "3": {
+                    "name": "punctuation.separator.key-value.phlow"
+                },
+                "4": {
                     "name": "punctuation.section.block.begin.phs"
                 }
             },
@@ -200,9 +209,18 @@
             ]
         },
         "phs-auto-inline-dollar": {
-            "begin": "(?m)^(?:\\s*(?:-\\s*)?[a-zA-Z0-9_\\-\\.]+\\s*:\\s*\\$\\{|\\s*(?:-\\s*)?[a-zA-Z0-9_\\-\\.]+\\s*:\\s*\\r?\\n\\s*\\$\\{)",
+            "begin": "(?m)^(\\s*(?:-\\s*)?)([a-zA-Z0-9_\\-\\.]+)(\\s*:\\s*)(\\$\\{|\\r?\\n\\s*\\$\\{)",
             "beginCaptures": {
-                "0": {
+                "1": {
+                    "name": "punctuation.whitespace.leading.phlow"
+                },
+                "2": {
+                    "name": "entity.name.tag.phlow"
+                },
+                "3": {
+                    "name": "punctuation.separator.key-value.phlow"
+                },
+                "4": {
                     "name": "punctuation.section.block.begin.phs"
                 }
             },
@@ -220,9 +238,18 @@
             ]
         },
         "phs-auto-fenced": {
-            "begin": "(?m)^(?:\\s*(?:-\\s*)?[a-zA-Z0-9_\\-\\.]+\\s*:\\s*```|\\s*(?:-\\s*)?[a-zA-Z0-9_\\-\\.]+\\s*:\\s*\\r?\\n\\s*```)",
+            "begin": "(?m)^(\\s*(?:-\\s*)?)([a-zA-Z0-9_\\-\\.]+)(\\s*:\\s*)(```|\\r?\\n\\s*```)",
             "beginCaptures": {
-                "0": {
+                "1": {
+                    "name": "punctuation.whitespace.leading.phlow"
+                },
+                "2": {
+                    "name": "entity.name.tag.phlow"
+                },
+                "3": {
+                    "name": "punctuation.separator.key-value.phlow"
+                },
+                "4": {
                     "name": "punctuation.definition.fenced.begin.phs"
                 }
             },
@@ -240,9 +267,18 @@
             ]
         },
         "phs-auto-inline-backtick": {
-            "begin": "(?m)^(?:\\s*(?:-\\s*)?[a-zA-Z0-9_\\-\\.]+\\s*:\\s*`|\\s*(?:-\\s*)?[a-zA-Z0-9_\\-\\.]+\\s*:\\s*\\r?\\n\\s*`)",
+            "begin": "(?m)^(\\s*(?:-\\s*)?)([a-zA-Z0-9_\\-\\.]+)(\\s*:\\s*)(`|\\r?\\n\\s*`)",
             "beginCaptures": {
-                "0": {
+                "1": {
+                    "name": "punctuation.whitespace.leading.phlow"
+                },
+                "2": {
+                    "name": "entity.name.tag.phlow"
+                },
+                "3": {
+                    "name": "punctuation.separator.key-value.phlow"
+                },
+                "4": {
                     "name": "punctuation.definition.inline.phs"
                 }
             },
