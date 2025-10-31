@@ -13,6 +13,9 @@
         },
         {
             "include": "#numbers"
+        },
+        {
+            "include": "#booleans"
         }
     ],
     "repository": {
@@ -49,6 +52,14 @@
                 {
                     "name": "constant.numeric.rhai",
                     "match": "\\b\\d+(?:\\.\\d+)?\\b"
+                }
+            ]
+        },
+        "booleans": {
+            "patterns": [
+                {
+                    "name": "constant.language.boolean.rhai",
+                    "match": "\\b(?:true|false|null|undefined)\\b"
                 }
             ]
         }
