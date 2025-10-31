@@ -22,12 +22,13 @@ steps:
       message: {
         level: "warn",
         mains: [1,2,3,...main],
-        ...main
+        item: 2,
+        ...main[0]
       }
   - log:
       level: error
-      message:
-        - 1 + 1 
-        - main[0].content
+      message: {
+        ...main[0]
+      }
 tests:
   - describe: All logs

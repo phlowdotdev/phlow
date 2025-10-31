@@ -1,4 +1,4 @@
-use regex::Regex;
+// (no external Regex import needed here; we use fully-qualified regex::Regex::new where required)
 
 pub struct SpreadPreprocessor;
 
@@ -79,8 +79,13 @@ impl SpreadPreprocessor {
         // Verifica se contém spread syntax (definitivamente um objeto)
         // MAS apenas se não contém outras estruturas de código
         if content.contains("...") {
-            // Verifica se não é um bloco complexo com múltiplas estruturas
+            // Se qualquer linha começar com '...', trata como objeto (spread de objeto)
             let lines = content.lines().collect::<Vec<_>>();
+            if lines.iter().any(|l| l.trim_start().starts_with("...")) {
+                return true;
+            }
+
+            // Verifica se não é um bloco complexo com múltiplas estruturas
             let mut has_object_structure = false;
             let mut has_code_structure = false;
 
@@ -152,8 +157,8 @@ impl SpreadPreprocessor {
             r"^\s*\w+\s*:\s*",
             // Chave entre aspas seguida de dois pontos
             r#"^\s*["']\w+["']\s*:\s*"#,
-            // Spread syntax (no início da linha)
-            r"^\s*\.\.\.\w+",
+            // Spread syntax (no início da linha) - aceita qualquer expressão após '...'
+            r"^\s*\.\.\.",
         ];
 
         for pattern in &object_patterns {
@@ -181,15 +186,38 @@ impl SpreadPreprocessor {
 
     /// Processa arrays com spread de forma simples
     fn process_arrays_simple(&self, code: &str) -> String {
-        // Regex que captura apenas arrays não aninhados com spread
-        let array_regex = Regex::new(r"\[([^\[\]]*\.\.\..*?[^\[\]]*)\]").unwrap();
+        // Varre o código procurando arrays e usa find_matching_brace_from
+        // para capturar corretamente arrays mesmo quando há expressões com colchetes
+        let mut result = String::new();
+        let mut i = 0;
+        let chars: Vec<char> = code.chars().collect();
 
-        array_regex
-            .replace_all(code, |caps: &regex::Captures| {
-                let content = caps.get(1).unwrap().as_str().trim();
-                self.transform_array_spread(content)
-            })
-            .to_string()
+        while i < chars.len() {
+            if chars[i] == '[' {
+                if let Some((end_pos, content)) =
+                    self.find_matching_brace_from(&chars, i + 1, '[', ']')
+                {
+                    if content.contains("...") {
+                        let transformed = self.transform_array_spread(&content);
+                        result.push_str(&transformed);
+                    } else {
+                        result.push('[');
+                        result.push_str(&content);
+                        result.push(']');
+                    }
+                    i = end_pos + 1;
+                } else {
+                    // não encontrou fechamento, mantém caractere
+                    result.push(chars[i]);
+                    i += 1;
+                }
+            } else {
+                result.push(chars[i]);
+                i += 1;
+            }
+        }
+
+        result
     }
 
     /// Processa objetos com spread de forma simples
@@ -619,6 +647,24 @@ mod tests {
         assert!(result.contains("__spread_array"));
         // Verifica se o bloco principal não foi convertido (contém let statements)
         assert!(!result.starts_with("#{"));
+    }
+
+    #[test]
+    fn test_object_spread_indexed() {
+        let preprocessor = SpreadPreprocessor::new();
+        let code = "{...target[1], ...target[2].obj}";
+        let result = preprocessor.process(code);
+        // Espera que ambos spreads sejam mantidos como expressões
+        assert_eq!(result, "__spread_object([target[1], target[2].obj])");
+    }
+
+    #[test]
+    fn test_array_spread_indexed() {
+        let preprocessor = SpreadPreprocessor::new();
+        let code = "[...target[1], ...target[2].arr]";
+        let result = preprocessor.process(code);
+        // Espera transformar em __spread_array com as expressões
+        assert_eq!(result, "__spread_array([target[1], target[2].arr])");
     }
 
     #[test]
