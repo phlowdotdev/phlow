@@ -149,6 +149,9 @@ fn preprocessor_transform_phs_hidden(phlow: &str) -> String {
                 .unwrap_or("")
                 .split('.')
                 .next()
+                .unwrap_or("")
+                .split('[')
+                .next()
                 .unwrap_or("");
 
             // se for !phs ignore
@@ -159,9 +162,10 @@ fn preprocessor_transform_phs_hidden(phlow: &str) -> String {
             }
 
             if reserved_keywords.contains(&first_word)
-                || (operators.iter().any(|op| {
-                    value.contains(&format!(" {} ", op)) || value.contains(&format!(" {}\n", op))
-                }) && !value.starts_with('"'))
+                || (operators
+                    .iter()
+                    .any(|op| value.contains(&format!(" {} ", op)))
+                    && !value.starts_with('"'))
             {
                 let indent = &line[..line.len() - trimmed_line.len()];
                 result.push_str(&format!("{}{}: !phs {}\n", indent, key, value));

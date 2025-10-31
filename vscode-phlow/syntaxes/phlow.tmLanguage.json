@@ -163,8 +163,7 @@
         "phs-auto-inline": {
             "patterns": [
                 {
-                    "//": "Embed Rhai for simple property values on the same line, excluding objects/arrays/quoted strings",
-                    "begin": "(?m)^(\\s*(?:-\\s*)?[a-zA-Z0-9_\\-\\.]+\\s*:\\s*)(?!\\{)(?!\\[)(?!\\\")(?!')(?!`)(?!\\s)",
+                    "begin": "(?m)^(\\s*(?:-\\s*)?[a-zA-Z0-9_\\-\\.]+\\s*:\\s*)(?!(?:\"|'|`|\\s*$))(?:(?:if|else|for|while|loop|match|let|const|fn|return|switch|case|default|try|catch|throw|when|payload|input|steps|main|setup|envs)\\b|[+\\-\\*\\/%]|==|!=|<=|>=|\\?\\?|\\?|:)",
                     "beginCaptures": {
                         "1": {
                             "name": "punctuation.separator.key-value.phlow"

@@ -17,5 +17,11 @@ steps:
     input:
       message: Warning! Something might be wrong.
       level: warning
+  - log:
+      level: warn
+      message: main
+  - log:
+      level: debug
+      message: main[0].content
 tests:
   - describe: All logs
