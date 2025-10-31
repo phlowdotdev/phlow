@@ -1,5 +1,5 @@
 modules:
-  - module: log
+  !include modules.phlow
 steps:
   - use: log
     input:
@@ -23,5 +23,8 @@ steps:
   - log:
       level: error
       message: payload
+  - log:
+      level: error
+      message: !import handler.phs
 tests:
   - describe: All logs
