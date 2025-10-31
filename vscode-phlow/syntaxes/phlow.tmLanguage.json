@@ -9,16 +9,10 @@
             "include": "#comments"
         },
         {
-            "include": "#phs-auto-fenced"
+            "include": "#phs-directive-anywhere"
         },
         {
-            "include": "#phs-auto-inline-dollar"
-        },
-        {
-            "include": "#phs-auto-inline-backtick"
-        },
-        {
-            "include": "#phs-auto-brace"
+            "include": "#directives"
         },
         {
             "include": "#phs-fenced"
@@ -36,13 +30,22 @@
             "include": "#phs-inline"
         },
         {
+            "include": "#phs-auto-fenced"
+        },
+        {
+            "include": "#phs-auto-inline-dollar"
+        },
+        {
+            "include": "#phs-auto-inline-backtick"
+        },
+        {
+            "include": "#phs-auto-brace"
+        },
+        {
             "include": "#phs-auto-inline"
         },
         {
             "include": "#keys"
-        },
-        {
-            "include": "#directives"
         },
         {
             "include": "#strings"
@@ -198,6 +201,43 @@
                     "//": "unquoted path/value (single token)",
                     "match": "[^\\s]+",
                     "name": "string.unquoted.path.phlow"
+                }
+            ]
+        },
+        "phs-directive-anywhere": {
+            "match": "(!phs)\\b",
+            "captures": {
+                "1": {
+                    "name": "keyword.directive.phs.phlow"
+                }
+            }
+        },
+        "phs-auto-fenced": {
+            "begin": "(?m)^(\\s*(?:-\\s*)?)([a-zA-Z0-9_\\-\\.]+)(\\s*:\\s*)(```|\\r?\\n\\s*```)",
+            "beginCaptures": {
+                "1": {
+                    "name": "punctuation.whitespace.leading.phlow"
+                },
+                "2": {
+                    "name": "entity.name.tag.phlow"
+                },
+                "3": {
+                    "name": "punctuation.separator.key-value.phlow"
+                },
+                "4": {
+                    "name": "punctuation.definition.fenced.begin.phs"
+                }
+            },
+            "end": "```",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.definition.fenced.end.phs"
+                }
+            },
+            "name": "meta.embedded.block.phs",
+            "patterns": [
+                {
+                    "include": "source.rhai"
                 }
             ]
         },
@@ -409,6 +449,9 @@
                     "name": "meta.embedded.inline.phs",
                     "patterns": [
                         {
+                            "include": "#phs-directive-anywhere"
+                        },
+                        {
                             "include": "source.rhai"
                         }
                     ]
@@ -480,11 +523,6 @@
                     "name": "string.quoted.single.phlow",
                     "begin": "'",
                     "end": "'"
-                },
-                {
-                    "name": "string.template.phlow",
-                    "begin": "`",
-                    "end": "`"
                 }
             ]
         },
