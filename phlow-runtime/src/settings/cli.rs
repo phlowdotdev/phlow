@@ -24,6 +24,7 @@ pub struct Cli {
     pub analyzer_total_steps: bool,
     pub analyzer_total_pipelines: bool,
     pub analyzer_json: bool,
+    pub analyzer_all: bool,
 }
 
 impl Cli {
@@ -147,6 +148,14 @@ impl Cli {
                     .action(ArgAction::SetTrue),
             );
 
+        // analyzer --all: print everything available
+        let command = command.arg(
+            Arg::new("all")
+                .long("all")
+                .help("When used with --analyzer, return all available analyzer information")
+                .action(ArgAction::SetTrue),
+        );
+
         let matches = command.get_matches();
 
         let main = match matches.get_one::<String>("main_path") {
@@ -178,6 +187,7 @@ impl Cli {
         let analyzer_total_pipelines =
             *matches.get_one::<bool>("total_pipelines").unwrap_or(&false);
         let analyzer_json = *matches.get_one::<bool>("json").unwrap_or(&false);
+        let analyzer_all = *matches.get_one::<bool>("all").unwrap_or(&false);
 
         Ok(Cli {
             main_target: main,
@@ -195,6 +205,7 @@ impl Cli {
             analyzer_total_steps,
             analyzer_total_pipelines,
             analyzer_json,
+            analyzer_all,
         })
     }
 }

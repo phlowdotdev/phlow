@@ -71,9 +71,18 @@ async fn main() {
         let mut am = settings.analyzer_modules;
         let mut ats = settings.analyzer_total_steps;
         let mut atp = settings.analyzer_total_pipelines;
+        let all = settings.analyzer_all;
         let show_json = settings.analyzer_json;
 
-        // If no specific analyzer flags were provided, show all
+        // If --all was provided, force all analyzer outputs
+        if all {
+            af = true;
+            am = true;
+            ats = true;
+            atp = true;
+        }
+
+        // If no specific analyzer flags were provided, show all (backwards compatible)
         if !af && !am && !ats && !atp {
             af = true;
             am = true;

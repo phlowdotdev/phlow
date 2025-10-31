@@ -22,6 +22,7 @@ pub struct Settings {
     pub analyzer_total_steps: bool,
     pub analyzer_total_pipelines: bool,
     pub analyzer_json: bool,
+    pub analyzer_all: bool,
 
     // envs
     pub package_consumer_count: i32,
@@ -63,6 +64,7 @@ impl Settings {
             analyzer_total_steps: cli.analyzer_total_steps,
             analyzer_total_pipelines: cli.analyzer_total_pipelines,
             analyzer_json: cli.analyzer_json,
+            analyzer_all: cli.analyzer_all,
             package_consumer_count: envs.package_consumer_count,
             #[cfg(target_env = "gnu")]
             min_allocated_memory: envs.min_allocated_memory,
