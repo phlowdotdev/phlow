@@ -39,7 +39,7 @@ pub async fn load_script(
             script_file_path, err
         ))
     })?;
-    println!("Analyzer: {:?}", analyzer);
+
     // If analyzer was provided and is enabled, run it using the script target
     if let Some(a) = analyzer {
         if a.enabled {

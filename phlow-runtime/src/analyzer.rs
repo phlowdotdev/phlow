@@ -81,8 +81,8 @@ impl Analyzer {
                         let name = m.get("name").map(|v| v.as_string()).unwrap_or_default();
                         let downloaded = m
                             .get("downloaded")
-                            .and_then(|v| v.as_bool().cloned())
-                            .unwrap_or(false);
+                            .map(|v| v.to_string())
+                            .unwrap_or_default();
                         println!("  - {} ({}): downloaded={}", declared, name, downloaded);
                     }
                 }
@@ -312,7 +312,7 @@ fn analyze_internal<'a>(
         let preprocessed = preprocessor(&raw, &main_path.parent().unwrap_or(Path::new(".")), false);
 
         if let Ok(transformed) = preprocessed {
-            // parse the YAML into serde_json::Value for analysis
+            // parse the YAML into valu3::Value for analysis
             match serde_yaml::from_str::<Value>(&transformed) {
                 Ok(root) => {
                     if include_files {
@@ -323,132 +323,128 @@ fn analyze_internal<'a>(
                     if include_modules {
                         if let Some(mods) = root.get("modules").and_then(|v| v.as_array()) {
                             for module in &mods.values {
-                                if module.is_object() {
-                                    let mut module_name: Option<String> = None;
-                                    if let Some(v) = module.get("module") {
-                                        module_name = Some(v.to_string());
-                                    } else if let Some(v) = module.get("name") {
-                                        module_name = Some(v.to_string());
+                                // declared: the literal declared value (module: ...)
+                                // name_raw: prefer `name` attribute, fallback to declared
+                                let (declared, name_raw) = if module.is_object() {
+                                    let declared = module
+                                        .get("module")
+                                        .map(|v| v.as_string())
+                                        .unwrap_or_default();
+                                    let name_raw = module
+                                        .get("name")
+                                        .map(|v| v.as_string())
+                                        .unwrap_or_else(|| declared.clone());
+                                    (declared, name_raw)
+                                } else {
+                                    let declared = module.as_string();
+                                    let name_raw = declared.clone();
+                                    (declared, name_raw)
+                                };
+
+                                let clean = normalize_module_name(&name_raw);
+
+                                // determine downloaded: phlow_packages/{clean} or local module base dir
+                                let mut downloaded = String::new();
+                                let pp_path = format!("phlow_packages/{}", clean);
+                                let pp = Path::new(&pp_path);
+                                if pp.exists() {
+                                    downloaded = pp.to_string_lossy().to_string();
+                                }
+
+                                if declared.starts_with('.') {
+                                    let base = main_path.parent().unwrap_or(Path::new("."));
+                                    let mut candidate = base.join(&declared);
+                                    if candidate.is_dir() {
+                                        for c in ["main.phlow", "mod.phlow", "module.phlow"] {
+                                            let p = candidate.join(c);
+                                            if p.exists() {
+                                                candidate = p;
+                                                break;
+                                            }
+                                        }
+                                    } else if candidate.extension().is_none() {
+                                        let mut with_ext = candidate.clone();
+                                        with_ext.set_extension("phlow");
+                                        if with_ext.exists() {
+                                            candidate = with_ext;
+                                        }
                                     }
 
-                                    if let Some(mn) = module_name {
-                                        let mn_str = mn.to_string();
-                                        let clean = normalize_module_name(&mn_str);
-                                        // determine downloaded: if local module (starts with '.') check the resolved path,
-                                        // otherwise check phlow_packages
-                                        let mut downloaded =
-                                            Path::new(&format!("phlow_packages/{}", clean))
-                                                .exists();
-                                        if mn_str.starts_with('.') {
-                                            let base = main_path.parent().unwrap_or(Path::new("."));
-                                            let mut candidate = base.join(&mn_str);
-                                            if candidate.is_dir() {
-                                                let mut found = None;
-                                                for c in ["main.phlow", "mod.phlow", "module.phlow"]
-                                                {
-                                                    let p = candidate.join(c);
-                                                    if p.exists() {
-                                                        found = Some(p);
-                                                        break;
-                                                    }
-                                                }
-                                                if let Some(p) = found {
-                                                    candidate = p;
-                                                }
-                                            } else if candidate.extension().is_none() {
-                                                let mut with_ext = candidate.clone();
-                                                with_ext.set_extension("phlow");
-                                                if with_ext.exists() {
-                                                    candidate = with_ext;
-                                                }
-                                            }
-                                            downloaded = candidate.exists();
+                                    if candidate.exists() {
+                                        if candidate.is_dir() {
+                                            downloaded = candidate.to_string_lossy().to_string();
+                                        } else if let Some(p) = candidate.parent() {
+                                            downloaded = p.to_string_lossy().to_string();
                                         }
-                                        modules_json.push(json!({"declared": mn_str, "name": clean, "downloaded": downloaded}));
+                                    }
+                                }
 
-                                        // If module declared is local (starts with '.') try to analyze it recursively
-                                        if mn_str.starts_with('.') {
-                                            // resolve relative to main file
-                                            let base = main_path.parent().unwrap_or(Path::new("."));
-                                            let mut candidate = base.join(&mn_str);
-                                            // if candidate is a dir, try to find main.phlow inside
-                                            if candidate.is_dir() {
-                                                let mut found = None;
-                                                let cands =
-                                                    ["main.phlow", "mod.phlow", "module.phlow"];
-                                                for c in &cands {
-                                                    let p = candidate.join(c);
-                                                    if p.exists() {
-                                                        found = Some(p);
-                                                        break;
-                                                    }
-                                                }
-                                                if let Some(p) = found {
-                                                    candidate = p;
-                                                }
-                                            } else if candidate.extension().is_none() {
-                                                // try add .phlow
-                                                let mut with_ext = candidate.clone();
-                                                with_ext.set_extension("phlow");
-                                                if with_ext.exists() {
-                                                    candidate = with_ext;
-                                                }
+                                modules_json.push(json!({"declared": declared, "name": clean, "downloaded": downloaded}));
+
+                                // If declared is local, try recursive analyze when it resolves to main.phlow
+                                if declared.starts_with('.') {
+                                    let base = main_path.parent().unwrap_or(Path::new("."));
+                                    let mut candidate = base.join(&declared);
+                                    if candidate.is_dir() {
+                                        for c in ["main.phlow", "mod.phlow", "module.phlow"] {
+                                            let p = candidate.join(c);
+                                            if p.exists() {
+                                                candidate = p;
+                                                break;
                                             }
+                                        }
+                                    } else if candidate.extension().is_none() {
+                                        let mut with_ext = candidate.clone();
+                                        with_ext.set_extension("phlow");
+                                        if with_ext.exists() {
+                                            candidate = with_ext;
+                                        }
+                                    }
 
-                                            if candidate.exists() {
-                                                // only recurse when the resolved path ends with main.phlow (per requirement)
-                                                if let Some(fname) =
-                                                    candidate.file_name().and_then(|s| s.to_str())
+                                    if candidate.exists() {
+                                        if let Some(fname) =
+                                            candidate.file_name().and_then(|s| s.to_str())
+                                        {
+                                            if fname == "main.phlow" {
+                                                if let Ok(nested) = analyze_internal(
+                                                    &candidate.to_string_lossy(),
+                                                    include_files,
+                                                    include_modules,
+                                                    include_total_steps,
+                                                    include_total_pipelines,
+                                                    visited,
+                                                )
+                                                .await
                                                 {
-                                                    if fname == "main.phlow" {
-                                                        // call analyze_internal recursively with same flags and visited, always JSON (we work with Value)
-                                                        if let Ok(nested) = analyze_internal(
-                                                            &candidate.to_string_lossy(),
-                                                            include_files,
-                                                            include_modules,
-                                                            include_total_steps,
-                                                            include_total_pipelines,
-                                                            visited,
-                                                        )
-                                                        .await
+                                                    if let Some(nfiles) = nested
+                                                        .get("files")
+                                                        .and_then(|v| v.as_array())
+                                                    {
+                                                        for f in &nfiles.values {
+                                                            files_set.insert(f.to_string());
+                                                        }
+                                                    }
+                                                    if let Some(nmods) = nested
+                                                        .get("modules")
+                                                        .and_then(|v| v.as_array())
+                                                    {
+                                                        for m in &nmods.values {
+                                                            modules_json.push(m.clone());
+                                                        }
+                                                    }
+                                                    if let Some(ns) = nested.get("total_steps") {
+                                                        if let Ok(nv) =
+                                                            ns.to_string().parse::<usize>()
                                                         {
-                                                            // merge nested files
-                                                            if let Some(nfiles) = nested
-                                                                .get("files")
-                                                                .and_then(|v| v.as_array())
-                                                            {
-                                                                for f in &nfiles.values {
-                                                                    files_set.insert(f.to_string());
-                                                                }
-                                                            }
-                                                            // merge nested modules
-                                                            if let Some(nmods) = nested
-                                                                .get("modules")
-                                                                .and_then(|v| v.as_array())
-                                                            {
-                                                                for m in &nmods.values {
-                                                                    modules_json.push(m.clone());
-                                                                }
-                                                            }
-                                                            // merge totals
-                                                            if let Some(ns) =
-                                                                nested.get("total_steps")
-                                                            {
-                                                                if let Ok(nv) =
-                                                                    ns.to_string().parse::<usize>()
-                                                                {
-                                                                    total_steps += nv;
-                                                                }
-                                                            }
-                                                            if let Some(np) =
-                                                                nested.get("total_pipelines")
-                                                            {
-                                                                if let Ok(nv) =
-                                                                    np.to_string().parse::<usize>()
-                                                                {
-                                                                    total_pipelines += nv;
-                                                                }
-                                                            }
+                                                            total_steps += nv;
+                                                        }
+                                                    }
+                                                    if let Some(np) = nested.get("total_pipelines")
+                                                    {
+                                                        if let Ok(nv) =
+                                                            np.to_string().parse::<usize>()
+                                                        {
+                                                            total_pipelines += nv;
                                                         }
                                                     }
                                                 }
@@ -513,8 +509,12 @@ fn analyze_internal<'a>(
                         let mn_str = m.as_str().trim().to_string();
                         let clean = normalize_module_name(&mn_str);
                         // determine downloaded: if local module (starts with '.') check resolved path, otherwise check phlow_packages
-                        let mut downloaded =
-                            Path::new(&format!("phlow_packages/{}", clean)).exists();
+                        let mut downloaded = String::new();
+                        let pp_path = format!("phlow_packages/{}", clean);
+                        let pp = Path::new(&pp_path);
+                        if pp.exists() {
+                            downloaded = pp.to_string_lossy().to_string();
+                        }
                         if mn_str.starts_with('.') {
                             let base = main_path.parent().unwrap_or(Path::new("."));
                             let mut candidate = base.join(&mn_str);
@@ -537,7 +537,13 @@ fn analyze_internal<'a>(
                                     candidate = with_ext;
                                 }
                             }
-                            downloaded = candidate.exists();
+                            if candidate.exists() {
+                                if candidate.is_dir() {
+                                    downloaded = candidate.to_string_lossy().to_string();
+                                } else if let Some(p) = candidate.parent() {
+                                    downloaded = p.to_string_lossy().to_string();
+                                }
+                            }
                         }
                         modules_json.push(
                             json!({"declared": mn_str, "name": clean, "downloaded": downloaded}),

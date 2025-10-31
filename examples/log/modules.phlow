@@ -1,2 +1,4 @@
 - module: log
 - module: ./inner
+- module: log
+  name: logger

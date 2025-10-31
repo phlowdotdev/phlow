@@ -48,8 +48,14 @@ function activate(context) {
                     }
                     try {
                         const parsed = stdout && stdout.trim() ? JSON.parse(stdout) : {};
-                        projects.set(mainPath, { data: parsed, updatedAt: Date.now() });
+                        // build normalized project tree (prefer `name` attribute for modules)
+                        const tree = buildProjectTree(mainPath, parsed);
+                        projects.set(mainPath, { data: parsed, tree: tree, updatedAt: Date.now() });
                         analyzerOutput.appendLine(`Analyzer finished for ${mainPath}`);
+                        // log resolved module names for debugging
+                        if (tree.modules && tree.modules.length) {
+                            analyzerOutput.appendLine(`Modules for ${mainPath}: ${tree.modules.map(m => m.name || m.declared).join(', ')}`);
+                        }
                     } catch (e) {
                         analyzerOutput.appendLine(`Failed to parse phlow JSON for ${mainPath}: ${e.message}`);
                         projects.set(mainPath, { error: `json parse: ${e.message}`, raw: stdout, updatedAt: Date.now() });
@@ -112,6 +118,49 @@ function activate(context) {
             current = parent;
         }
         return null;
+    }
+
+    // Normalize module entry: prefer `name` attribute, fall back to declared/module value
+    function normalizeModuleEntry(mod) {
+        if (!mod) return null;
+        if (typeof mod === 'string') {
+            return { declared: mod, name: mod, raw: mod };
+        }
+        if (typeof mod === 'object') {
+            // possible keys: name, declared, module
+            const name = (mod.name && String(mod.name).trim()) || null;
+            const declared = mod.declared || mod.module || mod.source || null;
+            const resolvedName = name || declared || null;
+            return { declared: declared, name: resolvedName, raw: mod };
+        }
+        return { declared: String(mod), name: String(mod), raw: mod };
+    }
+
+    function buildProjectTree(mainPath, parsed) {
+        const tree = {
+            main: mainPath,
+            files: Array.isArray(parsed.files) ? parsed.files.slice() : [],
+            filesResolved: [],
+            modules: []
+        };
+        try {
+            // resolve file paths relative to main
+            const base = path.dirname(mainPath);
+            tree.filesResolved = tree.files.map(f => {
+                try {
+                    return path.isAbsolute(f) ? f : path.resolve(base, f);
+                } catch (e) { return f; }
+            });
+        } catch (e) {
+            // ignore
+        }
+
+        const mods = Array.isArray(parsed.modules) ? parsed.modules : [];
+        for (const m of mods) {
+            const n = normalizeModuleEntry(m) || { declared: null, name: null, raw: m };
+            tree.modules.push({ declared: n.declared, name: n.name, raw: n.raw });
+        }
+        return tree;
     }
 
     // Setup a global watcher for changes and re-run analyzers on changes (debounced)

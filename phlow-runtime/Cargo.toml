@@ -18,7 +18,6 @@ publish = true
 phlow-sdk = { workspace = true }
 phlow-engine = { workspace = true }
 serde = { workspace = true }
-serde_json = { workspace = true }
 libloading = { workspace = true }
 clap = { workspace = true }
 serde_yaml = { workspace = true }
