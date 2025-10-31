@@ -463,8 +463,9 @@ fn analyze_internal<'a>(
 
                     if include_total_pipelines || include_total_steps {
                         if let Some(steps_val) = root.get("steps") {
-                            total_pipelines = count_pipelines_recursive(steps_val);
-                            total_steps = count_steps_recursive(steps_val);
+                            // add the pipelines/steps from the main root to any totals already accumulated from nested modules
+                            total_pipelines += count_pipelines_recursive(steps_val);
+                            total_steps += count_steps_recursive(steps_val);
                         }
                     }
                 }
@@ -563,8 +564,8 @@ fn analyze_internal<'a>(
                     if parts.len() > 1 {
                         let steps_block = parts[1];
                         let steps_count = steps_block.matches("\n- ").count();
-                        total_steps = steps_count;
-                        total_pipelines = 1;
+                        total_steps += steps_count;
+                        total_pipelines += 1;
                     }
                 }
             }
