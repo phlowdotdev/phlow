@@ -20,9 +20,10 @@ const vscodeTextMate = require('vscode-textmate');
 
     const grammar = await registry.loadGrammar('source.phlow');
     const testLines = [
-        '      message: true',
-        '      message: "Warning! Something might be wrong."',
-        '      message: [1, "true", false]'
+        '  - payload: main',
+        '  - payload: envs',
+        '  - payload: isso',
+        '  - payload: "already quoted"'
     ];
 
     for (const line of testLines) {

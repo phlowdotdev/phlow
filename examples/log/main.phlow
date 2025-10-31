@@ -21,16 +21,22 @@ steps:
       item3: !phs ${
       if { condition: true } then "debug" else "info"
       }
-      item4: ```
-      if { condition: true } then "debug" else "info"
-      ```
       item5: `
       if { condition: true } then "debug" else "info"
       `
       item6: ${
       if { condition: true } then "debug" else "info"
       }
-      
+  - !include log/items.phlow
+  - !import log/items.phlow nome="imported_name" item=456
+  - !arg log/items.phlow 123 true item=123
+  - payload:
+      item: "This is a payload item"
+  - payload: isso é um texto // this is a string
+  - payload: main // this is a variable
+  - payload: envs // this is another variable
+  - asdasd: 
+      asdasd: asasdasd
   - use: log
     input:
       message: "Warning! Something might be wrong."
