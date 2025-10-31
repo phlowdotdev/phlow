@@ -94,7 +94,7 @@
                 },
                 {
                     "//": "Other Phlow structure keys",
-                    "match": "(?m)^(\\s*(?:-\\s*)?)\\b(name|description|version|author|output|condition|then|else|return|use|id|assert|with)\\b(?=\\s*:)",
+                    "match": "(?m)^(\\s*(?:-\\s*)?)\\b(then|else|return|id|assert|with|payload|to|use|label)\\b(?=\\s*:)",
                     "captures": {
                         "1": {
                             "name": "punctuation.whitespace.leading.phlow"
