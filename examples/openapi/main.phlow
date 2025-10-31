@@ -13,10 +13,17 @@
     - log:
         level: when steps.storage.len % 2 == 0 ? "warn" : "error"
         message: steps.storage[-1].content
+    - log:
+        level: info
+        message: main
+    - log:
+        level: info
+        message: -----------------------------
     - openai:
         action: chat
         messages: steps.storage
     - payload: {
+        log("error", "aqui");
         let storage = [...steps.storage];
         storage.push(payload.data.choices[0].message);
 

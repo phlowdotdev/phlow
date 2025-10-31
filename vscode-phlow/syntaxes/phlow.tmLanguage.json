@@ -18,6 +18,9 @@
             "include": "#special-keys"
         },
         {
+            "include": "#constants-values"
+        },
+        {
             "include": "#phs-fenced"
         },
         {
@@ -78,8 +81,20 @@
         "special-keys": {
             "patterns": [
                 {
-                    "//": "Main Phlow structure keys",
-                    "match": "(?m)^(\\s*(?:-\\s*)?)\\b(main|name|description|version|author|modules|steps|input|output|condition|then|else|return|use|id|assert|with|setup|envs)\\b(?=\\s*:)",
+                    "//": "Core Phlow constant keys - these are always constants regardless of value type",
+                    "match": "(?m)^(\\s*(?:-\\s*)?)\\b(main|modules|steps|envs|setup|input|args)\\b(?=\\s*:)",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "constant.language.phlow"
+                        }
+                    }
+                },
+                {
+                    "//": "Other Phlow structure keys",
+                    "match": "(?m)^(\\s*(?:-\\s*)?)\\b(name|description|version|author|output|condition|then|else|return|use|id|assert|with)\\b(?=\\s*:)",
                     "captures": {
                         "1": {
                             "name": "punctuation.whitespace.leading.phlow"
@@ -112,6 +127,41 @@
                             "name": "keyword.other.module.phlow"
                         }
                     }
+                }
+            ]
+        },
+        "constants-values": {
+            "patterns": [
+                {
+                    "//": "Match core phlow constant names when used as values after a key",
+                    "match": "(?m)^(\\s*(?:-\\s*)?)([a-zA-Z0-9_\\-\\.]+)(\\s*:\\s*)(\\b(?:main|modules|steps|envs|setup|input|args)\\b)",
+                    "captures": {
+                        "1": { "name": "punctuation.whitespace.leading.phlow" },
+                        "2": { "name": "entity.name.tag.phlow" },
+                        "3": { "name": "punctuation.separator.key-value.phlow" },
+                        "4": { "name": "constant.language.phlow" }
+                    }
+                },
+                {
+                    "//": "Ellipsis/spread usage inside arrays/objects: ...main or ...envs",
+                    "match": "(\\.\\.\\.)(\\b(?:main|modules|steps|envs|setup|input|args)\\b)",
+                    "captures": {
+                        "1": { "name": "punctuation.separator.spread.phlow" },
+                        "2": { "name": "constant.language.phlow" }
+                    }
+                },
+                {
+                    "//": "Standalone values in arrays or bare values (e.g., - main)",
+                    "match": "(?m)^(\\s*-\\s*)(\\b(?:main|modules|steps|envs|setup|input|args)\\b)(?=\\s*$|\\s|,|\\])",
+                    "captures": {
+                        "1": { "name": "punctuation.whitespace.leading.phlow" },
+                        "2": { "name": "constant.language.phlow" }
+                    }
+                },
+                {
+                    "//": "Property access like main[0] or envs.foo",
+                    "match": "\\b(?:main|modules|steps|envs|setup|input|args)\\b(?=\\[|\\.)",
+                    "name": "constant.language.phlow"
                 }
             ]
         },
@@ -187,6 +237,7 @@
                     },
                     "end": "$",
                     "name": "meta.embedded.inline.phs",
+                    "contentName": "source.rhai",
                     "patterns": [
                         {
                             "include": "source.rhai"
@@ -278,6 +329,7 @@
                 }
             },
             "name": "meta.embedded.block.phs",
+            "contentName": "source.rhai",
             "patterns": [
                 {
                     "include": "source.rhai"
@@ -298,6 +350,7 @@
                 }
             },
             "name": "meta.embedded.block.phs",
+            "contentName": "source.rhai",
             "patterns": [
                 {
                     "include": "source.rhai"
@@ -318,6 +371,7 @@
                 }
             },
             "name": "meta.embedded.block.phs",
+            "contentName": "source.rhai",
             "patterns": [
                 {
                     "include": "source.rhai"
@@ -338,6 +392,7 @@
                 }
             },
             "name": "meta.embedded.block.phs",
+            "contentName": "source.rhai",
             "patterns": [
                 {
                     "include": "source.rhai"
@@ -358,6 +413,7 @@
                 }
             },
             "name": "meta.embedded.inline.phs",
+            "contentName": "source.rhai",
             "patterns": [
                 {
                     "include": "source.rhai"
@@ -387,6 +443,7 @@
                 }
             },
             "name": "meta.embedded.block.phs",
+            "contentName": "source.rhai",
             "patterns": [
                 {
                     "include": "source.rhai"
@@ -416,6 +473,7 @@
                 }
             },
             "name": "meta.embedded.block.phs",
+            "contentName": "source.rhai",
             "patterns": [
                 {
                     "include": "source.rhai"
@@ -461,7 +519,7 @@
                     }
                 },
                 {
-                    "//": "HTTP status codes",
+                    "//": "HTTP status codes (special numeric case)",
                     "match": "(?m)^(\\s*(?:-\\s*)?)\\b(status_code)\\b(\\s*:\\s*)(\\b[1-5]\\d{2}\\b)",
                     "captures": {
                         "1": {
@@ -479,7 +537,79 @@
                     }
                 },
                 {
-                    "//": "Version strings",
+                    "//": "Special enum values for main key - module types (only when main is the key)",
+                    "match": "(?m)^(\\s*(?:-\\s*)?)\\b(main)\\b(\\s*:\\s*)(\\b(?:http_server|cli|amqp|rpc|postgres|openai|jwt|cache|sleep|log|echo)\\b)",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "constant.language.phlow"
+                        },
+                        "3": {
+                            "name": "punctuation.separator.key-value.phlow"
+                        },
+                        "4": {
+                            "name": "constant.other.enum.phlow"
+                        }
+                    }
+                },
+                {
+                    "//": "HTTP methods as enum values",
+                    "match": "(?m)^(\\s*(?:-\\s*)?)\\b(method)\\b(\\s*:\\s*)(\\b(?:GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|CONNECT)\\b)",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "keyword.other.http.phlow"
+                        },
+                        "3": {
+                            "name": "punctuation.separator.key-value.phlow"
+                        },
+                        "4": {
+                            "name": "constant.other.enum.http-method.phlow"
+                        }
+                    }
+                },
+                {
+                    "//": "Data types as enum values",
+                    "match": "(?m)^(\\s*(?:-\\s*)?)\\b(type)\\b(\\s*:\\s*)(\\b(?:string|number|boolean|object|array|null|integer|float|main|step)\\b)",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "keyword.other.module.phlow"
+                        },
+                        "3": {
+                            "name": "punctuation.separator.key-value.phlow"
+                        },
+                        "4": {
+                            "name": "constant.other.enum.data-type.phlow"
+                        }
+                    }
+                },
+                {
+                    "//": "AMQP exchange types as enum values",
+                    "match": "(?m)^(\\s*(?:-\\s*)?)\\b(exchange_type|destination_type)\\b(\\s*:\\s*)(\\b(?:direct|fanout|topic|headers|queue|exchange)\\b)",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "entity.name.tag.phlow"
+                        },
+                        "3": {
+                            "name": "punctuation.separator.key-value.phlow"
+                        },
+                        "4": {
+                            "name": "constant.other.enum.amqp.phlow"
+                        }
+                    }
+                },
+                {
+                    "//": "Version strings (latest and semantic versions)",
                     "match": "(?m)^(\\s*(?:-\\s*)?)\\b(version)\\b(\\s*:\\s*)(\\b(?:latest|\\d+(?:\\.\\d+)*(?:-[a-zA-Z0-9]+)*)\\b)",
                     "captures": {
                         "1": {
@@ -492,13 +622,31 @@
                             "name": "punctuation.separator.key-value.phlow"
                         },
                         "4": {
-                            "name": "string.unquoted.version.phlow"
+                            "name": "constant.other.enum.version.phlow"
                         }
                     }
                 },
                 {
-                    "//": "Simple unquoted string values (excluding keywords)",
-                    "match": "(?m)^(\\s*(?:-\\s*)?)([a-zA-Z0-9_\\-\\.]+)(\\s*:\\s*)(?!(?:\\s*(?:if|for|while|loop|match|let|const|fn|return|switch|case|default|try|catch|throw|when|payload|input|steps|main|setup|envs|!phs|\\{|\\[|true|false|null|undefined|\\d)))([A-Za-z0-9_\\-\\./]+)(?=\\s*$)",
+                    "//": "Content-Type MIME types as enum values",
+                    "match": "(?m)^(\\s*(?:-\\s*)?)\\b(Content-Type)\\b(\\s*:\\s*)(\\b(?:application/json|application/xml|text/html|text/plain|application/form-data|multipart/form-data)\\b)",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "entity.name.tag.phlow"
+                        },
+                        "3": {
+                            "name": "punctuation.separator.key-value.phlow"
+                        },
+                        "4": {
+                            "name": "constant.other.enum.mime-type.phlow"
+                        }
+                    }
+                },
+                {
+                    "//": "Simple unquoted string values (excluding keywords and detected enums)",
+                    "match": "(?m)^(\\s*(?:-\\s*)?)([a-zA-Z0-9_\\-\\.]+)(\\s*:\\s*)(?!(?:\\s*(?:if|for|while|loop|match|let|const|fn|return|switch|case|default|try|catch|throw|when|payload|input|steps|setup|envs|!phs|\\{|\\[|true|false|null|undefined|\\d|http_server|cli|amqp|rpc|postgres|GET|POST|PUT|DELETE|string|number|boolean|object|array|direct|fanout|topic|latest|application/json)))([A-Za-z0-9_\\-\\./]+)(?=\\s*$)",
                     "captures": {
                         "1": {
                             "name": "punctuation.whitespace.leading.phlow"
@@ -516,7 +664,7 @@
                 },
                 {
                     "//": "PHS expressions and keywords",
-                    "begin": "(?m)^(\\s*(?:-\\s*)?)([a-zA-Z0-9_\\-\\.]+)(\\s*:\\s*)(?=\\s*(?:if|for|while|loop|match|let|const|fn|return|switch|case|default|try|catch|throw|when|payload|input|steps|main|setup|envs)\\b)",
+                    "begin": "(?m)^(\\s*(?:-\\s*)?)([a-zA-Z0-9_\\-\\.]+)(\\s*:\\s*)(?=\\s*(?:if|for|while|loop|match|let|const|fn|return|switch|case|default|try|catch|throw|when|payload)\\b)",
                     "beginCaptures": {
                         "1": {
                             "name": "punctuation.whitespace.leading.phlow"
@@ -530,6 +678,7 @@
                     },
                     "end": "$",
                     "name": "meta.embedded.inline.phs",
+                    "contentName": "source.rhai",
                     "patterns": [
                         {
                             "include": "#phs-directive-anywhere"
@@ -564,6 +713,7 @@
                 }
             },
             "name": "meta.embedded.inline.phs",
+            "contentName": "source.rhai",
             "patterns": [
                 {
                     "include": "source.rhai"
@@ -581,6 +731,7 @@
                     },
                     "end": "$",
                     "name": "meta.embedded.inline.phs",
+                    "contentName": "source.rhai",
                     "patterns": [
                         {
                             "include": "source.rhai"
@@ -664,6 +815,9 @@
                     "include": "#phs-inline"
                 },
                 {
+                    "include": "#constants-values"
+                },
+                {
                     "include": "#keys"
                 }
             ]
@@ -694,6 +848,9 @@
                 },
                 {
                     "include": "#phs-inline"
+                },
+                {
+                    "include": "#constants-values"
                 },
                 {
                     "include": "#objects"
