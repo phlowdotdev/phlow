@@ -1,3 +1,4 @@
+mod analyzer;
 mod loader;
 mod memory;
 mod package;
@@ -10,6 +11,7 @@ use package::Package;
 use phlow_sdk::otel::init_tracing_subscriber;
 use phlow_sdk::{tracing, use_log};
 use runtime::Runtime;
+use serde_json;
 use settings::Settings;
 mod scripts;
 
@@ -63,6 +65,86 @@ async fn main() {
         }
     }
 
+    // Analyzer mode: if enabled, run analyzer and exit without executing runtime
+    if settings.analyzer {
+        let mut af = settings.analyzer_files;
+        let mut am = settings.analyzer_modules;
+        let mut ats = settings.analyzer_total_steps;
+        let mut atp = settings.analyzer_total_pipelines;
+        let show_json = settings.analyzer_json;
+
+        // If no specific analyzer flags were provided, show all
+        if !af && !am && !ats && !atp {
+            af = true;
+            am = true;
+            ats = true;
+            atp = true;
+        }
+
+        match analyzer::analyze(&settings.script_main_absolute_path, af, am, ats, atp).await {
+            Ok(result) => {
+                if show_json {
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&result).unwrap_or_default()
+                    );
+                } else {
+                    // text output
+                    if af {
+                        if let Some(files) = result.get("files") {
+                            println!("Files:");
+                            if let Some(arr) = files.as_array() {
+                                for f in arr {
+                                    println!("  - {}", f.as_str().unwrap_or(""));
+                                }
+                            }
+                        }
+                    }
+
+                    if am {
+                        if let Some(mods) = result.get("modules") {
+                            println!("Modules:");
+                            if let Some(arr) = mods.as_array() {
+                                for m in arr {
+                                    let declared =
+                                        m.get("declared").and_then(|v| v.as_str()).unwrap_or("");
+                                    let name = m.get("name").and_then(|v| v.as_str()).unwrap_or("");
+                                    let downloaded = m
+                                        .get("downloaded")
+                                        .and_then(|v| v.as_bool())
+                                        .unwrap_or(false);
+                                    println!(
+                                        "  - {} ({}): downloaded={}",
+                                        declared, name, downloaded
+                                    );
+                                }
+                            }
+                        }
+                    }
+
+                    if ats {
+                        if let Some(ts) = result.get("total_steps") {
+                            println!("Total steps: {}", ts.as_i64().unwrap_or(0));
+                        }
+                    }
+
+                    if atp {
+                        if let Some(tp) = result.get("total_pipelines") {
+                            println!("Total pipelines: {}", tp.as_i64().unwrap_or(0));
+                        }
+                    }
+                }
+            }
+            Err(err) => {
+                log::error!("Analyzer error: {:?}", err);
+                std::process::exit(1);
+            }
+        }
+
+        return;
+    }
+
+    // Load the script into Loader (parsing / preprocessing) for normal runtime path
     let mut loader =
         match Loader::load(&settings.script_main_absolute_path, settings.print_yaml).await {
             Ok(main) => main,

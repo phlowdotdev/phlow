@@ -269,7 +269,6 @@ fn preprocessor_eval(phlow: &str) -> String {
 
     while let Some(line) = lines.next() {
         if let Some(pos) = line.find("!phs") {
-            println!("Processing !phs line: {}, pos={}", line, pos);
             let before_eval = &line[..pos];
             let after_eval = if line.len() > pos + 4 {
                 line[pos + 4..].trim()

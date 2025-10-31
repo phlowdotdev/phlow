@@ -13,6 +13,7 @@ modules:
   - module: cache
     with:
       capacity: 1000
+  - module: asd
 
 steps:
   # Create a user
