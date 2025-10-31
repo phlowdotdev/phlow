@@ -1,12 +1,105 @@
 use crate::loader::error::Error as LoaderError;
-use crate::loader::loader::load_script;
+use crate::preprocessor::preprocessor;
+use crate::settings::Settings;
 use phlow_sdk::prelude::*;
 use regex::Regex;
-use serde_json::json;
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 
+#[derive(Debug, Clone)]
+pub struct Analyzer {
+    pub enabled: bool,
+    pub files: bool,
+    pub modules: bool,
+    pub total_steps: bool,
+    pub total_pipelines: bool,
+    pub json: bool,
+    pub script_target: String,
+    pub all: bool,
+}
+
+impl Analyzer {
+    pub fn from_settings(settings: &Settings) -> Self {
+        Self {
+            enabled: settings.analyzer,
+            files: settings.analyzer_files,
+            modules: settings.analyzer_modules,
+            total_steps: settings.analyzer_total_steps,
+            total_pipelines: settings.analyzer_total_pipelines,
+            json: settings.analyzer_json,
+            script_target: settings.script_main_absolute_path.clone(),
+            all: settings.analyzer_all,
+        }
+    }
+
+    pub async fn run(&self) -> Result<Value, LoaderError> {
+        // If no specific analyzer flags were provided, show all
+        let mut af = self.files;
+        let mut am = self.modules;
+        let mut ats = self.total_steps;
+        let mut atp = self.total_pipelines;
+
+        if self.all {
+            af = true;
+            am = true;
+            ats = true;
+            atp = true;
+        }
+
+        let result = analyze(&self.script_target, af, am, ats, atp).await?;
+        Ok(result)
+    }
+
+    pub fn display(&self, result: &Value) {
+        if self.json {
+            // print valu3 Value as pretty JSON
+            println!("{}", result.to_json(JsonMode::Indented));
+            return;
+        }
+
+        // text output similar to previous main.rs behavior
+        if self.files || self.all {
+            if let Some(files) = result.get("files") {
+                println!("Files:");
+                if let Some(arr) = files.as_array() {
+                    for f in &arr.values {
+                        println!("  - {}", f.as_string());
+                    }
+                }
+            }
+        }
+
+        if self.modules || self.all {
+            if let Some(mods) = result.get("modules") {
+                println!("Modules:");
+                if let Some(arr) = mods.as_array() {
+                    for m in &arr.values {
+                        let declared = m.get("declared").map(|v| v.as_string()).unwrap_or_default();
+                        let name = m.get("name").map(|v| v.as_string()).unwrap_or_default();
+                        let downloaded = m
+                            .get("downloaded")
+                            .and_then(|v| v.as_bool().cloned())
+                            .unwrap_or(false);
+                        println!("  - {} ({}): downloaded={}", declared, name, downloaded);
+                    }
+                }
+            }
+        }
+
+        if self.total_steps || self.all {
+            if let Some(ts) = result.get("total_steps") {
+                println!("Total steps: {}", ts.to_string());
+            }
+        }
+
+        if self.total_pipelines || self.all {
+            if let Some(tp) = result.get("total_pipelines") {
+                println!("Total pipelines: {}", tp.to_string());
+            }
+        }
+    }
+}
 fn collect_includes_recursive(
     path: &Path,
     visited: &mut HashSet<String>,
@@ -74,104 +167,81 @@ fn normalize_module_name(module_name: &str) -> String {
 }
 
 fn count_pipelines_recursive(value: &Value) -> usize {
-    use phlow_sdk::prelude::Value::*;
+    if value.is_object() {
+        let mut count = 1; // this object is a pipeline
 
-    match value {
-        Object(map) => {
-            let mut count = 1; // this object is a pipeline
+        if let Some(then) = value.get("then") {
+            count += count_pipelines_recursive(then);
+        }
+        if let Some(els) = value.get("else") {
+            count += count_pipelines_recursive(els);
+        }
 
-            if let Some(then) = map.get("then") {
-                count += count_pipelines_recursive(then);
-            }
-            if let Some(els) = map.get("else") {
-                count += count_pipelines_recursive(els);
-            }
-
-            if let Some(steps) = map.get("steps") {
-                match steps {
-                    Array(arr) => {
-                        for step in arr {
-                            if let Object(step_obj) = step {
-                                if let Some(t) = step_obj.get("then") {
-                                    count += count_pipelines_recursive(t);
-                                }
-                                if let Some(e) = step_obj.get("else") {
-                                    count += count_pipelines_recursive(e);
-                                }
-                            }
-                        }
-                    }
-                    _ => {}
+        if let Some(steps) = value.get("steps").and_then(|v| v.as_array()) {
+            for step in &steps.values {
+                if let Some(t) = step.get("then") {
+                    count += count_pipelines_recursive(t);
+                }
+                if let Some(e) = step.get("else") {
+                    count += count_pipelines_recursive(e);
                 }
             }
+        }
 
-            count
-        }
-        Array(arr) => {
-            let mut count = 1; // this array is a pipeline
-            for step in arr {
-                if let Value::Object(step_obj) = step {
-                    if let Some(t) = step_obj.get("then") {
-                        count += count_pipelines_recursive(t);
-                    }
-                    if let Some(e) = step_obj.get("else") {
-                        count += count_pipelines_recursive(e);
-                    }
-                }
+        count
+    } else if let Some(arr) = value.as_array() {
+        let mut count = 1; // this array is a pipeline
+        for step in &arr.values {
+            if let Some(t) = step.get("then") {
+                count += count_pipelines_recursive(t);
             }
-            count
+            if let Some(e) = step.get("else") {
+                count += count_pipelines_recursive(e);
+            }
         }
-        _ => 0,
+        count
+    } else {
+        0
     }
 }
 
 fn count_steps_recursive(value: &Value) -> usize {
-    use phlow_sdk::prelude::Value::*;
-
-    match value {
-        Object(map) => {
-            let mut steps_total = 0;
-            if let Some(steps) = map.get("steps") {
-                if let Array(arr) = steps {
-                    steps_total += arr.len();
-                    for step in arr {
-                        if let Object(step_obj) = step {
-                            if let Some(t) = step_obj.get("then") {
-                                steps_total += count_steps_recursive(t);
-                            }
-                            if let Some(e) = step_obj.get("else") {
-                                steps_total += count_steps_recursive(e);
-                            }
-                        }
-                    }
+    if value.is_object() {
+        let mut steps_total = 0;
+        if let Some(steps) = value.get("steps").and_then(|v| v.as_array()) {
+            steps_total += steps.values.len();
+            for step in &steps.values {
+                if let Some(t) = step.get("then") {
+                    steps_total += count_steps_recursive(t);
+                }
+                if let Some(e) = step.get("else") {
+                    steps_total += count_steps_recursive(e);
                 }
             }
-
-            if let Some(then) = map.get("then") {
-                steps_total += count_steps_recursive(then);
-            }
-            if let Some(els) = map.get("else") {
-                steps_total += count_steps_recursive(els);
-            }
-
-            steps_total
         }
-        Array(arr) => {
-            let mut steps_total = 0;
-            steps_total += arr.len();
-            for step in arr {
-                if let Value::Object(step_obj) = step {
-                    if let Some(t) = step_obj.get("then") {
-                        steps_total += count_steps_recursive(t);
-                    }
-                    if let Some(e) = step_obj.get("else") {
-                        steps_total += count_steps_recursive(e);
-                    }
-                }
-            }
-            steps_total
+
+        if let Some(then) = value.get("then") {
+            steps_total += count_steps_recursive(then);
         }
-        _ => 0,
+        if let Some(els) = value.get("else") {
+            steps_total += count_steps_recursive(els);
+        }
+
+        steps_total
+    } else if let Some(arr) = value.as_array() {
+        let mut steps_total = 0;
+        steps_total += arr.values.len();
+        for step in &arr.values {
+            if let Some(t) = step.get("then") {
+                steps_total += count_steps_recursive(t);
+            }
+            if let Some(e) = step.get("else") {
+                steps_total += count_steps_recursive(e);
+            }
+        }
+        steps_total
+    } else {
+        0
     }
 }
 
@@ -181,31 +251,67 @@ pub async fn analyze(
     include_modules: bool,
     include_total_steps: bool,
     include_total_pipelines: bool,
-) -> Result<serde_json::Value, LoaderError> {
+) -> Result<Value, LoaderError> {
     // Try load with loader (preferred) and fallback to tolerant analysis on failure
     let mut files_set: HashSet<String> = HashSet::new();
-    let mut modules_json: Vec<serde_json::Value> = Vec::new();
+    let mut modules_json: Vec<Value> = Vec::new();
     let mut total_pipelines = 0usize;
     let mut total_steps = 0usize;
 
-    match load_script(script_target, false).await {
-        Ok(script_loaded) => {
-            if include_files {
-                let mut visited: HashSet<String> = HashSet::new();
-                let path = Path::new(&script_loaded.script_file_path).to_path_buf();
-                collect_includes_recursive(&path, &mut visited, &mut files_set);
+    // First, try to run the preprocessor to obtain the final transformed YAML
+    let target_path = Path::new(script_target);
+    let main_path = if target_path.is_dir() {
+        let mut base_path = target_path.to_path_buf();
+        base_path.set_extension("phlow");
+        if base_path.exists() {
+            base_path
+        } else {
+            let candidates = ["main.phlow", "mod.phlow", "module.phlow"];
+            let mut found = None;
+            for c in &candidates {
+                let p = target_path.join(c);
+                if p.exists() {
+                    found = Some(p);
+                    break;
+                }
             }
+            if let Some(p) = found {
+                p
+            } else {
+                return Err(LoaderError::MainNotFound(script_target.to_string()));
+            }
+        }
+    } else if target_path.exists() {
+        target_path.to_path_buf()
+    } else {
+        return Err(LoaderError::MainNotFound(script_target.to_string()));
+    };
 
-            if include_modules {
-                if let Some(modules) = script_loaded.script.get("modules") {
-                    if let Value::Array(arr) = modules {
-                        for module in arr {
-                            if let Value::Object(map) = module {
-                                let mut module_name = None;
-                                if let Some(Value::String(s)) = map.get("module") {
-                                    module_name = Some(s.clone());
-                                } else if let Some(Value::String(s)) = map.get("name") {
-                                    module_name = Some(s.clone());
+    let raw = fs::read_to_string(&main_path)
+        .map_err(|_| LoaderError::ModuleLoaderError("Failed to read main file".to_string()))?;
+
+    // Try preprocessor (preferred). If it fails or the resulting YAML cannot be parsed,
+    // fall back to the tolerant heuristic analysis below.
+    let preprocessed = preprocessor(&raw, &main_path.parent().unwrap_or(Path::new(".")), false);
+
+    if let Ok(transformed) = preprocessed {
+        // parse the YAML into serde_json::Value for analysis
+        match serde_yaml::from_str::<Value>(&transformed) {
+            Ok(root) => {
+                if include_files {
+                    let mut visited: HashSet<String> = HashSet::new();
+                    collect_includes_recursive(&main_path, &mut visited, &mut files_set);
+                }
+
+                if include_modules {
+                    if let Some(mods) = root.get("modules").and_then(|v| v.as_array()) {
+                        for module in &mods.values {
+                            if module.is_object() {
+                                let mut module_name: Option<String> = None;
+                                if let Some(v) = module.get("module") {
+                                    module_name = Some(v.to_string());
+                                } else if let Some(v) = module.get("name") {
+                                    module_name = Some(v.to_string());
                                 }
 
                                 if let Some(mn) = module_name {
@@ -219,96 +325,70 @@ pub async fn analyze(
                         }
                     }
                 }
+
+                if include_total_pipelines || include_total_steps {
+                    if let Some(steps_val) = root.get("steps") {
+                        total_pipelines = count_pipelines_recursive(steps_val);
+                        total_steps = count_steps_recursive(steps_val);
+                    }
+                }
+            }
+            Err(_) => {
+                // parse failed: fallthrough to tolerant fallback below
+            }
+        }
+    }
+
+    // If after preprocessor/parse we still don't have results (e.g. preprocessor failed or parse failed),
+    // perform the original tolerant fallback directly against the raw file contents (best-effort).
+    if files_set.is_empty() && modules_json.is_empty() && total_pipelines == 0 && total_steps == 0 {
+        let content = raw;
+
+        if include_files {
+            // collect referenced include/import paths even if they don't exist
+            let include_re = Regex::new(r"!include\s+([^\s]+)").unwrap();
+            let import_re = Regex::new(r"!import\s+(\S+)").unwrap();
+            let base = main_path.parent().unwrap_or(Path::new("."));
+
+            for cap in include_re.captures_iter(&content) {
+                if let Some(rel) = cap.get(1) {
+                    let mut full = base.join(rel.as_str());
+                    if full.extension().is_none() {
+                        full.set_extension("phlow");
+                    }
+                    files_set.insert(full.to_string_lossy().to_string());
+                }
             }
 
-            if include_total_pipelines || include_total_steps {
-                if let Some(steps_val) = script_loaded.script.get("steps") {
-                    total_pipelines = count_pipelines_recursive(steps_val);
-                    total_steps = count_steps_recursive(steps_val);
+            for cap in import_re.captures_iter(&content) {
+                if let Some(rel) = cap.get(1) {
+                    let full = base.join(rel.as_str());
+                    files_set.insert(full.to_string_lossy().to_string());
                 }
             }
         }
-        Err(_) => {
-            // Fallback: tolerant analysis without running preprocessor - best-effort parsing of the raw file
-            let target_path = Path::new(script_target);
-            let main_path = if target_path.is_dir() {
-                let mut base_path = target_path.to_path_buf();
-                base_path.set_extension("phlow");
-                if base_path.exists() {
-                    base_path
-                } else {
-                    let candidates = ["main.phlow", "mod.phlow", "module.phlow"];
-                    let mut found = None;
-                    for c in &candidates {
-                        let p = target_path.join(c);
-                        if p.exists() {
-                            found = Some(p);
-                            break;
-                        }
-                    }
-                    if let Some(p) = found {
-                        p
-                    } else {
-                        return Err(LoaderError::MainNotFound(script_target.to_string()));
-                    }
-                }
-            } else if target_path.exists() {
-                target_path.to_path_buf()
-            } else {
-                return Err(LoaderError::MainNotFound(script_target.to_string()));
-            };
 
-            let content = fs::read_to_string(&main_path).map_err(|_| {
-                LoaderError::ModuleLoaderError("Failed to read main file".to_string())
-            })?;
-
-            if include_files {
-                // collect referenced include/import paths even if they don't exist
-                let include_re = Regex::new(r"!include\s+([^\s]+)").unwrap();
-                let import_re = Regex::new(r"!import\s+(\S+)").unwrap();
-                let base = main_path.parent().unwrap_or(Path::new("."));
-
-                for cap in include_re.captures_iter(&content) {
-                    if let Some(rel) = cap.get(1) {
-                        let mut full = base.join(rel.as_str());
-                        if full.extension().is_none() {
-                            full.set_extension("phlow");
-                        }
-                        files_set.insert(full.to_string_lossy().to_string());
-                    }
-                }
-
-                for cap in import_re.captures_iter(&content) {
-                    if let Some(rel) = cap.get(1) {
-                        let full = base.join(rel.as_str());
-                        files_set.insert(full.to_string_lossy().to_string());
-                    }
+        if include_modules {
+            let modules_re = Regex::new(r"module:\s*([^\n\r]+)").unwrap();
+            for cap in modules_re.captures_iter(&content) {
+                if let Some(m) = cap.get(1) {
+                    let mn_str = m.as_str().trim().to_string();
+                    let clean = normalize_module_name(&mn_str);
+                    let downloaded = Path::new(&format!("phlow_packages/{}", clean)).exists();
+                    modules_json
+                        .push(json!({"declared": mn_str, "name": clean, "downloaded": downloaded}));
                 }
             }
+        }
 
-            if include_modules {
-                let modules_re = Regex::new(r"module:\s*([^\n\r]+)").unwrap();
-                for cap in modules_re.captures_iter(&content) {
-                    if let Some(m) = cap.get(1) {
-                        let mn_str = m.as_str().trim().to_string();
-                        let clean = normalize_module_name(&mn_str);
-                        let downloaded = Path::new(&format!("phlow_packages/{}", clean)).exists();
-                        modules_json.push(
-                            json!({"declared": mn_str, "name": clean, "downloaded": downloaded}),
-                        );
-                    }
-                }
-            }
-
-            if include_total_pipelines || include_total_steps {
-                if content.contains("steps:") {
-                    let parts: Vec<&str> = content.splitn(2, "steps:").collect();
-                    if parts.len() > 1 {
-                        let steps_block = parts[1];
-                        let steps_count = steps_block.matches("\n- ").count();
-                        total_steps = steps_count;
-                        total_pipelines = 1;
-                    }
+        if include_total_pipelines || include_total_steps {
+            if content.contains("steps:") {
+                let parts: Vec<&str> = content.splitn(2, "steps:").collect();
+                if parts.len() > 1 {
+                    let steps_block = parts[1];
+                    let steps_count = steps_block.matches("\n- ").count();
+                    total_steps = steps_count;
+                    total_pipelines = 1;
                 }
             }
         }

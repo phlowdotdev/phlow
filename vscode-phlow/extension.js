@@ -6,6 +6,140 @@ const vscode = require('vscode');
 function activate(context) {
     console.log('Phlow VSCode extension activated!');
 
+    // Output channel for analyzer logs
+    const analyzerOutput = vscode.window.createOutputChannel('Phlow Analyzer');
+    context.subscriptions.push(analyzerOutput);
+
+    // In-memory store mapping main.phlow path -> analyzer result
+    const projects = new Map();
+
+    // Debounce timer for filesystem changes
+    let changeDebounce = null;
+    const CHANGE_DEBOUNCE_MS = 500;
+
+    // Helper: run `phlow <dir> --analyzer --all --json` and parse JSON
+    const cp = require('child_process');
+    const path = require('path');
+
+    async function runAnalyzerForMain(mainPath) {
+        return new Promise((resolve) => {
+            try {
+                const cwd = path.dirname(mainPath);
+                analyzerOutput.appendLine(`Running analyzer for ${mainPath}`);
+                // prefer execFile for args array
+                const args = [cwd, '--analyzer', '--all', '--json'];
+                const child = cp.spawn('phlow', args, { cwd: cwd });
+                let stdout = '';
+                let stderr = '';
+                child.stdout.on('data', d => { stdout += d.toString(); });
+                child.stderr.on('data', d => { stderr += d.toString(); });
+                child.on('error', err => {
+                    analyzerOutput.appendLine(`Failed to spawn phlow for ${mainPath}: ${err.message}`);
+                    projects.set(mainPath, { error: err.message, updatedAt: Date.now() });
+                    resolve();
+                });
+                child.on('close', code => {
+                    if (stderr && stderr.trim().length > 0) analyzerOutput.appendLine(`phlow stderr (${mainPath}): ${stderr}`);
+                    if (code !== 0) {
+                        analyzerOutput.appendLine(`phlow exited with code ${code} for ${mainPath}`);
+                        projects.set(mainPath, { error: `exit ${code}`, updatedAt: Date.now(), raw: stdout });
+                        resolve();
+                        return;
+                    }
+                    try {
+                        const parsed = stdout && stdout.trim() ? JSON.parse(stdout) : {};
+                        projects.set(mainPath, { data: parsed, updatedAt: Date.now() });
+                        analyzerOutput.appendLine(`Analyzer finished for ${mainPath}`);
+                    } catch (e) {
+                        analyzerOutput.appendLine(`Failed to parse phlow JSON for ${mainPath}: ${e.message}`);
+                        projects.set(mainPath, { error: `json parse: ${e.message}`, raw: stdout, updatedAt: Date.now() });
+                    }
+                    resolve();
+                });
+            } catch (e) {
+                analyzerOutput.appendLine(`Unexpected error running analyzer for ${mainPath}: ${e.message}`);
+                projects.set(mainPath, { error: e.message, updatedAt: Date.now() });
+                resolve();
+            }
+        });
+    }
+
+    async function runAllAnalyzers() {
+        analyzerOutput.appendLine('Starting analyzer pass for all main.phlow files...');
+        const mains = await findAllMainPhlow();
+        if (!mains || mains.length === 0) {
+            analyzerOutput.appendLine('No main.phlow files found in workspace.');
+            return;
+        }
+        // run sequentially to avoid hammering the system; could parallelize if needed
+        for (const m of mains) {
+            await runAnalyzerForMain(m);
+        }
+        analyzerOutput.appendLine('Analyzer pass complete.');
+    }
+
+    // Find all main.phlow files in workspace
+    async function findAllMainPhlow() {
+        try {
+            const results = await vscode.workspace.findFiles('**/main.phlow', '**/node_modules/**');
+            return results.map(u => u.fsPath);
+        } catch (e) {
+            analyzerOutput.appendLine(`Error finding main.phlow files: ${e.message}`);
+            return [];
+        }
+    }
+
+    // Find nearest main.phlow by walking up from a file/dir
+    async function findNearestMainPhlow(fromPath) {
+        const p = path.resolve(fromPath || '.');
+        let stat = null;
+        try { stat = await vscode.workspace.fs.stat(vscode.Uri.file(p)); } catch (e) { /* ignore */ }
+        let current = stat && stat.type === vscode.FileType.Directory ? p : path.dirname(p);
+        const rootFolders = (vscode.workspace.workspaceFolders || []).map(f => f.uri.fsPath);
+        while (current) {
+            const candidate = path.join(current, 'main.phlow');
+            try {
+                // use vscode.workspace.fs.stat to check existence
+                await vscode.workspace.fs.stat(vscode.Uri.file(candidate));
+                return candidate;
+            } catch (e) {
+                // not found, step up
+            }
+            const parent = path.dirname(current);
+            if (parent === current) break;
+            // stop if left the workspace roots
+            if (rootFolders.length && !rootFolders.some(r => current.startsWith(r))) break;
+            current = parent;
+        }
+        return null;
+    }
+
+    // Setup a global watcher for changes and re-run analyzers on changes (debounced)
+    function setupWatcher() {
+        // watch all files — if too broad, narrow to phlow files and project files
+        const watcher = vscode.workspace.createFileSystemWatcher('**/*');
+        context.subscriptions.push(watcher);
+        const schedule = () => {
+            if (changeDebounce) clearTimeout(changeDebounce);
+            changeDebounce = setTimeout(() => {
+                runAllAnalyzers().catch(e => analyzerOutput.appendLine(`runAllAnalyzers error: ${e.message}`));
+            }, CHANGE_DEBOUNCE_MS);
+        };
+        watcher.onDidChange(schedule);
+        watcher.onDidCreate(schedule);
+        watcher.onDidDelete(schedule);
+    }
+
+    // Expose a command to manually refresh analyzers
+    context.subscriptions.push(vscode.commands.registerCommand('phlow.refreshAnalyzer', async () => {
+        await runAllAnalyzers();
+        vscode.window.showInformationMessage('Phlow analyzer refreshed');
+    }));
+
+    // Start initial scan + watcher
+    runAllAnalyzers().catch(e => analyzerOutput.appendLine(`Initial analyzer error: ${e.message}`));
+    setupWatcher();
+
     // simple hello message when a .phlow file is opened
     function handleDocument(doc) {
         if (!doc) return;
@@ -79,10 +213,10 @@ function activate(context) {
     }));
 
     function findStepsItemRanges(doc) {
-    const rangesPerColor = decorationTypes.map(() => []);
-    const keyRangesPerColor = decorationTypes.map(() => []);
-    const flatDashKeyRanges = [];
-    const flatNonDashKeyRanges = [];
+        const rangesPerColor = decorationTypes.map(() => []);
+        const keyRangesPerColor = decorationTypes.map(() => []);
+        const flatDashKeyRanges = [];
+        const flatNonDashKeyRanges = [];
         const lines = doc.getText().split(/\r?\n/);
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
@@ -162,17 +296,17 @@ function activate(context) {
                                 if (closed) break;
                             }
                             // if brace block closed, set range from the opening brace to the line with closing brace
-                                if (closed) {
-                                    // start from beginning of line so whole-line decoration covers the block
-                                    const startPos = new vscode.Position(j, 0);
-                                    const finalEndCol = (endCol !== null && typeof endCol !== 'undefined') ? endCol : (lines[endLine].indexOf('}') + 1 || lines[endLine].length);
-                                    const endPos = new vscode.Position(endLine, finalEndCol);
-                                    const range = new vscode.Range(startPos, endPos);
-                                    rangesPerColor[colorIdx % rangesPerColor.length].push(range);
-                                    colorIdx++;
-                                    j = endLine; // skip to the end of the brace block
-                                    continue;
-                                }
+                            if (closed) {
+                                // start from beginning of line so whole-line decoration covers the block
+                                const startPos = new vscode.Position(j, 0);
+                                const finalEndCol = (endCol !== null && typeof endCol !== 'undefined') ? endCol : (lines[endLine].indexOf('}') + 1 || lines[endLine].length);
+                                const endPos = new vscode.Position(endLine, finalEndCol);
+                                const range = new vscode.Range(startPos, endPos);
+                                rangesPerColor[colorIdx % rangesPerColor.length].push(range);
+                                colorIdx++;
+                                j = endLine; // skip to the end of the brace block
+                                continue;
+                            }
                             // if not closed, fallthrough to indentation-based expansion below
                         }
 

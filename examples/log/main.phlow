@@ -3,69 +3,25 @@ modules:
 steps:
   - use: log
     input:
-      message: [1,"true", false]
+      message: Hello, this is a log module test.
       level: info
   - use: log
     input:
-      message: true
+      message: This is an error log message.
       level: error
-  - use: log
-    items:
-      item0: !phs if { condition: true } then "debug" else "info"
-      item1: !phs ```
-      if { condition: true } then "debug" else "info"
-      ```
-      item2: !phs `
-      if { condition: true } then "debug" else "info"
-      `
-      item3: !phs ${
-      if { condition: true } then "debug" else "info"
-      }
-      item4: ```
-      if { condition: true } then "debug" else "info"
-      ```
-      item5: `
-      if { condition: true } then "debug" else "info"
-      `
-      item6: ${
-      if { condition: true } then "debug" else "info"
-      }
-      item7: if { condition: true } then "debug" else "info"
-  - !include log/items.phlow
-  - !import log/items.phlow nome="imported_name" item=123
-  - !arg log/items.phlow 123 true item=123
-  - payload:
-      item: "This is a payload item"
-  - payload: main // this is a constant
-  - payload: envs // this is another constant
-  - asdasd:
-      asdasd: asasdasd
   - use: log
     input:
-      message: "Warning! Something might be wrong."
+      message: Debugging information here.
+      level: debug
+  - use: log
+    input:
+      message: Warning! Something might be wrong.
       level: warning
-    then:
-      - use: log
-        input:
-          message: "This is a debug message inside the warning block."
-          level: debug
-    else:
-      - use: log
-        input:
-          message: "This is an error message inside the else block."
-          level: error
   - log:
       level: warn
-      message: {
-        level: "warn",
-        mains: [1,2,3,...main],
-        item: 2,
-        ...main[0]
-      }
+      message: main
   - log:
       level: error
-      message: {
-        ...main[0]
-      }
+      message: payload
 tests:
   - describe: All logs
