@@ -10,9 +10,27 @@ steps:
       message: true
       level: error
   - use: log
-    input:
-      message: !phs if { condition: true } then "debug" else "info"
-      level: if { condition: true } then "debug" else "info"
+    items:
+      item0: !phs if { condition: true } then "debug" else "info"
+      item1: !phs ```
+      if { condition: true } then "debug" else "info"
+      ```
+      item2: !phs `
+      if { condition: true } then "debug" else "info"
+      `
+      item3: !phs ${
+      if { condition: true } then "debug" else "info"
+      }
+      item4: ```
+      if { condition: true } then "debug" else "info"
+      ```
+      item5: `
+      if { condition: true } then "debug" else "info"
+      `
+      item6: ${
+      if { condition: true } then "debug" else "info"
+      }
+      
   - use: log
     input:
       message: "Warning! Something might be wrong."

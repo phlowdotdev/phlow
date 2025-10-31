@@ -9,10 +9,16 @@
             "include": "#comments"
         },
         {
-            "include": "#keys"
+            "include": "#phs-auto-fenced"
         },
         {
-            "include": "#directives"
+            "include": "#phs-auto-inline-dollar"
+        },
+        {
+            "include": "#phs-auto-inline-backtick"
+        },
+        {
+            "include": "#phs-auto-brace"
         },
         {
             "include": "#phs-fenced"
@@ -21,13 +27,22 @@
             "include": "#phs-brace-block"
         },
         {
-            "include": "#phs-auto-brace"
+            "include": "#phs-inline-dollar"
+        },
+        {
+            "include": "#phs-inline-backtick"
         },
         {
             "include": "#phs-inline"
         },
         {
             "include": "#phs-auto-inline"
+        },
+        {
+            "include": "#keys"
+        },
+        {
+            "include": "#directives"
         },
         {
             "include": "#strings"
@@ -124,6 +139,46 @@
                 }
             ]
         },
+        "phs-inline-dollar": {
+            "begin": "!phs\\s*\\$\\{",
+            "beginCaptures": {
+                "0": {
+                    "name": "punctuation.section.block.begin.phs"
+                }
+            },
+            "end": "\\}",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.section.block.end.phs"
+                }
+            },
+            "name": "meta.embedded.block.phs",
+            "patterns": [
+                {
+                    "include": "source.rhai"
+                }
+            ]
+        },
+        "phs-inline-backtick": {
+            "begin": "!phs\\s*`",
+            "beginCaptures": {
+                "0": {
+                    "name": "punctuation.definition.inline.phs"
+                }
+            },
+            "end": "`",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.definition.inline.phs"
+                }
+            },
+            "name": "meta.embedded.inline.phs",
+            "patterns": [
+                {
+                    "include": "source.rhai"
+                }
+            ]
+        },
         "phs-auto-brace": {
             "begin": "(?m)^\\s*(?:-\\s*)?[a-zA-Z0-9_\\-\\.]+\\s*: \\s*\\{",
             "beginCaptures": {
@@ -138,6 +193,66 @@
                 }
             },
             "name": "meta.embedded.block.phs",
+            "patterns": [
+                {
+                    "include": "source.rhai"
+                }
+            ]
+        },
+        "phs-auto-inline-dollar": {
+            "begin": "(?m)^(?:\\s*(?:-\\s*)?[a-zA-Z0-9_\\-\\.]+\\s*:\\s*\\$\\{|\\s*(?:-\\s*)?[a-zA-Z0-9_\\-\\.]+\\s*:\\s*\\r?\\n\\s*\\$\\{)",
+            "beginCaptures": {
+                "0": {
+                    "name": "punctuation.section.block.begin.phs"
+                }
+            },
+            "end": "\\}",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.section.block.end.phs"
+                }
+            },
+            "name": "meta.embedded.block.phs",
+            "patterns": [
+                {
+                    "include": "source.rhai"
+                }
+            ]
+        },
+        "phs-auto-fenced": {
+            "begin": "(?m)^(?:\\s*(?:-\\s*)?[a-zA-Z0-9_\\-\\.]+\\s*:\\s*```|\\s*(?:-\\s*)?[a-zA-Z0-9_\\-\\.]+\\s*:\\s*\\r?\\n\\s*```)",
+            "beginCaptures": {
+                "0": {
+                    "name": "punctuation.definition.fenced.begin.phs"
+                }
+            },
+            "end": "```",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.definition.fenced.end.phs"
+                }
+            },
+            "name": "meta.embedded.block.phs",
+            "patterns": [
+                {
+                    "include": "source.rhai"
+                }
+            ]
+        },
+        "phs-auto-inline-backtick": {
+            "begin": "(?m)^(?:\\s*(?:-\\s*)?[a-zA-Z0-9_\\-\\.]+\\s*:\\s*`|\\s*(?:-\\s*)?[a-zA-Z0-9_\\-\\.]+\\s*:\\s*\\r?\\n\\s*`)",
+            "beginCaptures": {
+                "0": {
+                    "name": "punctuation.definition.inline.phs"
+                }
+            },
+            "end": "`",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.definition.inline.phs"
+                }
+            },
+            "name": "meta.embedded.inline.phs",
             "patterns": [
                 {
                     "include": "source.rhai"
