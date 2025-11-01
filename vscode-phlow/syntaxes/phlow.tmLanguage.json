@@ -12,6 +12,9 @@
             "include": "#phs-directive-anywhere"
         },
         {
+            "include": "#phs-case"
+        },
+        {
             "include": "#directives"
         },
         {
@@ -48,10 +51,10 @@
             "include": "#phs-auto-brace"
         },
         {
-            "include": "#phs-auto-inline"
+            "include": "#module-uses"
         },
         {
-            "include": "#module-uses"
+            "include": "#phs-auto-inline"
         },
         {
             "include": "#keys"
@@ -84,6 +87,41 @@
         "special-keys": {
             "patterns": [
                 {
+                    "//": "Treat 'case:' values as embedded rhai (inline simple form)",
+                    "begin": "(?m)^(\\s*(?:-\\s*)?)(case)(\\s*:\\s*)(?=.+)$",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "keyword.control.phlow"
+                        },
+                        "3": {
+                            "name": "punctuation.separator.key-value.phlow"
+                        }
+                    },
+                    "end": "$",
+                    "name": "meta.embedded.inline.phs",
+                    "contentName": "source.rhai",
+                    "patterns": [
+                        {
+                            "include": "source.rhai"
+                        }
+                    ]
+                },
+                {
+                    "//": "Treat 'when:' as a conditional keyword and map to the rhai conditional scope",
+                    "match": "(?m)^(\\s*(?:-\\s*)?)\\b(when)\\b(?=\\s*:)",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "keyword.control.conditional.rhai"
+                        }
+                    }
+                },
+                {
                     "//": "Core Phlow constant keys - these are always constants regardless of value type",
                     "match": "(?m)^(\\s*(?:-\\s*)?)\\b(main|modules|steps|envs|setup|input|args)\\b(?=\\s*:)",
                     "captures": {
@@ -97,7 +135,7 @@
                 },
                 {
                     "//": "Other Phlow structure keys",
-                    "match": "(?m)^(\\s*(?:-\\s*)?)\\b(then|else|return|id|assert|with|payload|to|use|label)\\b(?=\\s*:)",
+                    "match": "(?m)^(\\s*(?:-\\s*)?)\\b(then|else|return|id|assert|with|payload|to|use|case|label)\\b(?=\\s*:)",
                     "captures": {
                         "1": {
                             "name": "punctuation.whitespace.leading.phlow"
@@ -386,6 +424,152 @@
             "patterns": [
                 {
                     "include": "source.rhai"
+                }
+            ]
+        },
+        "phs-case": {
+            "patterns": [
+                {
+                    "begin": "(?m)^(\\s*(?:-\\s*)?)(case)(\\s*:\\s*)(```|\\r?\\n\\s*```)",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "entity.name.tag.phlow"
+                        },
+                        "3": {
+                            "name": "punctuation.separator.key-value.phlow"
+                        },
+                        "4": {
+                            "name": "punctuation.definition.fenced.begin.phs"
+                        }
+                    },
+                    "end": "```",
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.fenced.end.phs"
+                        }
+                    },
+                    "name": "meta.embedded.block.phs",
+                    "contentName": "source.rhai",
+                    "patterns": [
+                        {
+                            "include": "source.rhai"
+                        }
+                    ]
+                },
+                {
+                    "begin": "(?m)^(\\s*(?:-\\s*)?)(case)(\\s*:\\s*)(\\{)",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "entity.name.tag.phlow"
+                        },
+                        "3": {
+                            "name": "punctuation.separator.key-value.phlow"
+                        },
+                        "4": {
+                            "name": "punctuation.section.block.begin.phs"
+                        }
+                    },
+                    "end": "\\}",
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.section.block.end.phs"
+                        }
+                    },
+                    "name": "meta.embedded.block.phs",
+                    "contentName": "source.rhai",
+                    "patterns": [
+                        {
+                            "include": "source.rhai"
+                        }
+                    ]
+                },
+                {
+                    "begin": "(?m)^(\\s*(?:-\\s*)?)(case)(\\s*:\\s*)(\\$\\{)",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "entity.name.tag.phlow"
+                        },
+                        "3": {
+                            "name": "punctuation.separator.key-value.phlow"
+                        },
+                        "4": {
+                            "name": "punctuation.section.block.begin.phs"
+                        }
+                    },
+                    "end": "\\}",
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.section.block.end.phs"
+                        }
+                    },
+                    "name": "meta.embedded.block.phs",
+                    "contentName": "source.rhai",
+                    "patterns": [
+                        {
+                            "include": "source.rhai"
+                        }
+                    ]
+                },
+                {
+                    "begin": "(?m)^(\\s*(?:-\\s*)?)(case)(\\s*:\\s*)(`|\\r?\\n\\s*`)",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "entity.name.tag.phlow"
+                        },
+                        "3": {
+                            "name": "punctuation.separator.key-value.phlow"
+                        },
+                        "4": {
+                            "name": "punctuation.definition.inline.phs"
+                        }
+                    },
+                    "end": "`",
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.inline.phs"
+                        }
+                    },
+                    "name": "meta.embedded.inline.phs",
+                    "contentName": "source.rhai",
+                    "patterns": [
+                        {
+                            "include": "source.rhai"
+                        }
+                    ]
+                },
+                {
+                    "begin": "(?m)^(\\s*(?:-\\s*)?)(case)(\\s*:\\s*)(?=.+)$",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "entity.name.tag.phlow"
+                        },
+                        "3": {
+                            "name": "punctuation.separator.key-value.phlow"
+                        }
+                    },
+                    "end": "$",
+                    "name": "meta.embedded.inline.phs",
+                    "contentName": "source.rhai",
+                    "patterns": [
+                        {
+                            "include": "source.rhai"
+                        }
+                    ]
                 }
             ]
         },
