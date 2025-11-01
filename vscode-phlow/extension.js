@@ -92,7 +92,7 @@ function activate(context) {
             for (const m of v.data.modules) {
                 if (!m) continue;
                 if (m.name) moduleNames.add(String(m.name));
-                if (m.declared) {
+                else if (m.declared) {
                     const d = String(m.declared);
                     moduleNames.add(d);
                     // also add stripped './' variant

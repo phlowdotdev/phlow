@@ -13,7 +13,7 @@ steps:
     input:
       message: Debugging information here.
       level: debug
-  - use: cache
+  - use: innerCache
     input:
       message: Warning! Something might be wrong.
       level: warning

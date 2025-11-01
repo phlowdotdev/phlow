@@ -97,6 +97,13 @@
                 "settings": {
                     "foreground": "#D7BA7D"
                 }
+            },
+            {
+                "scope": "support.module.phlow",
+                "settings": {
+                    "foreground": "#C586C0",
+                    "fontStyle": "bold"
+                }
             }
         ],
         "configuration": {

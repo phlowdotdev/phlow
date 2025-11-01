@@ -72,7 +72,7 @@
             "runtimeExecutable": "${execPath}",
             "args": [
                 "--extensionDevelopmentPath=${workspaceFolder}/vscode-phlow",
-                "${workspaceFolder}/examples"
+                "${workspaceFolder}/vscode-phlow/examples"
             ],
             "outFiles": [],
             "env": {

@@ -51,6 +51,9 @@
             "include": "#phs-auto-inline"
         },
         {
+            "include": "#module-uses"
+        },
+        {
             "include": "#keys"
         },
         {
@@ -198,6 +201,40 @@
                     "captures": {
                         "2": {
                             "name": "entity.name.tag.phlow"
+                        }
+                    }
+                }
+            ]
+        },
+        "module-uses": {
+            "patterns": [
+                {
+                    "//": "use: value -> mark as module name (supports quoted or unquoted values)",
+                    "match": "(?m)^(\\s*(?:-\\s*)?use\\s*:\\s*)(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+))",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "support.module.phlow"
+                        },
+                        "3": {
+                            "name": "support.module.phlow"
+                        },
+                        "4": {
+                            "name": "support.module.phlow"
+                        }
+                    }
+                },
+                {
+                    "//": "dash list-item keys that look like module path/names (e.g. '- logger:' or '- ./inner:') -> mark as module",
+                    "match": "(?m)^(\\s*)(?:-\\s*)(\\.?[A-Za-z0-9_\\-\\.\\/]+)(?=\\s*:\\s*)",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "support.module.phlow"
                         }
                     }
                 }
