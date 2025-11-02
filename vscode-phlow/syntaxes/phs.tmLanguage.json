@@ -111,9 +111,34 @@
                             "include": "#booleans"
                         },
                         {
+                            "include": "#dotted-identifiers"
+                        },
+                        {
+                            "include": "#globals"
+                        },
+                        {
+                            "include": "#keywords"
+                        },
+                        {
                             "include": "#identifiers"
                         }
                     ]
+                }
+            ]
+        },
+        "dotted-identifiers": {
+            "patterns": [
+                {
+                    "name": "meta.dotted.identifier.phs",
+                    "match": "(\\b(?:main|vars|envs|payload|setup|input))(\\.(?:[A-Za-z_][A-Za-z0-9_]*)+)\\b",
+                    "captures": {
+                        "1": {
+                            "name": "variable.language.global.phs"
+                        },
+                        "2": {
+                            "name": "variable.other.property.phs"
+                        }
+                    }
                 }
             ]
         },
