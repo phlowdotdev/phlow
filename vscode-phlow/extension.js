@@ -522,6 +522,53 @@ function activate(context) {
         if (editor && e.document === editor.document) updateDecorationsForEditor(editor);
     }));
 
+    // Go-to-definition for !include and !import directives
+    const defProvider = vscode.languages.registerDefinitionProvider({ language: 'phlow' }, {
+        provideDefinition: async (document, position, token) => {
+            try {
+                const line = document.lineAt(position.line).text;
+                // get a reasonable word at position (path-like)
+                const wordRange = document.getWordRangeAtPosition(position, /[A-Za-z0-9_\.\/\-~]+/);
+                if (!wordRange) return null;
+                let word = document.getText(wordRange);
+                // trim surrounding quotes if any
+                word = word.replace(/^['"]|['"]$/g, '');
+
+                // check if this word is preceded by !include or !import in the same line
+                const before = line.slice(0, wordRange.start.character);
+                const includeMatch = before.match(/!include\s*$/);
+                const importMatch = before.match(/!import\s*$/);
+                // also support patterns like 'use: handler.phs' or 'module: handler.phs' where the value is the path
+                const keyValueMatch = before.match(/(?:\buse\b|\bmodule\b|\bid\b)\s*:\s*$/i);
+
+                if (!includeMatch && !importMatch && !keyValueMatch) return null;
+
+                // resolve the path relative to the document
+                let targetPath = word;
+                // if path is not absolute, resolve relative to document folder
+                if (!path.isAbsolute(targetPath)) {
+                    const base = path.dirname(document.uri.fsPath || '');
+                    targetPath = path.resolve(base, targetPath);
+                }
+
+                const targetUri = vscode.Uri.file(targetPath);
+                // check existence
+                try {
+                    await vscode.workspace.fs.stat(targetUri);
+                } catch (e) {
+                    // file doesn't exist — still return location so the editor can attempt to open (or show create)
+                }
+
+                // Return location at start of file
+                return new vscode.Location(targetUri, new vscode.Position(0, 0));
+            } catch (e) {
+                analyzerOutput.appendLine(`definition provider error: ${e.message}`);
+                return null;
+            }
+        }
+    });
+    context.subscriptions.push(defProvider);
+
     // Handle already-open documents when the extension activates
     vscode.workspace.textDocuments.forEach(handleDocument);
 
