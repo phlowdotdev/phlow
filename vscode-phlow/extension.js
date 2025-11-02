@@ -442,14 +442,15 @@ function activate(context) {
         if (unifiedKeyDecoration) {
             editor.setDecorations(unifiedKeyDecoration, ranges.flatNonDashKeys || []);
         }
-        // highlight module names where they appear
+        // highlight module names where they appear in several contexts
         try {
             const text = doc.getText();
             const lines = text.split(/\r?\n/);
             const modRanges = [];
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
-                // match list-item keys: '- logger:'
+
+                // 1) match list-item keys: '- logger:'
                 const dashKeyMatch = line.match(/^\s*-\s+([A-Za-z0-9_\-\.\/]+)\s*:/);
                 if (dashKeyMatch) {
                     const name = dashKeyMatch[1];
@@ -460,21 +461,47 @@ function activate(context) {
                         continue;
                     }
                 }
-                // match use: logger or - use: logger
-                const useMatch = line.match(/^\s*(?:-\s*)?use\s*:\s*(?:"([^"]+)"|'([^']+)'|([^\s]+))/i);
-                if (useMatch) {
-                    const name = useMatch[1] || useMatch[2] || useMatch[3];
+
+                // 2) match plain keys like 'logger:' (no leading '-') — covers cases where modules are declared directly as a mapping key
+                const plainKeyMatch = line.match(/^\s*([A-Za-z0-9_\-\.\/]+)\s*:/);
+                if (plainKeyMatch) {
+                    const name = plainKeyMatch[1];
                     if (moduleNames.has(name) || moduleNames.has(stripLeadingDotSlash(name))) {
+                        const startCol = line.indexOf(name);
+                        const endCol = startCol + name.length;
+                        modRanges.push(new vscode.Range(new vscode.Position(i, startCol), new vscode.Position(i, endCol)));
+                        continue;
+                    }
+                }
+
+                // 3) match explicit keys that commonly reference modules: use:, module:, id: — with optional leading '-'
+                const moduleKeyValueMatch = line.match(/^\s*(?:-\s*)?(?:use|module|id)\s*:\s*(?:"([^"]+)"|'([^']+)'|([^\s]+))/i);
+                if (moduleKeyValueMatch) {
+                    const name = moduleKeyValueMatch[1] || moduleKeyValueMatch[2] || moduleKeyValueMatch[3];
+                    if (name && (moduleNames.has(name) || moduleNames.has(stripLeadingDotSlash(name)))) {
                         const idx = line.indexOf(name);
-                        if (idx >= 0) {
-                            modRanges.push(new vscode.Range(new vscode.Position(i, idx), new vscode.Position(i, idx + name.length)));
-                        }
+                        if (idx >= 0) modRanges.push(new vscode.Range(new vscode.Position(i, idx), new vscode.Position(i, idx + name.length)));
+                        continue;
+                    }
+                }
+
+                // 4) generic fallback: highlight any standalone token that equals a module name (word boundary) but avoid matching within other words
+                //    This covers occurrences where the module name appears as a value or somewhere else in the line
+                for (const modName of Array.from(moduleNames)) {
+                    if (!modName) continue;
+                    const short = stripLeadingDotSlash(modName);
+                    // build regex with word boundaries; escape dots and slashes
+                    const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const re = new RegExp('\\b' + esc(short) + '\\b');
+                    if (re.test(line)) {
+                        const idx = line.search(re);
+                        if (idx >= 0) modRanges.push(new vscode.Range(new vscode.Position(i, idx), new vscode.Position(i, idx + short.length)));
                     }
                 }
             }
             if (moduleDecoration) editor.setDecorations(moduleDecoration, modRanges);
         } catch (e) {
-            // ignore decoration errors
+            // ignore decoration errors but log for debug
             analyzerOutput.appendLine(`module decoration error: ${e.message}`);
         }
     }
