@@ -1,3 +1,0 @@
-- log:
-    message: Number is ${ payload }
-    level: info
