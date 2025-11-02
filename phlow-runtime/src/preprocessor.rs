@@ -134,29 +134,34 @@ fn processor_transform_phs_hidden_object_and_arrays(phlow: &str) -> String {
         if let Some(colon_pos) = trimmed_line.find(':') {
             let key = &trimmed_line[..colon_pos].trim();
             let value = &trimmed_line[colon_pos + 1..].trim();
+            let starts_with_brace = value.starts_with('{');
+            let starts_with_bracket = value.starts_with('[');
 
-            if value.starts_with('{') || value.starts_with('[') {
+            if starts_with_brace || starts_with_bracket {
                 let indent = &line[..line.len() - trimmed_line.len()];
                 let mut block_lines = vec![value.to_string()];
 
                 // Verifica se o bloco fecha na mesma linha
-                if !(value.ends_with('}') || value.ends_with(']')) {
+                if !(starts_with_brace && value.ends_with('}'))
+                    && !(starts_with_bracket && value.ends_with(']'))
+                {
                     // Continua lendo até encontrar o fechamento
                     while let Some(next_line) = lines.next() {
                         block_lines.push(next_line.trim().to_string());
-                        if next_line.trim().ends_with('}') || next_line.trim().ends_with(']') {
+                        if (starts_with_brace && next_line.trim().ends_with('}'))
+                            || (starts_with_bracket && next_line.trim().ends_with(']'))
+                        {
                             break;
                         }
                     }
                 }
 
                 let single_line = block_lines.join(" ");
-                result.push_str(&format!("{}{}: !phs ${{ {} }}\n", indent, key, single_line));
+                result.push_str(&format!("{}{}: !phs ${{ {} }}", indent, key, single_line));
                 continue;
             }
         }
 
-        result.push_str(line);
         result.push_str("\n");
     }
 
@@ -700,4 +705,74 @@ fn unescape_yaml_exclamation_values(yaml: &str) -> String {
         .to_string();
 
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_preprocessor_transform_phs_hidden_object_and_arrays() {
+        let input = r#"
+        key1: {
+            "name": "value",
+            "list": [1, 2, 3]
+        }
+        key2: normal_value
+        "#;
+
+        let transformed = processor_transform_phs_hidden_object_and_arrays(input);
+        println!("Transformed:\n{}", transformed);
+        assert!(
+            transformed.contains("key1: !phs ${ { \"name\": \"value\", \"list\": [1, 2, 3] } }")
+        );
+        assert!(!transformed.contains("key2: !phs normal_value"));
+    }
+
+    #[test]
+    fn test_preprocessor_transform_phs_hidden() {
+        let input = r#"
+        key1: if condition { do_something() }
+        key2: "normal string"
+        - for item in list { process(item) }
+        "#;
+
+        let transformed = preprocessor_transform_phs_hidden(input);
+        assert!(transformed.contains("key1: !phs"));
+        assert!(transformed.contains("- !phs"));
+    }
+
+    #[test]
+    fn test_preprocessor_eval() {
+        let input = r#"
+        key1: !phs if condition { do_something() }
+        key2: !phs ```
+        multi_line_code();
+        another_line();
+        ```
+        key3: !phs ${ for item in list { process(item) } }
+        "#;
+        let transformed = preprocessor_eval(input);
+        assert!(transformed.contains("key1: \"{{ if condition { do_something() } }}\""));
+        assert!(transformed.contains("key2: \"{{ multi_line_code(); another_line(); }}\""));
+        assert!(transformed.contains("key3: \"{{ for item in list { process(item) } }}\""));
+    }
+
+    #[test]
+    fn test_preprocessor_modules() {
+        let input = r#"
+        modules:
+          - module: test_module
+
+        steps:
+          - test_module:
+              param1: value1
+              param2: value2
+          - another_step:
+              action: do_something
+        "#;
+
+        let transformed = preprocessor_modules(input).unwrap();
+        assert!(transformed.contains("use: test_module"));
+    }
 }

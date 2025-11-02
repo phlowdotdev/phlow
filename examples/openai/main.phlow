@@ -1,53 +1,53 @@
 modules:
-    - module: log
-    - module: openai
-        with:
-        model: gpt-5
-        api_key: envs.OPENAI_API_KEY
-    - module: cache
-        with:
-        capacity: 1000
+  - module: log
+  - module: openai
+    with:
+      model: gpt-5-mini
+      api_key: envs.OPENAI_API_KEY
+  - module: cache
+    with:
+      capacity: 1000
 steps:
-    - id: storage
-        payload: payload ?? main
-    - log:
-        level: when steps.storage.len % 2 == 0 ? "warn" : "error"
-        message: steps.storage[-1].content
-    - log:
-        level: info
-        message: main
-    - log:
-        level: info
-        message: -----------------------------
-    - openai:
-        action: chat
-        messages: steps.storage
-    - payload: {
-        log("error", "aqui");
-        let storage = [...steps.storage];
-        storage.push(payload.data.choices[0].message);
+  - id: storage
+    payload: payload ?? main
+  - log:
+      level: when steps.storage.len % 2 == 0 ? "warn" : "error"
+      message: steps.storage[-1].content
+  - log:
+      level: info
+      message: main
+  - log:
+      level: info
+      message: -----------------------------
+  - openai:
+      action: chat
+      messages: steps.storage
+  - payload: ${
+      let storage = [...steps.storage];
+      storage.push(payload.data.choices[0].message);
 
-        let messages = [];
+      let messages = [];
 
-        for (msg, index) in storage {
-            let role = if storage.len % 2 == 0 {
-                if index % 2 == 0 {
-                    "assistant"
-                } else {
-                    "user"
-                }
-            } else {
-                if index % 2 == 0 {
-                    "user"
-                } else {
-                    "assistant"
-                }
-            };
-            messages.push({
-                role: role,
-                content: msg.content
-            });
-        }
-        messages
-        }
-    - to: storage
+      for (msg, index) in storage {
+          let role = if storage.len % 2 == 0 {
+              if index % 2 == 0 {
+                  "assistant"
+              } else {
+                  "user"
+              }
+          } else {
+              if index % 2 == 0 {
+                  "user"
+              } else {
+                  "assistant"
+              }
+          };
+          messages.push({
+              role: role,
+              content: msg.content
+          });
+      }
+
+      messages
+    }
+  - to: storage
