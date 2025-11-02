@@ -322,6 +322,23 @@
         "module-uses": {
             "patterns": [
                 {
+                    "match": "(?m)^(\\s*(?:-\\s*)?module\\s*:\\s*)(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+))",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "support.module.phlow"
+                        },
+                        "3": {
+                            "name": "support.module.phlow"
+                        },
+                        "4": {
+                            "name": "support.module.phlow"
+                        }
+                    }
+                },
+                {
                     "match": "(?m)^(\\s*(?:-\\s*)?use\\s*:\\s*)(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+))",
                     "captures": {
                         "1": {
