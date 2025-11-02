@@ -123,6 +123,44 @@
                             "include": "#identifiers"
                         }
                     ]
+                },
+                {
+                    "begin": "\\$\\{",
+                    "beginCaptures": {
+                        "0": {
+                            "name": "punctuation.section.interpolation.begin.phs"
+                        }
+                    },
+                    "end": "\\)",
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.section.interpolation.end.phs"
+                        }
+                    },
+                    "name": "meta.interpolation.paren.phs",
+                    "patterns": [
+                        {
+                            "include": "#strings"
+                        },
+                        {
+                            "include": "#numbers"
+                        },
+                        {
+                            "include": "#booleans"
+                        },
+                        {
+                            "include": "#dotted-identifiers"
+                        },
+                        {
+                            "include": "#globals"
+                        },
+                        {
+                            "include": "#keywords"
+                        },
+                        {
+                            "include": "#identifiers"
+                        }
+                    ]
                 }
             ]
         },
