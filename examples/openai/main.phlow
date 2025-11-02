@@ -11,16 +11,9 @@ steps:
   - id: storage
     payload: payload ?? main
   - log:
-      level: when steps.storage.len % 2 == 0 ? "warn" : "error"
+      level: when steps.storage.len % 2 == 0 then "warn" else "error"
       message: steps.storage[-1].content
-  - log:
-      level: info
-      message: main
-  - log:
-      level: info
-      message: -----------------------------
-  - openai:
-      action: chat
+  - openai.chat:
       messages: steps.storage
   - payload: ${
       let storage = [...steps.storage];
