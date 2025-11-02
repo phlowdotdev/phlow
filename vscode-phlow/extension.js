@@ -511,6 +511,144 @@ function activate(context) {
         return s.replace(/^\.\//, '');
     }
 
+    // Resolve module target path using analyzer data when available.
+    async function resolveModuleTarget(word, document) {
+        // If the module is referenced as a simple name (no leading './', no '/' and not absolute),
+        // treat it as a namespace and prefer resolving to phlow_packages/<name>/main.phlow.
+        try {
+            const isAbsolute = path.isAbsolute(word);
+            const looksLikePath = word.startsWith('./') || word.startsWith('../') || word.includes('/');
+            if (!isAbsolute && !looksLikePath) {
+                // search workspace for matching phlow_packages entry
+                const modBase = word;
+                analyzerOutput.appendLine(`Resolving namespace module '${word}' via phlow_packages search`);
+                try {
+                    const found = await vscode.workspace.findFiles(`**/phlow_packages/${modBase}/main.phlow`, '**/node_modules/**', 1);
+                    if (found && found.length > 0) {
+                        analyzerOutput.appendLine(`Found phlow_packages module for '${word}': ${found[0].fsPath}`);
+                        return found[0].fsPath;
+                    }
+                    // also try more permissive search (nested folders)
+                    const found2 = await vscode.workspace.findFiles(`**/phlow_packages/**/${modBase}/main.phlow`, '**/node_modules/**', 1);
+                    if (found2 && found2.length > 0) {
+                        analyzerOutput.appendLine(`Found phlow_packages (nested) module for '${word}': ${found2[0].fsPath}`);
+                        return found2[0].fsPath;
+                    }
+                } catch (e) {
+                    analyzerOutput.appendLine(`phlow_packages search error for '${word}': ${e.message}`);
+                }
+                // if not found, continue to analyzer-based resolution/fallback below
+            }
+        } catch (e) {
+            // ignore errors in namespace short-circuit and continue
+        }
+        // Try to find a module declared by the analyzer that matches the word
+        let resolvedFromAnalyzer = null;
+        for (const [mainPathKey, proj] of projects.entries()) {
+            if (!proj || !proj.data || !Array.isArray(proj.data.modules)) continue;
+            for (const m of proj.data.modules) {
+                if (!m) continue;
+                const mName = m.name ? String(m.name) : null;
+                const mDeclared = m.declared ? String(m.declared) : null;
+                // create several normalized forms to compare
+                const forms = new Set();
+                if (mDeclared) {
+                    forms.add(mDeclared);
+                    forms.add(stripLeadingDotSlash(mDeclared));
+                    forms.add(path.basename(mDeclared));
+                    // also add declared without trailing '/main.phlow' and without '.phlow'
+                    if (mDeclared.endsWith('/main.phlow')) forms.add(mDeclared.replace(/\/main\.phlow$/, ''));
+                    if (mDeclared.endsWith('.phlow')) forms.add(mDeclared.replace(/\.phlow$/, ''));
+                }
+                if (mName) {
+                    forms.add(mName);
+                }
+                // compare with word and word variants
+                const wordVariants = new Set([word, stripLeadingDotSlash(word), path.basename(word)]);
+                let matched = false;
+                for (const fv of forms) {
+                    if (!fv) continue;
+                    for (const wv of wordVariants) {
+                        if (!wv) continue;
+                        if (fv === wv) { matched = true; break; }
+                    }
+                    if (matched) break;
+                }
+                if (matched && mDeclared) {
+                    // resolve declared path relative to the main.phlow that produced it
+                    const base = path.dirname(mainPathKey);
+                    let declaredResolved = path.isAbsolute(mDeclared) ? mDeclared : path.resolve(base, mDeclared);
+                    try {
+                        const statDecl = await vscode.workspace.fs.stat(vscode.Uri.file(declaredResolved));
+                        // if declaredResolved is a directory, prefer declaredResolved/main.phlow
+                        if (statDecl && statDecl.type === vscode.FileType.Directory) {
+                            declaredResolved = path.join(declaredResolved, 'main.phlow');
+                        } else if (statDecl && statDecl.type === vscode.FileType.File) {
+                            // if it's a file but not ending with .phlow, still try adding .phlow variant
+                            if (!declaredResolved.endsWith('.phlow')) {
+                                const dotPhlow = declaredResolved + '.phlow';
+                                try {
+                                    const st = await vscode.workspace.fs.stat(vscode.Uri.file(dotPhlow));
+                                    if (st && st.type === vscode.FileType.File) declaredResolved = dotPhlow;
+                                } catch (e) { /* ignore */ }
+                            }
+                        }
+                    } catch (e) {
+                        // path does not exist as-is; if it doesn't end with .phlow, prefer adding '/main.phlow'
+                        if (!declaredResolved.endsWith('.phlow')) {
+                            declaredResolved = path.join(declaredResolved, 'main.phlow');
+                        }
+                    }
+                    // If the declaredResolved path doesn't exist or points to a non-ideal location,
+                    // try to locate the module under any phlow_packages folders in the workspace.
+                    try {
+                        await vscode.workspace.fs.stat(vscode.Uri.file(declaredResolved));
+                        // exists — use it
+                        resolvedFromAnalyzer = declaredResolved;
+                    } catch (e) {
+                        // not found — attempt to search workspace phlow_packages for this module by basename
+                        const modBase = path.basename(declaredResolved).replace(/\.phlow$/, '');
+                        let foundUris = [];
+                        try {
+                            foundUris = await vscode.workspace.findFiles(`**/phlow_packages/${modBase}/main.phlow`, '**/node_modules/**', 1);
+                        } catch (e2) { /* ignore */ }
+                        if (!foundUris || foundUris.length === 0) {
+                            try {
+                                foundUris = await vscode.workspace.findFiles(`**/phlow_packages/**/${modBase}/main.phlow`, '**/node_modules/**', 1);
+                            } catch (e3) { /* ignore */ }
+                        }
+                        if (foundUris && foundUris.length > 0) {
+                            resolvedFromAnalyzer = foundUris[0].fsPath;
+                        } else {
+                            // as last resort, keep declaredResolved (which may not exist) — caller expects main.phlow appended when needed
+                            resolvedFromAnalyzer = declaredResolved;
+                        }
+                    }
+                    break;
+                }
+            }
+            if (resolvedFromAnalyzer) break;
+        }
+        if (resolvedFromAnalyzer) return resolvedFromAnalyzer;
+
+        // Fallback: resolve relative to document
+        const base = path.dirname(document.uri.fsPath || '');
+        let resolved = path.isAbsolute(word) ? word : path.resolve(base, word);
+        if (resolved.endsWith('.phlow')) return resolved;
+        // prefer resolved + '.phlow' if exists
+        try {
+            const statDot = await vscode.workspace.fs.stat(vscode.Uri.file(resolved + '.phlow'));
+            if (statDot && statDot.type === vscode.FileType.File) return resolved + '.phlow';
+        } catch (e) { /* ignore */ }
+        // prefer resolved/main.phlow if exists
+        try {
+            const statMain = await vscode.workspace.fs.stat(vscode.Uri.file(path.join(resolved, 'main.phlow')));
+            if (statMain && statMain.type === vscode.FileType.File) return path.join(resolved, 'main.phlow');
+        } catch (e) { /* ignore */ }
+        // default to resolved/main.phlow (even if it doesn't exist)
+        return path.join(resolved, 'main.phlow');
+    }
+
     // Update decorations for the currently active editor
     const active = vscode.window.activeTextEditor;
     if (active) updateDecorationsForEditor(active);
@@ -539,9 +677,13 @@ function activate(context) {
                 const includeMatch = before.match(/!include\s*$/);
                 const importMatch = before.match(/!import\s*$/);
                 // also support patterns like 'use: handler.phs' or 'module: handler.phs' where the value is the path
-                const keyValueMatch = before.match(/(?:\buse\b|\bmodule\b|\bid\b)\s*:\s*$/i);
+                // capture the key so we can ignore `id` and apply special module resolution
+                const keyMatch = before.match(/(?:\b(use|module|id)\b)\s*:\s*$/i);
 
-                if (!includeMatch && !importMatch && !keyValueMatch) return null;
+                if (!includeMatch && !importMatch && !keyMatch) return null;
+
+                // if it's an id: do not provide go-to
+                if (keyMatch && keyMatch[1] && keyMatch[1].toLowerCase() === 'id') return null;
 
                 // resolve the path relative to the document
                 let targetPath = word;
@@ -551,8 +693,18 @@ function activate(context) {
                     targetPath = path.resolve(base, targetPath);
                 }
 
+                // If the key is 'module', resolve using analyzer data or fallback logic
+                if (keyMatch && keyMatch[1] && keyMatch[1].toLowerCase() === 'module') {
+                    try {
+                        const resolved = await resolveModuleTarget(word, document);
+                        if (resolved) targetPath = resolved;
+                    } catch (e) {
+                        analyzerOutput.appendLine(`module resolve error: ${e.message}`);
+                    }
+                }
+
                 const targetUri = vscode.Uri.file(targetPath);
-                // check existence
+                // check existence (not required)
                 try {
                     await vscode.workspace.fs.stat(targetUri);
                 } catch (e) {
@@ -568,6 +720,87 @@ function activate(context) {
         }
     });
     context.subscriptions.push(defProvider);
+
+    // Document links (underline + clickable) for include/import and module references
+    const linkProvider = vscode.languages.registerDocumentLinkProvider({ language: 'phlow' }, {
+        provideDocumentLinks: async (document, token) => {
+            try {
+                const links = [];
+                const lines = document.getText().split(/\r?\n/);
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    // patterns to match: !include path, !import path, key: path (use/module/id)
+                    // match !include/import followed by optional space and a path (possibly quoted)
+                    let m;
+                    const includeRegex = /!include\s+(?:"([^"]+)"|'([^']+)'|([^\s]+))/g;
+                    while ((m = includeRegex.exec(line)) !== null) {
+                        const raw = m[1] || m[2] || m[3];
+                        const start = m.index + m[0].indexOf(raw);
+                        const end = start + raw.length;
+                        let targetPath = raw;
+                        if (!path.isAbsolute(targetPath)) {
+                            const base = path.dirname(document.uri.fsPath || '');
+                            targetPath = path.resolve(base, targetPath);
+                        }
+                        const targetUri = vscode.Uri.file(targetPath);
+                        const range = new vscode.Range(new vscode.Position(i, start), new vscode.Position(i, end));
+                        links.push(new vscode.DocumentLink(range, targetUri));
+                    }
+
+                    const importRegex = /!import\s+(?:"([^"]+)"|'([^']+)'|([^\s]+))/g;
+                    while ((m = importRegex.exec(line)) !== null) {
+                        const raw = m[1] || m[2] || m[3];
+                        const start = m.index + m[0].indexOf(raw);
+                        const end = start + raw.length;
+                        let targetPath = raw;
+                        if (!path.isAbsolute(targetPath)) {
+                            const base = path.dirname(document.uri.fsPath || '');
+                            targetPath = path.resolve(base, targetPath);
+                        }
+                        const targetUri = vscode.Uri.file(targetPath);
+                        const range = new vscode.Range(new vscode.Position(i, start), new vscode.Position(i, end));
+                        links.push(new vscode.DocumentLink(range, targetUri));
+                    }
+
+                    // key: value forms for use/module — support quoted and unquoted values
+                    const kvRegex = /(?:^|\s)(use|module)\s*:\s*(?:"([^\"]+)"|'([^']+)'|([^\s]+))/ig;
+                    while ((m = kvRegex.exec(line)) !== null) {
+                        const key = (m[1] || '').toLowerCase();
+                        const raw = m[2] || m[3] || m[4];
+                        if (!raw) continue;
+                        const start = m.index + m[0].lastIndexOf(raw);
+                        const end = start + raw.length;
+                        let targetPath = raw;
+                        if (key === 'module') {
+                            try {
+                                targetPath = await resolveModuleTarget(raw, document);
+                            } catch (e) {
+                                analyzerOutput.appendLine(`link module resolve error: ${e.message}`);
+                                // fallback: resolve relative to document
+                                if (!path.isAbsolute(targetPath)) {
+                                    const base = path.dirname(document.uri.fsPath || '');
+                                    targetPath = path.resolve(base, targetPath);
+                                }
+                            }
+                        } else {
+                            if (!path.isAbsolute(targetPath)) {
+                                const base = path.dirname(document.uri.fsPath || '');
+                                targetPath = path.resolve(base, targetPath);
+                            }
+                        }
+                        const targetUri = vscode.Uri.file(targetPath);
+                        const range = new vscode.Range(new vscode.Position(i, start), new vscode.Position(i, end));
+                        links.push(new vscode.DocumentLink(range, targetUri));
+                    }
+                }
+                return links;
+            } catch (e) {
+                analyzerOutput.appendLine(`document link provider error: ${e.message}`);
+                return [];
+            }
+        }
+    });
+    context.subscriptions.push(linkProvider);
 
     // Handle already-open documents when the extension activates
     vscode.workspace.textDocuments.forEach(handleDocument);

@@ -1,5 +1,5 @@
 use crate::MODULE_EXTENSION;
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use log::info;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -37,16 +37,11 @@ impl Package {
             self.module_dir.display()
         );
 
-        let metadata_path = ["phlow.yaml", "phlow.yml"]
+        let metadata_path = ["main.phlow", "phlow.yaml", "phlow.yml"]
             .iter()
             .map(|f| self.module_dir.join(f))
             .find(|p| p.exists())
-            .ok_or_else(|| {
-                anyhow!(
-                    "No phlow.yaml/yml/json file found in {}",
-                    self.module_dir.display()
-                )
-            })?;
+            .ok_or_else(|| anyhow!("No main.phlow file found in {}", self.module_dir.display()))?;
 
         info!("Metadata file found: {}", metadata_path.display());
 
@@ -57,8 +52,10 @@ impl Package {
             })?
         };
 
-        info!("Metadata loaded:\n  - name: {}\n  - version: {}\n  - repository: {}\n  - license: {}\n  - author: {}",
-            metadata.name, metadata.version, metadata.repository, metadata.license, metadata.author);
+        info!(
+            "Metadata loaded:\n  - name: {}\n  - version: {}\n  - repository: {}\n  - license: {}\n  - author: {}",
+            metadata.name, metadata.version, metadata.repository, metadata.license, metadata.author
+        );
 
         info!("Validating version...");
         let version_regex = Regex::new(r"^\d+\.\d+\.\d+(?:-[\w\.-]+)?(?:\+[\w\.-]+)?$")?;
@@ -87,7 +84,9 @@ impl Package {
         if !known_licenses.contains(&metadata.license.as_str()) {
             if !metadata.license.starts_with("http://") && !metadata.license.starts_with("https://")
             {
-                bail!("Invalid license: must be a known open source license or a URL to license terms");
+                bail!(
+                    "Invalid license: must be a known open source license or a URL to license terms"
+                );
             }
         }
 
