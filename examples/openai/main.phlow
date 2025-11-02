@@ -2,13 +2,13 @@ modules:
   - module: log
   - module: openai
     with:
-      model: gpt-5-mini
+      model: "gpt-5-mini"
       api_key: envs.OPENAI_API_KEY
   - module: cache
     with:
       capacity: 1000
 steps:
-  - id: storage
+  - id: "storage"
     payload: payload ?? main
   - log:
       level: when steps.storage.len % 2 == 0 then "warn" else "error"
