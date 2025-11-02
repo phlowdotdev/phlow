@@ -1,8 +1,8 @@
 {
-    "scopeName": "source.rhai",
-    "name": "Rhai",
+    "scopeName": "source.phs",
+    "name": "Phlow Script",
     "fileTypes": [
-        "rhai"
+        "phs"
     ],
     "patterns": [
         {
@@ -22,7 +22,7 @@
         "comments": {
             "patterns": [
                 {
-                    "name": "comment.line.double-slash.rhai",
+                    "name": "comment.line.double-slash.phs",
                     "match": "//.*$"
                 }
             ]
@@ -30,18 +30,18 @@
         "strings": {
             "patterns": [
                 {
-                    "name": "string.quoted.double.rhai",
+                    "name": "string.quoted.double.phs",
                     "begin": "\"",
                     "end": "\"",
                     "patterns": [
                         {
-                            "name": "constant.character.escape.rhai",
+                            "name": "constant.character.escape.phs",
                             "match": "\\\\."
                         }
                     ]
                 },
                 {
-                    "name": "string.quoted.single.rhai",
+                    "name": "string.quoted.single.phs",
                     "begin": "'",
                     "end": "'"
                 }
@@ -50,7 +50,7 @@
         "numbers": {
             "patterns": [
                 {
-                    "name": "constant.numeric.rhai",
+                    "name": "constant.numeric.phs",
                     "match": "\\b\\d+(?:\\.\\d+)?\\b"
                 }
             ]
@@ -58,7 +58,7 @@
         "booleans": {
             "patterns": [
                 {
-                    "name": "constant.language.boolean.rhai",
+                    "name": "constant.language.boolean.phs",
                     "match": "\\b(?:true|false|null|undefined)\\b"
                 }
             ]
