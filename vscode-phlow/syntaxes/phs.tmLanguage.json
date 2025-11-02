@@ -129,11 +129,14 @@
         "dotted-identifiers": {
             "patterns": [
                 {
-                    "name": "meta.dotted.identifier.phs",
-                    "match": "(\\b(?:main|vars|envs|payload|setup|input))(\\.(?:[A-Za-z_][A-Za-z0-9_]*)+)\\b",
+                    "name": "variable.language.global.phs",
+                    "match": "\\b(?:main|vars|envs|payload|setup|input)\\b"
+                },
+                {
+                    "match": "(\\.)([A-Za-z_][A-Za-z0-9_]*)",
                     "captures": {
                         "1": {
-                            "name": "variable.language.global.phs"
+                            "name": "punctuation.separator.property.phs"
                         },
                         "2": {
                             "name": "variable.other.property.phs"

@@ -7,5 +7,6 @@ else
 end
 
 payload asdasd
+payload.name.asd
 
-`My name is ${ payload }`
+`My name is ${ payload.name.asd }`

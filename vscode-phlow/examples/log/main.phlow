@@ -25,7 +25,7 @@ steps:
       key: name
   - payload: !phs main
   - payload: !phs ${ 
-    let num = payload * 5;
+    let num = payload.profile.age * 5;
     main 
     num + 1 
   }
