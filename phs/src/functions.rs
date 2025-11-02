@@ -1,4 +1,4 @@
-use base64::{engine::general_purpose, Engine as Base64Engine};
+use base64::{Engine as Base64Engine, engine::general_purpose};
 use chrono::Datelike;
 use chrono::TimeZone;
 use chrono::Timelike;
@@ -176,11 +176,7 @@ pub fn build_functions() -> Engine {
         let len = s.chars().count() as i64;
         let start = if start < 0 {
             let abs_start = start.abs();
-            if abs_start > len {
-                0
-            } else {
-                len - abs_start
-            }
+            if abs_start > len { 0 } else { len - abs_start }
         } else {
             start
         };
@@ -434,7 +430,7 @@ pub fn build_functions() -> Engine {
     });
 
     match engine.register_custom_syntax(
-        ["when", "$expr$", "?", "$expr$", ":", "$expr$"],
+        ["when", "$expr$", "then", "$expr$", "else", "$expr$"],
         false,
         |context, inputs| match context.eval_expression_tree(&inputs[0])?.as_bool() {
             Ok(true) => context.eval_expression_tree(&inputs[1]),
@@ -448,7 +444,26 @@ pub fn build_functions() -> Engine {
     ) {
         Ok(engine) => engine,
         Err(_) => {
-            panic!("Error on register custom syntax when");
+            panic!("Error on register custom syntax when ternary");
+        }
+    };
+
+    match engine.register_custom_syntax(
+        ["it", "$expr$", "?", "$expr$", ":", "$expr$"],
+        false,
+        |context, inputs| match context.eval_expression_tree(&inputs[0])?.as_bool() {
+            Ok(true) => context.eval_expression_tree(&inputs[1]),
+            Ok(false) => context.eval_expression_tree(&inputs[2]),
+            Err(typ) => Err(Box::new(EvalAltResult::ErrorMismatchDataType(
+                "bool".to_string(),
+                typ.to_string(),
+                inputs[0].position(),
+            ))),
+        },
+    ) {
+        Ok(engine) => engine,
+        Err(_) => {
+            panic!("Error on register custom syntax it ternary");
         }
     };
 
@@ -887,26 +902,37 @@ mod tests {
     }
 
     #[test]
-    fn test_when_ternary() {
+    fn test_when_and_case_ternary() {
         let engine = build_functions();
 
         // Teste quando condição é verdadeira
-        let result: i64 = engine.eval(r#"when true ? 42 : 0"#).unwrap();
+        let result: i64 = engine.eval(r#"it true ? 42 : 0"#).unwrap();
         assert_eq!(result, 42);
 
         // Teste quando condição é falsa
-        let result: i64 = engine.eval(r#"when false ? 42 : 0"#).unwrap();
+        let result: i64 = engine.eval(r#"it false ? 42 : 0"#).unwrap();
         assert_eq!(result, 0);
 
         // Teste com expressão condicional
-        let result: String = engine.eval(r#"when 5 > 3 ? "maior" : "menor""#).unwrap();
+        let result: String = engine.eval(r#"it 5 > 3 ? "maior" : "menor""#).unwrap();
         assert_eq!(result, "maior");
 
         // Teste com strings
         let result: String = engine
-            .eval(r#"when "abc".search("b") ? "encontrou" : "não encontrou""#)
+            .eval(r#"it "abc".search("b") ? "encontrou" : "não encontrou""#)
             .unwrap();
         assert_eq!(result, "encontrou");
+
+        let result: i64 = engine.eval(r#"when true then 42 else 0"#).unwrap();
+        assert_eq!(result, 42);
+
+        let result: i64 = engine.eval(r#"when false then 42 else 0"#).unwrap();
+        assert_eq!(result, 0);
+
+        let result: String = engine
+            .eval(r#"when 2 + 2 == 4 then "certo" else "errado""#)
+            .unwrap();
+        assert_eq!(result, "certo");
     }
 
     #[test]

@@ -18,6 +18,12 @@
             "include": "#booleans"
         },
         {
+            "include": "#globals"
+        },
+        {
+            "include": "#keywords"
+        },
+        {
             "include": "#identifiers"
         }
     ],
@@ -108,6 +114,30 @@
                             "include": "#identifiers"
                         }
                     ]
+                }
+            ]
+        },
+        "globals": {
+            "patterns": [
+                {
+                    "name": "variable.language.global.phs",
+                    "match": "\\b(?:main|vars|envs|payload|setup|input)\\b"
+                }
+            ]
+        },
+        "keywords": {
+            "patterns": [
+                {
+                    "name": "keyword.control.phs",
+                    "match": "\\b(?:if|when|it|else|then|for|while|loop|break|continue|return|switch|case|default|try|catch|throw)\\b"
+                },
+                {
+                    "name": "storage.modifier.phs",
+                    "match": "\\b(?:async|await|new|typeof|instanceof|in|of)\\b"
+                },
+                {
+                    "name": "storage.type.phs",
+                    "match": "\\b(?:function|var|let|const|import|export)\\b"
                 }
             ]
         },

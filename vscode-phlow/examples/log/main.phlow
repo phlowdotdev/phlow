@@ -23,9 +23,10 @@ steps:
   - data:
       action: get
       key: name
-  - payload: !phs 123
+  - payload: !phs main
   - payload: !phs ${ 
     let num = payload * 5;
+    main 
     num + 1 
   }
   - id: get_name
