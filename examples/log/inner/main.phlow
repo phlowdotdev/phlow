@@ -1,0 +1,45 @@
+modules:
+  - module: cache2
+
+with:
+  type: object
+  required: false
+  properties:
+    capacity:
+      type: number
+      required: false
+
+input:
+  type: object
+  required: false
+  properties:
+    key:
+      type: string
+      required: true
+    value:
+      type: any
+      required: true
+
+output:
+  type: object
+  required: false
+  properties:
+    success:
+      type: boolean
+      required: true
+    data:
+      type: any
+      required: false
+
+steps:
+  - cache2:
+      capacity: with.capacity ?? 1000
+  - cache.set:
+      key: input.key
+      value: input.value
+  - cache.get:
+      key: input.key
+  - payload: {
+      success: steps.cache.get.found,
+      data: steps.cache.get.value
+    }

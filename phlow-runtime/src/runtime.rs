@@ -1,18 +1,18 @@
-use crate::loader::{load_module, Loader};
+use crate::loader::{Loader, load_module};
 #[cfg(target_env = "gnu")]
 use crate::memory::force_memory_release;
 use crate::settings::Settings;
 use crossbeam::channel;
 use futures::future::join_all;
 use log::{debug, error, info};
-use phlow_engine::phs::{build_engine, Script, ScriptError};
+use phlow_engine::phs::{Script, ScriptError, build_engine};
 use phlow_engine::{Context, Phlow};
 use phlow_sdk::structs::Package;
 use phlow_sdk::tokio;
 use phlow_sdk::{
     prelude::Value,
     structs::{ModulePackage, ModuleSetup, Modules},
-    tracing::{self, dispatcher, Dispatch},
+    tracing::{self, Dispatch, dispatcher},
 };
 use std::fmt::Display;
 use std::sync::Arc;
@@ -75,7 +75,7 @@ impl Runtime {
                     .evaluate_without_context()
                     .map_err(|err| RuntimeError::ModuleWithError(err))?;
 
-                println!(
+                log::debug!(
                     "Module '{}' with: {}",
                     module.name,
                     with.to_json(phlow_sdk::prelude::JsonMode::Indented)
@@ -284,11 +284,13 @@ impl Runtime {
 
         #[cfg(target_env = "gnu")]
         if settings.garbage_collection {
-            thread::spawn(move || loop {
-                thread::sleep(std::time::Duration::from_secs(
-                    settings.garbage_collection_interval,
-                ));
-                force_memory_release(settings.min_allocated_memory);
+            thread::spawn(move || {
+                loop {
+                    thread::sleep(std::time::Duration::from_secs(
+                        settings.garbage_collection_interval,
+                    ));
+                    force_memory_release(settings.min_allocated_memory);
+                }
             });
         }
 

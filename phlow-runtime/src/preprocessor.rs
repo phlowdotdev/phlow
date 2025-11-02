@@ -20,6 +20,8 @@ pub fn preprocessor(
         return Err(errors);
     }
 
+    let phlow = processor_transform_phs_hidden_object_and_arrays(&phlow);
+    let phlow = preprocessor_transform_phs_hidden(&phlow);
     let phlow = preprocessor_eval(&phlow);
     let phlow = preprocessor_modules(&phlow)?;
 
@@ -121,6 +123,155 @@ fn preprocessor_directives(phlow: &str, base_path: &Path) -> (String, Vec<String
     (result, errors)
 }
 
+// identifica blocos de codigo sem phs que são objetos ou arrays, E envole eles com !phs ${ ... }
+fn processor_transform_phs_hidden_object_and_arrays(phlow: &str) -> String {
+    let mut result = String::new();
+    let mut lines = phlow.lines().peekable();
+
+    while let Some(line) = lines.next() {
+        let trimmed_line = line.trim_start();
+
+        if let Some(colon_pos) = trimmed_line.find(':') {
+            let key = &trimmed_line[..colon_pos].trim();
+            let value = &trimmed_line[colon_pos + 1..].trim();
+            let starts_with_brace = value.starts_with('{');
+            let starts_with_bracket = value.starts_with('[');
+
+            if starts_with_brace || starts_with_bracket {
+                let indent = &line[..line.len() - trimmed_line.len()];
+                let mut block_lines = vec![value.to_string()];
+
+                // Verifica se o bloco fecha na mesma linha
+                if !(starts_with_brace && value.ends_with('}'))
+                    && !(starts_with_bracket && value.ends_with(']'))
+                {
+                    // Continua lendo até encontrar o fechamento
+                    while let Some(next_line) = lines.next() {
+                        block_lines.push(next_line.trim().to_string());
+                        if (starts_with_brace && next_line.trim().ends_with('}'))
+                            || (starts_with_bracket && next_line.trim().ends_with(']'))
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                let single_line = block_lines.join(" ");
+                result.push_str(&format!("{}{}: !phs ${{ {} }}\n", indent, key, single_line));
+                continue;
+            }
+        }
+
+        result.push_str(line);
+        result.push_str("\n");
+    }
+
+    // Remove a última quebra de linha extra se houver
+    if result.ends_with('\n') {
+        result.pop();
+    }
+    result
+}
+
+// Essa função identifica qualquer valore de propriedade que inicie com
+//palavras reservadas do phs ou seja um algoritimo e inclui a tag !phs automaticamente
+fn preprocessor_transform_phs_hidden(phlow: &str) -> String {
+    let operators: Vec<&'static str> = vec![
+        "+", "-", "*", "/", "%", "==", "!=", "<", ">", "<=", ">=", "&&", "||", "??", "?:",
+    ];
+    let mut reserved_keywords = vec![
+        "if", "else", "for", "while", "loop", "match", "let", "const", "fn", "return", "switch",
+        "case", "default", "try", "catch", "throw", "when", "payload", "input", "steps", "main",
+        "setup", "envs", "!",
+    ];
+    reserved_keywords.extend(&operators);
+
+    let mut result = String::new();
+
+    for line in phlow.lines() {
+        let trimmed_line = line.trim_start();
+
+        if let Some(colon_pos) = trimmed_line.find(':') {
+            let key = &trimmed_line[..colon_pos].trim();
+            let value = &trimmed_line[colon_pos + 1..].trim();
+
+            let first_word = value
+                .trim()
+                .split_whitespace()
+                .next()
+                .unwrap_or("")
+                .split('.')
+                .next()
+                .unwrap_or("");
+
+            if first_word == "!phs" {
+                result.push_str(line);
+                result.push_str("\n");
+                continue;
+            }
+
+            if first_word.starts_with("`") || first_word.starts_with("${") {
+                let indent = &line[..line.len() - trimmed_line.len()];
+                let content = &format!("{}{}: !phs {}\n", indent, key, value);
+                result.push_str(content);
+                continue;
+            }
+
+            if reserved_keywords.contains(&first_word)
+                || (operators
+                    .iter()
+                    .any(|op| value.contains(&format!(" {} ", op)))
+                    && !value.starts_with('"'))
+            {
+                let indent = &line[..line.len() - trimmed_line.len()];
+                result.push_str(&format!("{}{}: !phs {}\n", indent, key, value));
+                continue;
+            }
+        } else if trimmed_line.starts_with("-") {
+            let after_dash = trimmed_line[1..].trim_start();
+            let first_word = after_dash
+                .split_whitespace()
+                .next()
+                .unwrap_or("")
+                .split('.')
+                .next()
+                .unwrap_or("")
+                .split('[')
+                .next()
+                .unwrap_or("");
+
+            if first_word == "!phs" {
+                result.push_str(line);
+                result.push_str("\n");
+                continue;
+            }
+
+            if first_word.starts_with("`") {
+                let indent = &line[..line.len() - trimmed_line.len()];
+                result.push_str(&format!("{}- !phs {}\n", indent, after_dash));
+                continue;
+            }
+
+            if reserved_keywords.contains(&first_word)
+                || (operators
+                    .iter()
+                    .any(|op| after_dash.contains(&format!(" {} ", op)))
+                    && !after_dash.starts_with('"'))
+            {
+                let indent = &line[..line.len() - trimmed_line.len()];
+                result.push_str(&format!("{}- !phs {}\n", indent, after_dash));
+                continue;
+            }
+        }
+
+        result.push_str(line);
+        result.push_str("\n");
+    }
+
+    result.pop();
+    result.to_string()
+}
+
 fn preprocessor_eval(phlow: &str) -> String {
     let mut result = String::new();
     let mut lines = phlow.lines().peekable();
@@ -134,7 +285,7 @@ fn preprocessor_eval(phlow: &str) -> String {
                 ""
             };
             let indent = " ".repeat(pos);
-
+            // Verifica se o bloco é markdown-style ```
             if after_eval.starts_with("```") {
                 // Bloco markdown-style
                 let mut block_lines = vec![];
@@ -159,17 +310,29 @@ fn preprocessor_eval(phlow: &str) -> String {
                 } else {
                     result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", before_eval, escaped));
                 }
-            } else if after_eval.starts_with("{") {
-                // Bloco de código delimitado por {}
+            }
+            // Verifica se o bloco é delimitado por ${}
+            else if after_eval.starts_with("${") {
+                // Bloco de código delimitado por ${}
                 let mut block_content = String::new();
                 let mut brace_count = 0;
+                let mut dollar_brace_started = false;
 
                 // Primeiro, verifica se há conteúdo na mesma linha
-                for ch in after_eval.chars() {
+                let mut chars = after_eval.chars().peekable();
+                while let Some(ch) = chars.next() {
                     block_content.push(ch);
-                    if ch == '{' {
+
+                    if ch == '$' && chars.peek() == Some(&'{') {
+                        // Consome o '{'
+                        if let Some(next_ch) = chars.next() {
+                            block_content.push(next_ch);
+                            brace_count += 1;
+                            dollar_brace_started = true;
+                        }
+                    } else if ch == '{' && dollar_brace_started {
                         brace_count += 1;
-                    } else if ch == '}' {
+                    } else if ch == '}' && dollar_brace_started {
                         brace_count -= 1;
                         if brace_count == 0 {
                             break;
@@ -196,10 +359,10 @@ fn preprocessor_eval(phlow: &str) -> String {
                     }
                 }
 
-                // Remove as chaves externas e processa o conteúdo
+                // Remove as chaves externas ${} e processa o conteúdo
                 let inner_content =
-                    if block_content.starts_with('{') && block_content.ends_with('}') {
-                        &block_content[1..block_content.len() - 1]
+                    if block_content.starts_with("${") && block_content.ends_with('}') {
+                        &block_content[2..block_content.len() - 1]
                     } else {
                         &block_content
                     };
@@ -220,15 +383,21 @@ fn preprocessor_eval(phlow: &str) -> String {
                 } else {
                     result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", before_eval, escaped));
                 }
-            } else if after_eval.starts_with('`') && after_eval.ends_with('`') {
+            }
+            // Verifica se o bloco é uma template string com crases
+            else if after_eval.starts_with('`') && after_eval.ends_with('`') {
                 // Template string com crases - converte para sintaxe de template string
                 let inner_content = &after_eval[1..after_eval.len() - 1];
                 let escaped = inner_content.replace('"', "\\\"");
                 result.push_str(&format!("{}\"{{{{ `{}` }}}}\"\n", before_eval, escaped));
-            } else if !after_eval.is_empty() {
+            }
+            // Verifica se o bloco é uma única linha
+            else if !after_eval.is_empty() {
                 let escaped = after_eval.replace('"', "\\\"");
                 result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", before_eval, escaped));
-            } else {
+            }
+            // Caso contrário, processa como um bloco indentado
+            else {
                 // Bloco indentado
                 let mut block_lines = vec![];
                 let current_line_indent = line.chars().take_while(|c| c.is_whitespace()).count();
@@ -433,23 +602,90 @@ fn preprocessor_modules(phlow: &str) -> Result<String, Vec<String>> {
                     if let Some(key_str) = key.as_str() {
                         // Só transforma se estiver em um contexto transformável (raiz de steps, then ou else)
                         if is_in_transformable_context {
-                            // Se não é uma propriedade exclusiva e é um módulo disponível
-                            if !exclusive_properties.contains(&key_str)
-                                && available_modules.contains(key_str)
-                            {
-                                transformations.push((key.clone(), val.clone()));
+                            // Verifica se a chave contém um ponto (module.action)
+                            if key_str.contains('.') {
+                                let parts: Vec<&str> = key_str.split('.').collect();
+                                if parts.len() == 2 {
+                                    let module_name = parts[0];
+                                    let action_name = parts[1];
+
+                                    // Verifica se não é uma propriedade exclusiva e se o módulo está disponível
+                                    if !exclusive_properties.contains(&module_name)
+                                        && (available_modules.contains(module_name)
+                                            || !available_modules.is_empty())
+                                    {
+                                        transformations.push((
+                                            key.clone(),
+                                            val.clone(),
+                                            Some(action_name.to_string()),
+                                        ));
+                                    }
+                                }
+                            } else {
+                                // Se não é uma propriedade exclusiva e é um módulo disponível
+                                if !exclusive_properties.contains(&key_str)
+                                    && available_modules.contains(key_str)
+                                {
+                                    transformations.push((key.clone(), val.clone(), None));
+                                }
                             }
                         }
                     }
                 }
 
                 // Aplica as transformações
-                for (key, old_val) in transformations {
+                for (key, old_val, action) in transformations {
                     map.remove(&key);
 
                     let mut new_entry = Mapping::new();
-                    new_entry.insert(Value::String("use".to_string()), key);
-                    new_entry.insert(Value::String("input".to_string()), old_val);
+
+                    // Extrai o nome do módulo (remove a ação se houver)
+                    let module_name = if let Some(key_str) = key.as_str() {
+                        if key_str.contains('.') {
+                            key_str.split('.').next().unwrap_or(key_str)
+                        } else {
+                            key_str
+                        }
+                    } else {
+                        ""
+                    };
+
+                    new_entry.insert(
+                        Value::String("use".to_string()),
+                        Value::String(module_name.to_string()),
+                    );
+
+                    // Cria o input com a ação como primeiro parâmetro, se houver
+                    let input_value = if let Some(action_name) = action {
+                        // Se há uma ação, cria um novo mapeamento com action como primeiro item
+                        if let Value::Mapping(old_map) = old_val {
+                            let mut new_input = Mapping::new();
+                            new_input.insert(
+                                Value::String("action".to_string()),
+                                Value::String(action_name),
+                            );
+
+                            // Adiciona os outros parâmetros depois da ação
+                            for (old_key, old_value) in old_map.iter() {
+                                new_input.insert(old_key.clone(), old_value.clone());
+                            }
+
+                            Value::Mapping(new_input)
+                        } else {
+                            // Se old_val não é um mapeamento, cria um novo com apenas a ação
+                            let mut new_input = Mapping::new();
+                            new_input.insert(
+                                Value::String("action".to_string()),
+                                Value::String(action_name),
+                            );
+                            Value::Mapping(new_input)
+                        }
+                    } else {
+                        // Se não há ação, usa o valor original
+                        old_val
+                    };
+
+                    new_entry.insert(Value::String("input".to_string()), input_value);
 
                     // Adiciona a nova entrada transformada
                     for (new_key, new_val) in new_entry.iter() {
@@ -540,4 +776,166 @@ fn unescape_yaml_exclamation_values(yaml: &str) -> String {
         .to_string();
 
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_preprocessor_transform_phs_hidden_object_and_arrays() {
+        let input = r#"
+        key1: {
+            "name": "value",
+            "list": [1, 2, 3]
+        }
+        key2: normal_value
+        "#;
+
+        let transformed = processor_transform_phs_hidden_object_and_arrays(input);
+
+        assert!(
+            transformed.contains("key1: !phs ${ { \"name\": \"value\", \"list\": [1, 2, 3] } }")
+        );
+        assert!(!transformed.contains("key2: !phs normal_value"));
+    }
+
+    #[test]
+    fn test_preprocessor_transform_phs_hidden() {
+        let input = r#"
+        key1: if condition { do_something() }
+        key2: "normal string"
+        - for item in list { process(item) }
+        "#;
+
+        let transformed = preprocessor_transform_phs_hidden(input);
+        assert!(transformed.contains("key1: !phs if condition { do_something() }"));
+        assert!(transformed.contains("- !phs for item in list { process(item) }"));
+    }
+
+    #[test]
+    fn test_preprocessor_eval() {
+        let input = r#"
+        key1: !phs if condition { do_something() }
+        key2: !phs ```
+        multi_line_code();
+        another_line();
+        ```
+        key3: !phs ${ for item in list { process(item) } }
+        "#;
+        let transformed = preprocessor_eval(input);
+        assert!(transformed.contains("key1: \"{{ if condition { do_something() } }}\""));
+        assert!(transformed.contains("key2: \"{{ multi_line_code(); another_line(); }}\""));
+        assert!(transformed.contains("key3: \"{{ for item in list { process(item) } }}\""));
+    }
+
+    #[test]
+    fn test_preprocessor_modules() {
+        let input = r#"
+        modules:
+          - module: test_module
+
+        steps:
+          - test_module:
+              param1: value1
+              param2: value2
+          - another_step:
+              action: do_something
+          - new_module.my_action:
+              paramA: valueA
+        "#;
+
+        let expected = r#"modules:
+- module: test_module
+steps:
+- use: test_module
+  input:
+    param1: value1
+    param2: value2
+- another_step:
+    action: do_something
+- use: new_module
+  input:
+    action: my_action
+    paramA: valueA
+"#;
+
+        let transformed = preprocessor_modules(input).unwrap();
+        println!("Transformed:\n{}", transformed);
+        assert_eq!(transformed, expected);
+    }
+
+    fn temporary_included_file() -> std::io::Result<()> {
+        let content = r#"
+        {
+            "included_key1": "!arg arg1",
+            "included_key2": "!arg arg2"
+        }
+        "#;
+
+        fs::write("included_file.phlow", content)
+    }
+
+    fn remove_temporary_included_file() -> std::io::Result<()> {
+        fs::remove_file("included_file.phlow")
+    }
+
+    #[test]
+    fn test_preprocessor() {
+        // create temporay included_file.phlow
+        temporary_included_file().unwrap();
+
+        let input = r#"
+        !include included_file.phlow arg1='value1' arg2="value2"
+
+        key1: if condition { do_something() }
+        key2: {
+            "name": "value",
+            "list": [1, 2, 3]
+        }
+        key3: !phs ```
+        multi_line_code();
+        another_line();
+        ```
+        modules:
+          - module: test_module
+
+        steps:
+          - test_module:
+              param1: value1
+              param2: value2
+        "#;
+
+        let expected: &str = r#"
+        
+
+                {
+
+                    "included_key1": "value1",
+
+                    "included_key2": "value2"
+
+                }
+
+                
+
+        key1: "{{ if condition { do_something() } }}"
+        key2: "{{ { \"name\": \"value\", \"list\": [1, 2, 3] } }}"
+        key3: "{{ multi_line_code(); another_line(); }}"
+        modules:
+          - module: test_module
+
+        steps:
+          - test_module:
+              param1: value1
+              param2: value2
+        "#;
+
+        let processed = preprocessor(input, &Path::new(".").to_path_buf(), false).unwrap();
+        println!("Processed:\n{}", processed);
+
+        assert_eq!(processed, expected);
+
+        remove_temporary_included_file().unwrap();
+    }
 }

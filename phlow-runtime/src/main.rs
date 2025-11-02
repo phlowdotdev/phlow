@@ -1,3 +1,4 @@
+mod analyzer;
 mod loader;
 mod memory;
 mod package;
@@ -63,14 +64,23 @@ async fn main() {
         }
     }
 
-    let mut loader =
-        match Loader::load(&settings.script_main_absolute_path, settings.print_yaml).await {
-            Ok(main) => main,
-            Err(err) => {
-                log::error!("Runtime Error Main File: {:?}", err);
-                return;
-            }
-        };
+    // Build Analyzer and pass it down to loader; loader/load_script will execute the analyzer
+    let analyzer = analyzer::Analyzer::from_settings(&settings);
+
+    // Load the script into Loader (parsing / preprocessing) for normal runtime path
+    let mut loader = match Loader::load(
+        &settings.script_main_absolute_path,
+        settings.print_yaml,
+        Some(&analyzer),
+    )
+    .await
+    {
+        Ok(main) => main,
+        Err(err) => {
+            log::error!("Runtime Error Main File: {:?}", err);
+            return;
+        }
+    };
 
     if settings.no_run {
         return;

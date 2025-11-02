@@ -20,7 +20,11 @@ pub fn run_script(path: &str, setup: ModuleSetup, settings: &Settings) {
 
         if let Ok(rt) = tokio::runtime::Runtime::new() {
             rt.block_on(async move {
-                let loader = Loader::load(&path, settings.print_yaml).await.unwrap();
+                // build an Analyzer from settings and pass to loader so analyzer runs during load
+                let analyzer = crate::analyzer::Analyzer::from_settings(settings);
+                let loader = Loader::load(&path, settings.print_yaml, Some(&analyzer))
+                    .await
+                    .unwrap();
                 let (tx_main_package, rx_main_package) = channel::unbounded::<Package>();
                 let app_data = loader.app_data.clone();
                 let dispatch = setup.dispatch.clone();

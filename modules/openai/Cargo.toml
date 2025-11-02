@@ -1,0 +1,12 @@
+[package]
+name = "openai"
+version = "0.1.0"
+edition = { workspace = true }
+
+[lib]
+name = "openai"
+crate-type = ["cdylib"]
+
+[dependencies]
+phlow-sdk = { workspace = true }
+openai_api_rust = "0.1.9"

@@ -15,6 +15,15 @@ pub struct Settings {
     pub test: bool,
     pub test_filter: Option<String>,
     pub var_main: Option<String>,
+    // analyzer
+    pub analyzer: bool,
+    pub analyzer_files: bool,
+    pub analyzer_modules: bool,
+    pub analyzer_total_steps: bool,
+    pub analyzer_total_pipelines: bool,
+    pub analyzer_json: bool,
+    pub analyzer_inner: bool,
+    pub analyzer_all: bool,
 
     // envs
     pub package_consumer_count: i32,
@@ -50,6 +59,14 @@ impl Settings {
             only_download_modules: cli.only_download_modules,
             package_path: cli.package_path,
             no_run: cli.no_run,
+            analyzer: cli.analyzer,
+            analyzer_files: cli.analyzer_files,
+            analyzer_modules: cli.analyzer_modules,
+            analyzer_total_steps: cli.analyzer_total_steps,
+            analyzer_total_pipelines: cli.analyzer_total_pipelines,
+            analyzer_json: cli.analyzer_json,
+            analyzer_inner: cli.analyzer_inner,
+            analyzer_all: cli.analyzer_all,
             package_consumer_count: envs.package_consumer_count,
             #[cfg(target_env = "gnu")]
             min_allocated_memory: envs.min_allocated_memory,

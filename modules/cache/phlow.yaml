@@ -1,7 +1,7 @@
 name: cache
 description: |
   High-performance in-memory cache module powered by QuickLeaf.
-  
+
   **Actions:**
   - `set`: Store a key-value pair in cache with optional TTL
   - `get`: Retrieve a value by key
@@ -11,7 +11,7 @@ description: |
   - `list`: List cache entries with filtering and ordering
   - `cleanup`: Manually clean up expired items
   - `stats`: Get cache statistics and information
-  
+
   **Features:**
   - O(1) access time for get/set operations
   - TTL (Time To Live) support with automatic expiration
@@ -19,9 +19,9 @@ description: |
   - Advanced filtering (prefix, suffix, pattern matching)
   - Ordered listing with pagination support
   - Real-time statistics
-  
+
   **Usage Examples:**
-  
+
   Store data:
   ```yaml
   - use: cache
@@ -31,7 +31,7 @@ description: |
       value: { name: "Alice", role: "admin" }
       ttl: 3600  # Optional TTL in seconds
   ```
-  
+
   Retrieve data:
   ```yaml
   - use: cache
@@ -39,7 +39,7 @@ description: |
       action: get
       key: "user:123"
   ```
-  
+
   List with filtering:
   ```yaml
   - use: cache
@@ -50,13 +50,11 @@ description: |
       order: "asc"
       limit: 10
   ```
-
 version: 0.1.0
 author: Philippe Assis <codephilippe@gmail.com>
 repository: https://github.com/phlowdotdev/phlow
 license: MIT
 type: step
-
 tags:
   - cache
   - memory
@@ -87,8 +85,9 @@ input:
       type: string
       description: "Action to perform"
       required: true
-      enum: ["set", "get", "remove", "clear", "exists", "list", "cleanup", "stats"]
-    
+      enum:
+        ["set", "get", "remove", "clear", "exists", "list", "cleanup", "stats"]
+
     # Properties for set action
     key:
       type: string
@@ -102,7 +101,7 @@ input:
       type: number
       description: "TTL in seconds (for set action)"
       required: false
-    
+
     # Properties for list action
     filter_type:
       type: string
@@ -146,13 +145,13 @@ output:
       type: boolean
       description: "Whether the operation succeeded"
       required: true
-    
+
     # Common outputs
     error:
       type: string
       description: "Error message if operation failed"
       required: false
-    
+
     # Get action output
     value:
       type: any
@@ -162,7 +161,7 @@ output:
       type: boolean
       description: "Whether key was found (for get/exists actions)"
       required: false
-    
+
     # List action output
     items:
       type: array
@@ -176,7 +175,7 @@ output:
       type: boolean
       description: "Whether there are more results (for list action)"
       required: false
-    
+
     # Stats action output
     stats:
       type: object
@@ -195,7 +194,7 @@ output:
         memory_usage:
           type: number
           description: "Estimated memory usage in bytes"
-    
+
     # Cleanup action output
     cleaned_count:
       type: number

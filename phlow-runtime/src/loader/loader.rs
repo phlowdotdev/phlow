@@ -16,7 +16,13 @@ pub struct ScriptLoaded {
     pub script_file_path: String,
 }
 
-pub async fn load_script(script_target: &str, print_yaml: bool) -> Result<ScriptLoaded, Error> {
+use crate::analyzer::Analyzer;
+
+pub async fn load_script(
+    script_target: &str,
+    print_yaml: bool,
+    analyzer: Option<&Analyzer>,
+) -> Result<ScriptLoaded, Error> {
     let script_file_path = match resolve_script_path(script_target).await {
         Ok(path) => path,
         Err(err) => return Err(err),
@@ -33,6 +39,21 @@ pub async fn load_script(script_target: &str, print_yaml: bool) -> Result<Script
             script_file_path, err
         ))
     })?;
+
+    // If analyzer was provided and is enabled, run it using the script target
+    if let Some(a) = analyzer {
+        if a.enabled {
+            // run analyzer but ignore errors (we don't want to fail loading because of analyzer)
+            match a.run().await {
+                Ok(result) => {
+                    a.display(&result);
+                }
+                Err(err) => {
+                    eprintln!("Analyzer error: {:?}", err);
+                }
+            }
+        }
+    }
 
     Ok(ScriptLoaded {
         script,

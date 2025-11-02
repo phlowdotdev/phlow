@@ -12,19 +12,13 @@ pub enum CacheInput {
         ttl: Option<u64>,
     },
     #[serde(rename = "get")]
-    Get {
-        key: String,
-    },
+    Get { key: String },
     #[serde(rename = "remove")]
-    Remove {
-        key: String,
-    },
+    Remove { key: String },
     #[serde(rename = "clear")]
     Clear,
     #[serde(rename = "exists")]
-    Exists {
-        key: String,
-    },
+    Exists { key: String },
     #[serde(rename = "list")]
     List {
         filter_type: String,

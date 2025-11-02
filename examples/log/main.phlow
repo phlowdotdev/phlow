@@ -1,5 +1,5 @@
 modules:
-  - module: log
+  !include modules.phlow
 steps:
   - use: log
     input:
@@ -13,9 +13,20 @@ steps:
     input:
       message: Debugging information here.
       level: debug
-  - use: log
+  - use: cache
     input:
       message: Warning! Something might be wrong.
       level: warning
+  - loggers:
+      level: warn
+      message: main
+  - case: when 1 == 1
+    then: 
+      payload: "Condition met"
+    else:
+      payload: "Condition not met"
+  - log:
+      level: error
+      message: !import handler.phs
 tests:
   - describe: All logs

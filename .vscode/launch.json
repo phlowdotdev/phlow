@@ -7,28 +7,6 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in library 'phlow'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--lib",
-                    "--package=phlow"
-                ],
-                "filter": {
-                    "name": "phlow",
-                    "kind": "lib"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}",
-            "env": {
-                "PHLOW_LOG": "debug"
-            }
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
             "name": "Run phlow-runtime with current file test",
             "args": [
                 "${relativeFile}",
@@ -64,6 +42,52 @@
             "env": {
                 "PHLOW_LOG": "debug"
             }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "RunAnalyzer with current file",
+            "args": [
+                "${relativeFile}",
+                "--analyzer",
+                "--all",
+                "--no-run",
+            ],
+            "cwd": "${workspaceFolder}",
+            "cargo": {
+                "args": [
+                    "run",
+                    "-p",
+                    "phlow-runtime"
+                ]
+            },
+            "env": {
+                "PHLOW_LOG": "debug"
+            }
+        },
+        {
+            "name": "Run Phlow Extension (examples)",
+            "type": "extensionHost",
+            "request": "launch",
+            "runtimeExecutable": "${execPath}",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/vscode-phlow",
+                "${workspaceFolder}/vscode-phlow/examples"
+            ],
+            "outFiles": [],
+            "env": {
+                "PFLOW_DEBUG_BREAK": "1"
+            }
+        },
+        {
+            "name": "Run Phlow Extension (workspace)",
+            "type": "extensionHost",
+            "request": "launch",
+            "runtimeExecutable": "${execPath}",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/vscode-phlow"
+            ],
+            "outFiles": []
         }
     ]
 }

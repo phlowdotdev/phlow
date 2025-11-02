@@ -1,0 +1,8 @@
+- module: log
+- module: openai
+    with:
+    model: gpt-5
+    api_key: envs.OPENAI_API_KEY
+- module: cache
+    with:
+    capacity: 1000

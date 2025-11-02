@@ -7,15 +7,6 @@ macro_rules! listen {
             });
         }
     }};
-    ($rx:expr, $resolve:expr, $( $arg:ident ),+ $(,)? ) => {{
-        for package in $rx {
-            $( let $arg = $arg.clone(); )+
-
-            $crate::tokio::spawn(async move {
-                $resolve(package, $( $arg ),+ ).await;
-            });
-        }
-    }};
 }
 
 #[macro_export]

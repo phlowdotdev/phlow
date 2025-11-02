@@ -4,7 +4,6 @@ mod request;
 use config::Config;
 use input::Input;
 use phlow_sdk::prelude::*;
-use reqwest::Client;
 use std::collections::HashMap;
 
 create_step!(http_request(setup));
@@ -43,41 +42,39 @@ pub async fn http_request(
         }
     };
 
-    listen!(rx, resolve, default_user_agent, client);
-
-    Ok(())
-}
-
-pub async fn resolve(package: ModulePackage, default_user_agent: Option<String>, client: Client) {
-    let response = match package.input() {
-        Some(value) => {
-            let input = Input::new(value, &default_user_agent);
-            match request::request(input, client).await {
-                Ok(value) => HashMap::from([
-                    ("response", value),
-                    ("is_success", true.to_value()),
-                    ("is_error", false.to_value()),
-                    ("message", "Request successful".to_value()),
-                ]),
-                Err(e) => {
-                    log::error!("Error: {:?}", e);
-                    HashMap::from([
-                        ("response", Value::Undefined),
-                        ("is_success", false.to_value()),
-                        ("is_error", true.to_value()),
-                        ("message", format!("{:?}", e).to_value()),
-                    ])
+    for package in rx {
+        let response = match package.input() {
+            Some(value) => {
+                let input = Input::new(value, &default_user_agent);
+                match request::request(input, client.clone()).await {
+                    Ok(value) => HashMap::from([
+                        ("response", value),
+                        ("is_success", true.to_value()),
+                        ("is_error", false.to_value()),
+                        ("message", "Request successful".to_value()),
+                    ]),
+                    Err(e) => {
+                        log::error!("Error: {:?}", e);
+                        HashMap::from([
+                            ("response", Value::Undefined),
+                            ("is_success", false.to_value()),
+                            ("is_error", true.to_value()),
+                            ("message", format!("{:?}", e).to_value()),
+                        ])
+                    }
                 }
             }
+            _ => HashMap::from([
+                ("response", Value::Undefined),
+                ("is_success", false.to_value()),
+                ("is_error", true.to_value()),
+                ("message", "No input provided".to_value()),
+            ]),
         }
-        _ => HashMap::from([
-            ("response", Value::Undefined),
-            ("is_success", false.to_value()),
-            ("is_error", true.to_value()),
-            ("message", "No input provided".to_value()),
-        ]),
-    }
-    .to_value();
+        .to_value();
 
-    sender_safe!(package.sender, response.into());
+        sender_safe!(package.sender, response.into());
+    }
+
+    Ok(())
 }

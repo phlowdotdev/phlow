@@ -2,8 +2,8 @@ use crate::preprocessor::SpreadPreprocessor;
 use crate::variable::Variable;
 use regex::Regex;
 use rhai::{
+    AST, Engine, EvalAltResult, ParseError, Scope,
     serde::{from_dynamic, to_dynamic},
-    Engine, EvalAltResult, ParseError, Scope, AST,
 };
 use std::{collections::HashMap, fmt::Display, sync::Arc};
 use valu3::prelude::*;
@@ -437,6 +437,40 @@ mod test {
     }
 
     #[test]
+    fn test_nested_invert_spread_syntax() {
+        let script = r#"{{
+            let user = {name: "John", age: 30};
+            let meta = {id: 1, verified: true};
+            
+            {
+                profile: meta,
+                ...user,
+            }
+        }}"#;
+
+        let context = Context::new();
+        let engine = build_engine(None);
+        let payload = Script::try_build(engine, &script.to_value()).unwrap();
+
+        let result = payload.evaluate(&context).unwrap();
+
+        // Verifica se a estrutura está correta
+        if let Value::Object(obj) = result {
+            assert_eq!(obj.get("name").unwrap(), &Value::from("John"));
+            assert_eq!(obj.get("age").unwrap(), &Value::from(30i64));
+
+            if let Some(Value::Object(profile)) = obj.get("profile") {
+                assert_eq!(profile.get("id").unwrap(), &Value::from(1i64));
+                assert_eq!(profile.get("verified").unwrap(), &Value::from(true));
+            } else {
+                panic!("Profile should be an object");
+            }
+        } else {
+            panic!("Result should be an object");
+        }
+    }
+
+    #[test]
     fn test_complete_spread_example() {
         let script = r#"{{
             // Dados de exemplo
@@ -492,36 +526,6 @@ mod test {
             assert_eq!(obj.get("total_permissions").unwrap(), &Value::from(5i64));
         } else {
             panic!("Result should be an object");
-        }
-    }
-
-    #[test]
-    fn test_debug_spread_issue() {
-        let script = r#"{{
-            let val = 130;
-            let no = [1, 2, 3];
-            let obj = {target: 1};
-
-            {
-                item: val,
-                ...obj,
-                name: [...no,4,5,6],
-                it: {a: 1}
-            }
-        }}"#;
-
-        let context = Context::new();
-        let engine = build_engine(None);
-        let result = Script::try_build(engine, &script.to_value());
-
-        match result {
-            Ok(payload) => {
-                let result = payload.evaluate(&context);
-                println!("Script executado com sucesso: {:?}", result);
-            }
-            Err(err) => {
-                println!("Erro ao construir script: {:?}", err);
-            }
         }
     }
 }

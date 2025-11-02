@@ -42,7 +42,7 @@ impl TryFrom<Option<Value>> for JwtInput {
                     Some(Value::String(s)) => s.as_string(),
                     Some(v) => v.to_string(),
                     None => {
-                        return Err("Missing required 'token' field for verify action".to_string())
+                        return Err("Missing required 'token' field for verify action".to_string());
                     }
                 };
 

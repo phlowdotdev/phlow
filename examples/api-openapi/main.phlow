@@ -9,9 +9,11 @@ modules:
     with:
       openapi_spec:
         !include openapi.yaml
+      port: 4000
   - module: cache
     with:
       capacity: 1000
+  - module: asd
 
 steps:
   # Create a user

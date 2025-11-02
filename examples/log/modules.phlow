@@ -1,0 +1,3 @@
+- module: log
+- module: log
+  name: loggers

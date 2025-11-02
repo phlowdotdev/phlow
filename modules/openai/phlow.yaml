@@ -1,0 +1,105 @@
+name: openai
+description: |
+  Module that exposes OpenAI resources (chat/completion/embeddings).
+  Supports `chat`, `completion` and `embeddings` actions and can be configured with an API key
+  via `with: { api_key: "..." }` or through the `OPENAI_API_KEY` environment variable.
+version: 0.1.0
+author: Philippe Assis <codephilippe@gmail.com>
+license: MIT
+type: step
+tags:
+  - openai
+  - ai
+  - nlp
+
+with:
+  type: object
+  required: false
+  properties:
+    api_key:
+      type: string
+      description: OpenAI API key (if omitted, will be read from OPENAI_API_KEY env)
+      required: false
+    model:
+      type: string
+      description: "Default model to be used (ex: gpt-5-mini)"
+      required: false
+
+input:
+  type: object
+  required: true
+  properties:
+    action:
+      type: string
+      enum:
+        [
+          "chat",
+          "completion",
+          "embeddings",
+          "audio_transcribe",
+          "audio_translate",
+          "image_generate",
+          "image_edit",
+        ]
+      required: true
+
+    # For chat
+    messages:
+      type: array
+      required: false
+      description: List of messages in the format [{"role":"user","content":"..."}, ...]
+    model:
+      type: string
+      required: false
+      description: "Model to be used (ex: gpt-4o-mini)"
+
+    # For completion
+    prompt:
+      type: string
+      required: false
+    temperature:
+      type: number
+      required: false
+
+    # For embeddings
+    input_text:
+      type: string
+      required: false
+
+    # For audio
+    audio_base64:
+      type: string
+      required: false
+      description: "Base64 encoded audio for transcription/translation (e.g., WAV/MP3 format)"
+    language:
+      type: string
+      required: false
+      description: "Desired language code for transcription (optional)"
+
+    # For images
+    image_prompt:
+      type: string
+      required: false
+      description: "Prompt for image generation"
+    image_base64:
+      type: string
+      required: false
+      description: "Base64 encoded image (used for editing)"
+    size:
+      type: string
+      required: false
+      description: "Image size (ex: 1024x1024)"
+
+output:
+  type: object
+  required: true
+  properties:
+    success:
+      type: boolean
+      required: true
+    data:
+      type: any
+      required: false
+    error:
+      type: string
+      required: false

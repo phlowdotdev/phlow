@@ -17,6 +17,15 @@ pub struct Cli {
     pub test: bool,
     pub test_filter: Option<String>,
     pub var_main: Option<String>,
+    // analyzer options
+    pub analyzer: bool,
+    pub analyzer_files: bool,
+    pub analyzer_modules: bool,
+    pub analyzer_total_steps: bool,
+    pub analyzer_total_pipelines: bool,
+    pub analyzer_json: bool,
+    pub analyzer_inner: bool,
+    pub analyzer_all: bool,
 }
 
 impl Cli {
@@ -93,6 +102,69 @@ impl Cli {
                     .value_name("VALUE"),
             );
 
+        // Analyzer flags
+        let command = command
+            .arg(
+                Arg::new("analyzer")
+                    .long("analyzer")
+                    .help("Run analyzer on the .phlow and return info without executing the runtime")
+                    .action(ArgAction::SetTrue)
+                    .value_parser(clap::builder::BoolishValueParser::new())
+                    .default_value("false"),
+            )
+            .arg(
+                Arg::new("files")
+                    .long("files")
+                    .help("Return all files loaded by the project, including files referenced by !include or !import")
+                    .action(ArgAction::SetTrue),
+            )
+            .arg(
+                Arg::new("modules")
+                    .long("modules")
+                    .help("Return modules declared in the project and whether they are downloaded in phlow_packages")
+                    .action(ArgAction::SetTrue),
+            )
+            .arg(
+                Arg::new("total_steps")
+                    .long("total-steps")
+                    .help("Return total steps in the project")
+                    .action(ArgAction::SetTrue),
+            )
+            .arg(
+                Arg::new("total_pipelines")
+                    .long("total-pipelines")
+                    .help("Return total pipelines in the project")
+                    .action(ArgAction::SetTrue),
+            )
+            .arg(
+                Arg::new("json")
+                    .long("json")
+                    .help("Output analyzer data as JSON")
+                    .action(ArgAction::SetTrue),
+            )
+            .arg(
+                Arg::new("text")
+                    .long("text")
+                    .help("Output analyzer data as plain text (default)")
+                    .action(ArgAction::SetTrue),
+            );
+
+        // analyzer --inner: enable recursive analysis/loading of internal modules (./module)
+        let command = command.arg(
+            Arg::new("inner")
+                .long("inner")
+                .help("When used with analyzer, allow analysis/recursive loading of internal modules (those declared with a leading '.')")
+                .action(ArgAction::SetTrue),
+        );
+
+        // analyzer --all: print everything available
+        let command = command.arg(
+            Arg::new("all")
+                .long("all")
+                .help("When used with --analyzer, return all available analyzer information")
+                .action(ArgAction::SetTrue),
+        );
+
         let matches = command.get_matches();
 
         let main = match matches.get_one::<String>("main_path") {
@@ -117,6 +189,16 @@ impl Cli {
 
         let var_main = matches.get_one::<String>("var_main").map(|s| s.to_string());
 
+        let analyzer = *matches.get_one::<bool>("analyzer").unwrap_or(&false);
+        let analyzer_files = *matches.get_one::<bool>("files").unwrap_or(&false);
+        let analyzer_modules = *matches.get_one::<bool>("modules").unwrap_or(&false);
+        let analyzer_total_steps = *matches.get_one::<bool>("total_steps").unwrap_or(&false);
+        let analyzer_total_pipelines =
+            *matches.get_one::<bool>("total_pipelines").unwrap_or(&false);
+        let analyzer_json = *matches.get_one::<bool>("json").unwrap_or(&false);
+        let analyzer_inner = *matches.get_one::<bool>("inner").unwrap_or(&false);
+        let analyzer_all = *matches.get_one::<bool>("all").unwrap_or(&false);
+
         Ok(Cli {
             main_target: main,
             only_download_modules: install,
@@ -127,25 +209,14 @@ impl Cli {
             test,
             test_filter,
             var_main,
+            analyzer,
+            analyzer_files,
+            analyzer_modules,
+            analyzer_total_steps,
+            analyzer_total_pipelines,
+            analyzer_json,
+            analyzer_inner,
+            analyzer_all,
         })
-    }
-}
-
-#[derive(Debug)]
-pub enum ModuleExtension {
-    Json,
-    Yaml,
-    Toml,
-}
-
-impl From<&str> for ModuleExtension {
-    fn from(extension: &str) -> Self {
-        match extension {
-            "json" => ModuleExtension::Json,
-            "yaml" => ModuleExtension::Yaml,
-            "yml" => ModuleExtension::Yaml,
-            "toml" => ModuleExtension::Toml,
-            _ => ModuleExtension::Json,
-        }
     }
 }

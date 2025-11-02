@@ -43,6 +43,11 @@ steps:
 ### script.phs
 ```rust
 log("warn", `Hello, ${main.name}`);
+// or
+log({
+  level: "warn",
+  message: `Hello, ${main.name}`
+});
 ```
 
 ## 📁 Extensões de Arquivo
