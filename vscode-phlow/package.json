@@ -22,6 +22,17 @@
                     ".phlow"
                 ],
                 "configuration": "./language-configuration.json"
+            },
+            {
+                "id": "phs",
+                "aliases": [
+                    "Phs",
+                    "phs"
+                ],
+                "extensions": [
+                    ".phs"
+                ],
+                "configuration": "./language-configuration.json"
             }
         ],
         "grammars": [
@@ -29,83 +40,14 @@
                 "language": "phlow",
                 "scopeName": "source.phlow",
                 "path": "./syntaxes/phlow.tmLanguage.json"
+            },
+            {
+                "language": "phs",
+                "scopeName": "source.phs",
+                "path": "./syntaxes/phs.tmLanguage.json"
             }
         ],
-        "tokenColors": [
-            {
-                "scope": "string.quoted.double.phlow",
-                "settings": {
-                    "foreground": "#CE9178"
-                }
-            },
-            {
-                "scope": "string.quoted.single.phlow",
-                "settings": {
-                    "foreground": "#CE9178"
-                }
-            },
-            {
-                "scope": "string.template.phlow",
-                "settings": {
-                    "foreground": "#CE9178"
-                }
-            },
-            {
-                "scope": "constant.numeric.phlow",
-                "settings": {
-                    "foreground": "#B5CEA8"
-                }
-            },
-            {
-                "scope": "constant.language.boolean.phlow",
-                "settings": {
-                    "foreground": "#569CD6"
-                }
-            },
-            {
-                "scope": "punctuation.section.array.begin.phlow",
-                "settings": {
-                    "foreground": "#D7BA7D"
-                }
-            },
-            {
-                "scope": "punctuation.section.array.end.phlow",
-                "settings": {
-                    "foreground": "#D7BA7D"
-                }
-            },
-            {
-                "scope": "punctuation.section.object.begin.phlow",
-                "settings": {
-                    "foreground": "#D7BA7D"
-                }
-            },
-            {
-                "scope": "punctuation.section.object.end.phlow",
-                "settings": {
-                    "foreground": "#D7BA7D"
-                }
-            },
-            {
-                "scope": "meta.structure.array.phlow",
-                "settings": {
-                    "foreground": "#D7BA7D"
-                }
-            },
-            {
-                "scope": "meta.structure.object.phlow",
-                "settings": {
-                    "foreground": "#D7BA7D"
-                }
-            },
-            {
-                "scope": "support.module.phlow",
-                "settings": {
-                    "foreground": "#C586C0",
-                    "fontStyle": "bold"
-                }
-            }
-        ],
+        "tokenColors": [],
         "configuration": {
             "title": "Phlow",
             "properties": {
@@ -140,7 +82,7 @@
     },
     "license": "MIT",
     "devDependencies": {
-        "vscode-textmate": "^5.3.0",
+        "vscode-textmate": "9.2.1",
         "onigasm": "^2.2.1"
     }
 }

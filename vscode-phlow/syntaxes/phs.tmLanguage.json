@@ -16,6 +16,9 @@
         },
         {
             "include": "#booleans"
+        },
+        {
+            "include": "#identifiers"
         }
     ],
     "repository": {
@@ -60,6 +63,98 @@
                 {
                     "name": "constant.language.boolean.phs",
                     "match": "\\b(?:true|false|null|undefined)\\b"
+                }
+            ]
+        },
+        "identifiers": {
+            "patterns": [
+                {
+                    "name": "variable.other.phs",
+                    "match": "\\b[A-Za-z_][A-Za-z0-9_\\.]*\\b"
+                },
+                {
+                    "name": "punctuation.separator.phs",
+                    "match": "[.,:;(){}\\[\\]]"
+                },
+                {
+                    "name": "keyword.operator.phs",
+                    "match": "(?:==|!=|<=|>=|<|>|\\+|\\-|\\*|/|\\%|\\?|:|=)"
+                },
+                {
+                    "begin": "\\$\\{",
+                    "beginCaptures": {
+                        "0": {
+                            "name": "punctuation.section.interpolation.begin.phs"
+                        }
+                    },
+                    "end": "\\}",
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.section.interpolation.end.phs"
+                        }
+                    },
+                    "name": "meta.interpolation.phs",
+                    "patterns": [
+                        {
+                            "include": "#strings"
+                        },
+                        {
+                            "include": "#numbers"
+                        },
+                        {
+                            "include": "#booleans"
+                        },
+                        {
+                            "include": "#identifiers"
+                        }
+                    ]
+                }
+            ]
+        },
+        "constants-values": {
+            "patterns": [
+                {
+                    "match": "(?m)^(\\s*(?:-\\s*)?)([a-zA-Z0-9_\\-\\.]+)(\\s*:\\s*)(\\b(?:main|modules|steps|envs|setup|input|args)\\b)",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "entity.name.tag.phlow"
+                        },
+                        "3": {
+                            "name": "punctuation.separator.key-value.phlow"
+                        },
+                        "4": {
+                            "name": "constant.language.phlow"
+                        }
+                    }
+                },
+                {
+                    "match": "(\\.\\.\\.)(\\b(?:main|modules|steps|envs|setup|input|args)\\b)",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.separator.spread.phlow"
+                        },
+                        "2": {
+                            "name": "constant.language.phlow"
+                        }
+                    }
+                },
+                {
+                    "match": "(?m)^(\\s*-\\s*)(\\b(?:main|modules|steps|envs|setup|input|args)\\b)(?=\\s*$|\\s|,|\\])",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.whitespace.leading.phlow"
+                        },
+                        "2": {
+                            "name": "constant.language.phlow"
+                        }
+                    }
+                },
+                {
+                    "match": "\\b(?:main|modules|steps|envs|setup|input|args)\\b(?=\\[|\\.)",
+                    "name": "constant.language.phlow"
                 }
             ]
         }

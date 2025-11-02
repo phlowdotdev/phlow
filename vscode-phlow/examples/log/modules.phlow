@@ -1,5 +1,5 @@
 - module: log
 - module: ./inner
   name: innerCache
-- module: log
-  name: loggers
+- module: cache
+  name: data
