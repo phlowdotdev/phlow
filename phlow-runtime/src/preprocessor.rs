@@ -157,16 +157,20 @@ fn processor_transform_phs_hidden_object_and_arrays(phlow: &str) -> String {
                 }
 
                 let single_line = block_lines.join(" ");
-                result.push_str(&format!("{}{}: !phs ${{ {} }}", indent, key, single_line));
+                result.push_str(&format!("{}{}: !phs ${{ {} }}\n", indent, key, single_line));
                 continue;
             }
         }
 
+        result.push_str(line);
         result.push_str("\n");
     }
 
-    result.pop();
-    result.to_string()
+    // Remove a última quebra de linha extra se houver
+    if result.ends_with('\n') {
+        result.pop();
+    }
+    result
 }
 
 // Essa função identifica qualquer valore de propriedade que inicie com
@@ -598,23 +602,90 @@ fn preprocessor_modules(phlow: &str) -> Result<String, Vec<String>> {
                     if let Some(key_str) = key.as_str() {
                         // Só transforma se estiver em um contexto transformável (raiz de steps, then ou else)
                         if is_in_transformable_context {
-                            // Se não é uma propriedade exclusiva e é um módulo disponível
-                            if !exclusive_properties.contains(&key_str)
-                                && available_modules.contains(key_str)
-                            {
-                                transformations.push((key.clone(), val.clone()));
+                            // Verifica se a chave contém um ponto (module.action)
+                            if key_str.contains('.') {
+                                let parts: Vec<&str> = key_str.split('.').collect();
+                                if parts.len() == 2 {
+                                    let module_name = parts[0];
+                                    let action_name = parts[1];
+
+                                    // Verifica se não é uma propriedade exclusiva e se o módulo está disponível
+                                    if !exclusive_properties.contains(&module_name)
+                                        && (available_modules.contains(module_name)
+                                            || !available_modules.is_empty())
+                                    {
+                                        transformations.push((
+                                            key.clone(),
+                                            val.clone(),
+                                            Some(action_name.to_string()),
+                                        ));
+                                    }
+                                }
+                            } else {
+                                // Se não é uma propriedade exclusiva e é um módulo disponível
+                                if !exclusive_properties.contains(&key_str)
+                                    && available_modules.contains(key_str)
+                                {
+                                    transformations.push((key.clone(), val.clone(), None));
+                                }
                             }
                         }
                     }
                 }
 
                 // Aplica as transformações
-                for (key, old_val) in transformations {
+                for (key, old_val, action) in transformations {
                     map.remove(&key);
 
                     let mut new_entry = Mapping::new();
-                    new_entry.insert(Value::String("use".to_string()), key);
-                    new_entry.insert(Value::String("input".to_string()), old_val);
+
+                    // Extrai o nome do módulo (remove a ação se houver)
+                    let module_name = if let Some(key_str) = key.as_str() {
+                        if key_str.contains('.') {
+                            key_str.split('.').next().unwrap_or(key_str)
+                        } else {
+                            key_str
+                        }
+                    } else {
+                        ""
+                    };
+
+                    new_entry.insert(
+                        Value::String("use".to_string()),
+                        Value::String(module_name.to_string()),
+                    );
+
+                    // Cria o input com a ação como primeiro parâmetro, se houver
+                    let input_value = if let Some(action_name) = action {
+                        // Se há uma ação, cria um novo mapeamento com action como primeiro item
+                        if let Value::Mapping(old_map) = old_val {
+                            let mut new_input = Mapping::new();
+                            new_input.insert(
+                                Value::String("action".to_string()),
+                                Value::String(action_name),
+                            );
+
+                            // Adiciona os outros parâmetros depois da ação
+                            for (old_key, old_value) in old_map.iter() {
+                                new_input.insert(old_key.clone(), old_value.clone());
+                            }
+
+                            Value::Mapping(new_input)
+                        } else {
+                            // Se old_val não é um mapeamento, cria um novo com apenas a ação
+                            let mut new_input = Mapping::new();
+                            new_input.insert(
+                                Value::String("action".to_string()),
+                                Value::String(action_name),
+                            );
+                            Value::Mapping(new_input)
+                        }
+                    } else {
+                        // Se não há ação, usa o valor original
+                        old_val
+                    };
+
+                    new_entry.insert(Value::String("input".to_string()), input_value);
 
                     // Adiciona a nova entrada transformada
                     for (new_key, new_val) in new_entry.iter() {
@@ -722,7 +793,7 @@ mod tests {
         "#;
 
         let transformed = processor_transform_phs_hidden_object_and_arrays(input);
-        println!("Transformed:\n{}", transformed);
+
         assert!(
             transformed.contains("key1: !phs ${ { \"name\": \"value\", \"list\": [1, 2, 3] } }")
         );
@@ -738,8 +809,8 @@ mod tests {
         "#;
 
         let transformed = preprocessor_transform_phs_hidden(input);
-        assert!(transformed.contains("key1: !phs"));
-        assert!(transformed.contains("- !phs"));
+        assert!(transformed.contains("key1: !phs if condition { do_something() }"));
+        assert!(transformed.contains("- !phs for item in list { process(item) }"));
     }
 
     #[test]
@@ -770,9 +841,101 @@ mod tests {
               param2: value2
           - another_step:
               action: do_something
+          - new_module.my_action:
+              paramA: valueA
         "#;
 
+        let expected = r#"modules:
+- module: test_module
+steps:
+- use: test_module
+  input:
+    param1: value1
+    param2: value2
+- another_step:
+    action: do_something
+- use: new_module
+  input:
+    action: my_action
+    paramA: valueA
+"#;
+
         let transformed = preprocessor_modules(input).unwrap();
-        assert!(transformed.contains("use: test_module"));
+        println!("Transformed:\n{}", transformed);
+        assert_eq!(transformed, expected);
+    }
+
+    fn temporary_included_file() -> std::io::Result<()> {
+        let content = r#"
+        {
+            "included_key1": "!arg arg1",
+            "included_key2": "!arg arg2"
+        }
+        "#;
+
+        fs::write("included_file.phlow", content)
+    }
+
+    fn remove_temporary_included_file() -> std::io::Result<()> {
+        fs::remove_file("included_file.phlow")
+    }
+
+    #[test]
+    fn test_preprocessor() {
+        // create temporay included_file.phlow
+        temporary_included_file().unwrap();
+
+        let input = r#"
+        !include included_file.phlow arg1='value1' arg2="value2"
+
+        key1: if condition { do_something() }
+        key2: {
+            "name": "value",
+            "list": [1, 2, 3]
+        }
+        key3: !phs ```
+        multi_line_code();
+        another_line();
+        ```
+        modules:
+          - module: test_module
+
+        steps:
+          - test_module:
+              param1: value1
+              param2: value2
+        "#;
+
+        let expected: &str = r#"
+        
+
+                {
+
+                    "included_key1": "value1",
+
+                    "included_key2": "value2"
+
+                }
+
+                
+
+        key1: "{{ if condition { do_something() } }}"
+        key2: "{{ { \"name\": \"value\", \"list\": [1, 2, 3] } }}"
+        key3: "{{ multi_line_code(); another_line(); }}"
+        modules:
+          - module: test_module
+
+        steps:
+          - test_module:
+              param1: value1
+              param2: value2
+        "#;
+
+        let processed = preprocessor(input, &Path::new(".").to_path_buf(), false).unwrap();
+        println!("Processed:\n{}", processed);
+
+        assert_eq!(processed, expected);
+
+        remove_temporary_included_file().unwrap();
     }
 }
