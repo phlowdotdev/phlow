@@ -11,7 +11,7 @@ Phlow modules are written in **Rust** and compiled as **shared libraries (cdylib
 2. **Main Module** - Entry point of applications 
 3. **Hybrid Module** - Can act as both main and step (like AMQP)
 
-## 📋 Prerequisites
+## Prerequisites
 
 Before starting, ensure you have:
 - **Rust** installed (latest stable version)
@@ -19,7 +19,7 @@ Before starting, ensure you have:
 - Basic knowledge of async Rust programming
 - Understanding of Phlow concepts
 
-## 🏗️ Module Architecture Overview
+## Module Architecture Overview
 
 Every Phlow module consists of:
 ```
@@ -32,7 +32,7 @@ my_module/
 
 ---
 
-## 🔧 Part 1: Creating a Step Module
+## Part 1: Creating a Step Module
 
 Step modules process data within a flow. Let's create an improved **log module**.
 
@@ -75,7 +75,7 @@ crate-type = ["cdylib"]         # Compile as dynamic library
 ```rust
 use phlow_sdk::prelude::*;
 
-// 🎯 STEP MODULE MACRO - This registers the function as a step module
+// STEP MODULE MACRO - This registers the function as a step module
 create_step!(log(rx));
 
 // Define log levels
@@ -114,12 +114,12 @@ impl From<&Value> for Log {
     }
 }
 
-// 🚀 MAIN STEP FUNCTION
+// MAIN STEP FUNCTION
 // This function will be called for each message sent to this module
 pub async fn log(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     log::debug!("Log module started, waiting for messages");
 
-    // 🎯 LISTEN MACRO - Handles incoming messages
+    // LISTEN MACRO - Handles incoming messages
     listen!(rx, move |package: ModulePackage| async {
         // Extract input from the package
         let value = package.input().unwrap_or(Value::Null);
@@ -159,7 +159,7 @@ author: Your Name <your.email@example.com>
 repository: https://github.com/your-repo/phlow-modules
 license: MIT
 
-# 🎯 MODULE TYPE
+# MODULE TYPE
 type: step                      # This is a step module
 
 # Tags for discovery
@@ -185,7 +185,7 @@ input:
       description: "Message to be logged"
       required: true
 
-# 📤 OUTPUT SCHEMA - What this module returns
+# OUTPUT SCHEMA - What this module returns
 output:
   type: object
   required: true
@@ -243,7 +243,7 @@ use http_body_util::Full;
 use bytes::Bytes;
 use std::{net::SocketAddr, sync::Arc};
 
-// 🎯 MAIN MODULE MACRO - This registers the function as a main module
+// MAIN MODULE MACRO - This registers the function as a main module
 create_main!(start_server(setup));
 
 // Configuration structure
@@ -267,12 +267,12 @@ impl From<Value> for Config {
     }
 }
 
-// 🚀 MAIN FUNCTION - Entry point of the application
+// MAIN FUNCTION - Entry point of the application
 pub async fn start_server(
     setup: ModuleSetup,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     
-    // 🔍 CHECK IF THIS IS THE MAIN MODULE
+    // CHECK IF THIS IS THE MAIN MODULE
     if !setup.is_main() {
         log::debug!("This module is not the main module, exiting");
         // Notify setup completion and exit
@@ -280,7 +280,7 @@ pub async fn start_server(
         return Ok(());
     }
 
-    // 🧪 CHECK TEST MODE
+    // CHECK TEST MODE
     if setup.is_test_mode {
         log::debug!("Test mode detected, not starting HTTP server");
         sender_safe!(setup.setup_sender, None);
@@ -300,7 +300,7 @@ pub async fn start_server(
     // Notify that setup is complete
     sender_safe!(setup.setup_sender, None);
     
-    // 🔄 MAIN SERVER LOOP
+    // MAIN SERVER LOOP
     loop {
         let (tcp, peer_addr) = listener.accept().await?;
         let io = TokioIo::new(tcp);
@@ -409,7 +409,7 @@ author: Your Name <your.email@example.com>
 repository: https://github.com/your-repo/phlow-modules
 license: MIT
 
-# 🎯 MAIN MODULE TYPE
+# MAIN MODULE TYPE
 type: main                      # This is a main module
 
 tags:
@@ -419,7 +419,7 @@ tags:
   - web
   - api
 
-# ⚙️ CONFIGURATION SCHEMA - Used in "with" section
+# CONFIGURATION SCHEMA - Used in "with" section
 with:
   type: object
   required: false
@@ -435,7 +435,7 @@ with:
       default: "0.0.0.0"
       required: false
 
-# 📤 OUTPUT SCHEMA - What this module provides to steps
+# OUTPUT SCHEMA - What this module provides to steps
 output:
   type: object
   required: true
@@ -464,7 +464,7 @@ output:
 
 ---
 
-## 🔄 Part 3: Creating a Hybrid Module (Main + Step)
+## Part 3: Creating a Hybrid Module (Main + Step)
 
 Hybrid modules can act as both main and step modules. The **AMQP module** is a perfect example.
 
@@ -508,10 +508,10 @@ use phlow_sdk::prelude::*;
 use lapin::{Connection, ConnectionProperties};
 use setup::Config;
 
-// 🎯 HYBRID MODULE MACRO - Can act as both main and step
+// HYBRID MODULE MACRO - Can act as both main and step
 create_main!(start_server(setup));
 
-// 🚀 MAIN ENTRY POINT - Handles both main and step modes
+// MAIN ENTRY POINT - Handles both main and step modes
 pub async fn start_server(
     setup: ModuleSetup,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -531,7 +531,7 @@ pub async fn start_server(
     let conn = Connection::connect(&uri, ConnectionProperties::default()).await?;
     let channel = conn.create_channel().await?;
     
-    // 🔍 DETERMINE MODE: Main or Step
+    // DETERMINE MODE: Main or Step
     if setup.is_main() {
         log::info!("🎯 Running in MAIN mode - Starting consumer");
         
@@ -817,7 +817,7 @@ author: Your Name <your.email@example.com>
 repository: https://github.com/your-repo/phlow-modules
 license: MIT
 
-# 🎯 HYBRID MODULE TYPE
+# HYBRID MODULE TYPE
 type: any                       # Can be both main and step
 
 tags:
@@ -881,7 +881,7 @@ with:
       default: "phlow_consumer"
       required: false
 
-# 📋 INPUT SCHEMA (for step mode)
+# INPUT SCHEMA (for step mode)
 input:
   type: object
   required: true
@@ -895,7 +895,7 @@ input:
       description: "Optional AMQP message headers"
       required: false
 
-# 📤 OUTPUT SCHEMAS
+# OUTPUT SCHEMAS
 output:
   type: object
   required: true
@@ -912,7 +912,7 @@ output:
 
 ---
 
-## 🏗️ Building and Testing Modules
+## Building and Testing Modules
 
 ### Building a Module
 
@@ -963,7 +963,7 @@ phlow test.phlow
 
 ---
 
-## 📚 Key Concepts Summary
+## Key Concepts Summary
 
 ### Module Types
 

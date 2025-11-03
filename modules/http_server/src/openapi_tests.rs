@@ -196,9 +196,11 @@ mod tests {
             result.errors[0].error_type,
             ValidationErrorType::InvalidRequestBody
         );
-        assert!(result.errors[0]
-            .message
-            .contains("Request body is required"));
+        assert!(
+            result.errors[0]
+                .message
+                .contains("Request body is required")
+        );
     }
 
     #[test]
@@ -1126,9 +1128,11 @@ mod tests {
             result.errors[0].error_type,
             ValidationErrorType::MethodNotAllowed
         );
-        assert!(result.errors[0]
-            .message
-            .contains("Method DELETE not allowed"));
+        assert!(
+            result.errors[0]
+                .message
+                .contains("Method DELETE not allowed")
+        );
     }
 
     #[test]
@@ -1196,5 +1200,62 @@ mod tests {
                 phone, result.errors
             );
         }
+    }
+
+    #[test]
+    fn test_ref_to_components_schema_resolution() {
+        let openapi = r###"{
+            "openapi": "3.0.0",
+            "info": {"title":"T", "version":"1.0"},
+            "paths": {
+                "/users": {
+                    "post": {
+                        "requestBody": {
+                            "required": true,
+                            "content": {
+                                "application/json": {
+                                    "schema": { "$ref": "#/components/schemas/NewUser" }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "components": {
+                "schemas": {
+                    "NewUser": {
+                        "type": "object",
+                        "required": ["username"],
+                        "properties": {
+                            "username": { "type": "string", "minLength": 3 }
+                        }
+                    }
+                }
+            }
+    }"###;
+
+        let config = ValidationConfig::default();
+        let validator = OpenAPIValidator::from_spec_content(openapi, config)
+            .expect("Failed to create validator from openapi spec with $ref");
+
+        let query_params = HashMap::new();
+
+        // Missing body -> invalid (required)
+        let res = validator.validate_request("POST", "/users", &query_params, &Value::Null);
+        assert!(
+            !res.is_valid,
+            "Request without required body should be invalid"
+        );
+
+        // Valid body -> ok
+        let mut body_map = HashMap::new();
+        body_map.insert("username".to_string(), "abc".to_value());
+        let ok_body = body_map.to_value();
+
+        let res2 = validator.validate_request("POST", "/users", &query_params, &ok_body);
+        assert!(
+            res2.is_valid,
+            "Request with body matching components schema should be valid"
+        );
     }
 }
