@@ -8,6 +8,7 @@ use std::{fs, path::PathBuf, process::Command};
 #[derive(Debug)]
 pub struct Package {
     pub module_dir: PathBuf,
+    pub package_target: String,
     pub create_tar: bool,
 }
 
@@ -21,7 +22,7 @@ struct ModuleMetadata {
 }
 
 impl Package {
-    pub fn new(module_dir: PathBuf, create_tar: bool) -> Result<Self> {
+    pub fn new(module_dir: PathBuf, package_target: String, create_tar: bool) -> Result<Self> {
         if !module_dir.exists() {
             bail!("Directory not found: {}", module_dir.display());
         }
@@ -32,6 +33,7 @@ impl Package {
         );
         Ok(Package {
             module_dir,
+            package_target,
             create_tar,
         })
     }
@@ -170,8 +172,8 @@ impl Package {
 
             Ok(archive_name)
         } else {
-            // Save directly to phlow_packages/module-name
-            let package_dir = PathBuf::from("phlow_packages").join(&metadata.name);
+            // Save directly to package_target/module-name
+            let package_dir = PathBuf::from(&self.package_target).join(&metadata.name);
 
             info!("Creating package directory: {}", package_dir.display());
             fs::create_dir_all(&package_dir)?;
@@ -193,7 +195,7 @@ impl Package {
                 package_dir.join(metadata_path.file_name().unwrap()),
             )?;
 
-            let result = format!("phlow_packages/{}", metadata.name);
+            let result = format!("{}/{}", self.package_target, metadata.name);
             info!("Success! Package created in: {} 🎉", result);
 
             Ok(result)

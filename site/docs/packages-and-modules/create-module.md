@@ -929,6 +929,86 @@ cargo build --release
 # target/debug/<module_name>.dll (Windows)
 ```
 
+---
+
+## Packaging Modules
+
+Phlow provides a built-in packaging system to distribute your modules. You can create packages in two formats:
+
+### 1. Directory Package (Default)
+
+By default, the `--package` command creates a directory structure in `./phlow_packages`:
+
+```bash
+# Package a module to the default directory
+phlow --package modules/your_module
+
+# Output:
+# ✅ Package created: ./phlow_packages/your_module/
+#    ├── module.so
+#    └── phlow.yaml
+```
+
+This is useful for:
+- **Local development** - Quick iterations without compression overhead
+- **Shared workspaces** - Team members can access modules directly
+- **CI/CD pipelines** - Faster builds without tar.gz creation
+
+### 2. Tar.gz Archive (Optional)
+
+To create a distributable `.tar.gz` archive, use the `--tar` flag:
+
+```bash
+# Package as tar.gz archive
+phlow --package modules/your_module --tar
+
+# Output:
+# ✅ Package created: your_module-0.1.0.tar.gz
+```
+
+This is ideal for:
+- **Public distribution** - Share via package registries
+- **Version control** - Smaller, versioned artifacts
+- **Network transfer** - Compressed for faster downloads
+
+### 3. Custom Target Directory
+
+You can specify a custom output directory using `--package-target`:
+
+```bash
+# Package to a custom directory
+phlow --package modules/your_module --package-target /opt/phlow/modules
+
+# Output:
+# ✅ Package created: /opt/phlow/modules/your_module/
+
+# Combine with --tar for custom location
+phlow --package modules/your_module --package-target /tmp/releases --tar
+
+# Output:
+# ✅ Package created: your_module-0.1.0.tar.gz (in /tmp/releases)
+```
+
+### Package Command Reference
+
+| Command | Output | Use Case |
+|---------|--------|----------|
+| `--package <path>` | `./phlow_packages/<module>/` | Default local development |
+| `--package <path> --tar` | `./<module>-<version>.tar.gz` | Distribution archive |
+| `--package <path> --package-target <dir>` | `<dir>/<module>/` | Custom directory |
+| `--package <path> --package-target <dir> --tar` | `./<module>-<version>.tar.gz` | Archive in custom location |
+
+### Package Validation
+
+The packaging process automatically validates:
+- ✅ **Version format** - Must follow semver (e.g., `1.0.0`, `1.0.0-beta.1`)
+- ✅ **Author format** - Must be `Name <email@example.com>`
+- ✅ **License** - Must be a known OSS license or URL
+- ✅ **Module compilation** - Runs `cargo build --release --locked`
+- ✅ **Required files** - Ensures `module.so` and `phlow.yaml` exist
+
+---
+
 ### Testing Modules Locally
 
 1. **Create a test Phlow file**:
@@ -949,7 +1029,10 @@ steps:
 2. **Install module locally**:
 
 ```bash
-# Copy module to phlow_packages
+# Package the module (creates ./phlow_packages/your_module/)
+phlow --package modules/your_module
+
+# Or manually copy to phlow_packages
 mkdir -p phlow_packages/your_module
 cp target/debug/libyour_module.so phlow_packages/your_module/module.so
 cp phlow.yaml phlow_packages/your_module/

@@ -50,7 +50,11 @@ async fn main() {
     };
 
     if let Some(publish_path) = settings.package_path.clone() {
-        match Package::new(publish_path.into(), settings.create_tar) {
+        match Package::new(
+            publish_path.into(),
+            settings.package_target.clone(),
+            settings.create_tar,
+        ) {
             Ok(publish) => {
                 if let Err(err) = publish.run() {
                     log::error!("Error creating module: {:?}", err);

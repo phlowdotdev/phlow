@@ -11,6 +11,7 @@ pub struct Cli {
     pub main_target: Option<String>,
     pub only_download_modules: bool,
     pub package_path: Option<String>,
+    pub package_target: String,
     pub create_tar: bool,
     pub no_run: bool,
     pub download: bool,
@@ -61,6 +62,12 @@ impl Cli {
                 Arg::new("package")
                     .long("package")
                     .help("Path to the package file"),
+            )
+            .arg(
+                Arg::new("package_target")
+                    .long("package-target")
+                    .help("Target directory for package output")
+                    .default_value("./phlow_packages"),
             )
             .arg(
                 Arg::new("tar")
@@ -183,6 +190,10 @@ impl Cli {
 
         let install = *matches.get_one::<bool>("install").unwrap_or(&false);
         let package_path = matches.get_one::<String>("package").map(|s| s.to_string());
+        let package_target = matches
+            .get_one::<String>("package_target")
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| "./phlow_packages".to_string());
         let create_tar = *matches.get_one::<bool>("tar").unwrap_or(&false);
 
         let no_run = *matches.get_one::<bool>("no_run").unwrap_or(&false);
@@ -213,6 +224,7 @@ impl Cli {
             main_target: main,
             only_download_modules: install,
             package_path,
+            package_target,
             create_tar,
             no_run,
             download,
