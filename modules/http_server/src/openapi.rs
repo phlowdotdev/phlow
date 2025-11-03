@@ -91,10 +91,14 @@ impl OpenAPIValidator {
         content: &str,
         config: ValidationConfig,
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        log::debug!("Loading OpenAPI spec from content: {}", content);
+        log::debug!(
+            "Loading OpenAPI spec from content (len={} bytes)",
+            content.len()
+        );
         let (spec, spec_json) = Self::json_to_value(content)?;
 
         let route_patterns = Self::build_route_patterns_from_json(&spec_json)?;
+        log::debug!("OpenAPI spec loaded: routes_count={}", route_patterns.len());
         let spec = match spec.as_object() {
             Some(obj) => obj.clone(),
             None => return Err("Invalid OpenAPI spec format".into()),
@@ -259,11 +263,33 @@ impl OpenAPIValidator {
         query_params: &HashMap<String, String>,
         body: &Value,
     ) -> ValidationResult {
+        let body_kind = match body {
+            Value::Null => "null",
+            Value::Undefined => "undefined",
+            Value::Object(_) => "object",
+            Value::Array(_) => "array",
+            Value::String(_) => "string",
+            Value::Number(_) => "number",
+            Value::Boolean(_) => "bool",
+            _ => "other",
+        };
+        log::debug!(
+            "OpenAPI.validate_request: method={} path={} query_params={} body_kind={}",
+            method,
+            path,
+            query_params.len(),
+            body_kind
+        );
         let mut path_params = HashMap::new();
         let mut validation_errors = Vec::new();
 
         for route_pattern in &self.route_patterns {
             if let Some(captures) = route_pattern.regex.captures(path) {
+                log::debug!(
+                    "Route matched: pattern='{}' for path='{}'",
+                    route_pattern.path_pattern,
+                    path
+                );
                 // Extract path parameters
                 for (i, param_name) in route_pattern.param_names.iter().enumerate() {
                     if let Some(capture) = captures.get(i + 1) {
@@ -273,6 +299,12 @@ impl OpenAPIValidator {
 
                 // Check if method is allowed
                 if !route_pattern.methods.contains(&method.to_string()) {
+                    log::debug!(
+                        "Method not allowed for route '{}': {} (allowed: {})",
+                        route_pattern.path_pattern,
+                        method,
+                        route_pattern.methods.join(", ")
+                    );
                     return ValidationResult {
                         is_valid: false,
                         matched_route: Some(route_pattern.path_pattern.clone()),
@@ -325,6 +357,7 @@ impl OpenAPIValidator {
         }
 
         // No route matched
+        log::debug!("No OpenAPI route matched for path='{}'", path);
         ValidationResult {
             is_valid: false,
             matched_route: None,

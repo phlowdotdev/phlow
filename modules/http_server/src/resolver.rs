@@ -20,6 +20,7 @@ pub async fn proxy(
 ) -> Result<Response<Full<Bytes>>, Infallible> {
     // Handle fixed routes first
     if req.method() == hyper::Method::GET && req.uri().path() == "/health" {
+        log::debug!("/health probe received");
         let response = Response::builder()
             .status(200)
             .body(Full::new(Bytes::from(r#"ok"#)))
@@ -30,6 +31,11 @@ pub async fn proxy(
 
     // Handle CORS preflight requests (OPTIONS)
     if req.method() == hyper::Method::OPTIONS {
+        log::debug!(
+            "CORS preflight request: path={} origin={:?}",
+            req.uri().path(),
+            req.headers().get("origin").and_then(|h| h.to_str().ok())
+        );
         let context = req
             .extensions()
             .get::<RequestContext>()
@@ -58,6 +64,7 @@ pub async fn proxy(
 
     // Handle OpenAPI spec route
     if req.method() == hyper::Method::GET && req.uri().path() == "/openapi.json" {
+        log::debug!("OpenAPI spec requested at /openapi.json");
         let context = req
             .extensions()
             .get::<RequestContext>()
@@ -75,6 +82,7 @@ pub async fn proxy(
 
             return Ok(response);
         } else {
+            log::debug!("OpenAPI spec not configured; returning 404");
             let error_response = r#"{"error":"OPENAPI_NOT_CONFIGURED","message":"OpenAPI specification is not configured for this server"}"#;
 
             let response = Response::builder()
@@ -102,6 +110,14 @@ pub async fn proxy(
     let query = req.uri().query().unwrap_or_default().to_string();
     let uri = req.uri().to_string();
     let headers_clone = req.headers().clone();
+    log::debug!(
+        "Request received: method={} path={} query='{}' body_hint={} size_hint={}",
+        method,
+        path,
+        query,
+        body_size,
+        request_size
+    );
 
     // Check Content-Type for POST, PUT, PATCH requests
     let method_requires_content_type = matches!(method.as_str(), "POST" | "PUT" | "PATCH");
@@ -110,6 +126,7 @@ pub async fn proxy(
             .get("content-type")
             .and_then(|ct| ct.to_str().ok())
             .unwrap_or("");
+        log::debug!("Content-Type detected: '{}'", content_type);
 
         // Define accepted Content-Types
         let accepted_content_types = [
@@ -154,6 +171,7 @@ pub async fn proxy(
                     .span
                     .record("http.response.header.content-type", "application/json");
 
+                log::debug!("Rejected request due to unsupported Content-Type");
                 return Ok(response);
             }
         }
@@ -178,6 +196,24 @@ pub async fn proxy(
     let query_params = query_params.await;
     let body = body.await;
     let headers = headers.await;
+    log::debug!(
+        "Resolved request parts: headers={} query_params={} body_kind={}",
+        headers.len(),
+        match &query_params {
+            Value::Object(o) => o.len(),
+            _ => 0,
+        },
+        match &body {
+            Value::Null => "null",
+            Value::Undefined => "undefined",
+            Value::Object(_) => "object",
+            Value::Array(_) => "array",
+            Value::String(_) => "string",
+            Value::Number(_) => "number",
+            Value::Boolean(_) => "bool",
+            _ => "other",
+        }
+    );
 
     // Convert query_params HashMap for validation
     let query_map: std::collections::HashMap<String, String> =
@@ -192,6 +228,15 @@ pub async fn proxy(
     // Validate request and extract path parameters
     let (path_params, original_path, validation_error) =
         validate_request_and_extract_params(&method, &path, &query_map, &body, &context.router);
+    log::debug!(
+        "Validation result: matched_route={:?} path_params_count={} has_error={}",
+        original_path,
+        match &path_params {
+            Value::Object(o) => o.len(),
+            _ => 0,
+        },
+        validation_error.is_some()
+    );
 
     // If validation failed, return error response immediately
     if let Some(error_response) = validation_error {
@@ -208,6 +253,10 @@ pub async fn proxy(
             to_span_record!(context.span, "http.response.header.{}", key, value);
         });
 
+        log::debug!(
+            "Returning validation error response: status={}",
+            error_handler.status_code
+        );
         return Ok(error_handler.build());
     }
 
@@ -233,6 +282,7 @@ pub async fn proxy(
     }
 
     let data = data_map.to_value();
+    log::debug!("Dispatching request to runtime package with collected data");
 
     let response_value = sender_package!(
         context.span.clone(),
@@ -245,6 +295,11 @@ pub async fn proxy(
     .unwrap_or(Value::Null);
 
     let mut response = ResponseHandler::from(response_value);
+    log::debug!(
+        "Runtime returned response object: status={} headers={}",
+        response.status_code,
+        response.headers.len()
+    );
 
     // Apply CORS headers to the response
     let origin = data_map
@@ -266,6 +321,11 @@ pub async fn proxy(
         to_span_record!(context.span, "http.response.header.{}", key, value);
     });
 
+    log::debug!(
+        "Sending final HTTP response: status={} headers={}",
+        response.status_code,
+        response.headers.len()
+    );
     Ok(response.build())
 }
 
@@ -307,6 +367,20 @@ async fn resolve_body(req: Request<hyper::body::Incoming>) -> Value {
         }
     };
 
+    log::debug!(
+        "Resolved request body: bytes={} kind={}",
+        body_bytes.len(),
+        match &body {
+            Value::Null => "null",
+            Value::Undefined => "undefined",
+            Value::Object(_) => "object",
+            Value::Array(_) => "array",
+            Value::String(_) => "string",
+            Value::Number(_) => "number",
+            Value::Boolean(_) => "bool",
+            _ => "other",
+        }
+    );
     body
 }
 

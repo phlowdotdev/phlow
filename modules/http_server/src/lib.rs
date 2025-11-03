@@ -20,6 +20,8 @@ create_main!(start_server(setup));
 pub async fn start_server(
     setup: ModuleSetup,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    println!("Starting HTTP server module: {}", setup.id);
+
     if !setup.is_main() {
         log::debug!("This module is not the main module, exiting");
         match setup.setup_sender.send(None) {
@@ -43,6 +45,7 @@ pub async fn start_server(
         return Ok(());
     }
 
+    log::debug!("Loading server configuration from setup.with");
     let config: Config = Config::from(setup.with);
     let settings = Arc::new(Settings::load());
 
@@ -50,7 +53,18 @@ pub async fn start_server(
 
     log::debug!("Binding to {}", addr);
 
-    let listener = TcpListener::bind(addr).await?;
+    let listener = match TcpListener::bind(addr).await {
+        Ok(l) => l,
+        Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
+            log::error!(
+                "Address already in use: {}. Outro processo pode estar escutando nessa porta. Sugestão: execute 'ss -ltnp | grep :{}' para identificar o processo.",
+                addr,
+                config.port
+            );
+            return Err(e.into());
+        }
+        Err(e) => return Err(e.into()),
+    };
 
     log::debug!("Listening on {}", listener.local_addr()?);
 
@@ -68,10 +82,16 @@ pub async fn start_server(
             }
         };
 
+        log::debug!("Waiting for incoming TCP connection...");
         let (tcp, peer_addr) = listener.accept().await?;
+        log::debug!("Accepted connection from {}", peer_addr);
         let io: TokioIo<tokio::net::TcpStream> = TokioIo::new(tcp);
 
         tokio::task::spawn(async move {
+            log::debug!(
+                "Spawning connection handler task for peer {} with tracing middleware",
+                peer_addr
+            );
             let service = service_fn(proxy);
 
             let middleware = TracingMiddleware {
@@ -93,6 +113,7 @@ pub async fn start_server(
             {
                 log::debug!("Error serving connection: {}", e);
             }
+            log::debug!("Connection handler for {} finished", peer_addr);
         });
     }
 }

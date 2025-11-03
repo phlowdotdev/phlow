@@ -1,8 +1,8 @@
-use crate::{settings::AuthorizationSpanMode, router::Router, openapi::OpenAPIValidator};
-use hyper::{body::Incoming, service::Service, Request};
+use crate::{openapi::OpenAPIValidator, router::Router, settings::AuthorizationSpanMode};
+use hyper::{Request, body::Incoming, service::Service};
 use phlow_sdk::{
     prelude::*,
-    tracing::{field, Dispatch, Level},
+    tracing::{Dispatch, Level, field},
 };
 
 use std::{future::Future, pin::Pin};
@@ -45,6 +45,12 @@ where
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
     fn call(&self, mut req: Request<Incoming>) -> Self::Future {
+        log::debug!(
+            "Incoming request: method={} path={} from={}",
+            req.method(),
+            req.uri().path(),
+            self.peer_addr
+        );
         if req.method() == hyper::Method::GET && req.uri().path() == "/health" {
             let fut: <S as Service<Request<Incoming>>>::Future = self.inner.call(req);
             return Box::pin(async move { fut.await });
@@ -142,7 +148,13 @@ where
 
             let fut: <S as Service<Request<Incoming>>>::Future = self.inner.call(req);
 
-            Box::pin(async move { fut.await })
+            Box::pin(async move {
+                let res = fut.await;
+                if res.is_err() {
+                    log::debug!("Middleware inner service returned error");
+                }
+                res
+            })
         })
     }
 }

@@ -12,6 +12,10 @@ pub struct CorsConfig {
 
 impl From<Value> for CorsConfig {
     fn from(value: Value) -> Self {
+        log::debug!(
+            "Parsing CORS configuration: {}",
+            value.to_json(JsonMode::Inline)
+        );
         let origins = if let Some(origins) = value.get("origins").and_then(|v| v.as_array()) {
             let parsed_origins: Vec<String> = origins
                 .values
@@ -111,6 +115,15 @@ impl From<Value> for CorsConfig {
             config.credentials = false;
         }
 
+        log::debug!(
+            "CORS configuration parsed: origins={:?}, methods={:?}, headers={:?}, credentials={}, max_age={}",
+            config.origins,
+            config.methods,
+            config.headers,
+            config.credentials,
+            config.max_age
+        );
+
         config
     }
 }
@@ -161,12 +174,17 @@ impl From<Value> for Config {
         }) {
             router.openapi_validator = Some(validator);
             log::info!("OpenAPI validator loaded successfully");
+        } else {
+            log::debug!("OpenAPI validator not configured (proceeding without OpenAPI validation)");
         }
 
         // Load CORS configuration only if present
-        let cors = value
-            .get("cors")
-            .map(|cors_value| CorsConfig::from(cors_value.clone()));
+        let cors = value.get("cors").map(|cors_value| {
+            log::debug!("CORS configuration detected in config");
+            CorsConfig::from(cors_value.clone())
+        });
+
+        log::debug!("HTTP server will bind to {}:{}", host, port);
 
         Config {
             port,

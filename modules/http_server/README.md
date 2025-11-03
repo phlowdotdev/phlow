@@ -543,6 +543,18 @@ O tracing captura automaticamente headers comuns:
 - `referer`
 - E muitos outros...
 
+### Logs de Debug
+
+Este módulo emite logs de depuração (debug) em cada etapa principal: inicialização do servidor, carregamento de configurações, recebimento e parsing da requisição, validação via OpenAPI, aplicação de CORS e construção da resposta.
+
+Para ver os logs de debug, habilite o nível desejado via variável de ambiente (usa env_logger):
+
+```bash
+export RUST_LOG=debug   # ou info, warn, error
+```
+
+Observação: se o runtime hospedeiro já inicializa o logger, o módulo detecta e não tenta reinicializar (usa try_init). Caso esteja executando isoladamente, o próprio módulo inicializa o env_logger automaticamente.
+
 ### Modos de Authorization
 
 Configure como o header `Authorization` aparece nos spans:

@@ -16,9 +16,6 @@ pub struct Package {
 struct ModuleMetadata {
     name: String,
     version: String,
-    repository: String,
-    license: String,
-    author: String,
 }
 
 impl Package {
@@ -71,41 +68,14 @@ impl Package {
         };
 
         info!(
-            "Metadata loaded:\n  - name: {}\n  - version: {}\n  - repository: {}\n  - license: {}\n  - author: {}",
-            metadata.name, metadata.version, metadata.repository, metadata.license, metadata.author
+            "Metadata loaded:\n  - name: {}\n  - version: {}\n ",
+            metadata.name, metadata.version
         );
 
         info!("Validating version...");
         let version_regex = Regex::new(r"^\d+\.\d+\.\d+(?:-[\w\.-]+)?(?:\+[\w\.-]+)?$")?;
         if !version_regex.is_match(&metadata.version) {
             bail!("Invalid version: must follow MAJOR.MINOR.PATCH-prerelease+build format");
-        }
-
-        info!("Validating author...");
-        let author_regex = Regex::new(r"^.+ <.+@.+>$")?;
-        if !author_regex.is_match(&metadata.author) {
-            bail!("Invalid author: must follow the pattern 'name <email>'");
-        }
-
-        info!("Validating license...");
-        let known_licenses = [
-            "MIT",
-            "Apache-2.0",
-            "GPL-3.0",
-            "BSD-3-Clause",
-            "MPL-2.0",
-            "LGPL-3.0",
-            "CDDL-1.0",
-            "EPL-2.0",
-            "Unlicense",
-        ];
-        if !known_licenses.contains(&metadata.license.as_str()) {
-            if !metadata.license.starts_with("http://") && !metadata.license.starts_with("https://")
-            {
-                bail!(
-                    "Invalid license: must be a known open source license or a URL to license terms"
-                );
-            }
         }
 
         info!("Starting project build...");

@@ -1,3 +1,5 @@
+use phlow_sdk::prelude::*;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum AuthorizationSpanMode {
     None,
@@ -31,6 +33,11 @@ impl Settings {
             Ok(mode) => AuthorizationSpanMode::from_str(&mode),
             Err(_) => AuthorizationSpanMode::Prefix,
         };
+
+        log::debug!(
+            "Settings loaded: authorization_span_mode={:?}",
+            authorization_span_mode
+        );
 
         Settings {
             authorization_span_mode,
