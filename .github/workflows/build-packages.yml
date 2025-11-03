@@ -5,7 +5,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  PARALLEL: 3
+  PARALLEL: 1
 
 permissions:
   contents: write

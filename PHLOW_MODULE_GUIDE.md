@@ -182,7 +182,7 @@ The `config.rs` defines how the module is configured via the `with` section in t
 ```rust
 use phlow_sdk::prelude::*;
 
-/// Configuração para o módulo cache
+/// Configuration for the cache module
 #[derive(Debug, Clone)]
 pub struct CacheConfig {
     pub capacity: usize,
@@ -192,8 +192,8 @@ pub struct CacheConfig {
 impl Default for CacheConfig {
     fn default() -> Self {
         Self {
-            capacity: 1000,      // Capacidade padrão: 1000 itens
-            default_ttl: None,   // Sem TTL padrão
+            capacity: 1000,      // Default capacity: 1000 items
+            default_ttl: None,   // No default TTL
         }
     }
 }
@@ -239,27 +239,27 @@ impl TryFrom<&Value> for CacheConfig {
 }
 ```
 
-**Uso no arquivo .phlow:**
+**Usage in .phlow file:**
 
 ```yaml
 modules:
   - module: cache
     with:
-      capacity: 5000        # Máximo 5000 itens
-      default_ttl: 3600     # 1 hora padrão
+      capacity: 5000        # Maximum 5000 items
+      default_ttl: 3600     # 1 hour default
 ```
 
-### 2. Definições de Entrada (input.rs)
+### 2. Input Definitions (input.rs)
 
-O `input.rs` define todas as ações possíveis usando enums do Rust com serde.
+The `input.rs` defines all possible actions using Rust enums with serde.
 
 ```rust
 use phlow_sdk::prelude::*;
 use serde::{Deserialize, Serialize};
 
-/// Ações de entrada do cache
+/// Cache input actions
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "action")]  // Usa campo "action" como discriminador
+#[serde(tag = "action")]  // Use "action" field as discriminator
 pub enum CacheInput {
     #[serde(rename = "set")]
     Set {
@@ -305,7 +305,7 @@ pub enum CacheInput {
 }
 ```
 
-**Implementação do parsing customizado:**
+**Custom parsing implementation:**
 
 ```rust
 impl TryFrom<Option<Value>> for CacheInput {
@@ -318,14 +318,14 @@ impl TryFrom<Option<Value>> for CacheInput {
             return Err("Cache input must be an object".to_string());
         }
 
-        // Extrair action (obrigatório)
+        // Extract action (required)
         let action = match input_value.get("action") {
             Some(Value::String(s)) => s.as_string(),
             Some(v) => v.to_string(),
             None => return Err("Missing required 'action' field in cache input".to_string()),
         };
 
-        // Match baseado na action
+        // Match based on action
         match action.as_str() {
             "set" => {
                 let key = input_value
@@ -360,7 +360,7 @@ impl TryFrom<Option<Value>> for CacheInput {
                 Ok(CacheInput::Get { key })
             }
             
-            // ... outras actions ...
+            // ... other actions ...
             
             _ => Err(format!(
                 "Invalid action '{}'. Must be one of: set, get, remove, clear, exists, list, cleanup, stats",
@@ -371,19 +371,19 @@ impl TryFrom<Option<Value>> for CacheInput {
 }
 ```
 
-**Benefícios deste padrão:**
+**Benefits of this pattern:**
 
-- ✅ **Type Safety**: Validação em tempo de compilação
-- ✅ **Documentação Clara**: Enums documentam as ações possíveis
-- ✅ **Validação Robusta**: Erros claros para entradas inválidas
-- ✅ **Manutenibilidade**: Fácil adicionar novas ações
+- ✅ **Type Safety**: Compile-time validation
+- ✅ **Clear Documentation**: Enums document possible actions
+- ✅ **Robust Validation**: Clear errors for invalid inputs
+- ✅ **Maintainability**: Easy to add new actions
 
-### 3. Estatísticas (stats.rs)
+### 3. Statistics (stats.rs)
 
-O `stats.rs` rastreia métricas de operação do cache.
+The `stats.rs` tracks cache operation metrics.
 
 ```rust
-/// Rastreador de estatísticas para operações de cache
+/// Statistics tracker for cache operations
 #[derive(Debug, Clone)]
 pub struct CacheStats {
     total_gets: u64,
@@ -404,18 +404,18 @@ impl CacheStats {
         }
     }
 
-    /// Registrar um cache hit
+    /// Record a cache hit
     pub fn record_hit(&mut self) {
         self.total_gets += 1;
         self.total_hits += 1;
     }
 
-    /// Registrar um cache miss
+    /// Record a cache miss
     pub fn record_miss(&mut self) {
         self.total_gets += 1;
     }
 
-    /// Calcular hit rate como porcentagem
+    /// Calculate hit rate as percentage
     pub fn get_hit_rate(&self) -> f64 {
         if self.total_gets == 0 {
             0.0
@@ -424,11 +424,11 @@ impl CacheStats {
         }
     }
 
-    // ... outros métodos ...
+    // ... other methods ...
 }
 ```
 
-**Testes incluídos:**
+**Included tests:**
 
 ```rust
 #[cfg(test)]
@@ -452,9 +452,9 @@ mod tests {
 }
 ```
 
-### 4. Implementação Principal (lib.rs)
+### 4. Main Implementation (lib.rs)
 
-O `lib.rs` orquestra tudo e implementa a lógica de negócio.
+The `lib.rs` orchestrates everything and implements the business logic.
 
 ```rust
 mod config;
@@ -468,23 +468,23 @@ use phlow_sdk::prelude::*;
 use quickleaf::{Quickleaf, Filter, ListProps, Order, Duration};
 use std::sync::{Arc, Mutex};
 
-// Registrar a função como step module
+// Register the function as a step module
 create_step!(cache_handler(setup));
 
-/// Instância global do cache com thread safety
+/// Global cache instance with thread safety
 type CacheInstance = Arc<Mutex<Quickleaf>>;
 
-/// Handler que gerencia uma instância QuickLeaf
+/// Handler that manages a QuickLeaf instance
 pub async fn cache_handler(
     setup: ModuleSetup,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let rx = module_channel!(setup);
 
-    // Parse da configuração do cache
+    // Parse cache configuration
     let config = CacheConfig::try_from(&setup.with)?;
     log::debug!("Cache module started with config: {:?}", config);
 
-    // Inicializar instância do cache
+    // Initialize cache instance
     let cache = if let Some(default_ttl) = config.default_ttl {
         Arc::new(Mutex::new(Quickleaf::with_default_ttl(
             config.capacity,
@@ -494,15 +494,15 @@ pub async fn cache_handler(
         Arc::new(Mutex::new(Quickleaf::new(config.capacity)))
     };
 
-    // Inicializar estatísticas
+    // Initialize statistics
     let stats = Arc::new(Mutex::new(CacheStats::new()));
 
-    // Loop de processamento de mensagens
+    // Message processing loop
     for package in rx {
         let cache = cache.clone();
         let stats = stats.clone();
 
-        // Parse da entrada baseado na action
+        // Parse input based on action
         let input = match CacheInput::try_from(package.input.clone()) {
             Ok(input) => input,
             Err(e) => {
@@ -519,7 +519,7 @@ pub async fn cache_handler(
 
         log::debug!("Cache module received input: {:?}", input);
 
-        // Processar baseado na action
+        // Process based on action
         let result = match input {
             CacheInput::Set { key, value, ttl } => {
                 handle_set(cache, stats, key, value, ttl).await
@@ -565,7 +565,7 @@ pub async fn cache_handler(
             }
         };
 
-        // Enviar resposta
+        // Send response
         match result {
             Ok(response_value) => {
                 log::debug!("Cache operation successful");
@@ -587,10 +587,10 @@ pub async fn cache_handler(
 }
 ```
 
-**Exemplo de Handler: Get**
+**Handler Example: Get**
 
 ```rust
-/// Handle da action get
+/// Handle get action
 async fn handle_get(
     cache: CacheInstance,
     stats: Arc<Mutex<CacheStats>>,
@@ -637,10 +637,10 @@ async fn handle_get(
 }
 ```
 
-**Exemplo de Handler: List com Filtros**
+**Handler Example: List with Filters**
 
 ```rust
-/// Handle da action list
+/// Handle list action
 async fn handle_list(
     cache: CacheInstance,
     filter_type: String,
@@ -655,7 +655,7 @@ async fn handle_list(
         .lock()
         .map_err(|e| format!("Cache lock error: {}", e))?;
 
-    // Determinar filtro
+    // Determine filter
     let filter = match filter_type.as_str() {
         "prefix" => {
             if let Some(prefix) = filter_prefix.or(filter_value) {
@@ -681,21 +681,21 @@ async fn handle_list(
         _ => Filter::None,
     };
 
-    // Determinar ordem
+    // Determine order
     let list_order = match order.as_str() {
         "desc" => Order::Desc,
         _ => Order::Asc,
     };
 
-    // Construir propriedades da lista
+    // Build list properties
     let list_props = ListProps::default().filter(filter).order(list_order);
 
-    // Obter itens do cache
+    // Get items from cache
     let items = cache_guard
         .list(list_props)
         .map_err(|e| format!("List operation failed: {:?}", e))?;
 
-    // Aplicar paginação
+    // Apply pagination
     let total_count = items.len();
     let start_idx = offset as usize;
     let end_idx = if let Some(limit) = limit {
@@ -741,11 +741,11 @@ async fn handle_list(
 
 ---
 
-## Schema phlow.yaml
+## phlow.yaml Schema
 
-O arquivo `phlow.yaml` define metadados, configuração e schema de entrada/saída do módulo.
+The `phlow.yaml` file defines metadata, configuration, and input/output schema of the module.
 
-### Schema Completo do Cache
+### Complete Cache Schema
 
 ```yaml
 name: cache
@@ -784,7 +784,7 @@ tags:
   - ttl
   - lru
 
-# Configuração via 'with'
+# Configuration via 'with'
 with:
   type: object
   required: false
@@ -799,7 +799,7 @@ with:
       description: "Default TTL in seconds for all cached items"
       required: false
 
-# Schema de entrada
+# Input schema
 input:
   type: object
   required: true
@@ -810,7 +810,7 @@ input:
       required: true
       enum: ["set", "get", "remove", "clear", "exists", "list", "cleanup", "stats"]
 
-    # Propriedades para set action
+    # Properties for set action
     key:
       type: string
       description: "Cache key (for set, get, remove, exists actions)"
@@ -824,7 +824,7 @@ input:
       description: "TTL in seconds (for set action)"
       required: false
 
-    # Propriedades para list action
+    # Properties for list action
     filter_type:
       type: string
       enum: ["none", "prefix", "suffix", "pattern"]
@@ -859,7 +859,7 @@ input:
       default: 0
       required: false
 
-# Schema de saída
+# Output schema
 output:
   type: object
   required: true
@@ -917,19 +917,19 @@ output:
           description: "Estimated memory usage in bytes"
 ```
 
-### Seções Principais do Schema
+### Main Schema Sections
 
-#### 1. Metadados
+#### 1. Metadata
 ```yaml
-name: cache                    # Nome único do módulo
-version: 0.1.0                 # Versionamento semântico
-author: Philippe Assis         # Autor
-type: step                     # Tipo do módulo
-tags: [cache, memory, ...]     # Tags para descoberta
+name: cache                    # Unique module name
+version: 0.1.0                 # Semantic versioning
+author: Philippe Assis         # Author
+type: step                     # Module type
+tags: [cache, memory, ...]     # Tags for discovery
 ```
 
-#### 2. Configuração (with)
-Define opções que podem ser configuradas ao declarar o módulo:
+#### 2. Configuration (with)
+Defines options that can be configured when declaring the module:
 
 ```yaml
 with:
@@ -944,7 +944,7 @@ with:
 ```
 
 #### 3. Input
-Define a estrutura de entrada esperada:
+Defines the expected input structure:
 
 ```yaml
 input:
@@ -957,7 +957,7 @@ input:
 ```
 
 #### 4. Output
-Define a estrutura de resposta:
+Defines the response structure:
 
 ```yaml
 output:
@@ -970,13 +970,13 @@ output:
 
 ---
 
-## Testes e Exemplos
+## Tests and Examples
 
-### Testes Unitários
+### Unit Tests
 
-O módulo Cache inclui testes em cada arquivo:
+The Cache module includes tests in each file:
 
-**input.rs - Testes de Parsing:**
+**input.rs - Parsing Tests:**
 
 ```rust
 #[cfg(test)]
@@ -1017,7 +1017,7 @@ mod tests {
 }
 ```
 
-**stats.rs - Testes de Estatísticas:**
+**stats.rs - Statistics Tests:**
 
 ```rust
 #[cfg(test)]
@@ -1041,9 +1041,9 @@ mod tests {
 }
 ```
 
-### Exemplo de Integração
+### Integration Example
 
-**simple-test.phlow - Testes Básicos:**
+**simple-test.phlow - Basic Tests:**
 
 ```yaml
 name: Cache Module Simple Tests
@@ -1077,9 +1077,9 @@ steps:
           value: !phs main.test_value
 ```
 
-### Exemplo de Caso de Uso Real
+### Real Use Case Example
 
-**user-sessions.phlow - Gerenciamento de Sessões:**
+**user-sessions.phlow - Session Management:**
 
 ```yaml
 name: User Session Cache Example
@@ -1089,10 +1089,10 @@ modules:
   - module: cache
     with:
       capacity: 1000
-      default_ttl: 1800  # 30 minutos
+      default_ttl: 1800  # 30 minutes
 
 steps:
-  # Criar sessão de usuário
+  # Create user session
   - use: cache
     input:
       action: set
@@ -1103,15 +1103,15 @@ steps:
         email: "john.doe@example.com"
         login_time: "2025-08-06T23:10:00Z"
         permissions: ["read", "write"]
-      ttl: 3600  # 1 hora
+      ttl: 3600  # 1 hour
 
-  # Validar sessão existe
+  # Validate session exists
   - use: cache
     input:
       action: exists
       key: "session:12345"
 
-  # Recuperar dados da sessão
+  # Retrieve session data
   - use: cache
     input:
       action: get
@@ -1123,7 +1123,7 @@ steps:
         input:
           message: !phs `User ${payload.value.username} authenticated`
 
-  # Listar sessões ativas
+  # List active sessions
   - use: cache
     input:
       action: list
@@ -1131,7 +1131,7 @@ steps:
       filter_prefix: "session:"
       limit: 10
 
-  # Obter estatísticas
+  # Get statistics
   - use: cache
     input:
       action: stats
@@ -1143,102 +1143,102 @@ steps:
 
 ---
 
-## Build e Deploy
+## Build and Deploy
 
-### Compilar o Módulo
+### Compile the Module
 
 ```bash
-# Build de desenvolvimento
+# Development build
 cd modules/cache
 cargo build
 
-# Build otimizado para produção
+# Optimized production build
 cargo build --release
 
-# O módulo compilado estará em:
+# The compiled module will be at:
 # target/debug/libcache.so     (Linux)
 # target/debug/libcache.dylib  (macOS)
 # target/debug/cache.dll       (Windows)
 ```
 
-### Instalação Local
+### Local Installation
 
 ```bash
-# Criar diretório de pacotes
+# Create package directory
 mkdir -p phlow_packages/cache
 
-# Copiar módulo compilado
+# Copy compiled module
 cp target/release/libcache.so phlow_packages/cache/module.so
 
-# Copiar schema
+# Copy schema
 cp phlow.yaml phlow_packages/cache/
 
-# Estrutura final:
+# Final structure:
 # phlow_packages/
 #   cache/
 #     module.so
 #     phlow.yaml
 ```
 
-### Testar o Módulo
+### Test the Module
 
 ```bash
-# Executar arquivo de exemplo
+# Run example file
 phlow examples/cache/simple-test.phlow
 
-# Executar com log detalhado
+# Run with detailed logging
 RUST_LOG=debug phlow examples/cache/user-sessions.phlow
 
-# Executar testes
+# Run tests
 phlow test examples/cache/simple-test.phlow
 ```
 
-### Build Automatizado
+### Automated Build
 
-Para módulos no repositório oficial, use o cargo-make:
+For modules in the official repository, use cargo-make:
 
 ```bash
-# Build de todos os módulos
+# Build all modules
 cargo make build-modules
 
-# Build de um módulo específico
+# Build a specific module
 cargo make build-module cache
 
-# Build e empacotamento
+# Build and package
 cargo make packages
 ```
 
 ---
 
-## Melhores Práticas
+## Best Practices
 
-### 1. Organização de Código
+### 1. Code Organization
 
 ```rust
-// ✅ BOM: Separar em módulos lógicos
-mod config;    // Configuração
-mod input;     // Parsing de entrada
-mod stats;     // Estatísticas
-mod handlers;  // Lógica de negócio
+// ✅ GOOD: Separate into logical modules
+mod config;    // Configuration
+mod input;     // Input parsing
+mod stats;     // Statistics
+mod handlers;  // Business logic
 
-// ❌ RUIM: Tudo em lib.rs
-// 2000 linhas em um único arquivo
+// ❌ BAD: Everything in lib.rs
+// 2000 lines in a single file
 ```
 
-### 2. Tratamento de Erros
+### 2. Error Handling
 
 ```rust
-// ✅ BOM: Erros descritivos
+// ✅ GOOD: Descriptive errors
 Err(format!("Invalid capacity: must be > 0, got {}", cap))
 
-// ❌ RUIM: Erros genéricos
+// ❌ BAD: Generic errors
 Err("Invalid input".to_string())
 ```
 
-### 3. Validação de Configuração
+### 3. Configuration Validation
 
 ```rust
-// ✅ BOM: Validar cedo
+// ✅ GOOD: Validate early
 impl TryFrom<&Value> for Config {
     fn try_from(value: &Value) -> Result<Self, String> {
         if capacity <= 0 {
@@ -1248,42 +1248,42 @@ impl TryFrom<&Value> for Config {
     }
 }
 
-// ❌ RUIM: Aceitar qualquer valor
+// ❌ BAD: Accept any value
 impl From<&Value> for Config {
     fn from(value: &Value) -> Self {
-        // Sem validação
+        // No validation
     }
 }
 ```
 
-### 4. Logging Estruturado
+### 4. Structured Logging
 
 ```rust
-// ✅ BOM: Logs informativos em diferentes níveis
+// ✅ GOOD: Informative logs at different levels
 log::debug!("Cache operation: action={}, key={}", action, key);
 log::info!("Cache hit rate: {:.2}%", stats.hit_rate());
 log::warn!("Cache nearing capacity: {}/{}", size, capacity);
 log::error!("Cache operation failed: {}", error);
 
-// ❌ RUIM: Logs vagos
+// ❌ BAD: Vague logs
 log::info!("Operation completed");
 ```
 
 ### 5. Thread Safety
 
 ```rust
-// ✅ BOM: Usar Arc<Mutex<T>> para estado compartilhado
+// ✅ GOOD: Use Arc<Mutex<T>> for shared state
 type CacheInstance = Arc<Mutex<Quickleaf>>;
 let cache = Arc::new(Mutex::new(Quickleaf::new(1000)));
 
-// ❌ RUIM: Estado mutável sem proteção
+// ❌ BAD: Mutable state without protection
 static mut CACHE: Option<Quickleaf> = None;
 ```
 
-### 6. Testes Abrangentes
+### 6. Comprehensive Tests
 
 ```rust
-// ✅ BOM: Testar casos de sucesso E falha
+// ✅ GOOD: Test success AND failure cases
 #[test]
 fn test_valid_input() { /* ... */ }
 
@@ -1297,10 +1297,10 @@ fn test_missing_required_field() { /* ... */ }
 fn test_edge_cases() { /* ... */ }
 ```
 
-### 7. Documentação Clara
+### 7. Clear Documentation
 
 ```rust
-// ✅ BOM: Documentar funções públicas
+// ✅ GOOD: Document public functions
 /// Handle get action from cache
 ///
 /// # Arguments
@@ -1318,37 +1318,37 @@ async fn handle_get(
 ) -> Result<Value, String>
 ```
 
-### 8. Versionamento Semântico
+### 8. Semantic Versioning
 
 ```toml
-# ✅ BOM: Seguir SemVer
+# ✅ GOOD: Follow SemVer
 version = "0.1.0"  # MAJOR.MINOR.PATCH
 
 # 0.1.0 → 0.1.1 : Bug fix
-# 0.1.1 → 0.2.0 : Nova funcionalidade
+# 0.1.1 → 0.2.0 : New feature
 # 0.2.0 → 1.0.0 : Breaking change
 ```
 
 ### 9. Performance
 
 ```rust
-// ✅ BOM: Operações O(1) quando possível
+// ✅ GOOD: O(1) operations when possible
 cache_guard.get(&key)  // O(1) lookup
 
-// ✅ BOM: Paginação em listagens
+// ✅ GOOD: Pagination in listings
 let items = all_items
     .skip(offset)
     .take(limit)
     .collect();
 
-// ❌ RUIM: Retornar tudo sem paginação
+// ❌ BAD: Return everything without pagination
 let items = all_items.collect();
 ```
 
-### 10. Schema Completo
+### 10. Complete Schema
 
 ```yaml
-# ✅ BOM: Documentar todas as propriedades
+# ✅ GOOD: Document all properties
 input:
   properties:
     key:
@@ -1356,7 +1356,7 @@ input:
       description: "Cache key for the operation"
       required: true
       
-# ❌ RUIM: Schema incompleto
+# ❌ BAD: Incomplete schema
 input:
   properties:
     key:
@@ -1365,73 +1365,73 @@ input:
 
 ---
 
-## Checklist de Desenvolvimento
+## Development Checklist
 
-Use este checklist ao criar um novo módulo:
+Use this checklist when creating a new module:
 
-### Estrutura
-- [ ] Criar diretório `modules/my_module/`
-- [ ] Criar `Cargo.toml` com `crate-type = ["cdylib"]`
-- [ ] Criar `phlow.yaml` com schema completo
-- [ ] Criar `src/lib.rs` com macro apropriada
+### Structure
+- [ ] Create directory `modules/my_module/`
+- [ ] Create `Cargo.toml` with `crate-type = ["cdylib"]`
+- [ ] Create `phlow.yaml` with complete schema
+- [ ] Create `src/lib.rs` with appropriate macro
 
-### Configuração
-- [ ] Definir struct de configuração em `config.rs`
-- [ ] Implementar `TryFrom<&Value>` com validação
-- [ ] Definir valores padrão sensatos
-- [ ] Documentar todas as opções
+### Configuration
+- [ ] Define configuration struct in `config.rs`
+- [ ] Implement `TryFrom<&Value>` with validation
+- [ ] Define sensible default values
+- [ ] Document all options
 
-### Entrada/Saída
-- [ ] Definir enum de ações em `input.rs`
-- [ ] Implementar parsing robusto
-- [ ] Validar todos os campos obrigatórios
-- [ ] Retornar erros descritivos
+### Input/Output
+- [ ] Define action enum in `input.rs`
+- [ ] Implement robust parsing
+- [ ] Validate all required fields
+- [ ] Return descriptive errors
 
-### Implementação
-- [ ] Usar `Arc<Mutex<T>>` para estado compartilhado
-- [ ] Implementar handlers para cada ação
-- [ ] Adicionar logging apropriado
-- [ ] Tratar todos os erros
+### Implementation
+- [ ] Use `Arc<Mutex<T>>` for shared state
+- [ ] Implement handlers for each action
+- [ ] Add appropriate logging
+- [ ] Handle all errors
 
-### Testes
-- [ ] Adicionar testes unitários
-- [ ] Criar exemplo de uso simples
-- [ ] Criar exemplo de caso de uso real
-- [ ] Testar casos de erro
+### Tests
+- [ ] Add unit tests
+- [ ] Create simple usage example
+- [ ] Create real use case example
+- [ ] Test error cases
 
-### Documentação
-- [ ] Documentar funções públicas
-- [ ] Adicionar exemplos no `phlow.yaml`
-- [ ] Criar README se necessário
-- [ ] Documentar ações e parâmetros
+### Documentation
+- [ ] Document public functions
+- [ ] Add examples in `phlow.yaml`
+- [ ] Create README if needed
+- [ ] Document actions and parameters
 
 ### Build
-- [ ] Compilar sem warnings
-- [ ] Testar em ambiente local
-- [ ] Verificar tamanho do binário
-- [ ] Testar com phlow runtime
+- [ ] Compile without warnings
+- [ ] Test in local environment
+- [ ] Check binary size
+- [ ] Test with phlow runtime
 
 ---
 
-## Conclusão
+## Conclusion
 
-Este guia usou o módulo Cache como exemplo real para demonstrar todos os aspectos do desenvolvimento de módulos Phlow. Os principais takeaways são:
+This guide used the Cache module as a real example to demonstrate all aspects of Phlow module development. The main takeaways are:
 
-1. **Organização Modular**: Separar código em arquivos lógicos (`config.rs`, `input.rs`, `stats.rs`)
-2. **Type Safety**: Usar enums e traits do Rust para validação em compile-time
-3. **Padrão Action-Based**: Múltiplas operações em um único módulo usando enums tagged
-4. **Thread Safety**: Usar `Arc<Mutex<T>>` para estado compartilhado
-5. **Validação Robusta**: Validar entrada cedo e retornar erros claros
-6. **Testes Abrangentes**: Testar sucesso, falha e casos extremos
-7. **Documentação Clara**: Schema completo e exemplos de uso
+1. **Modular Organization**: Separate code into logical files (`config.rs`, `input.rs`, `stats.rs`)
+2. **Type Safety**: Use Rust enums and traits for compile-time validation
+3. **Action-Based Pattern**: Multiple operations in a single module using tagged enums
+4. **Thread Safety**: Use `Arc<Mutex<T>>` for shared state
+5. **Robust Validation**: Validate input early and return clear errors
+6. **Comprehensive Tests**: Test success, failure, and edge cases
+7. **Clear Documentation**: Complete schema and usage examples
 
-O módulo Cache demonstra um padrão maduro e robusto que pode ser adaptado para criar novos módulos Phlow de alta qualidade.
+The Cache module demonstrates a mature and robust pattern that can be adapted to create high-quality Phlow modules.
 
-### Próximos Passos
+### Next Steps
 
-1. Explore o código-fonte completo em `modules/cache/`
-2. Experimente os exemplos em `examples/cache/`
-3. Use este padrão como base para seus próprios módulos
-4. Contribua com melhorias e novos módulos para o ecossistema Phlow
+1. Explore the complete source code in `modules/cache/`
+2. Try the examples in `examples/cache/`
+3. Use this pattern as a base for your own modules
+4. Contribute improvements and new modules to the Phlow ecosystem
 
 **Happy coding! 🚀**
