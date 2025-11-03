@@ -727,6 +727,99 @@ impl OpenAPIValidator {
                 }
             }
         }
+
+        // Check format (e.g., email)
+        if let Some(format_val) = schema.get("format").and_then(|v| match v {
+            Value::String(s) => Some(s.as_str().to_string()),
+            _ => Some(v.to_string()),
+        }) {
+            if !format_val.is_empty() {
+                if format_val == "email" {
+                    if !Self::is_valid_email(str_val) {
+                        errors.push(ValidationError {
+                            error_type: ValidationErrorType::InvalidFieldValue,
+                            message: format!(
+                                "Field '{}' must be a valid email address",
+                                field_name
+                            ),
+                            field: Some(field_name.to_string()),
+                        });
+                    }
+                }
+                // Future formats can be handled here
+            }
+        }
+    }
+
+    /// Basic email validation used for schemas with `format: "email"`.
+    /// This is not a full RFC5322 implementation but covers common invalid cases
+    /// used in tests: missing @, empty local/domain, consecutive dots, leading/trailing dots/hyphens,
+    /// missing TLD or TLD too short, spaces, etc.
+    fn is_valid_email(s: &str) -> bool {
+        let s = s.trim();
+        if s.is_empty() {
+            return false;
+        }
+
+        // No spaces allowed
+        if s.contains(' ') {
+            return false;
+        }
+
+        // Must contain exactly one '@'
+        let at_count = s.matches('@').count();
+        if at_count != 1 {
+            return false;
+        }
+
+        let parts: Vec<&str> = s.split('@').collect();
+        if parts.len() != 2 {
+            return false;
+        }
+
+        let local = parts[0];
+        let domain = parts[1];
+
+        if local.is_empty() || domain.is_empty() {
+            return false;
+        }
+
+        // No consecutive dots anywhere
+        if s.contains("..") {
+            return false;
+        }
+
+        // Local part cannot start or end with a dot
+        if local.starts_with('.') || local.ends_with('.') {
+            return false;
+        }
+
+        // Domain cannot start or end with dot
+        if domain.starts_with('.') || domain.ends_with('.') {
+            return false;
+        }
+
+        // Domain must contain at least one dot and TLD length >= 2
+        if !domain.contains('.') {
+            return false;
+        }
+        if let Some(tld) = domain.rsplit('.').next() {
+            if tld.len() < 2 {
+                return false;
+            }
+        }
+
+        // Each domain label must be non-empty and cannot start or end with a hyphen
+        for label in domain.split('.') {
+            if label.is_empty() {
+                return false;
+            }
+            if label.starts_with('-') || label.ends_with('-') {
+                return false;
+            }
+        }
+
+        true
     }
 
     /// Validate numeric field with min/max constraints
@@ -1091,10 +1184,12 @@ mod tests {
             !result.is_valid,
             "Whitespace-only strings should fail minLength validation"
         );
-        assert!(result
-            .errors
-            .iter()
-            .any(|e| e.field.as_ref().map_or(false, |f| f == "name")));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| e.field.as_ref().map_or(false, |f| f == "name"))
+        );
 
         // Test that pattern validation works generically
         let invalid_email = Value::json_to_value(
@@ -1111,9 +1206,11 @@ mod tests {
             !result.is_valid,
             "Invalid email pattern should fail validation"
         );
-        assert!(result
-            .errors
-            .iter()
-            .any(|e| e.field.as_ref().map_or(false, |f| f == "email")));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| e.field.as_ref().map_or(false, |f| f == "email"))
+        );
     }
 }
