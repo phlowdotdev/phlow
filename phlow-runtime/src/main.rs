@@ -50,15 +50,16 @@ async fn main() {
     };
 
     if let Some(publish_path) = settings.package_path.clone() {
-        match Package::try_from(publish_path) {
+        match Package::new(publish_path.into(), settings.create_tar) {
             Ok(publish) => {
                 if let Err(err) = publish.run() {
-                    log::error!("Error publishing module: {:?}", err);
-                    return;
+                    log::error!("Error creating module: {:?}", err);
                 }
+
+                return;
             }
             Err(err) => {
-                log::error!("Error creating publish instance: {:?}", err);
+                log::error!("Error creating instance: {:?}", err);
                 return;
             }
         }

@@ -8,6 +8,7 @@ use std::{fs, path::PathBuf, process::Command};
 #[derive(Debug)]
 pub struct Package {
     pub module_dir: PathBuf,
+    pub create_tar: bool,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -20,6 +21,21 @@ struct ModuleMetadata {
 }
 
 impl Package {
+    pub fn new(module_dir: PathBuf, create_tar: bool) -> Result<Self> {
+        if !module_dir.exists() {
+            bail!("Directory not found: {}", module_dir.display());
+        }
+
+        info!(
+            "Initializing Package struct for directory: {}",
+            module_dir.display()
+        );
+        Ok(Package {
+            module_dir,
+            create_tar,
+        })
+    }
+
     pub fn run(&self) -> Result<()> {
         let archive_name = self.create_package().with_context(|| {
             format!("Failed to create package in {}", self.module_dir.display())
@@ -99,73 +115,88 @@ impl Package {
             .then_some(())
             .context("Build failed")?;
 
-        let temp_dir = PathBuf::from(format!(".tmp/{}", metadata.name));
-        info!("Creating temporary directory: {}", temp_dir.display());
-        fs::create_dir_all(&temp_dir)?;
-
         let so_name = format!("lib{}.{}", metadata.name, MODULE_EXTENSION);
         let so_path = release_dir.join(&so_name);
         if !so_path.exists() {
             bail!("Missing .{} file: {}", MODULE_EXTENSION, so_path.display());
         }
-        info!(
-            "Copying .{} file from {} to {}",
-            MODULE_EXTENSION,
-            so_path.display(),
-            temp_dir.display()
-        );
-        fs::copy(
-            &so_path,
-            temp_dir.join(format!("module.{}", MODULE_EXTENSION)),
-        )?;
 
-        info!("Copying metadata file to temp folder");
-        fs::copy(
-            &metadata_path,
-            temp_dir.join(metadata_path.file_name().unwrap()),
-        )?;
+        if self.create_tar {
+            // Create .tar.gz archive
+            let temp_dir = PathBuf::from(format!(".tmp/{}", metadata.name));
+            info!("Creating temporary directory: {}", temp_dir.display());
+            fs::create_dir_all(&temp_dir)?;
 
-        let archive_name = format!("{}-{}.tar.gz", metadata.name, metadata.version);
-
-        info!("Creating archive: {}", archive_name);
-        let status = Command::new("tar")
-            .args(["-czf", &archive_name, "-C"])
-            .arg(temp_dir.to_str().unwrap()) // entra direto na pasta criada, ex: .tmp/nome
-            .arg(".") // empacota apenas o conteúdo, sem incluir a pasta
-            .status()
-            .context("Failed to create archive")?;
-
-        if !status.success() {
-            bail!("Failed to generate package: {}", archive_name);
-        }
-
-        info!("Success! Package created: {} 🎉", archive_name);
-
-        info!("Cleaning up temporary directory: {}", temp_dir.display());
-        fs::remove_dir_all(&temp_dir).with_context(|| {
-            format!(
-                "Failed to remove temporary directory: {}",
+            info!(
+                "Copying .{} file from {} to {}",
+                MODULE_EXTENSION,
+                so_path.display(),
                 temp_dir.display()
-            )
-        })?;
+            );
+            fs::copy(
+                &so_path,
+                temp_dir.join(format!("module.{}", MODULE_EXTENSION)),
+            )?;
 
-        Ok(archive_name)
-    }
-}
+            info!("Copying metadata file to temp folder");
+            fs::copy(
+                &metadata_path,
+                temp_dir.join(metadata_path.file_name().unwrap()),
+            )?;
 
-impl TryFrom<String> for Package {
-    type Error = anyhow::Error;
+            let archive_name = format!("{}-{}.tar.gz", metadata.name, metadata.version);
 
-    fn try_from(path: String) -> Result<Self, Self::Error> {
-        let module_dir = PathBuf::from(&path);
-        if !module_dir.exists() {
-            bail!("Directory not found: {}", module_dir.display());
+            info!("Creating archive: {}", archive_name);
+            let status = Command::new("tar")
+                .args(["-czf", &archive_name, "-C"])
+                .arg(temp_dir.to_str().unwrap())
+                .arg(".")
+                .status()
+                .context("Failed to create archive")?;
+
+            if !status.success() {
+                bail!("Failed to generate package: {}", archive_name);
+            }
+
+            info!("Success! Package created: {} 🎉", archive_name);
+
+            info!("Cleaning up temporary directory: {}", temp_dir.display());
+            fs::remove_dir_all(&temp_dir).with_context(|| {
+                format!(
+                    "Failed to remove temporary directory: {}",
+                    temp_dir.display()
+                )
+            })?;
+
+            Ok(archive_name)
+        } else {
+            // Save directly to phlow_packages/module-name
+            let package_dir = PathBuf::from("phlow_packages").join(&metadata.name);
+
+            info!("Creating package directory: {}", package_dir.display());
+            fs::create_dir_all(&package_dir)?;
+
+            info!(
+                "Copying .{} file from {} to {}",
+                MODULE_EXTENSION,
+                so_path.display(),
+                package_dir.display()
+            );
+            fs::copy(
+                &so_path,
+                package_dir.join(format!("module.{}", MODULE_EXTENSION)),
+            )?;
+
+            info!("Copying metadata file to package folder");
+            fs::copy(
+                &metadata_path,
+                package_dir.join(metadata_path.file_name().unwrap()),
+            )?;
+
+            let result = format!("phlow_packages/{}", metadata.name);
+            info!("Success! Package created in: {} 🎉", result);
+
+            Ok(result)
         }
-
-        info!(
-            "Initializing Publish struct for directory: {}",
-            module_dir.display()
-        );
-        Ok(Package { module_dir })
     }
 }

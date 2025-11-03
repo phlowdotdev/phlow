@@ -11,6 +11,7 @@ pub struct Cli {
     pub main_target: Option<String>,
     pub only_download_modules: bool,
     pub package_path: Option<String>,
+    pub create_tar: bool,
     pub no_run: bool,
     pub download: bool,
     pub print_yaml: bool,
@@ -60,6 +61,14 @@ impl Cli {
                 Arg::new("package")
                     .long("package")
                     .help("Path to the package file"),
+            )
+            .arg(
+                Arg::new("tar")
+                    .long("tar")
+                    .help("Create a .tar.gz archive instead of extracting to phlow_packages/")
+                    .value_parser(clap::builder::BoolishValueParser::new())
+                    .action(ArgAction::SetTrue)
+                    .default_value("false"),
             )
             .arg(
                 Arg::new("no_run")
@@ -174,6 +183,7 @@ impl Cli {
 
         let install = *matches.get_one::<bool>("install").unwrap_or(&false);
         let package_path = matches.get_one::<String>("package").map(|s| s.to_string());
+        let create_tar = *matches.get_one::<bool>("tar").unwrap_or(&false);
 
         let no_run = *matches.get_one::<bool>("no_run").unwrap_or(&false);
 
@@ -203,6 +213,7 @@ impl Cli {
             main_target: main,
             only_download_modules: install,
             package_path,
+            create_tar,
             no_run,
             download,
             print_yaml,
