@@ -26,7 +26,16 @@ impl From<&Value> for Log {
                 "error" => LogLevel::Error,
                 _ => LogLevel::Info,
             },
-            _ => LogLevel::Info,
+            _ => match value.get("action") {
+                Some(action) => match action.to_string().as_str() {
+                    "log_info" => LogLevel::Info,
+                    "log_debug" => LogLevel::Debug,
+                    "log_warn" => LogLevel::Warn,
+                    "log_error" => LogLevel::Error,
+                    _ => LogLevel::Info,
+                },
+                _ => LogLevel::Info,
+            },
         };
 
         let message = value.get("message").unwrap_or(&Value::Null).to_string();
