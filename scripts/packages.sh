@@ -8,6 +8,11 @@ set -euo pipefail
 #  ./scripts/packages.sh                -> prepare environment and run packaging in parallel
 #  ./scripts/packages.sh --single <dir> -> package a single module (used by the parallel launcher)
 
+# Initialize variables with defaults to avoid unbound variable errors
+: "${OS_SUFFIX:=}"
+: "${TARGET:=}"
+: "${MODULE_EXTENSION:=}"
+
 # If called in single-module mode, only run packaging logic for that module
 if [[ "${1:-}" == "--single" ]]; then
   MODULE_DIR="$2"
@@ -16,9 +21,11 @@ if [[ "${1:-}" == "--single" ]]; then
     echo "Missing module dir for --single"
     exit 2
   fi
-  # shellcheck disable=SC1091
-  # The packaging function is defined below in the main script, but when running --single
-  # we re-source the script in this process and jump to package_module definition.
+  # Validate required env vars for single mode
+  if [[ -z "$TARGET" || -z "$OS_SUFFIX" || -z "$MODULE_EXTENSION" ]]; then
+    echo "ERROR: --single mode requires TARGET, OS_SUFFIX, and MODULE_EXTENSION environment variables"
+    exit 2
+  fi
 fi
 
 # ------------------------------------------------------------
@@ -129,14 +136,10 @@ cargo install cross || true
 
 # Detect operating system or target
 # Define OS_SUFFIX, TARGET e MODULE_EXTENSION dinamicamente
-if [[ -z "$OS_SUFFIX" || -z "$TARGET" || -z "$MODULE_EXTENSION" ]]; then
-  if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX=""; fi
-  if [[ -z "$TARGET" ]]; then TARGET=""; fi
-  if [[ -z "$MODULE_EXTENSION" ]]; then MODULE_EXTENSION=""; fi
-
+if [[ -z "${OS_SUFFIX:-}" ]] || [[ -z "${TARGET:-}" ]] || [[ -z "${MODULE_EXTENSION:-}" ]]; then
   if [[ "$OSTYPE" == "darwin"* ]]; then
-    if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX="-darwin"; fi
-    if [[ -z "$TARGET" ]]; then TARGET="x86_64-apple-darwin"; fi
+    OS_SUFFIX="${OS_SUFFIX:--darwin}"
+    TARGET="${TARGET:-x86_64-apple-darwin}"
     if [[ "$(uname -m)" == "arm64" ]]; then
         OS_SUFFIX="-darwin-aarch64"
         TARGET="aarch64-apple-darwin"
@@ -149,15 +152,15 @@ if [[ -z "$OS_SUFFIX" || -z "$TARGET" || -z "$MODULE_EXTENSION" ]]; then
   elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     ARCH=$(uname -m)
     if [[ "$ARCH" == "x86_64" ]]; then
-      if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX="-linux-amd64"; fi
-      if [[ -z "$TARGET" ]]; then TARGET="x86_64-unknown-linux-gnu"; fi
+      OS_SUFFIX="${OS_SUFFIX:--linux-amd64}"
+      TARGET="${TARGET:-x86_64-unknown-linux-gnu}"
       MODULE_EXTENSION="so"
       echo "🐧 Detected Linux amd64 platform"
     elif [[ "$ARCH" == "aarch64" ]]; then
-      if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX="-linux-aarch64"; fi
-      if [[ -z "$TARGET" ]]; then TARGET="aarch64-unknown-linux-gnu"; fi
+      OS_SUFFIX="${OS_SUFFIX:--linux-aarch64}"
+      TARGET="${TARGET:-aarch64-unknown-linux-gnu}"
       MODULE_EXTENSION="so"
-      echo "� Detected Linux aarch64 platform"
+      echo "🐧 Detected Linux aarch64 platform"
     else
       echo "⚠️ Unknown Linux architecture: $ARCH"
       exit 1
