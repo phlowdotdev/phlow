@@ -1,143 +1,143 @@
-# Guia Completo de Desenvolvimento de Módulos Phlow
+# Complete Phlow Module Development Guide
 
-> Um guia prático e detalhado para criar módulos customizados para Phlow, usando o módulo Cache como exemplo real de implementação.
+> A practical and detailed guide for creating custom modules for Phlow, using the Cache module as a real implementation example.
 
-## 📑 Índice
+## 📑 Table of Contents
 
-1. [Introdução](#introdução)
-2. [Arquitetura de Módulos](#arquitetura-de-módulos)
-3. [Tipos de Módulos](#tipos-de-módulos)
-4. [Anatomia de um Módulo Step: Cache](#anatomia-de-um-módulo-step-cache)
-5. [Estrutura de Arquivos](#estrutura-de-arquivos)
-6. [Configuração do Cargo.toml](#configuração-do-cargotoml)
-7. [Implementação Detalhada](#implementação-detalhada)
-8. [Schema phlow.yaml](#schema-phlowyaml)
-9. [Testes e Exemplos](#testes-e-exemplos)
-10. [Build e Deploy](#build-e-deploy)
-11. [Melhores Práticas](#melhores-práticas)
-
----
-
-## Introdução
-
-Phlow é um runtime modular de alta performance construído em Rust para criar backends composáveis. Módulos são os blocos fundamentais que fornecem funcionalidades específicas que podem ser combinadas para criar workflows complexos.
-
-### Por que usar o Cache como exemplo?
-
-O módulo Cache é um exemplo excelente porque demonstra:
-- ✅ **Padrão Action-Based**: Múltiplas operações em um único módulo
-- ✅ **Gerenciamento de Estado**: Uso de estruturas compartilhadas thread-safe
-- ✅ **Configuração Flexível**: Opções via seção `with`
-- ✅ **Validação de Entrada**: Parsing robusto com enums do Rust
-- ✅ **Estatísticas**: Tracking de métricas de operação
-- ✅ **Organização Modular**: Separação de concerns em múltiplos arquivos
+1. [Introduction](#introduction)
+2. [Module Architecture](#module-architecture)
+3. [Module Types](#module-types)
+4. [Anatomy of a Step Module: Cache](#anatomy-of-a-step-module-cache)
+5. [File Structure](#file-structure)
+6. [Cargo.toml Configuration](#cargotoml-configuration)
+7. [Detailed Implementation](#detailed-implementation)
+8. [phlow.yaml Schema](#phlowyaml-schema)
+9. [Tests and Examples](#tests-and-examples)
+10. [Build and Deploy](#build-and-deploy)
+11. [Best Practices](#best-practices)
 
 ---
 
-## Arquitetura de Módulos
+## Introduction
 
-Cada módulo Phlow consiste em três componentes essenciais:
+Phlow is a high-performance modular runtime built in Rust for creating composable backends. Modules are the fundamental building blocks that provide specific functionalities that can be combined to create complex workflows.
+
+### Why use Cache as an example?
+
+The Cache module is an excellent example because it demonstrates:
+- ✅ **Action-Based Pattern**: Multiple operations in a single module
+- ✅ **State Management**: Use of thread-safe shared structures
+- ✅ **Flexible Configuration**: Options via `with` section
+- ✅ **Input Validation**: Robust parsing with Rust enums
+- ✅ **Statistics**: Operation metrics tracking
+- ✅ **Modular Organization**: Separation of concerns across multiple files
+
+---
+
+## Module Architecture
+
+Each Phlow module consists of three essential components:
 
 ```
 my_module/
-├── Cargo.toml          # Configuração do pacote Rust
-├── phlow.yaml          # Schema e metadados do módulo
+├── Cargo.toml          # Rust package configuration
+├── phlow.yaml          # Module schema and metadata
 └── src/
-    ├── lib.rs          # Ponto de entrada principal
-    ├── config.rs       # Configurações do módulo
-    ├── input.rs        # Definições de entrada
-    └── stats.rs        # Estatísticas (opcional)
+    ├── lib.rs          # Main entry point
+    ├── config.rs       # Module configuration
+    ├── input.rs        # Input definitions
+    └── stats.rs        # Statistics (optional)
 ```
 
-### Requisitos Fundamentais
+### Fundamental Requirements
 
-1. **Biblioteca Rust**: Deve ser compilada como dynamic library (`cdylib`)
-2. **Funções Async**: Todas as funções do módulo devem ser assíncronas
-3. **Phlow SDK**: Deve usar a crate `phlow-sdk`
-4. **Macros Apropriadas**: Usar `create_step!`, `create_main!` ou ambas
-5. **Schema Completo**: Ter um arquivo `phlow.yaml` bem definido
+1. **Rust Library**: Must be compiled as a dynamic library (`cdylib`)
+2. **Async Functions**: All module functions must be asynchronous
+3. **Phlow SDK**: Must use the `phlow-sdk` crate
+4. **Appropriate Macros**: Use `create_step!`, `create_main!` or both
+5. **Complete Schema**: Have a well-defined `phlow.yaml` file
 
 ---
 
-## Tipos de Módulos
+## Module Types
 
 ### 1. Step Module (`type: step`)
-- **Propósito**: Processar dados dentro de um pipeline
-- **Uso**: `use: module_name` nas steps
-- **Exemplos**: cache, log, transformação de dados
+- **Purpose**: Process data within a pipeline
+- **Usage**: `use: module_name` in steps
+- **Examples**: cache, log, data transformation
 
 ### 2. Main Module (`type: main`)
-- **Propósito**: Servir como ponto de entrada da aplicação
-- **Uso**: `main: module_name` no arquivo flow
-- **Exemplos**: HTTP server, CLI, consumer de mensagens
+- **Purpose**: Serve as application entry point
+- **Usage**: `main: module_name` in flow file
+- **Examples**: HTTP server, CLI, message consumer
 
 ### 3. Hybrid Module (`type: any`)
-- **Propósito**: Funcionar como main E step
-- **Uso**: Flexível dependendo do contexto
-- **Exemplos**: AMQP (consumer quando main, producer quando step)
+- **Purpose**: Function as both main AND step
+- **Usage**: Flexible depending on context
+- **Examples**: AMQP (consumer when main, producer when step)
 
 ---
 
-## Anatomia de um Módulo Step: Cache
+## Anatomy of a Step Module: Cache
 
-O módulo Cache é um **Step Module** que implementa cache em memória de alta performance usando a biblioteca QuickLeaf. Vamos explorar cada aspecto da sua implementação.
+The Cache module is a **Step Module** that implements high-performance in-memory caching using the QuickLeaf library. Let's explore each aspect of its implementation.
 
-### Visão Geral do Cache Module
+### Cache Module Overview
 
 ```yaml
-Funcionalidades:
-  - Armazenamento key-value em memória
-  - TTL (Time To Live) automático
+Features:
+  - In-memory key-value storage
+  - Automatic TTL (Time To Live)
   - LRU (Least Recently Used) eviction
-  - Filtragem avançada (prefix, suffix, pattern)
-  - Estatísticas em tempo real
-  - Operações O(1) para get/set
+  - Advanced filtering (prefix, suffix, pattern)
+  - Real-time statistics
+  - O(1) operations for get/set
 
-Ações Suportadas:
-  - set      # Armazenar dados
-  - get      # Recuperar dados
-  - remove   # Remover entrada
-  - clear    # Limpar cache
-  - exists   # Verificar existência
-  - list     # Listar entradas com filtros
-  - cleanup  # Limpar expirados
-  - stats    # Obter estatísticas
+Supported Actions:
+  - set      # Store data
+  - get      # Retrieve data
+  - remove   # Remove entry
+  - clear    # Clear cache
+  - exists   # Check existence
+  - list     # List entries with filters
+  - cleanup  # Clean up expired items
+  - stats    # Get statistics
 ```
 
 ---
 
-## Estrutura de Arquivos
+## File Structure
 
-### Estrutura do Módulo Cache
+### Cache Module Structure
 
 ```
 modules/cache/
-├── Cargo.toml          # Dependências e configuração
-├── phlow.yaml          # Schema do módulo
+├── Cargo.toml          # Dependencies and configuration
+├── phlow.yaml          # Module schema
 └── src/
-    ├── lib.rs          # Implementação principal (531 linhas)
-    ├── config.rs       # Configuração do cache (58 linhas)
-    ├── input.rs        # Parsing de entradas (219 linhas)
-    └── stats.rs        # Rastreamento de estatísticas (95 linhas)
+    ├── lib.rs          # Main implementation (531 lines)
+    ├── config.rs       # Cache configuration (58 lines)
+    ├── input.rs        # Input parsing (219 lines)
+    └── stats.rs        # Statistics tracking (95 lines)
 ```
 
-### Por que separar em múltiplos arquivos?
+### Why separate into multiple files?
 
 ```rust
-// ❌ Tudo em lib.rs = difícil de manter
-// ✅ Separação clara = fácil de entender e modificar
+// ❌ Everything in lib.rs = hard to maintain
+// ✅ Clear separation = easy to understand and modify
 
-lib.rs      → Lógica de negócio e handlers
-config.rs   → Validação de configuração
-input.rs    → Parsing e validação de entrada
-stats.rs    → Métricas e estatísticas
+lib.rs      → Business logic and handlers
+config.rs   → Configuration validation
+input.rs    → Input parsing and validation
+stats.rs    → Metrics and statistics
 ```
 
 ---
 
-## Configuração do Cargo.toml
+## Cargo.toml Configuration
 
-### Cargo.toml do Cache Module
+### Cache Module Cargo.toml
 
 ```toml
 [package]
@@ -149,35 +149,35 @@ description = "Phlow cache module using QuickLeaf for high-performance in-memory
 license = "MIT"
 
 [dependencies]
-# Core Phlow SDK (obrigatório)
+# Core Phlow SDK (required)
 phlow-sdk = { workspace = true }
 
-# Implementação do cache
+# Cache implementation
 quickleaf = "0.4.10"
 
-# Dependências auxiliares
+# Auxiliary dependencies
 serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
 log = "0.4"
 
 [lib]
-name = "cache"              # Nome do módulo
-crate-type = ["cdylib"]     # CRÍTICO: Compilar como biblioteca dinâmica
+name = "cache"              # Module name
+crate-type = ["cdylib"]     # CRITICAL: Compile as dynamic library
 ```
 
-### Pontos-Chave
+### Key Points
 
-1. **`crate-type = ["cdylib"]`**: Essencial para que Phlow carregue o módulo
-2. **`phlow-sdk`**: Sempre use workspace = true em módulos oficiais
-3. **Nome consistente**: O nome em `[lib]` deve coincidir com o nome em `phlow.yaml`
+1. **`crate-type = ["cdylib"]`**: Essential for Phlow to load the module
+2. **`phlow-sdk`**: Always use workspace = true in official modules
+3. **Consistent naming**: The name in `[lib]` must match the name in `phlow.yaml`
 
 ---
 
-## Implementação Detalhada
+## Detailed Implementation
 
-### 1. Arquivo de Configuração (config.rs)
+### 1. Configuration File (config.rs)
 
-O `config.rs` define como o módulo é configurado via seção `with` no arquivo `.phlow`.
+The `config.rs` defines how the module is configured via the `with` section in the `.phlow` file.
 
 ```rust
 use phlow_sdk::prelude::*;

@@ -198,7 +198,7 @@ output:
 
 ---
 
-## 🌟 Part 2: Creating a Main Module
+## Part 2: Creating a Main Module
 
 Main modules serve as application entry points. Let's create a **simple HTTP server**.
 
