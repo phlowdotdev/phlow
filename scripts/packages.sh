@@ -1,69 +1,29 @@
+echo "📦 Clean folder ./packages"
+echo "🎉 All modules packaged successfully!"
 #!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
-cargo install cross
+# Usage:
+#  ./scripts/packages.sh                -> prepare environment and run packaging in parallel
+#  ./scripts/packages.sh --single <dir> -> package a single module (used by the parallel launcher)
 
-# Detect operating system or target
-# Define OS_SUFFIX, TARGET e MODULE_EXTENSION dinamicamente
-if [[ -z "$OS_SUFFIX" || -z "$TARGET" || -z "$MODULE_EXTENSION" ]]; then
-  if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX=""; fi
-  if [[ -z "$TARGET" ]]; then TARGET=""; fi
-  if [[ -z "$MODULE_EXTENSION" ]]; then MODULE_EXTENSION=""; fi
-
-  if [[ "$OSTYPE" == "darwin"* ]]; then
-    if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX="-darwin"; fi
-    if [[ -z "$TARGET" ]]; then TARGET="x86_64-apple-darwin"; fi
-    if [[ "$(uname -m)" == "arm64" ]]; then
-        OS_SUFFIX="-darwin-aarch64"
-        TARGET="aarch64-apple-darwin"
-    elif [[ "$(uname -m)" == "x86_64" ]]; then
-        OS_SUFFIX="-darwin-x86_64"
-        TARGET="x86_64-apple-darwin"
-    fi
-    MODULE_EXTENSION="dylib"
-    echo "🍎 Detected macOS platform"
-  elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    ARCH=$(uname -m)
-    if [[ "$ARCH" == "x86_64" ]]; then
-      if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX="-linux-amd64"; fi
-      if [[ -z "$TARGET" ]]; then TARGET="x86_64-unknown-linux-gnu"; fi
-      MODULE_EXTENSION="so"
-      echo "🐧 Detected Linux amd64 platform"
-    elif [[ "$ARCH" == "aarch64" ]]; then
-      if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX="-linux-aarch64"; fi
-      if [[ -z "$TARGET" ]]; then TARGET="aarch64-unknown-linux-gnu"; fi
-      MODULE_EXTENSION="so"
-      echo "🐧 Detected Linux aarch64 platform"
-    else
-      echo "⚠️ Unknown Linux architecture: $ARCH"
-      exit 1
-    fi
-  else
-    echo "⚠️ Unknown OSTYPE: $OSTYPE"
-    exit 1
+# If called in single-module mode, only run packaging logic for that module
+if [[ "${1:-}" == "--single" ]]; then
+  MODULE_DIR="$2"
+  # ensure we fail fast if MODULE_DIR is empty
+  if [[ -z "$MODULE_DIR" ]]; then
+    echo "Missing module dir for --single"
+    exit 2
   fi
-fi
-
-# Cria a pasta packages
-if [ ! -d "./packages" ]; then
-    echo "📦 Create folder ./packages"
-    mkdir -p ./packages
-fi
-
-echo "📦 Clean folder ./packages"
-rm -rf ./packages/*
-
-# Verifica dependências
-if ! command -v yq &> /dev/null; then
-  echo "yq not found. Please install yq (https://github.com/mikefarah/yq)"
-  exit 1
+  # shellcheck disable=SC1091
+  # The packaging function is defined below in the main script, but when running --single
+  # we re-source the script in this process and jump to package_module definition.
 fi
 
 # ------------------------------------------------------------
 # FUNÇÃO DE EMPACOTAMENTO DE MÓDULO
 # ------------------------------------------------------------
-
 package_module() {
     MODULE_DIR="$1"
 
@@ -117,7 +77,7 @@ package_module() {
     fi
 
     # Build do projeto
-    echo "⚙️ Building module..."
+    echo "⚙️ Building module: $MODULE_DIR..."
     cross build --target "$TARGET" --release --locked
 
     TMP_DIR=".tmp/${NAME}"
@@ -150,15 +110,106 @@ package_module() {
     echo "✅ Module packaged: $RENAMED_ARCHIVE"
 }
 
+# If called in single mode, perform just that and exit
+if [[ "${1:-}" == "--single" ]]; then
+  if [[ -z "${2:-}" ]]; then
+    echo "Expected module directory after --single"
+    exit 2
+  fi
+  # the variables TARGET, OS_SUFFIX and MODULE_EXTENSION must be provided by the caller
+  package_module "$2"
+  exit 0
+fi
+
 # ------------------------------------------------------------
-# LOOP EM CADA MÓDULO
+# MODO PRINCIPAL: prepara ambiente e dispara empacotamento em paralelo
 # ------------------------------------------------------------
 
+cargo install cross || true
+
+# Detect operating system or target
+# Define OS_SUFFIX, TARGET e MODULE_EXTENSION dinamicamente
+if [[ -z "$OS_SUFFIX" || -z "$TARGET" || -z "$MODULE_EXTENSION" ]]; then
+  if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX=""; fi
+  if [[ -z "$TARGET" ]]; then TARGET=""; fi
+  if [[ -z "$MODULE_EXTENSION" ]]; then MODULE_EXTENSION=""; fi
+
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX="-darwin"; fi
+    if [[ -z "$TARGET" ]]; then TARGET="x86_64-apple-darwin"; fi
+    if [[ "$(uname -m)" == "arm64" ]]; then
+        OS_SUFFIX="-darwin-aarch64"
+        TARGET="aarch64-apple-darwin"
+    elif [[ "$(uname -m)" == "x86_64" ]]; then
+        OS_SUFFIX="-darwin-x86_64"
+        TARGET="x86_64-apple-darwin"
+    fi
+    MODULE_EXTENSION="dylib"
+    echo "🍎 Detected macOS platform"
+  elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    ARCH=$(uname -m)
+    if [[ "$ARCH" == "x86_64" ]]; then
+      if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX="-linux-amd64"; fi
+      if [[ -z "$TARGET" ]]; then TARGET="x86_64-unknown-linux-gnu"; fi
+      MODULE_EXTENSION="so"
+      echo "🐧 Detected Linux amd64 platform"
+    elif [[ "$ARCH" == "aarch64" ]]; then
+      if [[ -z "$OS_SUFFIX" ]]; then OS_SUFFIX="-linux-aarch64"; fi
+      if [[ -z "$TARGET" ]]; then TARGET="aarch64-unknown-linux-gnu"; fi
+      MODULE_EXTENSION="so"
+      echo "� Detected Linux aarch64 platform"
+    else
+      echo "⚠️ Unknown Linux architecture: $ARCH"
+      exit 1
+    fi
+  else
+    echo "⚠️ Unknown OSTYPE: $OSTYPE"
+    exit 1
+  fi
+fi
+
+# Cria a pasta packages
+if [ ! -d "./packages" ]; then
+    echo "📦 Create folder ./packages"
+    mkdir -p ./packages
+fi
+
+echo "📦 Clean folder ./packages"
+rm -rf ./packages/*
+
+# Verifica dependências
+if ! command -v yq &> /dev/null; then
+  echo "yq not found. Please install yq (https://github.com/mikefarah/yq)"
+  exit 1
+fi
+
+# Default de paralelismo (padrão: número de CPUs, mas limite razoável para runners)
+PARALLEL=${PARALLEL:-$(nproc 2>/dev/null || echo 2)}
+if [[ "$PARALLEL" -gt 8 ]]; then
+  PARALLEL=8
+fi
+
+echo "⚡ Running packaging in parallel (jobs=$PARALLEL)"
+
+# Collect module directories
+MODULES=()
 for dir in ./modules/*/; do
     if [ -d "$dir" ]; then
-        echo "🚀 Processing module: $dir"
-        package_module "$dir"
+        MODULES+=("$dir")
     fi
 done
+
+if [[ ${#MODULES[@]} -eq 0 ]]; then
+  echo "No modules found in ./modules"
+  exit 0
+fi
+
+# Export env needed by single-mode invocations
+export OS_SUFFIX
+export TARGET
+export MODULE_EXTENSION
+
+# Use xargs to run multiple instances of this script in parallel, each handling a single module
+printf '%s\n' "${MODULES[@]}" | xargs -n1 -P "$PARALLEL" -I{} bash -c './scripts/packages.sh --single "{}"'
 
 echo "🎉 All modules packaged successfully!"
