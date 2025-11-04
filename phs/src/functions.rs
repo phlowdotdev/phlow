@@ -460,6 +460,63 @@ pub fn build_functions() -> Engine {
         }
     });
 
+    // is_array
+    engine.register_fn("is_array", |x: rhai::Dynamic| x.is_array());
+
+    // is_object
+    engine.register_fn("is_object", |x: rhai::Dynamic| x.is_map());
+
+    // is_string
+    engine.register_fn("is_string", |x: rhai::Dynamic| x.is_string());
+
+    // is_number
+    engine.register_fn("is_number", |x: rhai::Dynamic| x.is_int() || x.is_float());
+
+    // is_boolean
+    engine.register_fn("is_boolean", |x: rhai::Dynamic| x.is_bool());
+
+    // is_datetime
+    engine.register_fn("is_datetime", |x: rhai::Dynamic| {
+        if let Some(s) = x.clone().try_cast::<String>() {
+            DateTime::parse_from_rfc3339(&s).is_ok()
+        } else {
+            false
+        }
+    });
+
+    // is_float
+    engine.register_fn("is_float", |x: rhai::Dynamic| x.is_float());
+
+    // is_int
+    engine.register_fn("is_int", |x: rhai::Dynamic| x.is_int());
+
+    // contains_key para Map
+    engine.register_fn("contains_key", |map: rhai::Map, key: &str| -> bool {
+        map.contains_key(key)
+    });
+    // Versão aceitando ImmutableString
+    engine.register_fn(
+        "contains_key",
+        |map: rhai::Map, key: rhai::ImmutableString| -> bool { map.contains_key(key.as_str()) },
+    );
+
+    // some(|item| ...)
+    engine.register_fn(
+        "some",
+        move |context: rhai::NativeCallContext,
+              arr: rhai::Array,
+              func: rhai::FnPtr|
+              -> Result<bool, Box<EvalAltResult>> {
+            for item in arr {
+                let result = func.call_within_context::<bool>(&context, (item,))?;
+                if result {
+                    return Ok(true);
+                }
+            }
+            Ok(false)
+        },
+    );
+
     match engine.register_custom_syntax(
         ["when", "$expr$", "then", "$expr$", "else", "$expr$"],
         false,
@@ -1307,5 +1364,76 @@ mod tests {
         // Teste UUID v5 com hash
         let uuid_v5: String = engine.eval(r#"uuid("v5", "example.com")"#).unwrap();
         assert_eq!(uuid_v5.len(), 36);
+    }
+
+    #[test]
+    fn test_is() {
+        let engine = build_functions();
+
+        // is_array
+        let result: bool = engine.eval(r#"is_array([1, 2, 3])"#).unwrap();
+        assert!(result);
+        let result: bool = engine.eval(r#"is_array(123)"#).unwrap();
+        assert!(!result);
+
+        // is_object
+        let result: bool = engine.eval(r#"is_object(#{a:1, b:2})"#).unwrap();
+        assert!(result);
+        let result: bool = engine.eval(r#"is_object("string")"#).unwrap();
+        assert!(!result);
+
+        // is_string
+        let result: bool = engine.eval(r#"is_string("hello")"#).unwrap();
+        assert!(result);
+        let result: bool = engine.eval(r#"is_string(123)"#).unwrap();
+        assert!(!result);
+
+        // is_number
+        let result: bool = engine.eval(r#"is_number(123)"#).unwrap();
+        assert!(result);
+        let result: bool = engine.eval(r#"is_number(3.14)"#).unwrap();
+        assert!(result);
+        let result: bool = engine.eval(r#"is_number("string")"#).unwrap();
+        assert!(!result);
+
+        // is_boolean
+        let result: bool = engine.eval(r#"is_boolean(true)"#).unwrap();
+        assert!(result);
+        let result: bool = engine.eval(r#"is_boolean(0)"#).unwrap();
+        assert!(!result);
+
+        // is_datetime
+        let result: bool = engine
+            .eval(r#"is_datetime("2023-08-18T12:34:56Z")"#)
+            .unwrap();
+        assert!(result);
+        let result: bool = engine.eval(r#"is_datetime("invalid date")"#).unwrap();
+        assert!(!result);
+
+        // is_float
+        let result: bool = engine.eval(r#"is_float(3.14)"#).unwrap();
+        assert!(result);
+        let result: bool = engine.eval(r#"is_float(123)"#).unwrap();
+        assert!(!result);
+
+        // is_int
+        let result: bool = engine.eval(r#"is_int(123)"#).unwrap();
+        assert!(result);
+        let result: bool = engine.eval(r#"is_int(3.14)"#).unwrap();
+        assert!(!result);
+    }
+
+    #[test]
+    fn test_some() {
+        let engine = build_functions();
+
+        let result: bool = engine.eval(r#"[1, 2, 3].some(|x| x > 2)"#).unwrap();
+        assert!(result);
+
+        // array object
+        let result: bool = engine
+            .eval(r#"[#{a:1}, #{b:2}, #{c:3}].some(|obj| obj.contains_key("b"))"#)
+            .unwrap();
+        assert!(result);
     }
 }
