@@ -76,6 +76,11 @@ input:
   properties:
     action:
       type: string
+      enum: ["s3"]
+      required: true
+
+    method:
+      type: string
       enum: [
           # S3
           "put_object",

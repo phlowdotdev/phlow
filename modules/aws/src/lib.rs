@@ -62,7 +62,6 @@ pub async fn aws(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + S
                 Ok(data) => success_response!(data),
                 Err(e) => error_response!(e),
             },
-            _ => error_response!("Action not implemented yet for AWS module"),
         };
 
         sender_safe!(package.sender, response.into());

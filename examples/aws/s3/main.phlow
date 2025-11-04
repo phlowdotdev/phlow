@@ -2,17 +2,15 @@ modules:
   - module: log
   - module: aws
     with:
-      region: us-east-1
-      endpoint_url: http://localhost:4566
+      region: "us-east-1"
+      endpoint_url: "http://localhost:4566"
       s3_force_path_style: true
-      secret_access_key: test
-      access_key_id: test
+      secret_access_key: "test"
+      access_key_id: "test"
 
 steps:
   - id: s3_put
-    use: aws
-    input:
-      action: put_object
+    aws.s3.put_object:
       bucket: phlow-demo
       key: hello.txt
       content: "Hello from Phlow AWS S3!"
@@ -21,31 +19,22 @@ steps:
   - log.info:
       message: payload
 
-  - id: s3_get
-    use: aws
-    input:
-      action: get_object
+  - aws.s3.get_object:
       bucket: phlow-demo
       key: hello.txt
       as_base64: false
   
   - log.info:
       message: payload
-    
-  - id: s3_list
-    use: aws
-    input:
-      action: list_objects
+
+  - aws.s3.list_objects:
       bucket: phlow-demo
       max_keys: 100
 
   - log.info:
       message: payload
 
-  - id: s3_delete
-    use: aws
-    input:
-      action: delete_object
+  - aws.s3.delete_object:
       bucket: phlow-demo
       key: hello.txt
   
