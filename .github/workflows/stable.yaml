@@ -1,4 +1,4 @@
-name: Release Stable Binary's
+name: Release Stable Binary's and Docker image
 
 on:
   workflow_dispatch:
