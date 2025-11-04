@@ -78,27 +78,10 @@ input:
       type: string
       enum: [
           # S3
-          "s3_put_object",
-          "s3_get_object",
-          "s3_delete_object",
-          "s3_list_objects",
-
-          # SQS
-          "sqs_send_message",
-          "sqs_receive_messages",
-          "sqs_delete_message",
-          "sqs_purge_queue",
-
-          # SNS
-          "sns_publish",
-
-          # DynamoDB
-          "dynamodb_put_item",
-          "dynamodb_get_item",
-          "dynamodb_update_item",
-          "dynamodb_delete_item",
-          "dynamodb_query",
-          "dynamodb_scan",
+          "put_object",
+          "get_object",
+          "delete_object",
+          "list_objects",
         ]
       required: true
 

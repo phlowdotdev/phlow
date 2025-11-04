@@ -168,6 +168,9 @@ jobs:
     name: Build Docker Multi-Platform and Export Linux Binary
     runs-on: ubuntu-latest
     needs: [github-release, app_version]
+    env:
+      VERSION: ${{ needs.app_version.outputs.version }}
+      OWNER: ${{ github.repository_owner }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -182,6 +185,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Assert version is available
+        run: |
+          if [ -z "${VERSION}" ]; then
+            echo "ERROR: VERSION is empty (needs.app_version.outputs.version)" >&2
+            exit 1
+          fi
+          echo "Using VERSION=${VERSION}"
+
       - name: Build and push multi-platform Docker image
         uses: docker/build-push-action@v5
         with:
@@ -189,8 +200,8 @@ jobs:
           file: ./docker/Dockerfile.cross.gnu
           platforms: linux/amd64,linux/arm64
           build-args: |
-            PHLOW_VERSION=${{ needs.app_version.outputs.version }}
+            PHLOW_VERSION=${{ env.VERSION }}
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/phlow:latest
-            ghcr.io/${{ github.repository_owner }}/phlow:${{ needs.app_version.outputs.version }}
+            ghcr.io/${{ env.OWNER }}/phlow:latest
+            ghcr.io/${{ env.OWNER }}/phlow:${{ env.VERSION }}

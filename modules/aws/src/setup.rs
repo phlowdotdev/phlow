@@ -11,10 +11,6 @@ pub struct Setup {
     pub profile: Option<String>,
     pub endpoint_url: Option<String>,
     pub s3_force_path_style: bool,
-    // Assume role fields reserved for future use
-    pub assume_role_arn: Option<String>,
-    pub assume_role_session_name: Option<String>,
-    pub assume_role_external_id: Option<String>,
 }
 
 impl TryFrom<Value> for Setup {
@@ -32,10 +28,6 @@ impl TryFrom<Value> for Setup {
             .and_then(|v| v.as_bool().cloned())
             .unwrap_or(false);
 
-        let assume_role_arn = value.get("assume_role_arn").map(|v| v.to_string());
-        let assume_role_session_name = value.get("assume_role_session_name").map(|v| v.to_string());
-        let assume_role_external_id = value.get("assume_role_external_id").map(|v| v.to_string());
-
         Ok(Setup {
             region,
             access_key_id,
@@ -44,9 +36,6 @@ impl TryFrom<Value> for Setup {
             profile,
             endpoint_url,
             s3_force_path_style,
-            assume_role_arn,
-            assume_role_session_name,
-            assume_role_external_id,
         })
     }
 }
