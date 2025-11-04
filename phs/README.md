@@ -847,3 +847,94 @@ let tag = main.config.labels[0];
 - `break` / `continue` → *not supported yet*
 - `match` / pattern matching → *planned*
 - `try/catch` → *TBD*
+
+## 📚 Catálogo de Funções do Engine (com exemplos)
+
+Esta seção lista as funções utilitárias disponíveis globalmente em scripts `.phs` via o engine do PHS. Todas podem ser usadas diretamente nas expressões do seu script.
+
+### 🕒 Datas e Tempo
+- `today() -> int` — Timestamp (segundos) do início do dia UTC.
+  - Ex.: `let t0 = today();`
+- `now() -> int` — Timestamp atual (segundos).
+  - Ex.: `let ts = now();`
+- `format(ts, fmt) -> string` — Formata um timestamp com `strftime`.
+  - Ex.: `format(1692362096, "%d/%m/%Y %H:%M:%S")  // "18/08/2023 12:34:56"`
+- `diff(ts1, ts2) -> int` — Diferença em segundos: `ts1 - ts2`.
+  - Ex.: `diff(now(), today())`
+- `add_days(ts, n) -> int`
+  - Ex.: `add_days(now(), 2)`
+- `add_hours(ts, n) -> int`, `add_minutes(ts, n) -> int`, `add_seconds(ts, n) -> int`
+  - Ex.: `add_minutes(1000, 2)  // 1120`
+- `sub_minutes(ts, n) -> int`, `sub_seconds(ts, n) -> int`
+  - Ex.: `sub_seconds(1000, 10) // 990`
+- `weekday(ts) -> int` — 0=Dom, 1=Seg, ...
+  - Ex.: `weekday(1692362096)  // 5 (sexta)`
+- `year(ts)`, `month(ts)`, `day(ts)`, `hour(ts)`, `minute(ts)`, `second(ts)`
+  - Ex.: `year(1692362096) // 2023`
+- `from_iso(iso) -> int` — Converte ISO-8601 para timestamp.
+  - Ex.: `from_iso("2023-08-18T12:34:56Z") // 1692362096`
+- `to_iso(ts) -> string` — Converte timestamp para ISO-8601.
+  - Ex.: `to_iso(1692362096) // "2023-08-18T12:34:56+00:00"`
+
+### 🔤 Strings
+- `search(pattern: regex) -> bool` (método de string)
+  - Ex.: `"meu texto".search("^meu") // true`
+- `starts_with(prefix) -> bool` (método de string)
+  - Ex.: `"Bearer abc".starts_with("Bearer ") // true`
+- `replace(target, replacement) -> string` (retorna nova string)
+  - Ex.: `"abc abc".replace("abc", "x") // "x x"`
+- `slice(start, end?) -> string` (método de string)
+  - Ex.: `"abcdef".slice(1,4) // "bcd"`, `"abcdef".slice(-2) // "ef"`
+- `capitalize() -> string`
+  - Ex.: `"joão".capitalize() // "João"`
+- `to_snake_case()`, `to_camel_case()`, `to_kebab_case()`
+  - Ex.: `"MeuTexto".to_snake_case() // "meu_texto"`
+- `to_url_encode() -> string`
+  - Ex.: `"Hello World".to_url_encode() // "Hello+World"`
+- `to_base64() -> string`
+  - Ex.: `"café".to_base64() // "Y2Fmw6k="`
+- `base64_to_utf8() -> string`
+  - Ex.: `"SGVsbG8gV29ybGQ=".base64_to_utf8() // "Hello World"`
+- `url_decode() -> string`
+  - Ex.: `"user%40example.com".url_decode() // "user@example.com"`
+
+### 🧩 Objetos (Maps) e Arrays
+- `merge(mapA, mapB) -> map` — Junta mapas; `mapB` sobrescreve chaves.
+  - Ex.: `merge(#{a:1,b:2}, #{b:3,c:4}) // #{a:1,b:3,c:4}`
+- `contains_key(key) -> bool` (método de map)
+  - Ex.: `#{a:1}.contains_key("a") // true`
+- `some(|item| expr) -> bool` (método de array)
+  - Ex.: `[1,2,3].some(|x| x > 2) // true`
+  - Ex.: `[#{a:1}, #{b:2}].some(|obj| obj.contains_key("b")) // true`
+
+Observação: Funções internas `__spread_object(arrDeMaps)` e `__spread_array(arrDeArrays)` existem para suporte a sintaxe de spread e não são recomendadas para uso direto em scripts.
+
+### 🔄 Conversão e JSON
+- `parse(jsonStr) -> any` — Converte JSON em tipos Rhai (map, array, string, número, bool, null).
+  - Ex.: `let obj = "{\"name\":\"João\"}".parse(); obj.name // "João"`
+  - Ex.: `let arr = "[1,2,\"x\"]".parse(); arr[2] // "x"`
+- `to_json(valor) -> string` — Converte qualquer valor Rhai em JSON string.
+  - Ex.: `#{name: "João", age: 30}.to_json()`
+
+### 🆔 UUIDs
+- `uuid("v4")`, `uuid("v6")`, `uuid("v7")` — Gera UUIDs sem entrada.
+  - Ex.: `let id = uuid("v7");`
+- `uuid("v3", seed)`, `uuid("v5", seed)` — Gera UUID determinístico baseado em `seed`.
+  - Ex.: `uuid("v5", "example.com")`
+
+### ✅ Predicados de Tipo e Validação
+- `is_null(x)`, `is_not_null(x)`
+- `is_empty(x)` e também `"str".is_empty()`
+- `is_array(x)`, `is_object(x)`, `is_string(x)`
+- `is_number(x)`, `is_boolean(x)`
+- `is_datetime(x)` — valida string ISO-8601
+- `is_float(x)`, `is_int(x)`
+
+### 🧪 Sintaxe Condicional Custom
+- `when <cond> then <expr> else <expr>`
+  - Ex.: `when 2 + 2 == 4 then "certo" else "errado"`
+- `it <cond> ? <expr> : <expr>`
+  - Ex.: `it "abc".search("b") ? "encontrou" : "não"`
+
+---
+Se notar alguma função ausente aqui, abra uma issue ou PR — essa seção é gerada a partir das utilidades registradas no engine em `phs/src/functions.rs`.
