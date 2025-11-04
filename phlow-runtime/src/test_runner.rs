@@ -52,27 +52,60 @@ pub async fn run_tests(
 
     let test_cases = tests.as_array().unwrap();
 
-    // Filter tests if test_filter is provided
-    let filtered_tests: Vec<_> = if let Some(filter) = test_filter {
-        test_cases
-            .values
-            .iter()
-            .enumerate()
-            .filter(|(_, test_case)| {
-                if let Some(description) = test_case.get("describe") {
-                    let desc_str = description.as_string();
-                    return desc_str.contains(filter);
+    // Helpers to support nested describes/its
+    fn is_group(v: &Value) -> bool {
+        v.get("tests").map(|t| t.is_array()).unwrap_or(false)
+    }
+
+    fn group_name(v: &Value) -> Option<String> {
+        v.get("describe")
+            .or_else(|| v.get("name"))
+            .map(|s| s.as_string())
+    }
+
+    fn leaf_title(v: &Value) -> Option<String> {
+        v.get("it")
+            .or_else(|| v.get("describe"))
+            .map(|s| s.as_string())
+    }
+
+    fn path_matches_filter(path: &[String], title: &str, filter: &str) -> bool {
+        let mut full = path.join(" › ");
+        if !full.is_empty() {
+            full.push_str(" › ");
+        }
+        full.push_str(title);
+        full.contains(filter)
+    }
+
+    fn count_leafs(items: &Value, filter: Option<&str>, ancestors: &Vec<String>) -> usize {
+        let mut count = 0usize;
+        if let Some(arr) = items.as_array() {
+            for item in &arr.values {
+                if is_group(item) {
+                    let mut new_path = ancestors.clone();
+                    if let Some(name) = group_name(item) {
+                        new_path.push(name);
+                    }
+                    count += count_leafs(&item.get("tests").unwrap(), filter, &new_path);
+                } else {
+                    // leaf
+                    let title = leaf_title(item).unwrap_or_else(|| "".to_string());
+                    if let Some(f) = filter {
+                        if path_matches_filter(ancestors, &title, f) {
+                            count += 1;
+                        }
+                    } else {
+                        count += 1;
+                    }
                 }
-                false
-            })
-            .collect()
-    } else {
-        test_cases.values.iter().enumerate().collect()
-    };
+            }
+        }
+        count
+    }
 
-    debug!("filtered_tests");
-
-    let total = filtered_tests.len();
+    // Count total leaf tests considering the optional filter
+    let total = count_leafs(tests, test_filter, &Vec::new());
 
     if total == 0 {
         if let Some(filter) = test_filter {
@@ -114,55 +147,169 @@ pub async fn run_tests(
     let phlow = Phlow::try_from_value(&workflow, Some(modules))
         .map_err(|e| format!("Failed to create phlow: {}", e))?;
 
-    // Run tests
+    // Run tests (com suporte a describe aninhado) usando uma lista de ações síncrona
     let mut results = Vec::new();
     let mut passed = 0;
+    let mut executed = 0usize;
     // Global "test" map shared across tests
     let tests_global = Arc::new(Mutex::new(json!({})));
     let engine = build_engine(None);
 
-    for (run_index, (_, test_case)) in filtered_tests.iter().enumerate() {
-        let test_index = run_index + 1;
-
-        // Extract test description if available
-        let test_description = test_case.get("describe").map(|v| v.as_string());
-
-        // Print test header with description
-        if let Some(ref desc) = test_description {
-            print!("Test {}: {} - ", test_index, desc);
-        } else {
-            print!("Test {}: ", test_index);
-        }
-
-        let result = run_single_test(test_case, &phlow, tests_global.clone(), engine.clone()).await;
-
-        match result {
-            Ok(msg) => {
-                println!("✅ PASSED");
-                passed += 1;
-                results.push(TestResult {
-                    index: test_index,
-                    passed: true,
-                    message: msg,
-                    describe: test_description.clone(),
-                });
-            }
-            Err(msg) => {
-                println!("❌ FAILED - {}", msg);
-                results.push(TestResult {
-                    index: test_index,
-                    passed: false,
-                    message: msg,
-                    describe: test_description.clone(),
-                });
+    fn print_indent(depth: usize) {
+        if depth > 0 {
+            for _ in 0..depth {
+                print!("  ");
             }
         }
     }
 
-    let failed = total - passed;
+    enum Action {
+        Heading {
+            name: String,
+            depth: usize,
+        },
+        Test {
+            case: Value,
+            path: Vec<String>,
+            title: String,
+            depth: usize,
+        },
+    }
+
+    fn build_actions(
+        items: &Value,
+        filter: Option<&str>,
+        path: &mut Vec<String>,
+        depth: usize,
+        out: &mut Vec<Action>,
+    ) {
+        if let Some(arr) = items.as_array() {
+            for item in &arr.values {
+                if is_group(item) {
+                    let name = group_name(item).unwrap_or_else(|| "(group)".to_string());
+                    // Check if any leaf inside matches filter
+                    let group_has = {
+                        fn inner_count(v: &Value, f: Option<&str>, mut p: Vec<String>) -> usize {
+                            let mut c = 0usize;
+                            if let Some(name) = group_name(v) {
+                                p.push(name);
+                            }
+                            if let Some(ts) = v.get("tests").and_then(|t| t.as_array()) {
+                                for x in &ts.values {
+                                    if is_group(x) {
+                                        c += inner_count(x, f, p.clone());
+                                    } else {
+                                        let title = leaf_title(x).unwrap_or_else(|| "".to_string());
+                                        if let Some(ff) = f {
+                                            let mut s = p.join(" › ");
+                                            if !s.is_empty() {
+                                                s.push_str(" › ");
+                                            }
+                                            s.push_str(&title);
+                                            if s.contains(ff) {
+                                                c += 1;
+                                            }
+                                        } else {
+                                            c += 1;
+                                        }
+                                    }
+                                }
+                            }
+                            c
+                        }
+                        inner_count(item, filter, path.clone())
+                    };
+                    if group_has == 0 {
+                        continue;
+                    }
+                    out.push(Action::Heading {
+                        name: name.clone(),
+                        depth,
+                    });
+                    path.push(name);
+                    build_actions(&item.get("tests").unwrap(), filter, path, depth + 1, out);
+                    path.pop();
+                } else {
+                    let title = leaf_title(item).unwrap_or_else(|| "(test)".to_string());
+                    let mut full = path.join(" › ");
+                    if !full.is_empty() {
+                        full.push_str(" › ");
+                    }
+                    full.push_str(&title);
+                    if let Some(f) = filter {
+                        if !full.contains(f) {
+                            continue;
+                        }
+                    }
+                    out.push(Action::Test {
+                        case: item.clone(),
+                        path: path.clone(),
+                        title,
+                        depth,
+                    });
+                }
+            }
+        }
+    }
+
+    let mut actions: Vec<Action> = Vec::new();
+    let mut status_map: HashMap<String, bool> = HashMap::new();
+    let mut path_stack: Vec<String> = Vec::new();
+    build_actions(tests, test_filter, &mut path_stack, 0, &mut actions);
+
+    for action in actions {
+        match action {
+            Action::Heading { name, depth } => {
+                print_indent(depth);
+                println!("Describe: {}", name);
+            }
+            Action::Test {
+                case,
+                path,
+                title,
+                depth,
+            } => {
+                executed += 1;
+                let mut full = path.join(" › ");
+                if !full.is_empty() {
+                    full.push_str(" › ");
+                }
+                full.push_str(&title);
+                print_indent(depth);
+                print!("Test {}: {} - ", executed, title);
+                let res =
+                    run_single_test(&case, &phlow, tests_global.clone(), engine.clone()).await;
+                match res {
+                    Ok(msg) => {
+                        println!("✅ PASSED");
+                        passed += 1;
+                        status_map.insert(full.clone(), true);
+                        results.push(TestResult {
+                            index: executed,
+                            passed: true,
+                            message: msg,
+                            describe: Some(full),
+                        });
+                    }
+                    Err(msg) => {
+                        println!("❌ FAILED - {}", msg);
+                        status_map.insert(full.clone(), false);
+                        results.push(TestResult {
+                            index: executed,
+                            passed: false,
+                            message: msg,
+                            describe: Some(full),
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    let failed = executed - passed;
     println!();
     println!("📊 Test Results:");
-    println!("   Total: {}", total);
+    println!("   Total: {}", executed);
     println!("   Passed: {} ✅", passed);
     println!("   Failed: {} ❌", failed);
 
@@ -174,8 +321,112 @@ pub async fn run_tests(
         println!("🎉 All tests passed!");
     }
 
+    // Print a final tree view of describes and tests with pass/fail
+    {
+        fn is_group(v: &Value) -> bool {
+            v.get("tests").map(|t| t.is_array()).unwrap_or(false)
+        }
+        fn group_name(v: &Value) -> Option<String> {
+            v.get("describe")
+                .or_else(|| v.get("name"))
+                .map(|s| s.as_string())
+        }
+        fn leaf_title(v: &Value) -> Option<String> {
+            v.get("it")
+                .or_else(|| v.get("describe"))
+                .map(|s| s.as_string())
+        }
+
+        fn collect_visible_children<'a>(
+            value: &'a Value,
+            filter: Option<&str>,
+            path: &Vec<String>,
+        ) -> Vec<&'a Value> {
+            let mut out = Vec::new();
+            if let Some(arr) = value.as_array() {
+                for item in &arr.values {
+                    if is_group(item) {
+                        let mut p = path.clone();
+                        if let Some(n) = group_name(item) {
+                            p.push(n);
+                        }
+                        // if group has any visible child, include it
+                        let inner =
+                            collect_visible_children(&item.get("tests").unwrap(), filter, &p);
+                        if !inner.is_empty() {
+                            out.push(item);
+                        }
+                    } else {
+                        let title = leaf_title(item).unwrap_or_else(|| "".to_string());
+                        let mut full = path.join(" › ");
+                        if !full.is_empty() {
+                            full.push_str(" › ");
+                        }
+                        full.push_str(&title);
+                        if let Some(f) = filter {
+                            if !full.contains(f) {
+                                continue;
+                            }
+                        }
+                        out.push(item);
+                    }
+                }
+            }
+            out
+        }
+
+        fn print_tree(
+            nodes: &Value,
+            filter: Option<&str>,
+            path: &mut Vec<String>,
+            prefix: &str,
+            status: &HashMap<String, bool>,
+        ) {
+            let visible = collect_visible_children(nodes, filter, path);
+            let len = visible.len();
+            for (idx, node) in visible.into_iter().enumerate() {
+                let last = idx + 1 == len;
+                let (branch, next_prefix) = if last {
+                    ("└── ", format!("{}    ", prefix))
+                } else {
+                    ("├── ", format!("{}│   ", prefix))
+                };
+                if is_group(node) {
+                    let name = group_name(node).unwrap_or_else(|| "(group)".to_string());
+                    println!("{}{}describe: {}", prefix, branch, name);
+                    path.push(name);
+                    print_tree(
+                        &node.get("tests").unwrap(),
+                        filter,
+                        path,
+                        &next_prefix,
+                        status,
+                    );
+                    path.pop();
+                } else {
+                    let title = leaf_title(node).unwrap_or_else(|| "(test)".to_string());
+                    let mut full = path.join(" › ");
+                    if !full.is_empty() {
+                        full.push_str(" › ");
+                    }
+                    full.push_str(&title);
+                    let icon = match status.get(&full) {
+                        Some(true) => "✅",
+                        Some(false) => "❌",
+                        None => "•",
+                    };
+                    println!("{}{}{} it: {}", prefix, branch, icon, title);
+                }
+            }
+        }
+
+        println!("\n🌲 Test Tree:");
+        let mut p: Vec<String> = Vec::new();
+        print_tree(tests, test_filter, &mut p, "", &status_map);
+    }
+
     Ok(TestSummary {
-        total,
+        total: executed,
         passed,
         failed,
         results,
@@ -249,6 +500,7 @@ async fn run_single_test(
         .get("id")
         .map(|v| v.as_string())
         .or_else(|| test_case.get("describe").map(|v| v.as_string()))
+        .or_else(|| test_case.get("it").map(|v| v.as_string()))
         .unwrap_or_else(|| "current".to_string());
 
     if let Some(assert_eq_value) = test_case.get("assert_eq") {

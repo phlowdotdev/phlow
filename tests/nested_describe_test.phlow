@@ -1,0 +1,21 @@
+steps:
+  - payload: main + 1
+
+# Exercita describes recursivos (describe dentro de describe) e referência a testes anteriores via `tests.<id>`
+tests:
+  - describe: "Nested describe suite"
+    tests:
+      - describe: "Level 1"
+        tests:
+          - it: "add one"
+            id: add_one
+            main: 1
+            assert_eq: 2
+
+          - describe: "Level 2"
+            tests:
+              - it: "use previous payload + 10 then +1 step"
+                id: use_prev
+                # main usa o payload do teste anterior (add_one) + 10; o step adiciona +1
+                main: tests.add_one.payload + 10
+                assert_eq: 13
