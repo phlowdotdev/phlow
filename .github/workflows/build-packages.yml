@@ -5,7 +5,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  PARALLEL: 1
+  PARALLEL: 2
 
 permissions:
   contents: write
@@ -27,15 +27,6 @@ jobs:
 
       - name: Make scripts executable
         run: chmod +x ./scripts/*.sh
-
-      # - name: Install yq
-      #   run: |
-      #     if command -v brew &> /dev/null; then
-      #       brew install yq || true
-      #     else
-      #       python3 -m pip install --upgrade pip
-      #       python3 -m pip install yq
-      #     fi
 
       - name: Run packages script
         run: ./scripts/packages.sh
@@ -61,12 +52,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      # - name: Install dependencies
-      #   run: |
-      #     sudo apt-get update
-      #     sudo apt-get install -y jq python3-pip
-      #     python3 -m pip install yq
 
       - name: Make scripts executable
         run: chmod +x ./scripts/*.sh
@@ -95,12 +80,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      # - name: Install dependencies
-      #   run: |
-      #     sudo apt-get update
-      #     sudo apt-get install -y jq python3-pip
-      #     python3 -m pip install yq
 
       - name: Make scripts executable
         run: chmod +x ./scripts/*.sh
