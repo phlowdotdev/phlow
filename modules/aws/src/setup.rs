@@ -84,4 +84,42 @@ impl Setup {
         let s3_conf = s3_cfg_builder.build();
         Ok(aws_sdk_s3::Client::from_conf(s3_conf))
     }
+
+    pub async fn build_sqs_client(
+        &self,
+    ) -> Result<aws_sdk_sqs::Client, Box<dyn std::error::Error + Send + Sync>> {
+        use aws_config::BehaviorVersion;
+        use aws_config::Region;
+
+        let mut loader = aws_config::defaults(BehaviorVersion::latest());
+
+        if let Some(profile) = &self.profile {
+            loader = loader.profile_name(profile);
+        }
+        if let Some(region) = &self.region {
+            loader = loader.region(Region::new(region.clone()));
+        }
+
+        if let (Some(akid), Some(sak)) = (&self.access_key_id, &self.secret_access_key) {
+            let creds = Credentials::new(
+                akid.clone(),
+                sak.clone(),
+                self.session_token.clone(),
+                None,
+                "phlow-aws-static",
+            );
+            loader = loader.credentials_provider(creds);
+        }
+
+        let shared = loader.load().await;
+
+        let mut sqs_cfg_builder = aws_sdk_sqs::config::Builder::from(&shared);
+
+        if let Some(url) = &self.endpoint_url {
+            sqs_cfg_builder = sqs_cfg_builder.endpoint_url(url);
+        }
+
+        let sqs_conf = sqs_cfg_builder.build();
+        Ok(aws_sdk_sqs::Client::from_conf(sqs_conf))
+    }
 }

@@ -91,7 +91,7 @@ services:
     image: localstack/localstack:latest
     container_name: localstack
     environment:
-      - SERVICES=s3
+      - SERVICES=s3,sqs
       - DEFAULT_REGION=us-east-1
       - EDGE_PORT=4566
       - DEBUG=1

@@ -8,6 +8,10 @@ pub enum AwsAction {
     S3GetObject,
     S3DeleteObject,
     S3ListObjects,
+    // SQS
+    SqsSendMessage,
+    SqsReceiveMessages,
+    SqsDeleteMessage,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -17,6 +21,10 @@ pub enum AwsApi {
     S3GetObject(S3GetObjectBody),
     S3DeleteObject(S3DeleteObjectBody),
     S3ListObjects(S3ListObjectsBody),
+    // SQS
+    SqsSendMessage(SqsSendMessageBody),
+    SqsReceiveMessages(SqsReceiveMessagesBody),
+    SqsDeleteMessage(SqsDeleteMessageBody),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -27,6 +35,10 @@ pub struct AwsInput {
 
 // -----------------
 // S3 bodies
+// -----------------
+
+// -----------------
+// SQS bodies
 // -----------------
 
 #[derive(Debug, Clone, PartialEq)]
@@ -59,6 +71,33 @@ pub struct S3ListObjectsBody {
     pub prefix: Option<String>,
     pub max_keys: Option<i32>,
     pub continuation_token: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SqsSendMessageBody {
+    pub queue_url: Option<String>,
+    pub queue_name: Option<String>,
+    pub message_body: String,
+    pub delay_seconds: Option<i32>,
+    pub message_group_id: Option<String>,
+    pub message_deduplication_id: Option<String>,
+    pub message_attributes: Option<Value>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SqsReceiveMessagesBody {
+    pub queue_url: Option<String>,
+    pub queue_name: Option<String>,
+    pub max_number_of_messages: Option<i32>,
+    pub wait_time_seconds: Option<i32>,
+    pub visibility_timeout: Option<i32>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SqsDeleteMessageBody {
+    pub queue_url: Option<String>,
+    pub queue_name: Option<String>,
+    pub receipt_handle: String,
 }
 
 impl TryFrom<Value> for AwsInput {
@@ -166,6 +205,85 @@ impl TryFrom<Value> for AwsInput {
                             prefix,
                             max_keys,
                             continuation_token,
+                        }),
+                    )
+                }
+                _ => return Err(format!("invalid action: {}", method_str)),
+            },
+            "sqs" => match method_str {
+                "send_message" => {
+                    let message_body = value
+                        .get("message_body")
+                        .ok_or_else(|| "missing field 'message_body' for send_message".to_string())?
+                        .to_string();
+
+                    let queue_url = value.get("queue_url").map(|v| v.to_string());
+                    let queue_name = value.get("queue_name").map(|v| v.to_string());
+                    let delay_seconds = value
+                        .get("delay_seconds")
+                        .and_then(|v| v.to_i64())
+                        .map(|v| v as i32);
+                    let message_group_id = value.get("message_group_id").map(|v| v.to_string());
+                    let message_deduplication_id =
+                        value.get("message_deduplication_id").map(|v| v.to_string());
+                    let message_attributes = value.get("message_attributes").cloned();
+
+                    (
+                        AwsAction::SqsSendMessage,
+                        AwsApi::SqsSendMessage(SqsSendMessageBody {
+                            queue_url,
+                            queue_name,
+                            message_body,
+                            delay_seconds,
+                            message_group_id,
+                            message_deduplication_id,
+                            message_attributes,
+                        }),
+                    )
+                }
+                "receive_messages" => {
+                    let queue_url = value.get("queue_url").map(|v| v.to_string());
+                    let queue_name = value.get("queue_name").map(|v| v.to_string());
+                    let max_number_of_messages = value
+                        .get("max_number_of_messages")
+                        .and_then(|v| v.to_i64())
+                        .map(|v| v as i32);
+                    let wait_time_seconds = value
+                        .get("wait_time_seconds")
+                        .and_then(|v| v.to_i64())
+                        .map(|v| v as i32);
+                    let visibility_timeout = value
+                        .get("visibility_timeout")
+                        .and_then(|v| v.to_i64())
+                        .map(|v| v as i32);
+
+                    (
+                        AwsAction::SqsReceiveMessages,
+                        AwsApi::SqsReceiveMessages(SqsReceiveMessagesBody {
+                            queue_url,
+                            queue_name,
+                            max_number_of_messages,
+                            wait_time_seconds,
+                            visibility_timeout,
+                        }),
+                    )
+                }
+                "delete_message" => {
+                    let receipt_handle = value
+                        .get("receipt_handle")
+                        .ok_or_else(|| {
+                            "missing field 'receipt_handle' for delete_message".to_string()
+                        })?
+                        .to_string();
+                    let queue_url = value.get("queue_url").map(|v| v.to_string());
+                    let queue_name = value.get("queue_name").map(|v| v.to_string());
+
+                    (
+                        AwsAction::SqsDeleteMessage,
+                        AwsApi::SqsDeleteMessage(SqsDeleteMessageBody {
+                            queue_url,
+                            queue_name,
+                            receipt_handle,
                         }),
                     )
                 }

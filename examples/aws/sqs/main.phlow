@@ -1,0 +1,36 @@
+modules:
+  - module: log
+  - module: aws
+    with:
+      region: "us-east-1"
+      endpoint_url: "http://localhost:4566"
+      secret_access_key: "test"
+      access_key_id: "test"
+
+steps:
+  # Send a message to the queue
+  - aws.sqs.send_message:
+      queue_name: phlow-sqs-demo
+      message_body: "Hello from Phlow AWS SQS!"
+
+  - log.info:
+      message: payload
+
+  # Receive messages (up to 1) with long polling
+  - aws.sqs.receive_messages:
+      queue_name: phlow-sqs-demo
+      max_number_of_messages: 1
+      wait_time_seconds: 2
+
+  - log.info:
+      message: payload
+
+  # Delete the first message if received
+  - when: !phs payload.messages != null && payload.messages.length > 0
+    then:
+      - aws.sqs.delete_message:
+          queue_name: phlow-sqs-demo
+          receipt_handle: !phs payload.messages[0].receipt_handle
+
+      - log.info:
+          message: payload

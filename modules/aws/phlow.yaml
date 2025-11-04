@@ -76,7 +76,7 @@ input:
   properties:
     action:
       type: string
-      enum: ["s3"]
+      enum: ["s3", "sqs"]
       required: true
 
     method:
@@ -87,6 +87,10 @@ input:
           "get_object",
           "delete_object",
           "list_objects",
+          # SQS
+          "send_message",
+          "receive_messages",
+          "delete_message",
         ]
       required: true
 
