@@ -429,6 +429,37 @@ pub fn build_functions() -> Engine {
         rhai::Dynamic::from(result_array)
     });
 
+    engine.register_fn("uuid", |uuid_type: &str| -> String {
+        match uuid_type {
+            "v4" => uuid::Uuid::new_v4().to_string(),
+            "v6" => {
+                let node_id = [0u8; 6]; // Default node ID
+                uuid::Uuid::new_v6(
+                    uuid::Timestamp::now(uuid::timestamp::context::NoContext),
+                    &node_id,
+                )
+                .to_string()
+            }
+            "v7" => uuid::Uuid::new_v7(uuid::Timestamp::now(uuid::timestamp::context::NoContext))
+                .to_string(),
+            _ => uuid::Uuid::new_v4().to_string(), // Default para v4
+        }
+    });
+
+    engine.register_fn("uuid", |uuid_type: &str, hash: &str| -> String {
+        match uuid_type {
+            "v3" => {
+                let namespace = uuid::Uuid::NAMESPACE_DNS;
+                uuid::Uuid::new_v3(&namespace, hash.as_bytes()).to_string()
+            }
+            "v5" => {
+                let namespace = uuid::Uuid::NAMESPACE_DNS;
+                uuid::Uuid::new_v5(&namespace, hash.as_bytes()).to_string()
+            }
+            _ => uuid::Uuid::new_v4().to_string(), // Default para v4
+        }
+    });
+
     match engine.register_custom_syntax(
         ["when", "$expr$", "then", "$expr$", "else", "$expr$"],
         false,
@@ -1251,5 +1282,30 @@ mod tests {
         // Teste com string contendo aspas
         let result: String = engine.eval(r#""He said \"hello\"".to_json()"#).unwrap();
         assert_eq!(result, "\"He said \\\"hello\\\"\"");
+    }
+
+    #[test]
+    fn test_uuid() {
+        let engine = build_functions();
+
+        // Teste UUID v4
+        let uuid_v4: String = engine.eval(r#"uuid("v4")"#).unwrap();
+        assert_eq!(uuid_v4.len(), 36);
+
+        // Teste UUID v6
+        let uuid_v6: String = engine.eval(r#"uuid("v6")"#).unwrap();
+        assert_eq!(uuid_v6.len(), 36);
+
+        // Teste UUID v7
+        let uuid_v7: String = engine.eval(r#"uuid("v7")"#).unwrap();
+        assert_eq!(uuid_v7.len(), 36);
+
+        // Teste UUID v3 com hash
+        let uuid_v3: String = engine.eval(r#"uuid("v3", "example.com")"#).unwrap();
+        assert_eq!(uuid_v3.len(), 36);
+
+        // Teste UUID v5 com hash
+        let uuid_v5: String = engine.eval(r#"uuid("v5", "example.com")"#).unwrap();
+        assert_eq!(uuid_v5.len(), 36);
     }
 }
