@@ -11,9 +11,18 @@ use phlow_sdk::structs::{ModulePackage, ModuleSetup, Modules};
 use phlow_sdk::valu3::prelude::*;
 use phlow_sdk::valu3::value::Value;
 use std::collections::HashMap;
-use std::fmt::Write;
+use std::fmt::{Debug, Write};
 use std::sync::Arc;
 use tokio::sync::{Mutex, oneshot};
+
+#[derive(Debug, Clone)]
+struct SingleTestReport {
+    ok: bool,
+    message: String,
+    main: Value,
+    initial_payload: Value,
+    result: Value,
+}
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -155,14 +164,6 @@ pub async fn run_tests(
     let tests_global = Arc::new(Mutex::new(json!({})));
     let engine = build_engine(None);
 
-    fn print_indent(depth: usize) {
-        if depth > 0 {
-            for _ in 0..depth {
-                print!("  ");
-            }
-        }
-    }
-
     enum Action {
         Heading {
             name: String,
@@ -257,11 +258,12 @@ pub async fn run_tests(
     let mut path_stack: Vec<String> = Vec::new();
     build_actions(tests, test_filter, &mut path_stack, 0, &mut actions);
 
+    let mut failed_details: Vec<(String, SingleTestReport)> = Vec::new();
+
     for action in actions {
         match action {
             Action::Heading { name, depth } => {
-                print_indent(depth);
-                println!("Describe: {}", name);
+                debug!("Test Group: {} (depth {})", name, depth);
             }
             Action::Test {
                 case,
@@ -275,32 +277,29 @@ pub async fn run_tests(
                     full.push_str(" › ");
                 }
                 full.push_str(&title);
-                print_indent(depth);
-                print!("Test {}: {} - ", executed, title);
-                let res =
+
+                let rep =
                     run_single_test(&case, &phlow, tests_global.clone(), engine.clone()).await;
-                match res {
-                    Ok(msg) => {
-                        println!("✅ PASSED");
-                        passed += 1;
-                        status_map.insert(full.clone(), true);
-                        results.push(TestResult {
-                            index: executed,
-                            passed: true,
-                            message: msg,
-                            describe: Some(full),
-                        });
-                    }
-                    Err(msg) => {
-                        println!("❌ FAILED - {}", msg);
-                        status_map.insert(full.clone(), false);
-                        results.push(TestResult {
-                            index: executed,
-                            passed: false,
-                            message: msg,
-                            describe: Some(full),
-                        });
-                    }
+                if rep.ok {
+                    debug!("Test Passed: {} (depth {})", full, depth);
+                    passed += 1;
+                    status_map.insert(full.clone(), true);
+                    results.push(TestResult {
+                        index: executed,
+                        passed: true,
+                        message: rep.message.clone(),
+                        describe: Some(full.clone()),
+                    });
+                } else {
+                    debug!("Test Failed: {} (depth {})", full, depth);
+                    status_map.insert(full.clone(), false);
+                    results.push(TestResult {
+                        index: executed,
+                        passed: false,
+                        message: rep.message.clone(),
+                        describe: Some(full.clone()),
+                    });
+                    failed_details.push((full.clone(), rep));
                 }
             }
         }
@@ -425,6 +424,26 @@ pub async fn run_tests(
         print_tree(tests, test_filter, &mut p, "", &status_map);
     }
 
+    // Print details for failed tests: inputs and outputs, formatted (in red)
+    if failed > 0 {
+        // ANSI Red start
+        println!("\n\x1b[31m🧾 Failed tests details:");
+        for (full_name, rep) in failed_details.iter() {
+            println!("\n{}:", full_name);
+            // Entrada
+            println!("  Entrada:");
+            println!("    main: {}", rep.main);
+            if !rep.initial_payload.is_undefined() {
+                println!("    payload: {}", rep.initial_payload);
+            }
+            // Saída
+            println!("  Saída:");
+            println!("    payload: {}", rep.result);
+        }
+        // ANSI Reset
+        println!("\x1b[0m");
+    }
+
     Ok(TestSummary {
         total: executed,
         passed,
@@ -438,7 +457,7 @@ async fn run_single_test(
     phlow: &Phlow,
     test: Arc<Mutex<Value>>,
     engine: Arc<phlow_engine::phs::Engine>,
-) -> Result<String, String> {
+) -> SingleTestReport {
     let tests_snapshot = { test.lock().await.clone() };
     let mut context = Context::from_tests(tests_snapshot.clone());
 
@@ -446,12 +465,28 @@ async fn run_single_test(
     let main_value = {
         let data = test_case.get("main").cloned().unwrap_or(Value::Undefined);
 
-        let script = Script::try_build(engine.clone(), &Value::from(data))
-            .map_err(|e| format!("Failed to build main script: {}", e))?;
-
-        match script.evaluate(&context) {
-            Ok(val) => val.to_value(),
-            Err(e) => return Err(format!("Failed to evaluate main script: {}", e)),
+        match Script::try_build(engine.clone(), &Value::from(data)) {
+            Ok(script) => match script.evaluate(&context) {
+                Ok(val) => val.to_value(),
+                Err(e) => {
+                    return SingleTestReport {
+                        ok: false,
+                        message: format!("Failed to evaluate main script: {}", e),
+                        main: Value::Undefined,
+                        initial_payload: Value::Undefined,
+                        result: Value::Undefined,
+                    };
+                }
+            },
+            Err(e) => {
+                return SingleTestReport {
+                    ok: false,
+                    message: format!("Failed to build main script: {}", e),
+                    main: Value::Undefined,
+                    initial_payload: Value::Undefined,
+                    result: Value::Undefined,
+                };
+            }
         }
     };
     let initial_payload = {
@@ -463,11 +498,28 @@ async fn run_single_test(
         if data.is_undefined() {
             Value::Undefined
         } else {
-            let script = Script::try_build(engine.clone(), &Value::from(data))
-                .map_err(|e| format!("Failed to build payload script: {}", e))?;
-            match script.evaluate(&context) {
-                Ok(val) => val.to_value(),
-                Err(e) => return Err(format!("Failed to evaluate payload script: {}", e)),
+            match Script::try_build(engine.clone(), &Value::from(data)) {
+                Ok(script) => match script.evaluate(&context) {
+                    Ok(val) => val.to_value(),
+                    Err(e) => {
+                        return SingleTestReport {
+                            ok: false,
+                            message: format!("Failed to evaluate payload script: {}", e),
+                            main: main_value.clone(),
+                            initial_payload: Value::Undefined,
+                            result: Value::Undefined,
+                        };
+                    }
+                },
+                Err(e) => {
+                    return SingleTestReport {
+                        ok: false,
+                        message: format!("Failed to build payload script: {}", e),
+                        main: main_value.clone(),
+                        initial_payload: Value::Undefined,
+                        result: Value::Undefined,
+                    };
+                }
             }
         }
     };
@@ -481,17 +533,24 @@ async fn run_single_test(
 
     // Set initial payload if provided
     if !initial_payload.is_undefined() {
-        context = context.clone_with_output(initial_payload);
+        context = context.clone_with_output(initial_payload.clone());
     }
 
     // Execute the workflow
     let result = {
-        let result = phlow
-            .execute(&mut context)
-            .await
-            .map_err(|e| format!("Execution failed: {}", e))?;
-
-        result.unwrap_or(Value::Undefined)
+        let exec = match phlow.execute(&mut context).await {
+            Ok(v) => v,
+            Err(e) => {
+                return SingleTestReport {
+                    ok: false,
+                    message: format!("Execution failed: {}", e),
+                    main: main_value.clone(),
+                    initial_payload: initial_payload.clone(),
+                    result: Value::Undefined,
+                };
+            }
+        };
+        exec.unwrap_or(Value::Undefined)
     };
 
     // Check assertions
@@ -527,7 +586,13 @@ async fn run_single_test(
                 *guard = Value::from(map);
             }
 
-            Ok(format!("Expected and got: {}", result))
+            SingleTestReport {
+                ok: true,
+                message: format!("Expected and got: {}", result),
+                main: main_value.clone(),
+                initial_payload: initial_payload.clone(),
+                result: result.clone(),
+            }
         } else {
             let mut msg = String::new();
             write!(
@@ -557,17 +622,33 @@ async fn run_single_test(
                 *guard = Value::from(map);
             }
 
-            Err(msg)
+            SingleTestReport {
+                ok: false,
+                message: msg,
+                main: main_value.clone(),
+                initial_payload: initial_payload.clone(),
+                result: result.clone(),
+            }
         }
     } else if let Some(assert_expr) = test_case.get("assert") {
         // For assert expressions, we need to evaluate them
-        let assertion_result = evaluate_assertion(
+        let assertion_result = match evaluate_assertion(
             assert_expr,
             main_value.clone(),
             tests_snapshot,
             result.clone(),
-        )
-        .map_err(|e| format!("Assertion error: {}. payload: {}", e, result))?;
+        ) {
+            Ok(v) => v,
+            Err(e) => {
+                return SingleTestReport {
+                    ok: false,
+                    message: format!("Assertion error: {}. payload: {}", e, result),
+                    main: main_value.clone(),
+                    initial_payload: initial_payload.clone(),
+                    result: result.clone(),
+                };
+            }
+        };
 
         if assertion_result {
             // Update global tests map with this test execution
@@ -591,7 +672,13 @@ async fn run_single_test(
                 *guard = Value::from(map);
             }
 
-            Ok(format!("Assertion passed: {}", assert_expr))
+            SingleTestReport {
+                ok: true,
+                message: format!("Assertion passed: {}", assert_expr),
+                main: main_value.clone(),
+                initial_payload: initial_payload.clone(),
+                result: result.clone(),
+            }
         } else {
             // Print the full payload when an assert fails
             // Update global tests map with this test execution even on failure
@@ -615,10 +702,16 @@ async fn run_single_test(
                 *guard = Value::from(map);
             }
 
-            Err(format!(
-                "Assertion failed: {}. payload: \x1b[31m{}\x1b[0m",
-                assert_expr, result
-            ))
+            SingleTestReport {
+                ok: false,
+                message: format!(
+                    "Assertion failed: {}. payload: \x1b[31m{}\x1b[0m",
+                    assert_expr, result
+                ),
+                main: main_value.clone(),
+                initial_payload: initial_payload.clone(),
+                result: result.clone(),
+            }
         }
     } else {
         // Update global tests map with this test execution even when no assertion is defined
@@ -642,7 +735,13 @@ async fn run_single_test(
             *guard = Value::from(map);
         }
 
-        Err("No assertion found (assert or assert_eq required)".to_string())
+        SingleTestReport {
+            ok: false,
+            message: "No assertion found (assert or assert_eq required)".to_string(),
+            main: main_value.clone(),
+            initial_payload: initial_payload.clone(),
+            result: result.clone(),
+        }
     }
 }
 
