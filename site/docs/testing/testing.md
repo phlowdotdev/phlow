@@ -98,6 +98,47 @@ Tests are defined in the `tests` section of your Phlow file. Each test case cons
 - **`assert`**: Expression-based assertion using PHS
 - **`assert_eq`**: Direct value comparison assertion
 
+### New: Contexto global de testes (encadeamento)
+
+Agora cada execução de teste é registrada em um mapa global chamado `tests`, disponível como variável de contexto para os próximos testes (e também exposto como `steps` para conveniência). Isso permite encadear testes, por exemplo: criar um recurso em um teste e usá-lo em testes seguintes.
+
+- A chave do mapa é o `id` do teste. Se não houver `id`, usa-se `describe`. Caso nenhum exista, uma chave de fallback é usada (não recomendado). Dica: sempre defina `id` para encadear de forma estável.
+- Estrutura armazenada por teste: `{ id, describe, main, payload }`.
+- O mapa é atualizado mesmo quando o teste falha (útil para depuração).
+
+Você pode referenciar resultados anteriores em qualquer expressão PHS nos `steps`, no `main` dos próximos testes e nos `asserts` usando:
+
+- `tests.<id>....` (recomendado)
+- `steps.<id>....` (alias compatível)
+
+Exemplo:
+
+```phlow
+tests:
+  - describe: "Create a new document"
+    id: create_document
+    main:
+      method: "POST"
+      path: "/accounts/{account_id}/documents"
+      path_params:
+        account_id: "013a4ed1-e1d6-75f3-bd79-fe60514db642"
+      body:
+        name: "Test Document"
+    assert: !phs payload.status_code == 201 && payload.body.name == "Test Document"
+
+  - describe: "Get the created document"
+    id: get_document
+    main:
+      method: "GET"
+      path: "/accounts/{account_id}/documents/{document_id}"
+      path_params:
+        account_id: !phs tests.create_document.main.path_params.account_id
+        document_id: !phs tests.create_document.payload.data.id
+    assert: !phs payload.status_code == 200 && payload.body.id == tests.create_document.payload.data.id
+```
+
+No exemplo acima, o segundo teste usa valores produzidos pelo primeiro (`tests.create_document...`). Esse mesmo acesso também está disponível via `steps.create_document...` como alias.
+
 ### Basic Test Example
 
 ```phlow
@@ -289,6 +330,13 @@ Test 2: ✅ PASSED - Assertion passed: {{ payload == "Total is 15" }}
 
 ❌ Some tests failed!
 ```
+
+### New: Mensagens de falha mostram o payload completo
+
+- Em falhas de `assert`, o runner imprime o payload completo do resultado do teste para facilitar a análise (com destaque em vermelho no terminal).
+- Se ocorrer erro ao avaliar a expressão de `assert`, a mensagem também inclui o payload completo.
+
+Isso ajuda a entender rapidamente “o que veio” na resposta do fluxo sob teste.
 
 ## Test Best Practices
 

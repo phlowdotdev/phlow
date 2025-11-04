@@ -6,7 +6,7 @@ pub mod variable;
 use functions::build_functions;
 pub use repositories::{Repositories, RepositoryFunction};
 use rhai::serde::from_dynamic;
-use rhai::{Dynamic, Engine, EvalAltResult, NativeCallContext};
+pub use rhai::{Dynamic, Engine, EvalAltResult, NativeCallContext};
 pub use script::{Script, ScriptError};
 use std::collections::HashMap;
 use std::future::Future;

@@ -166,6 +166,10 @@ Test 3: ❌ FAILED - Assertion failed: {{ payload == "Something else" }}
 ❌ Some tests failed!
 ```
 
+### Full payload on assertion failures
+
+When an `assert` fails (expression-based), the test runner prints the full payload from the failing test. This makes it easier to see exactly what the flow returned and why the assertion didn’t match. Errors during assertion evaluation also include the payload.
+
 ## Different Assertion Types
 
 ### Using `assert` (Expression-based)
@@ -187,6 +191,35 @@ tests:
 ```
 
 ### Using `assert_eq` (Direct comparison)
+## Chaining tests with a global map
+
+You can chain tests by referencing outputs from previous ones via a global `tests` map (also available as `steps`). Each executed test is stored under its `id` (or `describe` as fallback) with the shape `{ id, describe, main, payload }`.
+
+```phlow title="chaining-tests.phlow"
+tests:
+  - describe: "Create a new document"
+    id: create_document
+    main:
+      method: "POST"
+      path: "/accounts/{account_id}/documents"
+      path_params:
+        account_id: "013a4ed1-e1d6-75f3-bd79-fe60514db642"
+      body:
+        name: "Test Document"
+    assert: !phs payload.status_code == 201 && payload.body.name == "Test Document"
+
+  - describe: "Get the created document"
+    id: get_document
+    main:
+      method: "GET"
+      path: "/accounts/{account_id}/documents/{document_id}"
+      path_params:
+        account_id: !phs tests.create_document.main.path_params.account_id
+        document_id: !phs tests.create_document.payload.data.id
+    assert: !phs payload.status_code == 200 && payload.body.id == tests.create_document.payload.data.id
+```
+
+Tip: always set a stable `id` for each test if you plan to reference it later.
 
 ```phlow
 tests:

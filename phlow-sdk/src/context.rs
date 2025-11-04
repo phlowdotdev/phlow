@@ -10,11 +10,27 @@ pub struct Context {
     payload: Option<Value>,
     input: Option<Value>,
     setup: Option<Value>,
+    tests: Option<Value>,
 }
 
 impl Context {
     pub fn new() -> Self {
         Self {
+            ..Default::default()
+        }
+    }
+
+    pub fn from_tests(test: Value) -> Self {
+        Self {
+            tests: Some(test),
+            ..Default::default()
+        }
+    }
+
+    pub fn from_main_tests(main: Value, test: Value) -> Self {
+        Self {
+            main: Some(main),
+            tests: Some(test),
             ..Default::default()
         }
     }
@@ -33,29 +49,42 @@ impl Context {
         }
     }
 
-    pub fn add_module_input(&self, output: Value) -> Self {
+    pub fn clone_with_main(&self, main: Value) -> Self {
+        Self {
+            main: Some(main),
+            steps: self.steps.clone(),
+            payload: self.payload.clone(),
+            input: self.input.clone(),
+            setup: self.setup.clone(),
+            tests: self.tests.clone(),
+        }
+    }
+
+    pub fn clone_with_input(&self, input: Value) -> Self {
         Self {
             main: self.main.clone(),
             steps: self.steps.clone(),
             payload: self.payload.clone(),
-            input: Some(output),
+            input: Some(input),
             setup: self.setup.clone(),
+            tests: self.tests.clone(),
         }
     }
 
-    pub fn add_module_output(&self, output: Value) -> Self {
+    pub fn clone_with_output(&self, output: Value) -> Self {
         Self {
             main: self.main.clone(),
             steps: self.steps.clone(),
             payload: Some(output),
             input: self.input.clone(),
             setup: self.setup.clone(),
+            tests: self.tests.clone(),
         }
     }
 
-    pub fn add_step_payload(&mut self, output: Option<Value>) {
-        if let Some(output) = output {
-            self.payload = Some(output);
+    pub fn add_step_payload(&mut self, payload: Option<Value>) {
+        if let Some(payload) = payload {
+            self.payload = Some(payload);
         }
     }
 
@@ -69,6 +98,10 @@ impl Context {
 
     pub fn get_setup(&self) -> Option<Value> {
         self.setup.clone()
+    }
+
+    pub fn get_tests(&self) -> Option<Value> {
+        self.tests.clone()
     }
 
     pub fn get_input(&self) -> Option<Value> {

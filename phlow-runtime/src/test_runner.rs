@@ -1,8 +1,9 @@
-use crate::loader::{load_module, Loader};
+use crate::loader::{Loader, load_module};
 use crate::settings::Settings;
 use crossbeam::channel;
 use log::{debug, error};
-use phlow_engine::phs::{build_engine, Script};
+use phlow_engine::phs::{self, build_engine};
+use phlow_engine::script::Script;
 use phlow_engine::{Context, Phlow};
 use phlow_sdk::otel::init_tracing_subscriber;
 use phlow_sdk::prelude::json;
@@ -12,7 +13,7 @@ use phlow_sdk::valu3::value::Value;
 use std::collections::HashMap;
 use std::fmt::Write;
 use std::sync::Arc;
-use tokio::sync::oneshot;
+use tokio::sync::{Mutex, oneshot};
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -116,6 +117,9 @@ pub async fn run_tests(
     // Run tests
     let mut results = Vec::new();
     let mut passed = 0;
+    // Global "test" map shared across tests
+    let tests_global = Arc::new(Mutex::new(json!({})));
+    let engine = build_engine(None);
 
     for (run_index, (_, test_case)) in filtered_tests.iter().enumerate() {
         let test_index = run_index + 1;
@@ -130,7 +134,7 @@ pub async fn run_tests(
             print!("Test {}: ", test_index);
         }
 
-        let result = run_single_test(test_case, &phlow).await;
+        let result = run_single_test(test_case, &phlow, tests_global.clone(), engine.clone()).await;
 
         match result {
             Ok(msg) => {
@@ -178,25 +182,55 @@ pub async fn run_tests(
     })
 }
 
-async fn run_single_test(test_case: &Value, phlow: &Phlow) -> Result<String, String> {
+async fn run_single_test(
+    test_case: &Value,
+    phlow: &Phlow,
+    test: Arc<Mutex<Value>>,
+    engine: Arc<phlow_engine::phs::Engine>,
+) -> Result<String, String> {
+    let tests_snapshot = { test.lock().await.clone() };
+    let mut context = Context::from_tests(tests_snapshot.clone());
+
     // Extract test inputs
-    let main_value = test_case.get("main").cloned().unwrap_or(Value::Undefined);
-    let initial_payload = test_case
-        .get("payload")
-        .cloned()
-        .unwrap_or(Value::Undefined);
+    let main_value = {
+        let data = test_case.get("main").cloned().unwrap_or(Value::Undefined);
+
+        let script = Script::try_build(engine.clone(), &Value::from(data))
+            .map_err(|e| format!("Failed to build main script: {}", e))?;
+
+        match script.evaluate(&context) {
+            Ok(val) => val.to_value(),
+            Err(e) => return Err(format!("Failed to evaluate main script: {}", e)),
+        }
+    };
+    let initial_payload = {
+        let data = test_case
+            .get("payload")
+            .cloned()
+            .unwrap_or(Value::Undefined);
+
+        if data.is_undefined() {
+            Value::Undefined
+        } else {
+            let script = Script::try_build(engine.clone(), &Value::from(data))
+                .map_err(|e| format!("Failed to build payload script: {}", e))?;
+            match script.evaluate(&context) {
+                Ok(val) => val.to_value(),
+                Err(e) => return Err(format!("Failed to evaluate payload script: {}", e)),
+            }
+        }
+    };
 
     debug!(
         "Running test with main: {:?}, payload: {:?}",
         main_value, initial_payload
     );
 
-    // Create context with test data
-    let mut context = Context::from_main(main_value);
+    context = context.clone_with_main(main_value.clone());
 
     // Set initial payload if provided
     if !initial_payload.is_undefined() {
-        context = context.add_module_output(initial_payload);
+        context = context.clone_with_output(initial_payload);
     }
 
     // Execute the workflow
@@ -210,9 +244,37 @@ async fn run_single_test(test_case: &Value, phlow: &Phlow) -> Result<String, Str
     };
 
     // Check assertions
+    // Identify this test id (used to store into global tests)
+    let test_id = test_case
+        .get("id")
+        .map(|v| v.as_string())
+        .or_else(|| test_case.get("describe").map(|v| v.as_string()))
+        .unwrap_or_else(|| "current".to_string());
+
     if let Some(assert_eq_value) = test_case.get("assert_eq") {
         // ANSI escape code for red: \x1b[31m ... \x1b[0m
         if deep_equals(&result, assert_eq_value) {
+            // Update global tests map with this test execution
+            {
+                let mut guard = test.lock().await;
+                let mut map: HashMap<String, Value> = HashMap::new();
+                if let Some(obj) = guard.as_object() {
+                    for (k, v) in obj.iter() {
+                        map.insert(k.to_string(), v.clone());
+                    }
+                }
+                map.insert(
+                    test_id.clone(),
+                    json!({
+                        "id": test_id.clone(),
+                        "describe": test_case.get("describe").cloned().unwrap_or(Value::Undefined),
+                        "main": main_value.clone(),
+                        "payload": result.clone(),
+                    }),
+                );
+                *guard = Value::from(map);
+            }
+
             Ok(format!("Expected and got: {}", result))
         } else {
             let mut msg = String::new();
@@ -222,19 +284,112 @@ async fn run_single_test(test_case: &Value, phlow: &Phlow) -> Result<String, Str
                 assert_eq_value, result
             )
             .unwrap();
+            // Update global tests map with this test execution even on failure
+            {
+                let mut guard = test.lock().await;
+                let mut map: HashMap<String, Value> = HashMap::new();
+                if let Some(obj) = guard.as_object() {
+                    for (k, v) in obj.iter() {
+                        map.insert(k.to_string(), v.clone());
+                    }
+                }
+                map.insert(
+                    test_id.clone(),
+                    json!({
+                        "id": test_id.clone(),
+                        "describe": test_case.get("describe").cloned().unwrap_or(Value::Undefined),
+                        "main": main_value.clone(),
+                        "payload": result.clone(),
+                    }),
+                );
+                *guard = Value::from(map);
+            }
+
             Err(msg)
         }
     } else if let Some(assert_expr) = test_case.get("assert") {
         // For assert expressions, we need to evaluate them
-        let assertion_result = evaluate_assertion(assert_expr, &result)
-            .map_err(|e| format!("Assertion error: {}", e))?;
+        let assertion_result = evaluate_assertion(
+            assert_expr,
+            main_value.clone(),
+            tests_snapshot,
+            result.clone(),
+        )
+        .map_err(|e| format!("Assertion error: {}. payload: {}", e, result))?;
 
         if assertion_result {
+            // Update global tests map with this test execution
+            {
+                let mut guard = test.lock().await;
+                let mut map: HashMap<String, Value> = HashMap::new();
+                if let Some(obj) = guard.as_object() {
+                    for (k, v) in obj.iter() {
+                        map.insert(k.to_string(), v.clone());
+                    }
+                }
+                map.insert(
+                    test_id.clone(),
+                    json!({
+                        "id": test_id.clone(),
+                        "describe": test_case.get("describe").cloned().unwrap_or(Value::Undefined),
+                        "main": main_value.clone(),
+                        "payload": result.clone(),
+                    }),
+                );
+                *guard = Value::from(map);
+            }
+
             Ok(format!("Assertion passed: {}", assert_expr))
         } else {
-            Err(format!("Assertion failed: {}", assert_expr))
+            // Print the full payload when an assert fails
+            // Update global tests map with this test execution even on failure
+            {
+                let mut guard = test.lock().await;
+                let mut map: HashMap<String, Value> = HashMap::new();
+                if let Some(obj) = guard.as_object() {
+                    for (k, v) in obj.iter() {
+                        map.insert(k.to_string(), v.clone());
+                    }
+                }
+                map.insert(
+                    test_id.clone(),
+                    json!({
+                        "id": test_id.clone(),
+                        "describe": test_case.get("describe").cloned().unwrap_or(Value::Undefined),
+                        "main": main_value.clone(),
+                        "payload": result.clone(),
+                    }),
+                );
+                *guard = Value::from(map);
+            }
+
+            Err(format!(
+                "Assertion failed: {}. payload: \x1b[31m{}\x1b[0m",
+                assert_expr, result
+            ))
         }
     } else {
+        // Update global tests map with this test execution even when no assertion is defined
+        {
+            let mut guard = test.lock().await;
+            let mut map: HashMap<String, Value> = HashMap::new();
+            if let Some(obj) = guard.as_object() {
+                for (k, v) in obj.iter() {
+                    map.insert(k.to_string(), v.clone());
+                }
+            }
+            map.insert(
+                test_id.clone(),
+                json!({
+                    "id": test_id.clone(),
+                    "describe": test_case.get("describe").cloned().unwrap_or(Value::Undefined),
+                    "main": main_value.clone(),
+                    "payload": result.clone(),
+                }),
+            );
+            *guard = Value::from(map);
+        }
+
         Err("No assertion found (assert or assert_eq required)".to_string())
     }
 }
@@ -262,7 +417,7 @@ async fn load_modules_like_runtime(
         let main_sender = None;
 
         let with = {
-            let script = Script::try_build(engine.clone(), &module.with)
+            let script = phs::Script::try_build(engine.clone(), &module.with)
                 .map_err(|e| format!("Failed to build script for module {}: {}", module.name, e))?;
 
             script.evaluate_without_context().map_err(|e| {
@@ -383,7 +538,12 @@ fn deep_equals(a: &Value, b: &Value) -> bool {
     }
 }
 
-fn evaluate_assertion(assert_expr: &Value, result: &Value) -> Result<bool, String> {
+fn evaluate_assertion(
+    assert_expr: &Value,
+    main: Value,
+    tests: Value,
+    result: Value,
+) -> Result<bool, String> {
     // Create a simple evaluation context
     let engine = build_engine(None);
 
@@ -391,29 +551,16 @@ fn evaluate_assertion(assert_expr: &Value, result: &Value) -> Result<bool, Strin
     let script = Script::try_build(engine, assert_expr)
         .map_err(|e| format!("Failed to build assertion script: {}", e))?;
 
-    // Create a context where 'payload' refers to the result
-    let _context = Context::from_main(json!({
-        "payload": result
-    }));
+    // Create a context where 'payload' refers to the result and 'test'/'steps' point to global tests map
+    let mut context = Context::from_main_tests(main, tests);
 
-    // Evaluate the assertion
-    let context_map: HashMap<String, Value> = [("payload".to_string(), result.clone())]
-        .iter()
-        .cloned()
-        .collect();
+    context.add_step_payload(Some(result));
 
-    let assertion_result = script
-        .evaluate(&context_map)
-        .map_err(|e| format!("Failed to evaluate assertion: {}", e))?;
-
-    // Check if result is boolean true
-    match assertion_result {
-        Value::Boolean(b) => Ok(b),
-        Value::String(s) if s == "true".into() => Ok(true),
-        Value::String(s) if s == "false".into() => Ok(false),
-        _ => Err(format!(
-            "Assertion must return boolean, got: {}",
-            assertion_result
-        )),
+    match script.evaluate(&context) {
+        Ok(Value::Boolean(b)) => Ok(b),
+        Ok(Value::String(s)) if s == "true".into() => Ok(true),
+        Ok(Value::String(s)) if s == "false".into() => Ok(false),
+        Ok(other) => Err(format!("Assertion must return boolean, got: {}", other)),
+        Err(e) => Err(format!("Failed to evaluate assertion script: {}", e)),
     }
 }

@@ -1,7 +1,7 @@
 use crate::context::Context;
 use phlow_sdk::prelude::*;
 use phs::ScriptError;
-use rhai::{plugin::*, serde::to_dynamic, Engine, Scope};
+use rhai::{Engine, Scope, plugin::*, serde::to_dynamic};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
@@ -28,7 +28,10 @@ impl Script {
             to_dynamic(context.get_input().clone()).map_err(ScriptError::EvalError)?;
         let setup: Dynamic =
             to_dynamic(context.get_setup().clone()).map_err(ScriptError::EvalError)?;
+        let tests: Dynamic =
+            to_dynamic(context.get_tests().clone()).map_err(ScriptError::EvalError)?;
 
+        scope.push_constant("tests", tests);
         scope.push_constant("steps", steps);
         scope.push_constant("main", main);
         scope.push_constant("payload", payload);

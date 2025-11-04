@@ -264,7 +264,7 @@ impl StepWorker {
             let input = self.evaluate_input(context)?;
 
             let context = if let Some(input) = &input {
-                context.add_module_input(input.clone())
+                context.clone_with_input(input.clone())
             } else {
                 context.clone()
             };
@@ -364,7 +364,7 @@ impl StepWorker {
             }
 
             let context = if let Some(output) = output.clone() {
-                context.add_module_output(output)
+                context.clone_with_output(output)
             } else {
                 context.clone()
             };

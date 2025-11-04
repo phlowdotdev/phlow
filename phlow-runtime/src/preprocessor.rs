@@ -177,12 +177,12 @@ fn processor_transform_phs_hidden_object_and_arrays(phlow: &str) -> String {
 //palavras reservadas do phs ou seja um algoritimo e inclui a tag !phs automaticamente
 fn preprocessor_transform_phs_hidden(phlow: &str) -> String {
     let operators: Vec<&'static str> = vec![
-        "+", "-", "*", "/", "%", "==", "!=", "<", ">", "<=", ">=", "&&", "||", "??", "?:",
+        "+", "-", "*", "/", "%", "==", "!=", "<", ">", "<=", ">=", "&&", "||", "??", "?:", "!",
     ];
     let mut reserved_keywords = vec![
         "if", "else", "for", "while", "loop", "match", "let", "const", "fn", "return", "switch",
         "case", "default", "try", "catch", "throw", "when", "payload", "input", "steps", "main",
-        "setup", "envs", "!",
+        "setup", "envs", "tests",
     ];
     reserved_keywords.extend(&operators);
 
