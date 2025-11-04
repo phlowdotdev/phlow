@@ -134,7 +134,11 @@ impl TryFrom<Value> for AwsInput {
                 let as_base64 = value.get("as_base64").and_then(|v| v.as_bool().cloned());
                 (
                     AwsAction::S3GetObject,
-                    AwsApi::S3GetObject(S3GetObjectBody { bucket, key, as_base64 }),
+                    AwsApi::S3GetObject(S3GetObjectBody {
+                        bucket,
+                        key,
+                        as_base64,
+                    }),
                 )
             }
             "s3_delete_object" => {
@@ -161,7 +165,12 @@ impl TryFrom<Value> for AwsInput {
                 let continuation_token = value.get("continuation_token").map(|v| v.to_string());
                 (
                     AwsAction::S3ListObjects,
-                    AwsApi::S3ListObjects(S3ListObjectsBody { bucket, prefix, max_keys, continuation_token }),
+                    AwsApi::S3ListObjects(S3ListObjectsBody {
+                        bucket,
+                        prefix,
+                        max_keys,
+                        continuation_token,
+                    }),
                 )
             }
 

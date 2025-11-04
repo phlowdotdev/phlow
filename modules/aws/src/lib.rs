@@ -3,11 +3,11 @@ mod setup;
 
 use crate::input::{AwsApi, AwsInput};
 use crate::setup::Setup;
-use aws_sdk_s3::types::ObjectCannedAcl;
 use aws_sdk_s3::Client as S3Client;
-use phlow_sdk::prelude::*;
+use aws_sdk_s3::types::ObjectCannedAcl;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as BASE64;
+use phlow_sdk::prelude::*;
 
 create_step!(aws(setup));
 
@@ -37,7 +37,10 @@ pub async fn aws(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + S
         let parsed = match AwsInput::try_from(input_value) {
             Ok(p) => p,
             Err(e) => {
-                sender_safe!(package.sender, error_response!(format!("Invalid input: {}", e)).into());
+                sender_safe!(
+                    package.sender,
+                    error_response!(format!("Invalid input: {}", e)).into()
+                );
                 continue;
             }
         };
@@ -78,14 +81,13 @@ async fn handle_s3_put_object(
 ) -> Result<Value, String> {
     use aws_sdk_s3::primitives::ByteStream;
 
-    let mut req = client
-        .put_object()
-        .bucket(&body.bucket)
-        .key(&body.key);
+    let mut req = client.put_object().bucket(&body.bucket).key(&body.key);
 
     // Content
     let bytes: Vec<u8> = if let Some(b64) = body.content_base64 {
-        BASE64.decode(b64).map_err(|e| format!("invalid base64 content: {}", e))?
+        BASE64
+            .decode(b64)
+            .map_err(|e| format!("invalid base64 content: {}", e))?
     } else if let Some(text) = body.content {
         text.into_bytes()
     } else {
@@ -183,15 +185,22 @@ async fn handle_s3_list_objects(
     client: &S3Client,
     body: crate::input::S3ListObjectsBody,
 ) -> Result<Value, String> {
-    let mut req = client
-        .list_objects_v2()
-        .bucket(&body.bucket);
+    let mut req = client.list_objects_v2().bucket(&body.bucket);
 
-    if let Some(prefix) = body.prefix { req = req.prefix(prefix); }
-    if let Some(mk) = body.max_keys { req = req.max_keys(mk); }
-    if let Some(token) = body.continuation_token { req = req.continuation_token(token); }
+    if let Some(prefix) = body.prefix {
+        req = req.prefix(prefix);
+    }
+    if let Some(mk) = body.max_keys {
+        req = req.max_keys(mk);
+    }
+    if let Some(token) = body.continuation_token {
+        req = req.continuation_token(token);
+    }
 
-    let resp = req.send().await.map_err(|e| format!("S3 list_objects error: {}", e))?;
+    let resp = req
+        .send()
+        .await
+        .map_err(|e| format!("S3 list_objects error: {}", e))?;
 
     let mut items = Vec::new();
     for obj in resp.contents() {
@@ -222,4 +231,3 @@ fn parse_acl(s: &str) -> Option<ObjectCannedAcl> {
         _ => None,
     }
 }
-

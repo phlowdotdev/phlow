@@ -1,5 +1,5 @@
-use phlow_sdk::prelude::*;
 use aws_credential_types::Credentials;
+use phlow_sdk::prelude::*;
 use std::convert::TryFrom;
 
 #[derive(Debug, Clone, Default)]
@@ -33,12 +33,8 @@ impl TryFrom<Value> for Setup {
             .unwrap_or(false);
 
         let assume_role_arn = value.get("assume_role_arn").map(|v| v.to_string());
-        let assume_role_session_name = value
-            .get("assume_role_session_name")
-            .map(|v| v.to_string());
-        let assume_role_external_id = value
-            .get("assume_role_external_id")
-            .map(|v| v.to_string());
+        let assume_role_session_name = value.get("assume_role_session_name").map(|v| v.to_string());
+        let assume_role_external_id = value.get("assume_role_external_id").map(|v| v.to_string());
 
         Ok(Setup {
             region,
