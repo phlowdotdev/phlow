@@ -33,6 +33,7 @@ pub struct AwsInput {
 pub struct S3PutObjectBody {
     pub bucket: String,
     pub key: String,
+    pub path: Option<String>,
     pub content: Option<String>,
     pub content_base64: Option<String>,
     pub content_type: Option<String>,
@@ -98,6 +99,7 @@ impl TryFrom<Value> for AwsInput {
                         .ok_or_else(|| "missing field 'key' for put_object".to_string())?
                         .to_string();
 
+                    let path = value.get("path").map(|v| v.to_string());
                     let content = value.get("content").map(|v| v.to_string());
                     let content_base64 = value.get("content_base64").map(|v| v.to_string());
                     let content_type = value.get("content_type").map(|v| v.to_string());
@@ -108,6 +110,7 @@ impl TryFrom<Value> for AwsInput {
                         AwsApi::S3PutObject(S3PutObjectBody {
                             bucket,
                             key,
+                            path,
                             content,
                             content_base64,
                             content_type,

@@ -79,22 +79,34 @@ async fn handle_s3_put_object(
     body: crate::input::S3PutObjectBody,
 ) -> Result<Value, String> {
     use aws_sdk_s3::primitives::ByteStream;
+    use std::path::Path;
 
     let mut req = client.put_object().bucket(&body.bucket).key(&body.key);
 
-    // Content
-    let bytes: Vec<u8> = if let Some(b64) = body.content_base64 {
-        BASE64
-            .decode(b64)
-            .map_err(|e| format!("invalid base64 content: {}", e))?
-    } else if let Some(text) = body.content {
-        text.into_bytes()
+    // Prefer streaming from file path if provided
+    if let Some(path) = body.path.clone() {
+        let p = Path::new(&path);
+        let bs = ByteStream::from_path(p)
+            .await
+            .map_err(|e| format!("failed to open path '{}': {}", path, e))?;
+        req = req.body(bs);
     } else {
-        return Err("Missing 'content' or 'content_base64' for s3_put_object".to_string());
-    };
+        // Content
+        let bytes: Vec<u8> = if let Some(b64) = body.content_base64 {
+            BASE64
+                .decode(b64)
+                .map_err(|e| format!("invalid base64 content: {}", e))?
+        } else if let Some(text) = body.content {
+            text.into_bytes()
+        } else {
+            return Err(
+                "Missing 'path' or 'content' or 'content_base64' for s3_put_object".to_string(),
+            );
+        };
 
-    let bs = ByteStream::from(bytes::Bytes::from(bytes));
-    req = req.body(bs);
+        let bs = ByteStream::from(bytes::Bytes::from(bytes));
+        req = req.body(bs);
+    }
 
     // Content-Type
     if let Some(ct) = body.content_type {

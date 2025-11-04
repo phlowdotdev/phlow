@@ -105,6 +105,10 @@ input:
       type: string
       required: false
       description: Content as UTF-8 string for s3_put_object
+    path:
+      type: string
+      required: false
+      description: Local filesystem path to stream upload for s3_put_object (avoids loading into memory)
     content_base64:
       type: string
       required: false
