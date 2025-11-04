@@ -15,7 +15,7 @@ members = [
     "modules/rpc",
     "modules/jwt",
     "modules/openai",
-    "modules/cache",
+    "modules/cache", "modules/aws",
 ]
 resolver = "2"
 
