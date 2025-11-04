@@ -70,9 +70,9 @@ impl TryFrom<Value> for AwsInput {
             .as_str();
 
         let method_str = {
-            let method = value.get("method");
-
-            if method.is_none() {
+            if let Some(method) = value.get("method") {
+                method.as_str()
+            } else {
                 let args = value
                     .get("args")
                     .ok_or_else(|| "missing field 'args' for AwsInput".to_string())?;
@@ -83,10 +83,6 @@ impl TryFrom<Value> for AwsInput {
                     .as_str();
 
                 method
-            } else {
-                method
-                    .ok_or_else(|| "missing field 'method' for AwsInput".to_string())?
-                    .as_str()
             }
         };
 
