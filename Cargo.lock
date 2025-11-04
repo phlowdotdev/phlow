@@ -411,10 +411,13 @@ name = "aws"
 version = "0.1.0"
 dependencies = [
  "aws-config",
+ "aws-credential-types",
  "aws-sdk-dynamodb",
  "aws-sdk-s3",
  "aws-sdk-sns",
  "aws-sdk-sqs",
+ "base64 0.22.1",
+ "bytes",
  "phlow-sdk 0.2.0",
 ]
 
