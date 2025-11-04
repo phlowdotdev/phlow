@@ -27,7 +27,7 @@ When you run tests, Phlow will:
 
 ### Filtering Tests
 
-You can filter tests by description using the `--test-filter` flag. This will only run tests whose `describe` field contains the specified substring:
+You can filter tests by description using the `--test-filter` flag. The filter matches against the full hierarchical path of the test in the format `Parent › Child › it` (not only the leaf `describe/it`). This means you can target entire groups or specific leaf tests by substring:
 
 ```bash
 # Run only tests with "addition" in their description
@@ -139,6 +139,50 @@ tests:
 
 No exemplo acima, o segundo teste usa valores produzidos pelo primeiro (`tests.create_document...`). Esse mesmo acesso também está disponível via `steps.create_document...` como alias.
 
+### New: Describe recursivo e `it` (agrupamento de testes)
+
+Agora é possível aninhar describes (describe dentro de describe) e definir casos de teste folha com `it` (recomendado). Um item com `describe` e um array `tests` é tratado como grupo. Um item com `it` (ou `describe` sem `tests`, para compatibilidade) é um teste folha.
+
+Exemplo:
+
+```phlow
+steps:
+  - payload: main + 1
+
+tests:
+  - describe: "Documents"
+    tests:
+      - describe: "Create flow"
+        tests:
+          - it: "Create a new document"
+            id: create_document
+            main:
+              method: "POST"
+              path: "/accounts/{account_id}/documents"
+              path_params:
+                account_id: !phs uuid("v7")
+              body:
+                name: "Test Document"
+            assert: !phs payload.status_code == 201 && payload.body.name == "Test Document"
+
+      - describe: "Get flow"
+        tests:
+          - it: "Get the created document"
+            id: get_document
+            main:
+              method: "GET"
+              path: "/accounts/{account_id}/documents/{document_id}"
+              path_params:
+                account_id: !phs tests.create_document.main.path_params.account_id
+                document_id: !phs tests.create_document.payload.body.id
+            assert: !phs payload.status_code == 200 && payload.body.id == tests.create_document.payload.body.id
+```
+
+Notas:
+- Prefira `it` para nomear casos de teste folha.
+- Grupos vazios são omitidos na execução e na árvore final.
+- O filtro `--test-filter` considera o caminho completo (`Pai › Filho › it`).
+
 ### Basic Test Example
 
 ```phlow
@@ -186,6 +230,36 @@ Test 3: ✅ PASSED - Assertion passed: {{ payload > 0 }}
    Failed: 0 ❌
 
 🎉 All tests passed!
+```
+
+### New: Saída hierárquica e árvore final
+
+Com describes aninhados, a execução imprime os grupos (Describe) e os testes com indentação, seguida de um resumo e de uma árvore final que mostra a hierarquia completa e o status de cada `it`:
+
+Exemplo de saída:
+
+```
+🧪 Running 2 test(s)...
+
+Describe: Documents
+  Describe: Create flow
+    Test 1: Create a new document - ✅ PASSED
+  Describe: Get flow
+    Test 2: Get the created document - ✅ PASSED
+
+📊 Test Results:
+   Total: 2
+   Passed: 2 ✅
+   Failed: 0 ❌
+
+🎉 All tests passed!
+
+🌲 Test Tree:
+└── describe: Documents
+    ├── describe: Create flow
+    │   └── ✅ it: Create a new document
+    └── describe: Get flow
+        └── ✅ it: Get the created document
 ```
 
 ## Assertion Types
@@ -330,6 +404,25 @@ Test 2: ✅ PASSED - Assertion passed: {{ payload == "Total is 15" }}
 
 ❌ Some tests failed!
 ```
+
+### New: Relatório final dos testes falhos (entrada/saída em vermelho)
+
+Ao final, quando existem falhas, o runner imprime um bloco “Failed tests details” com a entrada e a saída do teste, em vermelho (ANSI), para facilitar a análise:
+
+```
+🧾 Failed tests details:
+
+Documents › Get flow › Get the created document:
+  Entrada:
+    main: {"method":"GET","path":"/accounts/{account_id}/documents/{document_id}",...}
+    payload: {"foo":"bar"}
+  Saída:
+    payload: {"status_code":404,"body":{"message":"Not Found"}}
+```
+
+Notas:
+- O bloco aparece apenas quando há pelo menos uma falha.
+- A formatação em vermelho é realizada via ANSI no terminal.
 
 ### New: Mensagens de falha mostram o payload completo
 

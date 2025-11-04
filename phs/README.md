@@ -881,6 +881,8 @@ Esta seção lista as funções utilitárias disponíveis globalmente em scripts
   - Ex.: `"meu texto".search("^meu") // true`
 - `starts_with(prefix) -> bool` (método de string)
   - Ex.: `"Bearer abc".starts_with("Bearer ") // true`
+- `contains(substr) -> bool` (método de string)
+  - Ex.: `"The quick brown fox".contains("brown") // true`
 - `replace(target, replacement) -> string` (retorna nova string)
   - Ex.: `"abc abc".replace("abc", "x") // "x x"`
 - `slice(start, end?) -> string` (método de string)
@@ -897,6 +899,20 @@ Esta seção lista as funções utilitárias disponíveis globalmente em scripts
   - Ex.: `"SGVsbG8gV29ybGQ=".base64_to_utf8() // "Hello World"`
 - `url_decode() -> string`
   - Ex.: `"user%40example.com".url_decode() // "user@example.com"`
+
+#### SQL-like Matching
+- `like(pattern) -> bool`
+  - Usa curingas `%` (qualquer sequência) e `_` (um caractere). O padrão deve casar a string inteira.
+  - Ex.: `"hello world".like("h%o w%ld") // true`
+- `ilike(pattern) -> bool`
+  - Igual ao `like`, mas case-insensitive.
+  - Ex.: `"hello world".ilike("H%O W%LD") // true`
+- `not_like(pattern) -> bool`
+  - Negação do `like`.
+  - Ex.: `"hello world".not_like("H%X W%LD") // true`
+- `not_ilike(pattern) -> bool`
+  - Negação do `ilike`.
+  - Ex.: `"hello world".not_ilike("H%X W%LD") // true`
 
 ### 🧩 Objetos (Maps) e Arrays
 - `merge(mapA, mapB) -> map` — Junta mapas; `mapB` sobrescreve chaves.

@@ -500,6 +500,50 @@ pub fn build_functions() -> Engine {
         |map: rhai::Map, key: rhai::ImmutableString| -> bool { map.contains_key(key.as_str()) },
     );
 
+    // .like(pattern), .ilike(pattern), .not_like(pattern), .not_ilike(pattern)
+    engine.register_fn("like", |s: &str, pattern: &str| {
+        let regex_pattern = format!(
+            "^{}$",
+            regex::escape(pattern).replace("%", ".*").replace("_", ".")
+        );
+        regex::Regex::new(&regex_pattern).unwrap().is_match(s)
+    });
+
+    engine.register_fn("ilike", |s: &str, pattern: &str| {
+        let regex_pattern = format!(
+            "^{}$",
+            regex::escape(pattern).replace("%", ".*").replace("_", ".")
+        );
+        regex::RegexBuilder::new(&regex_pattern)
+            .case_insensitive(true)
+            .build()
+            .unwrap()
+            .is_match(s)
+    });
+
+    engine.register_fn("not_like", |s: &str, pattern: &str| {
+        let regex_pattern = format!(
+            "^{}$",
+            regex::escape(pattern).replace("%", ".*").replace("_", ".")
+        );
+        !regex::Regex::new(&regex_pattern).unwrap().is_match(s)
+    });
+
+    engine.register_fn("not_ilike", |s: &str, pattern: &str| {
+        let regex_pattern = format!(
+            "^{}$",
+            regex::escape(pattern).replace("%", ".*").replace("_", ".")
+        );
+        !regex::RegexBuilder::new(&regex_pattern)
+            .case_insensitive(true)
+            .build()
+            .unwrap()
+            .is_match(s)
+    });
+
+    // contains string
+    engine.register_fn("contains", |s: &str, substring: &str| s.contains(substring));
+
     // some(|item| ...)
     engine.register_fn(
         "some",
@@ -1433,6 +1477,41 @@ mod tests {
         // array object
         let result: bool = engine
             .eval(r#"[#{a:1}, #{b:2}, #{c:3}].some(|obj| obj.contains_key("b"))"#)
+            .unwrap();
+        assert!(result);
+    }
+
+    #[test]
+    fn test_likes() {
+        let engine = build_functions();
+
+        // like
+        let result: bool = engine.eval(r#""hello world".like("h%o w%ld")"#).unwrap();
+        assert!(result);
+
+        // ilike
+        let result: bool = engine.eval(r#""hello world".ilike("H%O W%LD")"#).unwrap();
+        assert!(result);
+
+        // not_like
+        let result: bool = engine
+            .eval(r#""hello world".not_like("H%X W%LD")"#)
+            .unwrap();
+        assert!(result);
+
+        // not_ilike
+        let result: bool = engine
+            .eval(r#""hello world".not_ilike("H%X W%LD")"#)
+            .unwrap();
+        assert!(result);
+    }
+
+    #[test]
+    fn test_contains_string() {
+        let engine = build_functions();
+
+        let result: bool = engine
+            .eval(r#""The quick brown fox".contains("brown")"#)
             .unwrap();
         assert!(result);
     }
