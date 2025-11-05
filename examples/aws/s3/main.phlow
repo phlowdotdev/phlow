@@ -9,6 +9,14 @@ modules:
       access_key_id: "test"
 
 steps:
+    # Optional: enable versioning on the bucket
+    - aws.s3.put_bucket_versioning:
+            bucket: phlow-demo
+            enabled: true
+
+    - log.info:
+            message: payload
+
   - aws.s3.put_object:
       bucket: phlow-demo
       key: "hello-file.txt"
@@ -38,6 +46,18 @@ steps:
   - aws.s3.list_objects:
       bucket: phlow-demo
       max_keys: 100
+
+  - log.info:
+      message: payload
+
+  # Show bucket location and list all buckets
+  - aws.s3.get_bucket_location:
+      bucket: phlow-demo
+
+  - log.info:
+      message: payload
+
+  - aws.s3.list_buckets:
 
   - log.info:
       message: payload

@@ -87,10 +87,19 @@ input:
           "get_object",
           "delete_object",
           "list_objects",
+          "create_bucket",
+          "delete_bucket",
+          "get_bucket_location",
+          "put_bucket_versioning",
+          "list_buckets",
           # SQS
           "send_message",
           "receive_messages",
           "delete_message",
+          "create_queue",
+          "delete_queue",
+          "get_queue_attributes",
+          "set_queue_attributes",
         ]
       required: true
 
@@ -101,6 +110,14 @@ input:
       type: string
       required: false
       description: S3 bucket name
+    location:
+      type: string
+      required: false
+      description: Region/location when creating bucket (omit or 'us-east-1' to skip LocationConstraint)
+    enabled:
+      type: boolean
+      required: false
+      description: Enable/disable versioning for put_bucket_versioning
     key:
       type: string
       required: false
@@ -153,6 +170,10 @@ input:
       type: string
       required: false
       description: Queue name (used if queue_url not provided)
+    attributes:
+      type: object
+      required: false
+      description: Attributes map for create_queue/set_queue_attributes (e.g., DelaySeconds, VisibilityTimeout, FifoQueue)
     message_body:
       type: string
       required: false

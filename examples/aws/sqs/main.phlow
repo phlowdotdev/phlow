@@ -1,5 +1,6 @@
 modules:
   - module: log
+  - module: sleep
   - module: aws
     with:
       region: "us-east-1"
@@ -8,29 +9,73 @@ modules:
       access_key_id: "test"
 
 steps:
-  # Send a message to the queue
+  # Generate a random queue name (UUID v4)
+  - payload:
+      queue_name: !phs `phlow-sqs-${ uuid("v4") }`
+
+  # Create a queue with that name
+  - aws.sqs.create_queue:
+      queue_name: !phs payload.queue_name
+    # uncomment to create a FIFO queue
+    # attributes:
+    #   FifoQueue: "true"
+    #   ContentBasedDeduplication: "true"
+
+  - log.info:
+      message: payload
+
+  # Keep only the queue_url for next steps
+  - payload:
+      queue_url: !phs payload.data.queue_url
+
+  # Send a message to the created queue
   - aws.sqs.send_message:
-      queue_name: phlow-sqs-demo
+      queue_url: !phs payload.queue_url
       message_body: "Hello from Phlow AWS SQS!"
 
   - log.info:
       message: payload
 
   # Receive messages (up to 1) with long polling
+  - use: sleep
+    input:
+            milliseconds: 500
+
   - aws.sqs.receive_messages:
-      queue_name: phlow-sqs-demo
+      queue_url: !phs payload.queue_url
       max_number_of_messages: 1
-      wait_time_seconds: 2
+      wait_time_seconds: 5
 
   - log.info:
       message: payload
 
   # Delete the first message if received
-  - when: !phs payload.messages != null && payload.messages.length > 0
+  - condition:
+      assert: !phs payload.data != null && payload.data.messages != null && payload.data.messages.length > 0
     then:
       - aws.sqs.delete_message:
-          queue_name: phlow-sqs-demo
-          receipt_handle: !phs payload.messages[0].receipt_handle
+          queue_url: !phs payload.queue_url
+          receipt_handle: !phs payload.data.messages[0].receipt_handle
 
       - log.info:
           message: payload
+
+  # Show queue attributes
+  - use: sleep
+    input:
+            milliseconds: 500
+  - aws.sqs.get_queue_attributes:
+      queue_url: !phs payload.queue_url
+
+  - log.info:
+      message: payload
+
+  # Finally, delete the queue
+  - use: sleep
+    input:
+            milliseconds: 500
+  - aws.sqs.delete_queue:
+      queue_url: !phs payload.queue_url
+
+  - log.info:
+      message: payload

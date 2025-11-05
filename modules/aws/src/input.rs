@@ -8,10 +8,19 @@ pub enum AwsAction {
     S3GetObject,
     S3DeleteObject,
     S3ListObjects,
+    S3CreateBucket,
+    S3DeleteBucket,
+    S3GetBucketLocation,
+    S3PutBucketVersioning,
+    S3ListBuckets,
     // SQS
     SqsSendMessage,
     SqsReceiveMessages,
     SqsDeleteMessage,
+    SqsCreateQueue,
+    SqsDeleteQueue,
+    SqsGetQueueAttributes,
+    SqsSetQueueAttributes,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -21,10 +30,19 @@ pub enum AwsApi {
     S3GetObject(S3GetObjectBody),
     S3DeleteObject(S3DeleteObjectBody),
     S3ListObjects(S3ListObjectsBody),
+    S3CreateBucket(S3CreateBucketBody),
+    S3DeleteBucket(S3DeleteBucketBody),
+    S3GetBucketLocation(S3GetBucketLocationBody),
+    S3PutBucketVersioning(S3PutBucketVersioningBody),
+    S3ListBuckets,
     // SQS
     SqsSendMessage(SqsSendMessageBody),
     SqsReceiveMessages(SqsReceiveMessagesBody),
     SqsDeleteMessage(SqsDeleteMessageBody),
+    SqsCreateQueue(SqsCreateQueueBody),
+    SqsDeleteQueue(SqsDeleteQueueBody),
+    SqsGetQueueAttributes(SqsGetQueueAttributesBody),
+    SqsSetQueueAttributes(SqsSetQueueAttributesBody),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -74,6 +92,28 @@ pub struct S3ListObjectsBody {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct S3CreateBucketBody {
+    pub bucket: String,
+    pub location: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct S3DeleteBucketBody {
+    pub bucket: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct S3GetBucketLocationBody {
+    pub bucket: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct S3PutBucketVersioningBody {
+    pub bucket: String,
+    pub enabled: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct SqsSendMessageBody {
     pub queue_url: Option<String>,
     pub queue_name: Option<String>,
@@ -98,6 +138,31 @@ pub struct SqsDeleteMessageBody {
     pub queue_url: Option<String>,
     pub queue_name: Option<String>,
     pub receipt_handle: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SqsCreateQueueBody {
+    pub queue_name: String,
+    pub attributes: Option<Value>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SqsDeleteQueueBody {
+    pub queue_url: Option<String>,
+    pub queue_name: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SqsGetQueueAttributesBody {
+    pub queue_url: Option<String>,
+    pub queue_name: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SqsSetQueueAttributesBody {
+    pub queue_url: Option<String>,
+    pub queue_name: Option<String>,
+    pub attributes: Value,
 }
 
 impl TryFrom<Value> for AwsInput {
@@ -208,6 +273,61 @@ impl TryFrom<Value> for AwsInput {
                         }),
                     )
                 }
+                "create_bucket" => {
+                    let bucket = value
+                        .get("bucket")
+                        .ok_or_else(|| "missing field 'bucket' for create_bucket".to_string())?
+                        .to_string();
+                    let location = value.get("location").map(|v| v.to_string());
+                    (
+                        AwsAction::S3CreateBucket,
+                        AwsApi::S3CreateBucket(S3CreateBucketBody { bucket, location }),
+                    )
+                }
+                "delete_bucket" => {
+                    let bucket = value
+                        .get("bucket")
+                        .ok_or_else(|| "missing field 'bucket' for delete_bucket".to_string())?
+                        .to_string();
+                    (
+                        AwsAction::S3DeleteBucket,
+                        AwsApi::S3DeleteBucket(S3DeleteBucketBody { bucket }),
+                    )
+                }
+                "get_bucket_location" => {
+                    let bucket = value
+                        .get("bucket")
+                        .ok_or_else(|| {
+                            "missing field 'bucket' for get_bucket_location".to_string()
+                        })?
+                        .to_string();
+                    (
+                        AwsAction::S3GetBucketLocation,
+                        AwsApi::S3GetBucketLocation(S3GetBucketLocationBody { bucket }),
+                    )
+                }
+                "put_bucket_versioning" => {
+                    let bucket = value
+                        .get("bucket")
+                        .ok_or_else(|| {
+                            "missing field 'bucket' for put_bucket_versioning".to_string()
+                        })?
+                        .to_string();
+                    let enabled = value
+                        .get("enabled")
+                        .and_then(|v| v.as_bool().cloned())
+                        .ok_or_else(|| {
+                            "missing field 'enabled' for put_bucket_versioning".to_string()
+                        })?;
+                    (
+                        AwsAction::S3PutBucketVersioning,
+                        AwsApi::S3PutBucketVersioning(S3PutBucketVersioningBody {
+                            bucket,
+                            enabled,
+                        }),
+                    )
+                }
+                "list_buckets" => (AwsAction::S3ListBuckets, AwsApi::S3ListBuckets),
                 _ => return Err(format!("invalid action: {}", method_str)),
             },
             "sqs" => match method_str {
@@ -284,6 +404,57 @@ impl TryFrom<Value> for AwsInput {
                             queue_url,
                             queue_name,
                             receipt_handle,
+                        }),
+                    )
+                }
+                "create_queue" => {
+                    let queue_name = value
+                        .get("queue_name")
+                        .ok_or_else(|| "missing field 'queue_name' for create_queue".to_string())?
+                        .to_string();
+                    let attributes = value.get("attributes").cloned();
+                    (
+                        AwsAction::SqsCreateQueue,
+                        AwsApi::SqsCreateQueue(SqsCreateQueueBody {
+                            queue_name,
+                            attributes,
+                        }),
+                    )
+                }
+                "delete_queue" => {
+                    let queue_url = value.get("queue_url").map(|v| v.to_string());
+                    let queue_name = value.get("queue_name").map(|v| v.to_string());
+                    (
+                        AwsAction::SqsDeleteQueue,
+                        AwsApi::SqsDeleteQueue(SqsDeleteQueueBody {
+                            queue_url,
+                            queue_name,
+                        }),
+                    )
+                }
+                "get_queue_attributes" => {
+                    let queue_url = value.get("queue_url").map(|v| v.to_string());
+                    let queue_name = value.get("queue_name").map(|v| v.to_string());
+                    (
+                        AwsAction::SqsGetQueueAttributes,
+                        AwsApi::SqsGetQueueAttributes(SqsGetQueueAttributesBody {
+                            queue_url,
+                            queue_name,
+                        }),
+                    )
+                }
+                "set_queue_attributes" => {
+                    let queue_url = value.get("queue_url").map(|v| v.to_string());
+                    let queue_name = value.get("queue_name").map(|v| v.to_string());
+                    let attributes = value.get("attributes").cloned().ok_or_else(|| {
+                        "missing field 'attributes' for set_queue_attributes".to_string()
+                    })?;
+                    (
+                        AwsAction::SqsSetQueueAttributes,
+                        AwsApi::SqsSetQueueAttributes(SqsSetQueueAttributesBody {
+                            queue_url,
+                            queue_name,
+                            attributes,
                         }),
                     )
                 }

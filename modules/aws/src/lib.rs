@@ -65,6 +65,30 @@ pub async fn aws(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + S
                 Ok(data) => success_response!(data),
                 Err(e) => error_response!(e),
             },
+            AwsApi::S3CreateBucket(body) => match handle_s3_create_bucket(&s3_client, body).await {
+                Ok(data) => success_response!(data),
+                Err(e) => error_response!(e),
+            },
+            AwsApi::S3DeleteBucket(body) => match handle_s3_delete_bucket(&s3_client, body).await {
+                Ok(data) => success_response!(data),
+                Err(e) => error_response!(e),
+            },
+            AwsApi::S3GetBucketLocation(body) => {
+                match handle_s3_get_bucket_location(&s3_client, body).await {
+                    Ok(data) => success_response!(data),
+                    Err(e) => error_response!(e),
+                }
+            }
+            AwsApi::S3PutBucketVersioning(body) => {
+                match handle_s3_put_bucket_versioning(&s3_client, body).await {
+                    Ok(data) => success_response!(data),
+                    Err(e) => error_response!(e),
+                }
+            }
+            AwsApi::S3ListBuckets => match handle_s3_list_buckets(&s3_client).await {
+                Ok(data) => success_response!(data),
+                Err(e) => error_response!(e),
+            },
             AwsApi::SqsSendMessage(body) => {
                 match handle_sqs_send_message(&sqs_client, body).await {
                     Ok(data) => success_response!(data),
@@ -79,6 +103,30 @@ pub async fn aws(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + S
             }
             AwsApi::SqsDeleteMessage(body) => {
                 match handle_sqs_delete_message(&sqs_client, body).await {
+                    Ok(data) => success_response!(data),
+                    Err(e) => error_response!(e),
+                }
+            }
+            AwsApi::SqsCreateQueue(body) => {
+                match handle_sqs_create_queue(&sqs_client, body).await {
+                    Ok(data) => success_response!(data),
+                    Err(e) => error_response!(e),
+                }
+            }
+            AwsApi::SqsDeleteQueue(body) => {
+                match handle_sqs_delete_queue(&sqs_client, body).await {
+                    Ok(data) => success_response!(data),
+                    Err(e) => error_response!(e),
+                }
+            }
+            AwsApi::SqsGetQueueAttributes(body) => {
+                match handle_sqs_get_queue_attributes(&sqs_client, body).await {
+                    Ok(data) => success_response!(data),
+                    Err(e) => error_response!(e),
+                }
+            }
+            AwsApi::SqsSetQueueAttributes(body) => {
+                match handle_sqs_set_queue_attributes(&sqs_client, body).await {
                     Ok(data) => success_response!(data),
                     Err(e) => error_response!(e),
                 }
@@ -278,12 +326,20 @@ async fn resolve_queue_url(
     }
     let name = queue_name
         .ok_or_else(|| "missing 'queue_url' or 'queue_name' to resolve SQS queue".to_string())?;
-    let out = client
-        .get_queue_url()
-        .queue_name(name)
-        .send()
-        .await
-        .map_err(|e| format!("SQS get_queue_url error: {}", e))?;
+    let try_default = client.get_queue_url().queue_name(name.clone()).send().await;
+    let out = match try_default {
+        Ok(ok) => ok,
+        Err(_) => {
+            // Fallback for LocalStack: specify default account id
+            client
+                .get_queue_url()
+                .queue_name(name)
+                .queue_owner_aws_account_id("000000000000")
+                .send()
+                .await
+                .map_err(|e| format!("SQS get_queue_url error: {}", e))?
+        }
+    };
     out.queue_url()
         .map(|s| s.to_string())
         .ok_or_else(|| "SQS get_queue_url returned no url".to_string())
@@ -342,7 +398,7 @@ async fn handle_sqs_receive_messages(
     let out = req
         .send()
         .await
-        .map_err(|e| format!("SQS receive_messages error: {}", e))?;
+        .map_err(|e| format!("SQS receive_messages error: {:?}", e))?;
     let mut messages = Vec::new();
     for m in out.messages() {
         messages.push(json!({
@@ -371,4 +427,194 @@ async fn handle_sqs_delete_message(
         .await
         .map_err(|e| format!("SQS delete_message error: {}", e))?;
     Ok(json!({ "queue_url": queue_url, "deleted": true }))
+}
+
+use aws_sdk_sqs::types::QueueAttributeName;
+
+fn parse_queue_attribute_name(name: &str) -> Option<QueueAttributeName> {
+    match name {
+        // Common settable attributes
+        "DelaySeconds" => Some(QueueAttributeName::DelaySeconds),
+        "MaximumMessageSize" => Some(QueueAttributeName::MaximumMessageSize),
+        "MessageRetentionPeriod" => Some(QueueAttributeName::MessageRetentionPeriod),
+        "Policy" => Some(QueueAttributeName::Policy),
+        "ReceiveMessageWaitTimeSeconds" => Some(QueueAttributeName::ReceiveMessageWaitTimeSeconds),
+        "VisibilityTimeout" => Some(QueueAttributeName::VisibilityTimeout),
+        "RedrivePolicy" => Some(QueueAttributeName::RedrivePolicy),
+        "RedriveAllowPolicy" => Some(QueueAttributeName::RedriveAllowPolicy),
+        "FifoQueue" => Some(QueueAttributeName::FifoQueue),
+        "ContentBasedDeduplication" => Some(QueueAttributeName::ContentBasedDeduplication),
+        "KmsMasterKeyId" => Some(QueueAttributeName::KmsMasterKeyId),
+        "KmsDataKeyReusePeriodSeconds" => Some(QueueAttributeName::KmsDataKeyReusePeriodSeconds),
+        "SqsManagedSseEnabled" => Some(QueueAttributeName::SqsManagedSseEnabled),
+        "DeduplicationScope" => Some(QueueAttributeName::DeduplicationScope),
+        "FifoThroughputLimit" => Some(QueueAttributeName::FifoThroughputLimit),
+        _ => None,
+    }
+}
+
+async fn handle_sqs_create_queue(
+    client: &SqsClient,
+    body: crate::input::SqsCreateQueueBody,
+) -> Result<Value, String> {
+    let mut req = client.create_queue().queue_name(&body.queue_name);
+    if let Some(attrs) = body.attributes {
+        if let Some(map) = attrs.as_object() {
+            let mut built: std::collections::HashMap<QueueAttributeName, String> =
+                std::collections::HashMap::new();
+            for (k, v) in map.iter() {
+                if let Some(attr) = parse_queue_attribute_name(&k.to_string()) {
+                    built.insert(attr, v.to_string());
+                }
+            }
+            req = req.set_attributes(Some(built));
+        }
+    }
+    let out = req
+        .send()
+        .await
+        .map_err(|e| format!("SQS create_queue error: {}", e))?;
+    Ok(json!({
+        "queue_url": out.queue_url()
+    }))
+}
+
+async fn handle_sqs_delete_queue(
+    client: &SqsClient,
+    body: crate::input::SqsDeleteQueueBody,
+) -> Result<Value, String> {
+    let queue_url = resolve_queue_url(client, body.queue_url, body.queue_name).await?;
+    client
+        .delete_queue()
+        .queue_url(&queue_url)
+        .send()
+        .await
+        .map_err(|e| format!("SQS delete_queue error: {:?}", e))?;
+    Ok(json!({ "queue_url": queue_url, "deleted": true }))
+}
+
+async fn handle_sqs_get_queue_attributes(
+    client: &SqsClient,
+    body: crate::input::SqsGetQueueAttributesBody,
+) -> Result<Value, String> {
+    let queue_url = resolve_queue_url(client, body.queue_url, body.queue_name).await?;
+    let out = client
+        .get_queue_attributes()
+        .queue_url(&queue_url)
+        .attribute_names(QueueAttributeName::All)
+        .send()
+        .await
+        .map_err(|e| format!("SQS get_queue_attributes error: {:?}", e))?;
+    let mut attrs_map: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    if let Some(map) = out.attributes() {
+        for (k, v) in map.iter() {
+            attrs_map.insert(k.as_str().to_string(), v.clone());
+        }
+    }
+    Ok(json!({ "queue_url": queue_url, "attributes": attrs_map }))
+}
+
+async fn handle_sqs_set_queue_attributes(
+    client: &SqsClient,
+    body: crate::input::SqsSetQueueAttributesBody,
+) -> Result<Value, String> {
+    let queue_url = resolve_queue_url(client, body.queue_url, body.queue_name).await?;
+    let mut attrs: std::collections::HashMap<QueueAttributeName, String> =
+        std::collections::HashMap::new();
+    if let Some(map) = body.attributes.as_object() {
+        for (k, v) in map.iter() {
+            if let Some(attr) = parse_queue_attribute_name(&k.to_string()) {
+                attrs.insert(attr, v.to_string());
+            }
+        }
+    } else {
+        return Err("'attributes' must be an object of key->value".to_string());
+    }
+    client
+        .set_queue_attributes()
+        .queue_url(&queue_url)
+        .set_attributes(Some(attrs))
+        .send()
+        .await
+        .map_err(|e| format!("SQS set_queue_attributes error: {}", e))?;
+    Ok(json!({ "queue_url": queue_url, "updated": true }))
+}
+
+// ----------------------
+// S3 Bucket Handlers
+// ----------------------
+
+async fn handle_s3_create_bucket(
+    client: &S3Client,
+    body: crate::input::S3CreateBucketBody,
+) -> Result<Value, String> {
+    // Keep it simple and compatible with LocalStack/us-east-1: omit location constraint here.
+    client
+        .create_bucket()
+        .bucket(&body.bucket)
+        .send()
+        .await
+        .map_err(|e| format!("S3 create_bucket error: {}", e))?;
+    Ok(json!({ "bucket": body.bucket, "created": true }))
+}
+
+async fn handle_s3_delete_bucket(
+    client: &S3Client,
+    body: crate::input::S3DeleteBucketBody,
+) -> Result<Value, String> {
+    client
+        .delete_bucket()
+        .bucket(&body.bucket)
+        .send()
+        .await
+        .map_err(|e| format!("S3 delete_bucket error: {}", e))?;
+    Ok(json!({ "bucket": body.bucket, "deleted": true }))
+}
+
+async fn handle_s3_get_bucket_location(
+    client: &S3Client,
+    body: crate::input::S3GetBucketLocationBody,
+) -> Result<Value, String> {
+    let out = client
+        .get_bucket_location()
+        .bucket(&body.bucket)
+        .send()
+        .await
+        .map_err(|e| format!("S3 get_bucket_location error: {}", e))?;
+    Ok(json!({ "bucket": body.bucket, "location": out.location_constraint().map(|v| v.as_str()) }))
+}
+
+async fn handle_s3_put_bucket_versioning(
+    client: &S3Client,
+    body: crate::input::S3PutBucketVersioningBody,
+) -> Result<Value, String> {
+    use aws_sdk_s3::types::{BucketVersioningStatus, VersioningConfiguration};
+    let status = if body.enabled {
+        BucketVersioningStatus::Enabled
+    } else {
+        BucketVersioningStatus::Suspended
+    };
+    let cfg = VersioningConfiguration::builder().status(status).build();
+    client
+        .put_bucket_versioning()
+        .bucket(&body.bucket)
+        .versioning_configuration(cfg)
+        .send()
+        .await
+        .map_err(|e| format!("S3 put_bucket_versioning error: {}", e))?;
+    Ok(json!({ "bucket": body.bucket, "versioning_enabled": body.enabled }))
+}
+
+async fn handle_s3_list_buckets(client: &S3Client) -> Result<Value, String> {
+    let out = client
+        .list_buckets()
+        .send()
+        .await
+        .map_err(|e| format!("S3 list_buckets error: {}", e))?;
+    let items: Vec<_> = out
+        .buckets()
+        .iter()
+        .map(|b| json!({ "name": b.name(), "creation_date": b.creation_date().map(|d| d.to_string()) }))
+        .collect();
+    Ok(json!({ "buckets": items }))
 }
