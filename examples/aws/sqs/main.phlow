@@ -9,74 +9,35 @@ modules:
       access_key_id: "test"
 
 steps:
-  # Generate a random queue name (UUID v4)
-  - payload:
-      queue_name: !phs `phlow-sqs-${ uuid("v4") }`
-
   # Create a queue with that name
   - id: queue
     aws.sqs.create_queue:
-      queue_name: !phs payload.queue_name
-    # uncomment to create a FIFO queue
-    # attributes:
-    #   FifoQueue: "true"
-    #   ContentBasedDeduplication: "true"
+      queue_name: "phlow-sqs"
 
   - log.info:
       message: payload
 
   # Send a message to the created queue
   - aws.sqs.send_message:
-      queue_url: !phs steps.queue.data.queue_url
+      queue_url: steps.queue.data.queue_url
       message_body: "Hello from Phlow AWS SQS!"
 
   - log.info:
       message: payload
 
-  # Receive messages (up to 1) with long polling
-  - use: sleep
-    input:
-            milliseconds: 500
-
   - aws.sqs.receive_messages:
-      queue_url: !phs steps.queue.data.queue_url
+      queue_url: steps.queue.data.queue_url
       max_number_of_messages: 1
       wait_time_seconds: 5
 
-  - log.info:
-      message: payload
-
-  # Delete the first message if received
-  - condition:
-      assert: !phs payload.data != null && payload.data.messages != null && payload.data.messages.len > 0
-    then:
-      - aws.sqs.delete_message:
-          queue_url: !phs steps.queue.data.queue_url
-          receipt_handle: !phs payload.data.messages[0].receipt_handle
-
-      - log.info:
-          message: payload
-
-  # Show queue attributes
-  - use: sleep
-    input:
-            milliseconds: 500
   - aws.sqs.get_queue_attributes:
-      queue_url: !phs steps.queue.data.queue_url
+      queue_url: steps.queue.data.queue_url
 
   - log.info:
       message: payload
 
-  # Finally, delete the queue (only if empty)
-  - use: sleep
-    input:
-            milliseconds: 500
+  - aws.sqs.delete_queue:
+      queue_url: steps.queue.data.queue_url
 
-  - condition:
-      assert: !phs payload.data != null && payload.data.attributes != null && payload.data.attributes.ApproximateNumberOfMessages == "0" && payload.data.attributes.ApproximateNumberOfMessagesNotVisible == "0" && payload.data.attributes.ApproximateNumberOfMessagesDelayed == "0"
-    then:
-      - aws.sqs.delete_queue:
-          queue_url: !phs steps.queue.data.queue_url
-
-      - log.info:
-          message: payload
+  - log.info:
+      message: payload
