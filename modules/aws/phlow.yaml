@@ -3,8 +3,8 @@ description: |
   AWS module providing high-level actions for S3, SQS, SNS and DynamoDB.
 
   Actions:
-  - S3: put_object, get_object, delete_object, list_objects
-  - SQS: send_message, receive_messages, delete_message, purge_queue
+  - S3: put_object, get_object, delete_object, list_objects, create_bucket, delete_bucket, get_bucket_location, put_bucket_versioning, list_buckets
+  - SQS: send_message, receive_messages, delete_message, create_queue, delete_queue, get_queue_attributes, set_queue_attributes
   - SNS: publish
   - DynamoDB: put_item, get_item, update_item, delete_item, query, scan
 

@@ -5,6 +5,7 @@ use crate::input::{AwsApi, AwsInput};
 use crate::setup::Setup;
 use aws_sdk_s3::Client as S3Client;
 use aws_sdk_s3::types::ObjectCannedAcl;
+use aws_sdk_s3::types::{BucketLocationConstraint, CreateBucketConfiguration};
 use aws_sdk_sqs::Client as SqsClient;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as BASE64;
@@ -312,6 +313,44 @@ fn parse_acl(s: &str) -> Option<ObjectCannedAcl> {
     }
 }
 
+fn parse_location_constraint(s: &str) -> Option<BucketLocationConstraint> {
+    match s {
+        // Special case handled by caller: us-east-1 => None (no LocationConstraint)
+        "us-east-2" => Some(BucketLocationConstraint::UsEast2),
+        "us-west-1" => Some(BucketLocationConstraint::UsWest1),
+        "us-west-2" => Some(BucketLocationConstraint::UsWest2),
+        "af-south-1" => Some(BucketLocationConstraint::AfSouth1),
+        "ap-east-1" => Some(BucketLocationConstraint::ApEast1),
+        "ap-south-1" => Some(BucketLocationConstraint::ApSouth1),
+        "ap-south-2" => Some(BucketLocationConstraint::ApSouth2),
+        "ap-northeast-1" => Some(BucketLocationConstraint::ApNortheast1),
+        "ap-northeast-2" => Some(BucketLocationConstraint::ApNortheast2),
+        "ap-northeast-3" => Some(BucketLocationConstraint::ApNortheast3),
+        "ap-southeast-1" => Some(BucketLocationConstraint::ApSoutheast1),
+        "ap-southeast-2" => Some(BucketLocationConstraint::ApSoutheast2),
+        "ap-southeast-3" => Some(BucketLocationConstraint::ApSoutheast3),
+        "ap-southeast-4" => Some(BucketLocationConstraint::ApSoutheast4),
+        "ca-central-1" => Some(BucketLocationConstraint::CaCentral1),
+        "eu-central-1" => Some(BucketLocationConstraint::EuCentral1),
+        "eu-central-2" => Some(BucketLocationConstraint::EuCentral2),
+        "eu-north-1" => Some(BucketLocationConstraint::EuNorth1),
+        "eu-south-1" => Some(BucketLocationConstraint::EuSouth1),
+        "eu-south-2" => Some(BucketLocationConstraint::EuSouth2),
+        "eu-west-1" => Some(BucketLocationConstraint::EuWest1),
+        "eu-west-2" => Some(BucketLocationConstraint::EuWest2),
+        "eu-west-3" => Some(BucketLocationConstraint::EuWest3),
+        "me-central-1" => Some(BucketLocationConstraint::MeCentral1),
+        "me-south-1" => Some(BucketLocationConstraint::MeSouth1),
+        "sa-east-1" => Some(BucketLocationConstraint::SaEast1),
+        // China/GovCloud partitions (supported in enum)
+        "cn-north-1" => Some(BucketLocationConstraint::CnNorth1),
+        "cn-northwest-1" => Some(BucketLocationConstraint::CnNorthwest1),
+        "us-gov-east-1" => Some(BucketLocationConstraint::UsGovEast1),
+        "us-gov-west-1" => Some(BucketLocationConstraint::UsGovWest1),
+        _ => None,
+    }
+}
+
 // ----------------------
 // SQS Helpers and Handlers
 // ----------------------
@@ -548,11 +587,23 @@ async fn handle_s3_create_bucket(
     client: &S3Client,
     body: crate::input::S3CreateBucketBody,
 ) -> Result<Value, String> {
-    // Keep it simple and compatible with LocalStack/us-east-1: omit location constraint here.
-    client
-        .create_bucket()
-        .bucket(&body.bucket)
-        .send()
+    // In us-east-1 the API requires no LocationConstraint; otherwise set it.
+    let mut req = client.create_bucket().bucket(&body.bucket);
+
+    if let Some(loc) = body.location.clone() {
+        if loc != "us-east-1" {
+            if let Some(lc) = parse_location_constraint(&loc) {
+                let cfg = CreateBucketConfiguration::builder()
+                    .location_constraint(lc)
+                    .build();
+                req = req.create_bucket_configuration(cfg);
+            } else {
+                return Err(format!("invalid 'location' for create_bucket: {}", loc));
+            }
+        }
+    }
+
+    req.send()
         .await
         .map_err(|e| format!("S3 create_bucket error: {}", e))?;
     Ok(json!({ "bucket": body.bucket, "created": true }))

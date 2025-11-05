@@ -9,34 +9,30 @@ modules:
       access_key_id: "test"
 
 steps:
-    # Optional: enable versioning on the bucket
-    - aws.s3.put_bucket_versioning:
-            bucket: phlow-demo
-            enabled: true
-
-    - log.info:
-            message: payload
+  - id: bucket
+    aws.s3.create_bucket:
+      bucket: "phlow-demo"
 
   - aws.s3.put_object:
-      bucket: phlow-demo
+      bucket: steps.bucket.data.bucket
       key: "hello-file.txt"
       path: "./examples/aws/s3/sample.txt"
-      content_type: text/plain
+      content_type: "text/plain"
 
   - log.info:
       message: payload
 
   - aws.s3.put_object:
-      bucket: phlow-demo
+      bucket: steps.bucket.data.bucket
       key: "hello.txt"
       content: "Hello from Phlow AWS S3!"
-      content_type: text/plain
+      content_type: "text/plain"
 
   - log.info:
       message: payload
 
   - aws.s3.get_object:
-      bucket: phlow-demo
+      bucket: steps.bucket.data.bucket
       key: hello.txt
       as_base64: false
   
@@ -44,26 +40,14 @@ steps:
       message: payload
 
   - aws.s3.list_objects:
-      bucket: phlow-demo
+      bucket: steps.bucket.data.bucket
       max_keys: 100
 
   - log.info:
       message: payload
 
-  # Show bucket location and list all buckets
-  - aws.s3.get_bucket_location:
-      bucket: phlow-demo
-
-  - log.info:
-      message: payload
-
-  - aws.s3.list_buckets:
-
-  - log.info:
-      message: payload
-
   - aws.s3.delete_object:
-      bucket: phlow-demo
+      bucket: steps.bucket.data.bucket
       key: hello.txt
   
   - log.info:
@@ -71,7 +55,7 @@ steps:
 
   # Cleanup do objeto enviado via arquivo (hello-file.txt)
   - aws.s3.delete_object:
-      bucket: phlow-demo
+      bucket: steps.bucket.data.bucket
       key: "hello-file.txt"
 
   - log.info:
