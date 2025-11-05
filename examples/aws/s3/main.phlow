@@ -24,17 +24,16 @@ steps:
 
   # List again and, if empty, delete the bucket (cleanup)
   - aws.s3.list_objects:
-      bucket: !phs steps.bucket.data.bucket
+      bucket: limitsteps.bucket.data.bucket
       max_keys: 100
 
   - log.info:
       message: payload
 
-  - condition:
-      assert: !phs payload.data != null && payload.data.items != null && payload.data.items.len == 0
+  - assert: limitpayload.data != null && payload.data.items != null && payload.data.items.len == 0
     then:
       - aws.s3.delete_bucket:
-          bucket: !phs steps.bucket.data.bucket
+          bucket: limitsteps.bucket.data.bucket
 
       - log.info:
           message: payload
