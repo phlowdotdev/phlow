@@ -27,12 +27,12 @@ tags:
 
 with:
   type: object
-  required: false
+  required: true
   properties:
     region:
       type: string
-      description: AWS region (e.g., us-east-1). If omitted, uses AWS_REGION or SDK defaults.
-      required: false
+      description: AWS region (e.g., us-east-1). Required and used as default location for S3 create_bucket.
+      required: true
     access_key_id:
       type: string
       description: AWS Access Key ID. If omitted, uses AWS_ACCESS_KEY_ID or SDK defaults.
@@ -202,6 +202,14 @@ input:
       type: string
       required: false
       description: Receipt handle for sqs_delete_message
+
+    # -----------------------
+    # Common delete flags
+    # -----------------------
+    force:
+      type: boolean
+      required: false
+      description: "If true, force deletion. For S3: empties bucket (versions/objects) before deleting. For SQS: purges queue before deleting."
 
     # -----------------------
     # SNS parameters

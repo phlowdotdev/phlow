@@ -55,6 +55,8 @@ impl Setup {
         }
         if let Some(region) = &self.region {
             loader = loader.region(Region::new(region.clone()));
+        } else {
+            return Err("setup.with.region is required for aws module".into());
         }
 
         // Explicit static credentials if provided
@@ -98,6 +100,8 @@ impl Setup {
         }
         if let Some(region) = &self.region {
             loader = loader.region(Region::new(region.clone()));
+        } else {
+            return Err("setup.with.region is required for aws module".into());
         }
 
         if let (Some(akid), Some(sak)) = (&self.access_key_id, &self.secret_access_key) {

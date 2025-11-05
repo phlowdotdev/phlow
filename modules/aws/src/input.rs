@@ -100,6 +100,7 @@ pub struct S3CreateBucketBody {
 #[derive(Debug, Clone, PartialEq)]
 pub struct S3DeleteBucketBody {
     pub bucket: String,
+    pub force: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -150,6 +151,7 @@ pub struct SqsCreateQueueBody {
 pub struct SqsDeleteQueueBody {
     pub queue_url: Option<String>,
     pub queue_name: Option<String>,
+    pub force: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -289,9 +291,10 @@ impl TryFrom<Value> for AwsInput {
                         .get("bucket")
                         .ok_or_else(|| "missing field 'bucket' for delete_bucket".to_string())?
                         .to_string();
+                    let force = value.get("force").and_then(|v| v.as_bool().cloned());
                     (
                         AwsAction::S3DeleteBucket,
-                        AwsApi::S3DeleteBucket(S3DeleteBucketBody { bucket }),
+                        AwsApi::S3DeleteBucket(S3DeleteBucketBody { bucket, force }),
                     )
                 }
                 "get_bucket_location" => {
@@ -424,11 +427,13 @@ impl TryFrom<Value> for AwsInput {
                 "delete_queue" => {
                     let queue_url = value.get("queue_url").map(|v| v.to_string());
                     let queue_name = value.get("queue_name").map(|v| v.to_string());
+                    let force = value.get("force").and_then(|v| v.as_bool().cloned());
                     (
                         AwsAction::SqsDeleteQueue,
                         AwsApi::SqsDeleteQueue(SqsDeleteQueueBody {
                             queue_url,
                             queue_name,
+                            force,
                         }),
                     )
                 }

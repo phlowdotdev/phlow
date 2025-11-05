@@ -22,6 +22,23 @@ steps:
   - log.info:
       message: payload
 
+  # List again and, if empty, delete the bucket (cleanup)
+  - aws.s3.list_objects:
+      bucket: !phs steps.bucket.data.bucket
+      max_keys: 100
+
+  - log.info:
+      message: payload
+
+  - condition:
+      assert: !phs payload.data != null && payload.data.items != null && payload.data.items.len == 0
+    then:
+      - aws.s3.delete_bucket:
+          bucket: !phs steps.bucket.data.bucket
+
+      - log.info:
+          message: payload
+
   - aws.s3.put_object:
       bucket: steps.bucket.data.bucket
       key: "hello.txt"
@@ -53,10 +70,12 @@ steps:
   - log.info:
       message: payload
 
-  # Cleanup do objeto enviado via arquivo (hello-file.txt)
   - aws.s3.delete_object:
       bucket: steps.bucket.data.bucket
       key: "hello-file.txt"
 
   - log.info:
       message: payload
+
+  - aws.s3.delete_bucket:
+      bucket: steps.bucket.data.bucket

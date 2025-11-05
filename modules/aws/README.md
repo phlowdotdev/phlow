@@ -29,7 +29,8 @@ Observações:
 {
   "action": "s3",
   "method": "delete_bucket",
-  "bucket": "meu-bucket-exemplo"
+  "bucket": "meu-bucket-exemplo",
+  "force": true // opcional: se true, esvazia o bucket (objetos/versões) antes de remover
 }
 ```
 
@@ -42,14 +43,15 @@ Observações:
 }
 ```
 
-## Credenciais e endpoint
+## Credenciais, região e endpoint
 
-Configure via `with` do step, variáveis de ambiente ou cadeia padrão do SDK.
+Região agora é obrigatória via `with.region` e será usada como padrão para operações (ex.: `create_bucket`).
+Credenciais/endpoint podem ser configurados via `with` do step, variáveis de ambiente ou cadeia padrão do SDK.
 Exemplo de `with` útil para LocalStack/MinIO:
 
 ```
 with: {
-  "region": "us-east-1",
+  "region": "us-east-1", // obrigatório
   "access_key_id": "test",
   "secret_access_key": "test",
   "endpoint_url": "http://localhost:4566",
@@ -69,4 +71,15 @@ ou, em caso de erro:
 
 ```
 { "success": false, "error": "mensagem" }
+```
+
+### SQS: deletar fila com force
+
+```
+{
+  "action": "sqs",
+  "method": "delete_queue",
+  "queue_url": "<url-da-fila>",
+  "force": true // opcional: purga a fila antes de deletar
+}
 ```

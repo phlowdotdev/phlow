@@ -66,10 +66,12 @@ pub async fn aws(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + S
                 Ok(data) => success_response!(data),
                 Err(e) => error_response!(e),
             },
-            AwsApi::S3CreateBucket(body) => match handle_s3_create_bucket(&s3_client, body).await {
-                Ok(data) => success_response!(data),
-                Err(e) => error_response!(e),
-            },
+            AwsApi::S3CreateBucket(body) => {
+                match handle_s3_create_bucket(&s3_client, &setup_cfg, body).await {
+                    Ok(data) => success_response!(data),
+                    Err(e) => error_response!(e),
+                }
+            }
             AwsApi::S3DeleteBucket(body) => match handle_s3_delete_bucket(&s3_client, body).await {
                 Ok(data) => success_response!(data),
                 Err(e) => error_response!(e),
@@ -523,6 +525,10 @@ async fn handle_sqs_delete_queue(
     body: crate::input::SqsDeleteQueueBody,
 ) -> Result<Value, String> {
     let queue_url = resolve_queue_url(client, body.queue_url, body.queue_name).await?;
+    if body.force.unwrap_or(false) {
+        // Best-effort purge before deletion; ignore errors like PurgeQueueInProgress
+        let _ = client.purge_queue().queue_url(&queue_url).send().await;
+    }
     client
         .delete_queue()
         .queue_url(&queue_url)
@@ -585,12 +591,15 @@ async fn handle_sqs_set_queue_attributes(
 
 async fn handle_s3_create_bucket(
     client: &S3Client,
+    setup: &Setup,
     body: crate::input::S3CreateBucketBody,
 ) -> Result<Value, String> {
     // In us-east-1 the API requires no LocationConstraint; otherwise set it.
     let mut req = client.create_bucket().bucket(&body.bucket);
 
-    if let Some(loc) = body.location.clone() {
+    // Effective location: explicit input, else setup.with.region (required by module policy)
+    let effective_loc = body.location.clone().or_else(|| setup.region.clone());
+    if let Some(loc) = effective_loc {
         if loc != "us-east-1" {
             if let Some(lc) = parse_location_constraint(&loc) {
                 let cfg = CreateBucketConfiguration::builder()
@@ -601,6 +610,8 @@ async fn handle_s3_create_bucket(
                 return Err(format!("invalid 'location' for create_bucket: {}", loc));
             }
         }
+    } else {
+        return Err("missing region: set with.region or provide 'location'".to_string());
     }
 
     req.send()
@@ -613,6 +624,28 @@ async fn handle_s3_delete_bucket(
     client: &S3Client,
     body: crate::input::S3DeleteBucketBody,
 ) -> Result<Value, String> {
+    if body.force.unwrap_or(false) {
+        // Empty bucket (versions and objects) before deletion
+        empty_bucket_versions(client, &body.bucket).await?;
+        empty_bucket_objects(client, &body.bucket).await?;
+    } else {
+        // verificarse o bucket is empty
+        let resp = client
+            .list_objects_v2()
+            .bucket(&body.bucket)
+            .max_keys(1)
+            .send()
+            .await
+            .map_err(|e| format!("S3 list_objects_v2 error: {}", e))?;
+
+        let contents = resp.contents();
+        if !contents.is_empty() {
+            return Err(format!(
+                "bucket '{}' is not empty; use force=true to delete",
+                body.bucket
+            ));
+        }
+    }
     client
         .delete_bucket()
         .bucket(&body.bucket)
@@ -620,6 +653,104 @@ async fn handle_s3_delete_bucket(
         .await
         .map_err(|e| format!("S3 delete_bucket error: {}", e))?;
     Ok(json!({ "bucket": body.bucket, "deleted": true }))
+}
+
+async fn empty_bucket_objects(client: &S3Client, bucket: &str) -> Result<(), String> {
+    use aws_sdk_s3::types::Delete;
+    loop {
+        let resp = client
+            .list_objects_v2()
+            .bucket(bucket)
+            .max_keys(1000)
+            .send()
+            .await
+            .map_err(|e| format!("S3 list_objects_v2 error: {}", e))?;
+        let contents = resp.contents();
+        if contents.is_empty() {
+            break;
+        }
+
+        let mut ids: Vec<aws_sdk_s3::types::ObjectIdentifier> = Vec::new();
+        for o in contents.iter() {
+            if let Some(k) = o.key() {
+                let obj_id = aws_sdk_s3::types::ObjectIdentifier::builder()
+                    .key(k)
+                    .build()
+                    .map_err(|e| format!("build ObjectIdentifier error: {}", e))?;
+                ids.push(obj_id);
+            }
+        }
+
+        let del = Delete::builder()
+            .set_objects(Some(ids))
+            .build()
+            .map_err(|e| format!("build Delete error: {}", e))?;
+        client
+            .delete_objects()
+            .bucket(bucket)
+            .delete(del)
+            .send()
+            .await
+            .map_err(|e| format!("S3 delete_objects error: {}", e))?;
+    }
+    Ok(())
+}
+
+async fn empty_bucket_versions(client: &S3Client, bucket: &str) -> Result<(), String> {
+    use aws_sdk_s3::types::Delete;
+    loop {
+        let resp = client
+            .list_object_versions()
+            .bucket(bucket)
+            .max_keys(1000)
+            .send()
+            .await
+            .map_err(|e| format!("S3 list_object_versions error: {}", e))?;
+
+        let mut ids: Vec<aws_sdk_s3::types::ObjectIdentifier> = Vec::new();
+
+        for v in resp.versions().iter() {
+            if let Some(key) = v.key() {
+                let mut b = aws_sdk_s3::types::ObjectIdentifier::builder().key(key);
+                if let Some(vid) = v.version_id() {
+                    b = b.version_id(vid);
+                }
+                let obj_id = b
+                    .build()
+                    .map_err(|e| format!("build ObjectIdentifier error: {}", e))?;
+                ids.push(obj_id);
+            }
+        }
+        for m in resp.delete_markers().iter() {
+            if let Some(key) = m.key() {
+                let mut b = aws_sdk_s3::types::ObjectIdentifier::builder().key(key);
+                if let Some(vid) = m.version_id() {
+                    b = b.version_id(vid);
+                }
+                let obj_id = b
+                    .build()
+                    .map_err(|e| format!("build ObjectIdentifier error: {}", e))?;
+                ids.push(obj_id);
+            }
+        }
+
+        if ids.is_empty() {
+            break;
+        }
+
+        let del = Delete::builder()
+            .set_objects(Some(ids))
+            .build()
+            .map_err(|e| format!("build Delete error: {}", e))?;
+        client
+            .delete_objects()
+            .bucket(bucket)
+            .delete(del)
+            .send()
+            .await
+            .map_err(|e| format!("S3 delete_objects (versions) error: {}", e))?;
+    }
+    Ok(())
 }
 
 async fn handle_s3_get_bucket_location(
