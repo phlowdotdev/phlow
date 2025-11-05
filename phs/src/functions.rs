@@ -460,6 +460,8 @@ pub fn build_functions() -> Engine {
         }
     });
 
+    engine.register_fn("uuid", || -> String { uuid::Uuid::new_v4().to_string() });
+
     // is_array
     engine.register_fn("is_array", |x: rhai::Dynamic| x.is_array());
 

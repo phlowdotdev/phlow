@@ -1,5 +1,6 @@
 use aws_sdk_sqs::Client as SqsClient;
 use aws_sdk_sqs::types::QueueAttributeName;
+use phlow_sdk::crossbeam::queue;
 use phlow_sdk::prelude::*;
 
 async fn resolve_queue_url(
@@ -168,10 +169,25 @@ pub async fn handle_sqs_delete_queue(
     body: crate::input::SqsDeleteQueueBody,
 ) -> Result<Value, String> {
     let queue_url = resolve_queue_url(client, body.queue_url, body.queue_name).await?;
+
     if body.force.unwrap_or(false) {
         // Best-effort purge before deletion; ignore errors like PurgeQueueInProgress
         let _ = client.purge_queue().queue_url(&queue_url).send().await;
+    } else {
+        // queue is not empty
+        let resp = client
+            .receive_message()
+            .queue_url(&queue_url)
+            .max_number_of_messages(1)
+            .send()
+            .await
+            .map_err(|e| format!("SQS receive_message error: {:?}", e))?;
+        let msgs = resp.messages();
+        if !msgs.is_empty() {
+            return Err("SQS queue is not empty; use 'force' to delete".to_string());
+        }
     }
+
     client
         .delete_queue()
         .queue_url(&queue_url)

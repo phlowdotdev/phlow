@@ -253,7 +253,6 @@ pub async fn handle_s3_delete_bucket(
         empty_bucket_versions(client, &body.bucket).await?;
         empty_bucket_objects(client, &body.bucket).await?;
     } else {
-        // verificarse o bucket is empty
         let resp = client
             .list_objects_v2()
             .bucket(&body.bucket)
