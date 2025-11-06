@@ -26,9 +26,9 @@ pub fn preprocessor(
     let phlow = preprocessor_modules(&phlow)?;
     // Esta fazendo dupla checagem para gar se tudo que precisa estar com !phs está certo
     // Exemplo valores extendidos um mulplas linhas com pipe e identação
-    let phlow = preprocessor_transform_phs_hidden(&phlow);
-    let phlow = preprocessor_eval(&phlow);
-    let phlow = preprocessor_modules(&phlow)?;
+    // let phlow = preprocessor_transform_phs_hidden(&phlow);
+    // let phlow = preprocessor_eval(&phlow);
+    // let phlow = preprocessor_modules(&phlow)?;
 
     if print_phlow {
         println!("");
