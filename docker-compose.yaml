@@ -87,9 +87,31 @@ services:
     networks:
       - monitoring
 
+  localstack:
+    image: localstack/localstack:latest
+    container_name: localstack
+    environment:
+      - SERVICES=s3,sqs
+      - DEFAULT_REGION=us-east-1
+      - EDGE_PORT=4566
+      - DEBUG=1
+      # Descomente se usar o plano Pro
+      # - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN}
+    ports:
+      - "4566:4566" # Edge / AWS APIs
+      # As portas 4510-4559 são usadas por serviços internos; só exponha se necessário
+      # - "4510-4559:4510-4559"
+    volumes:
+      - localstack_data:/var/lib/localstack
+      # O Docker socket é opcional; necessário para algumas features avançadas
+      # - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - monitoring
+
 networks:
   monitoring:
 
 
 volumes:
   grafana_data:
+  localstack_data:

@@ -24,6 +24,11 @@ pub fn preprocessor(
     let phlow = preprocessor_transform_phs_hidden(&phlow);
     let phlow = preprocessor_eval(&phlow);
     let phlow = preprocessor_modules(&phlow)?;
+    // Esta fazendo dupla checagem para gar se tudo que precisa estar com !phs está certo
+    // Exemplo valores extendidos um mulplas linhas com pipe e identação
+    // let phlow = preprocessor_transform_phs_hidden(&phlow);
+    // let phlow = preprocessor_eval(&phlow);
+    // let phlow = preprocessor_modules(&phlow)?;
 
     if print_phlow {
         println!("");
@@ -528,23 +533,6 @@ fn process_include_file(path: &Path, args: &HashMap<String, String>) -> Result<S
 }
 
 fn preprocessor_modules(phlow: &str) -> Result<String, Vec<String>> {
-    // Lista de propriedades exclusivas do projeto
-    let exclusive_properties = vec![
-        "use",
-        "to",
-        "id",
-        "label",
-        "assert",
-        "assert_eq",
-        "condition",
-        "return",
-        "payload",
-        "input",
-        "then",
-        "else",
-        "steps",
-    ];
-
     // Pre-processa o YAML para escapar valores que começam com ! para evitar problemas de parsing
     let escaped_phlow = escape_yaml_exclamation_values(phlow);
 
@@ -587,142 +575,6 @@ fn preprocessor_modules(phlow: &str) -> Result<String, Vec<String>> {
         return Ok(phlow.to_string()); // Sem módulos para transformar
     }
 
-    // Função recursiva para transformar o YAML
-    fn transform_value(
-        value: &mut Value,
-        available_modules: &std::collections::HashSet<String>,
-        exclusive_properties: &[&str],
-        is_in_transformable_context: bool,
-    ) {
-        match value {
-            Value::Mapping(map) => {
-                let mut transformations = Vec::new();
-
-                for (key, val) in map.iter() {
-                    if let Some(key_str) = key.as_str() {
-                        // Só transforma se estiver em um contexto transformável (raiz de steps, then ou else)
-                        if is_in_transformable_context {
-                            // Verifica se a chave contém um ponto (module.action)
-                            if key_str.contains('.') {
-                                let parts: Vec<&str> = key_str.split('.').collect();
-                                if parts.len() == 2 {
-                                    let module_name = parts[0];
-                                    let action_name = parts[1];
-
-                                    // Verifica se não é uma propriedade exclusiva e se o módulo está disponível
-                                    if !exclusive_properties.contains(&module_name)
-                                        && (available_modules.contains(module_name)
-                                            || !available_modules.is_empty())
-                                    {
-                                        transformations.push((
-                                            key.clone(),
-                                            val.clone(),
-                                            Some(action_name.to_string()),
-                                        ));
-                                    }
-                                }
-                            } else {
-                                // Se não é uma propriedade exclusiva e é um módulo disponível
-                                if !exclusive_properties.contains(&key_str)
-                                    && available_modules.contains(key_str)
-                                {
-                                    transformations.push((key.clone(), val.clone(), None));
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Aplica as transformações
-                for (key, old_val, action) in transformations {
-                    map.remove(&key);
-
-                    let mut new_entry = Mapping::new();
-
-                    // Extrai o nome do módulo (remove a ação se houver)
-                    let module_name = if let Some(key_str) = key.as_str() {
-                        if key_str.contains('.') {
-                            key_str.split('.').next().unwrap_or(key_str)
-                        } else {
-                            key_str
-                        }
-                    } else {
-                        ""
-                    };
-
-                    new_entry.insert(
-                        Value::String("use".to_string()),
-                        Value::String(module_name.to_string()),
-                    );
-
-                    // Cria o input com a ação como primeiro parâmetro, se houver
-                    let input_value = if let Some(action_name) = action {
-                        // Se há uma ação, cria um novo mapeamento com action como primeiro item
-                        if let Value::Mapping(old_map) = old_val {
-                            let mut new_input = Mapping::new();
-                            new_input.insert(
-                                Value::String("action".to_string()),
-                                Value::String(action_name),
-                            );
-
-                            // Adiciona os outros parâmetros depois da ação
-                            for (old_key, old_value) in old_map.iter() {
-                                new_input.insert(old_key.clone(), old_value.clone());
-                            }
-
-                            Value::Mapping(new_input)
-                        } else {
-                            // Se old_val não é um mapeamento, cria um novo com apenas a ação
-                            let mut new_input = Mapping::new();
-                            new_input.insert(
-                                Value::String("action".to_string()),
-                                Value::String(action_name),
-                            );
-                            Value::Mapping(new_input)
-                        }
-                    } else {
-                        // Se não há ação, usa o valor original
-                        old_val
-                    };
-
-                    new_entry.insert(Value::String("input".to_string()), input_value);
-
-                    // Adiciona a nova entrada transformada
-                    for (new_key, new_val) in new_entry.iter() {
-                        map.insert(new_key.clone(), new_val.clone());
-                    }
-                }
-
-                // Continua a transformação recursivamente
-                for (key, val) in map.iter_mut() {
-                    let key_str = key.as_str().unwrap_or("");
-
-                    // Determina se o próximo nível será transformável
-                    let next_is_transformable =
-                        key_str == "steps" || key_str == "then" || key_str == "else";
-
-                    transform_value(
-                        val,
-                        available_modules,
-                        exclusive_properties,
-                        next_is_transformable,
-                    );
-                }
-            }
-            Value::Sequence(seq) => {
-                for item in seq.iter_mut() {
-                    transform_value(
-                        item,
-                        available_modules,
-                        exclusive_properties,
-                        is_in_transformable_context,
-                    );
-                }
-            }
-            _ => {}
-        }
-    }
-
     // Parse novamente para modificar, usando o YAML escapado
     let mut parsed_mut: Value = match serde_yaml::from_str(&escaped_phlow) {
         Ok(val) => val,
@@ -732,7 +584,6 @@ fn preprocessor_modules(phlow: &str) -> Result<String, Vec<String>> {
     transform_value(
         &mut parsed_mut,
         &available_modules,
-        &exclusive_properties,
         false, // Começa como false, só será true dentro de steps, then ou else
     );
 
@@ -740,6 +591,172 @@ fn preprocessor_modules(phlow: &str) -> Result<String, Vec<String>> {
     match serde_yaml::to_string(&parsed_mut) {
         Ok(result) => Ok(unescape_yaml_exclamation_values(&result)),
         Err(_) => Ok(phlow.to_string()),
+    }
+}
+
+const EXCLUSIVE_PROPERTIES: &[&str] = &[
+    "use",
+    "to",
+    "id",
+    "label",
+    "assert",
+    "assert_eq",
+    "condition",
+    "return",
+    "payload",
+    "input",
+    "then",
+    "else",
+    "steps",
+];
+
+// Função recursiva para transformar o YAML
+fn transform_value(
+    value: &mut Value,
+    available_modules: &std::collections::HashSet<String>,
+    is_in_transformable_context: bool,
+) {
+    match value {
+        Value::Mapping(map) => {
+            // Collect pending transformations: (original key, original value, optional (action, args))
+            let mut transformations: Vec<(Value, Value, Option<(String, Vec<String>)>)> =
+                Vec::new();
+
+            for (key, val) in map.iter() {
+                if let Some(key_str) = key.as_str() {
+                    // Só transforma se estiver em um contexto transformável (raiz de steps, then ou else)
+                    if is_in_transformable_context {
+                        // Verifica se a chave contém um ponto (module.action)
+                        if key_str.contains('.') {
+                            let parts: Vec<&str> = key_str.split('.').collect();
+                            if parts.len() >= 2 {
+                                let module_name = parts[0];
+                                let action_name = parts[1].to_string();
+                                let extra_args: Vec<String> =
+                                    parts.iter().skip(2).map(|s| s.to_string()).collect();
+
+                                // Verifica se não é uma propriedade exclusiva e se o módulo está disponível
+                                if !EXCLUSIVE_PROPERTIES.contains(&module_name)
+                                    && (available_modules.contains(module_name)
+                                        || !available_modules.is_empty())
+                                {
+                                    transformations.push((
+                                        key.clone(),
+                                        val.clone(),
+                                        Some((action_name, extra_args)),
+                                    ));
+                                }
+                            }
+                        } else {
+                            // Se não é uma propriedade exclusiva e é um módulo disponível
+                            if !EXCLUSIVE_PROPERTIES.contains(&key_str)
+                                && available_modules.contains(key_str)
+                            {
+                                transformations.push((key.clone(), val.clone(), None));
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Aplica as transformações
+            for (key, old_val, action_and_args) in transformations {
+                map.remove(&key);
+
+                let mut new_entry = Mapping::new();
+
+                // Extrai o nome do módulo (remove a ação se houver)
+                let module_name = if let Some(key_str) = key.as_str() {
+                    if key_str.contains('.') {
+                        key_str.split('.').next().unwrap_or(key_str)
+                    } else {
+                        key_str
+                    }
+                } else {
+                    ""
+                };
+
+                new_entry.insert(
+                    Value::String("use".to_string()),
+                    Value::String(module_name.to_string()),
+                );
+
+                // Cria o input com a ação como primeiro parâmetro, se houver
+                let input_value = if let Some((action_name, args_vec)) = action_and_args {
+                    // Se há uma ação, cria um novo mapeamento com action como primeiro item
+                    if let Value::Mapping(old_map) = old_val {
+                        let mut new_input = Mapping::new();
+                        new_input.insert(
+                            Value::String("action".to_string()),
+                            Value::String(action_name),
+                        );
+
+                        // Adiciona os argumentos extras, se houver
+                        if !args_vec.is_empty() {
+                            let args_seq = Value::Sequence(
+                                args_vec
+                                    .into_iter()
+                                    .map(Value::String)
+                                    .collect::<Vec<Value>>(),
+                            );
+                            new_input.insert(Value::String("args".to_string()), args_seq);
+                        }
+
+                        // Adiciona os outros parâmetros depois da ação
+                        for (old_key, old_value) in old_map.iter() {
+                            new_input.insert(old_key.clone(), old_value.clone());
+                        }
+
+                        Value::Mapping(new_input)
+                    } else {
+                        // Se old_val não é um mapeamento, cria um novo com apenas a ação
+                        let mut new_input = Mapping::new();
+                        new_input.insert(
+                            Value::String("action".to_string()),
+                            Value::String(action_name),
+                        );
+
+                        if !args_vec.is_empty() {
+                            let args_seq = Value::Sequence(
+                                args_vec
+                                    .into_iter()
+                                    .map(Value::String)
+                                    .collect::<Vec<Value>>(),
+                            );
+                            new_input.insert(Value::String("args".to_string()), args_seq);
+                        }
+                        Value::Mapping(new_input)
+                    }
+                } else {
+                    // Se não há ação, usa o valor original
+                    old_val
+                };
+
+                new_entry.insert(Value::String("input".to_string()), input_value);
+
+                // Adiciona a nova entrada transformada
+                for (new_key, new_val) in new_entry.iter() {
+                    map.insert(new_key.clone(), new_val.clone());
+                }
+            }
+
+            // Continua a transformação recursivamente
+            for (key, val) in map.iter_mut() {
+                let key_str = key.as_str().unwrap_or("");
+
+                // Determina se o próximo nível será transformável
+                let next_is_transformable =
+                    key_str == "steps" || key_str == "then" || key_str == "else";
+
+                transform_value(val, available_modules, next_is_transformable);
+            }
+        }
+        Value::Sequence(seq) => {
+            for item in seq.iter_mut() {
+                transform_value(item, available_modules, is_in_transformable_context);
+            }
+        }
+        _ => {}
     }
 }
 
@@ -862,6 +879,34 @@ steps:
 
         let transformed = preprocessor_modules(input).unwrap();
         println!("Transformed:\n{}", transformed);
+        assert_eq!(transformed, expected);
+    }
+
+    #[test]
+    fn test_preprocessor_modules_with_action_args() {
+        let input = r#"
+        modules:
+          - module: test_module
+
+        steps:
+          - test_module.my_action.info.data:
+              param1: value1
+        "#;
+
+        let expected = r#"modules:
+- module: test_module
+steps:
+- use: test_module
+  input:
+    action: my_action
+    args:
+    - info
+    - data
+    param1: value1
+"#;
+
+        let transformed = preprocessor_modules(input).unwrap();
+        println!("Transformed with args:\n{}", transformed);
         assert_eq!(transformed, expected);
     }
 

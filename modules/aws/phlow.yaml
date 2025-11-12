@@ -1,0 +1,310 @@
+name: aws
+description: |
+  AWS module providing high-level actions for S3, SQS, SNS and DynamoDB.
+
+  Actions:
+  - S3: put_object, get_object, delete_object, list_objects, create_bucket, delete_bucket, get_bucket_location, put_bucket_versioning, list_buckets
+  - SQS: send_message, receive_messages, delete_message, create_queue, delete_queue, get_queue_attributes, set_queue_attributes
+  - SNS: publish
+  - DynamoDB: put_item, get_item, update_item, delete_item, query, scan
+
+  Credentials are resolved in this order:
+  1) with: { access_key_id, secret_access_key, session_token, region, profile }
+  2) Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN, AWS_REGION, AWS_PROFILE)
+  3) Default AWS SDK chain (config files, IMDS, etc.)
+
+version: 0.1.0
+author: Philippe Assis <codephilippe@gmail.com>
+license: MIT
+type: step
+tags:
+  - aws
+  - s3
+  - sqs
+  - sns
+  - dynamodb
+  - cloud
+
+with:
+  type: object
+  required: true
+  properties:
+    region:
+      type: string
+      description: AWS region (e.g., us-east-1). Required and used as default location for S3 create_bucket.
+      required: true
+    access_key_id:
+      type: string
+      description: AWS Access Key ID. If omitted, uses AWS_ACCESS_KEY_ID or SDK defaults.
+      required: false
+    secret_access_key:
+      type: string
+      description: AWS Secret Access Key. If omitted, uses AWS_SECRET_ACCESS_KEY or SDK defaults.
+      required: false
+    session_token:
+      type: string
+      description: AWS Session Token (temporary creds). If omitted, uses AWS_SESSION_TOKEN.
+      required: false
+    profile:
+      type: string
+      description: AWS profile name (e.g., default). If omitted, uses AWS_PROFILE or SDK defaults.
+      required: false
+    endpoint_url:
+      type: string
+      description: Custom endpoint (e.g., LocalStack/MinIO). If provided, overrides the default.
+      required: false
+    assume_role_arn:
+      type: string
+      description: Role ARN to assume before performing actions (optional).
+      required: false
+    assume_role_session_name:
+      type: string
+      description: Custom session name when assuming role (optional).
+      required: false
+    assume_role_external_id:
+      type: string
+      description: External ID used for role assumption when required (optional).
+      required: false
+    s3_force_path_style:
+      type: boolean
+      description: Force path-style S3 URLs (useful for MinIO/LocalStack). Default false.
+      required: false
+
+input:
+  type: object
+  required: true
+  properties:
+    action:
+      type: string
+      enum: ["s3", "sqs"]
+      required: true
+
+    method:
+      type: string
+      enum: [
+          # S3
+          "put_object",
+          "get_object",
+          "delete_object",
+          "list_objects",
+          "create_bucket",
+          "delete_bucket",
+          "get_bucket_location",
+          "put_bucket_versioning",
+          "list_buckets",
+          # SQS
+          "send_message",
+          "receive_messages",
+          "delete_message",
+          "create_queue",
+          "delete_queue",
+          "get_queue_attributes",
+          "set_queue_attributes",
+        ]
+      required: true
+
+    # -----------------------
+    # S3 parameters
+    # -----------------------
+    bucket:
+      type: string
+      required: false
+      description: S3 bucket name
+    location:
+      type: string
+      required: false
+      description: Region/location when creating bucket (omit or 'us-east-1' to skip LocationConstraint)
+    enabled:
+      type: boolean
+      required: false
+      description: Enable/disable versioning for put_bucket_versioning
+    key:
+      type: string
+      required: false
+      description: S3 object key
+    content:
+      type: string
+      required: false
+      description: Content as UTF-8 string for s3_put_object
+    path:
+      type: string
+      required: false
+      description: Local filesystem path to stream upload for s3_put_object (avoids loading into memory)
+    content_base64:
+      type: string
+      required: false
+      description: Base64 content for s3_put_object (alternative to content)
+    content_type:
+      type: string
+      required: false
+      description: MIME type to set on S3 object (e.g., application/json)
+    acl:
+      type: string
+      required: false
+      description: Canned ACL for S3 object (e.g., private, public-read)
+    prefix:
+      type: string
+      required: false
+      description: Prefix for s3_list_objects
+    max_keys:
+      type: integer
+      required: false
+      description: Max keys to list (s3_list_objects)
+    continuation_token:
+      type: string
+      required: false
+      description: Token for pagination (s3_list_objects)
+    as_base64:
+      type: boolean
+      required: false
+      description: If true, returns object body as base64 (s3_get_object)
+
+    # -----------------------
+    # SQS parameters
+    # -----------------------
+    queue_url:
+      type: string
+      required: false
+      description: Full SQS Queue URL (preferred)
+    queue_name:
+      type: string
+      required: false
+      description: Queue name (used if queue_url not provided)
+    attributes:
+      type: object
+      required: false
+      description: Attributes map for create_queue/set_queue_attributes (e.g., DelaySeconds, VisibilityTimeout, FifoQueue)
+    message_body:
+      type: string
+      required: false
+      description: Message body for sqs_send_message
+    message_attributes:
+      type: object
+      required: false
+      description: Message attributes map for sqs_send_message
+    delay_seconds:
+      type: integer
+      required: false
+      description: Delivery delay in seconds for sqs_send_message
+    max_number_of_messages:
+      type: integer
+      required: false
+      description: Number of messages to receive (1-10) for sqs_receive_messages
+    wait_time_seconds:
+      type: integer
+      required: false
+      description: Long-poll wait time in seconds for sqs_receive_messages
+    visibility_timeout:
+      type: integer
+      required: false
+      description: Visibility timeout for received messages (seconds)
+    receipt_handle:
+      type: string
+      required: false
+      description: Receipt handle for sqs_delete_message
+
+    # -----------------------
+    # Common delete flags
+    # -----------------------
+    force:
+      type: boolean
+      required: false
+      description: "If true, force deletion. For S3: empties bucket (versions/objects) before deleting. For SQS: purges queue before deleting."
+
+    # -----------------------
+    # SNS parameters
+    # -----------------------
+    topic_arn:
+      type: string
+      required: false
+      description: Target topic ARN for sns_publish
+    message:
+      type: string
+      required: false
+      description: Message content for sns_publish
+    subject:
+      type: string
+      required: false
+      description: Subject for sns_publish
+    message_structure:
+      type: string
+      required: false
+      description: "Message structure type (e.g., json) for sns_publish"
+
+    # -----------------------
+    # DynamoDB parameters
+    # -----------------------
+    table:
+      type: string
+      required: false
+      description: DynamoDB table name
+    key_map:
+      type: object
+      required: false
+      description: Key map for get_item/delete_item/update_item (DynamoDB AttributeValue-like)
+    item:
+      type: object
+      required: false
+      description: Item map for put_item (DynamoDB AttributeValue-like)
+    update_expression:
+      type: string
+      required: false
+      description: Update expression for update_item
+    condition_expression:
+      type: string
+      required: false
+      description: Condition expression for put/update/delete
+    expression_attribute_values:
+      type: object
+      required: false
+      description: 'Values map for expressions (e.g., {":v": {"S": "x"}})'
+    expression_attribute_names:
+      type: object
+      required: false
+      description: 'Names map for expressions (e.g., {"#n": "name"})'
+    return_values:
+      type: string
+      required: false
+      description: Return values option (e.g., ALL_OLD, UPDATED_NEW)
+    index_name:
+      type: string
+      required: false
+      description: Secondary index name for query
+    key_condition_expression:
+      type: string
+      required: false
+      description: Key condition expression for query
+    filter_expression:
+      type: string
+      required: false
+      description: Filter expression for query/scan
+    limit:
+      type: integer
+      required: false
+      description: Limit for query/scan
+    scan_index_forward:
+      type: boolean
+      required: false
+      description: Sort order for query (true = ascending)
+    exclusive_start_key:
+      type: object
+      required: false
+      description: Pagination start key for query/scan
+    consistent_read:
+      type: boolean
+      required: false
+      description: Strongly consistent reads for get_item/query
+
+output:
+  type: object
+  required: true
+  properties:
+    success:
+      type: boolean
+      required: true
+    data:
+      type: any
+      required: false
+    error:
+      type: string
+      required: false

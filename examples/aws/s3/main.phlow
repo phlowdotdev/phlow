@@ -1,0 +1,80 @@
+modules:
+  - module: log
+  - module: aws
+    with:
+      region: "us-east-1"
+      endpoint_url: "http://localhost:4566"
+      s3_force_path_style: true
+      secret_access_key: "test"
+      access_key_id: "test"
+
+steps:
+  - id: bucket
+    aws.s3.create_bucket:
+      bucket: "phlow-demo"
+
+  - aws.s3.put_object:
+      bucket: steps.bucket.data.bucket
+      key: "hello-file.txt"
+      path: "./examples/aws/s3/sample.txt"
+      content_type: "text/plain"
+
+  - log.info:
+      message: payload
+
+  # List again and, if empty, delete the bucket (cleanup)
+  - aws.s3.list_objects:
+      bucket: steps.bucket.data.bucket
+      max_keys: 100
+
+  - log.info:
+      message: payload
+
+  - assert: payload.data != null && payload.data.items != null && payload.data.items.len == 0
+    then:
+      - aws.s3.delete_bucket:
+          bucket: steps.bucket.data.bucket
+
+      - log.info:
+          message: payload
+
+  - aws.s3.put_object:
+      bucket: steps.bucket.data.bucket
+      key: "hello.txt"
+      content: "Hello from Phlow AWS S3!"
+      content_type: "text/plain"
+
+  - log.info:
+      message: payload
+
+  - aws.s3.get_object:
+      bucket: steps.bucket.data.bucket
+      key: hello.txt
+      as_base64: false
+  
+  - log.info:
+      message: payload
+
+  - aws.s3.list_objects:
+      bucket: steps.bucket.data.bucket
+      max_keys: 100
+
+  - log.info:
+      message: payload
+
+  - aws.s3.delete_object:
+      bucket: steps.bucket.data.bucket
+      key: hello.txt
+  
+  - log.info:
+      message: payload
+
+  - aws.s3.delete_object:
+      bucket: steps.bucket.data.bucket
+      key: "hello-file.txt"
+
+  - log.info:
+      message: payload
+
+  - aws.s3.delete_bucket:
+      bucket: steps.bucket.data.bucket

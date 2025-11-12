@@ -1,0 +1,19 @@
+[package]
+name = "aws"
+version = "0.1.0"
+edition = { workspace = true }
+
+[lib]
+name = "aws"
+crate-type = ["cdylib"]
+
+[dependencies]
+phlow-sdk = { workspace = true }
+aws-config = { version = "1.8.10", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.110.0", features = ["rt-tokio"] }
+aws-sdk-sqs = { version = "1.88.0", features = ["rt-tokio"] }
+aws-sdk-dynamodb = { version = "1.97.0", features = ["rt-tokio"] }
+aws-sdk-sns = { version = "1.88.0", features = ["rt-tokio"] }
+base64 = "0.22"
+bytes = "1"
+aws-credential-types = "1.2.8"
