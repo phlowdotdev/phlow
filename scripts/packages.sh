@@ -112,6 +112,7 @@ package_module() {
     # Diagnóstico: listar arquivos antes do mv
     echo "🔍 Diagnostic: ls -l ."
     ls -l .
+    echo "📂 Current directory: $(pwd)"
 
     # Renomeia com OS_SUFFIX antes de sair do diretório
     RENAMED_ARCHIVE="${NAME}-${VERSION}${OS_SUFFIX}.tar.gz"

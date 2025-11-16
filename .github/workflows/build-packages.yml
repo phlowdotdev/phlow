@@ -19,35 +19,68 @@ jobs:
         run: |
           echo "modules=$(ls -d modules/* | xargs -n1 basename | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
-  build:
+  build-macos:
     needs: discover_modules
+    runs-on: macos-latest
     strategy:
       matrix:
         module: ${{ fromJson(needs.discover_modules.outputs.modules) }}
-        arch:
-          - {
-              name: "macos-latest",
-              os_suffix: "-darwin-aarch64",
-              target: "aarch64-apple-darwin",
-              module_extension: "dylib",
-            }
-          - {
-              name: "ubuntu-latest",
-              os_suffix: "-linux-amd64",
-              target: "x86_64-unknown-linux-gnu",
-              module_extension: "so",
-            }
-          - {
-              name: "ubuntu-latest",
-              os_suffix: "-linux-aarch64",
-              target: "aarch64-unknown-linux-gnu",
-              module_extension: "so",
-            }
-    runs-on: ${{ matrix.arch.name }}
     env:
-      OS_SUFFIX: ${{ matrix.arch.os_suffix }}
-      TARGET: ${{ matrix.arch.target }}
-      MODULE_EXTENSION: ${{ matrix.arch.module_extension }}
+      OS_SUFFIX: -darwin-aarch64
+      TARGET: aarch64-apple-darwin
+      MODULE_EXTENSION: dylib
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Make scripts executable
+        run: chmod +x ./scripts/*.sh
+      - name: Install cross
+        run: cargo install cross --force
+      - name: Build module
+        run: ./scripts/packages.sh --single "modules/${{ matrix.module }}"
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.module }}${{ env.OS_SUFFIX }}
+          path: packages/*.tar.gz
+          retention-days: 1
+
+  build-linux-amd64:
+    needs: discover_modules
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: ${{ fromJson(needs.discover_modules.outputs.modules) }}
+    env:
+      OS_SUFFIX: -linux-amd64
+      TARGET: x86_64-unknown-linux-gnu
+      MODULE_EXTENSION: so
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Make scripts executable
+        run: chmod +x ./scripts/*.sh
+      - name: Install cross
+        run: cargo install cross --force
+      - name: Build module
+        run: ./scripts/packages.sh --single "modules/${{ matrix.module }}"
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.module }}${{ env.OS_SUFFIX }}
+          path: packages/*.tar.gz
+          retention-days: 1
+
+  build-linux-aarch64:
+    needs: discover_modules
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: ${{ fromJson(needs.discover_modules.outputs.modules) }}
+    env:
+      OS_SUFFIX: -linux-aarch64
+      TARGET: aarch64-unknown-linux-gnu
+      MODULE_EXTENSION: so
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -65,7 +98,10 @@ jobs:
           retention-days: 1
 
   deploy:
-    needs: build
+    needs:
+      - build-macos
+      - build-linux-amd64
+      - build-linux-aarch64
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
