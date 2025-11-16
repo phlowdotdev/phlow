@@ -3,10 +3,7 @@ modules:
   - module: amqp
     version: latest
     with:
-      routing_key: my.routing.key
-      exchange: my.exchange
-      queue_name: my.queue
-      exchange_type: direct
+      queue_name: my.queue.123
   - module: log
     version: latest
 steps:
