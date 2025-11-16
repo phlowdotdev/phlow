@@ -111,8 +111,9 @@ package_module() {
     cd - > /dev/null
 
     # Renomeia com OS_SUFFIX
+
     RENAMED_ARCHIVE="${NAME}-${VERSION}${OS_SUFFIX}.tar.gz"
-    mv "$MODULE_DIR/$ARCHIVE_NAME" "./packages/$RENAMED_ARCHIVE"
+    mv "$ARCHIVE_NAME" "../packages/$RENAMED_ARCHIVE"
 
     echo "✅ Module packaged: $RENAMED_ARCHIVE"
 }
