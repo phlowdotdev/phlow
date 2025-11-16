@@ -2,5 +2,10 @@
     "cSpell.words": [
         "phlow",
         "valu"
-    ]
+    ],
+    "workbench.colorCustomizations": {
+        "activityBar.background": "#162c4d",
+        "titleBar.activeBackground": "#162c4d",
+        "titleBar.activeForeground": "#FAFBF3"
+    }
 }
