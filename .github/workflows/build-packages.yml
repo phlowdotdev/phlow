@@ -19,8 +19,42 @@ jobs:
         run: |
           echo "modules=$(ls -d modules/* | xargs -n1 basename | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
+  prefetch-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Cache cargo registry (Linux)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+      - name: Cargo fetch (Linux)
+        run: cargo fetch --locked
+
+  prefetch-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Cache cargo registry (macOS)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+      - name: Cargo fetch (macOS)
+        run: cargo fetch --locked
+
   build-macos:
-    needs: discover_modules
+    needs: [discover_modules, prefetch-macos]
     runs-on: macos-latest
     strategy:
       matrix:
@@ -32,10 +66,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Restore cargo registry cache (macOS)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
       - name: Make scripts executable
         run: chmod +x ./scripts/*.sh
-      - name: Cargo fetch
-        run: cargo fetch --locked
       - name: Install yq (macOS)
         run: |
           curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_darwin_arm64 -o yq
@@ -53,7 +94,7 @@ jobs:
           retention-days: 1
 
   build-linux-amd64:
-    needs: discover_modules
+    needs: [discover_modules, prefetch-linux]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -65,10 +106,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Restore cargo registry cache (Linux)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
       - name: Make scripts executable
         run: chmod +x ./scripts/*.sh
-      - name: Cargo fetch
-        run: cargo fetch --locked
       - name: Install yq (Linux)
         run: |
           sudo curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/local/bin/yq
@@ -85,7 +133,7 @@ jobs:
           retention-days: 1
 
   build-linux-aarch64:
-    needs: discover_modules
+    needs: [discover_modules, prefetch-linux]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -97,10 +145,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Restore cargo registry cache (Linux)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
       - name: Make scripts executable
         run: chmod +x ./scripts/*.sh
-      - name: Cargo fetch
-        run: cargo fetch --locked
       - name: Install yq (Linux)
         run: |
           sudo curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/local/bin/yq
