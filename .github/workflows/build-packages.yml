@@ -29,21 +29,25 @@ jobs:
               name: "macos-latest",
               os_suffix: "-darwin-aarch64",
               target: "aarch64-apple-darwin",
+              module_extension: "dylib"
             }
           - {
               name: "ubuntu-latest",
               os_suffix: "-linux-amd64",
               target: "x86_64-unknown-linux-gnu",
+              module_extension: "so"
             }
           - {
               name: "ubuntu-latest",
               os_suffix: "-linux-aarch64",
               target: "aarch64-unknown-linux-gnu",
+              module_extension: "so"
             }
     runs-on: ${{ matrix.arch.name }}
     env:
       OS_SUFFIX: ${{ matrix.arch.os_suffix }}
       TARGET: ${{ matrix.arch.target }}
+      MODULE_EXTENSION: ${{ matrix.arch.module_extension }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
