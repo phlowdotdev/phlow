@@ -5,157 +5,89 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  PARALLEL: 2
-
-permissions:
-  contents: write
-  actions: read
-  checks: read
 
 jobs:
-  build_darwin:
-    runs-on: macos-latest
-    env:
-      OS_SUFFIX: -darwin-aarch64
-      TARGET: aarch64-apple-darwin
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Make scripts executable
-        run: chmod +x ./scripts/*.sh
-
-      - name: Run packages script
-        run: ./scripts/packages.sh
-
-      - name: Upload Mac packages
-        uses: actions/upload-artifact@v4
-        with:
-          name: darwin-packages
-          path: ./packages
-          retention-days: 1
-
-  build_linux_amd64:
+  discover_modules:
     runs-on: ubuntu-latest
-    env:
-      OS_SUFFIX: -linux-amd64
-      TARGET: x86_64-unknown-linux-gnu
-
+    outputs:
+      modules: ${{ steps.set-modules.outputs.modules }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - name: List modules
+        id: set-modules
+        run: |
+          echo "modules=$(ls -d modules/* | xargs -n1 basename | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Make scripts executable
-        run: chmod +x ./scripts/*.sh
-
-      - name: Run packages script
-        run: TARGET=x86_64-unknown-linux-gnu ./scripts/packages.sh
-
-      - name: Upload Linux amd64 packages
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-amd64-packages
-          path: ./packages
-          retention-days: 1
-
-  build_linux_aarch64:
-    runs-on: ubuntu-latest
+  build:
+    needs: discover_modules
+    strategy:
+      matrix:
+        module: ${{ fromJson(needs.discover_modules.outputs.modules) }}
+        arch:
+          - {
+              name: "macos-latest",
+              os_suffix: "-darwin-aarch64",
+              target: "aarch64-apple-darwin",
+            }
+          - {
+              name: "ubuntu-latest",
+              os_suffix: "-linux-amd64",
+              target: "x86_64-unknown-linux-gnu",
+            }
+          - {
+              name: "ubuntu-latest",
+              os_suffix: "-linux-aarch64",
+              target: "aarch64-unknown-linux-gnu",
+            }
+    runs-on: ${{ matrix.arch.name }}
     env:
-      OS_SUFFIX: -linux-aarch64
-      TARGET: aarch64-unknown-linux-gnu
-
+      OS_SUFFIX: ${{ matrix.arch.os_suffix }}
+      TARGET: ${{ matrix.arch.target }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Make scripts executable
         run: chmod +x ./scripts/*.sh
-
-      - name: Run packages script
-        run: TARGET=aarch64-unknown-linux-gnu ./scripts/packages.sh
-
-      - name: Upload Linux aarch64 packages
+      - name: Build module
+        run: ./scripts/packages.sh --single "modules/${{ matrix.module }}"
+      - name: Upload package artifact
         uses: actions/upload-artifact@v4
         with:
-          name: linux-aarch64-packages
-          path: ./packages
+          name: ${{ matrix.module }}${{ env.OS_SUFFIX }}
+          path: packages/*.tar.gz
           retention-days: 1
 
   deploy:
-    needs:
-      - build_darwin
-      - build_linux_amd64
-      - build_linux_aarch64
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y jq
-
       - name: Make scripts executable
         run: chmod +x ./scripts/*.sh
-
       - name: Create raw directory
         run: mkdir -p raw
-
-      - name: Download Mac packages
+      - name: Download all packages
         uses: actions/download-artifact@v4
         with:
-          name: darwin-packages
-          path: darwin-packages
-
-      - name: Download Ubuntu packages
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-amd64-packages
-          path: linux-amd64-packages
-
-      - name: Download Linux musl packages
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-aarch64-packages
-          path: linux-aarch64-packages
-
-      - name: Move artifacts to raw directory
-        run: |
-          # cp darwin-packages/*.tar.gz raw/ || true
-          cp linux-amd64-packages/*.tar.gz raw/ || true
-          cp linux-aarch64-packages/*.tar.gz raw/ || true
-
+          path: raw
       - name: Run resolver script
         run: ./scripts/resolver-packages-dir.sh
-
       - name: Setup Git for packages repo
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
-
       - name: Clone packages repository
         env:
           TOKEN: ${{ secrets.PHLOW_PACKAGES_PAT }}
         run: |
           git clone https://x-access-token:${TOKEN}@github.com/phlowdotdev/phlow-packages.git
-
       - name: Update packages repository
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT  }} # necessário para o `gh pr create`
+          GH_TOKEN: ${{ secrets.GH_PAT  }}
         run: |
           cp -R packages/* phlow-packages/packages/
           cd phlow-packages
