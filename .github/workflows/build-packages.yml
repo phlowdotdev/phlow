@@ -29,19 +29,19 @@ jobs:
               name: "macos-latest",
               os_suffix: "-darwin-aarch64",
               target: "aarch64-apple-darwin",
-              module_extension: "dylib"
+              module_extension: "dylib",
             }
           - {
               name: "ubuntu-latest",
               os_suffix: "-linux-amd64",
               target: "x86_64-unknown-linux-gnu",
-              module_extension: "so"
+              module_extension: "so",
             }
           - {
               name: "ubuntu-latest",
               os_suffix: "-linux-aarch64",
               target: "aarch64-unknown-linux-gnu",
-              module_extension: "so"
+              module_extension: "so",
             }
     runs-on: ${{ matrix.arch.name }}
     env:
