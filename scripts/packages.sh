@@ -106,7 +106,12 @@ package_module() {
     echo "📦 Creating archive: $ARCHIVE_NAME"
     tar -czf "$ARCHIVE_NAME" -C "$TMP_DIR" .
 
+
     rm -rf "$TMP_DIR"
+
+    # Diagnóstico: listar arquivos antes do mv
+    echo "🔍 Diagnostic: ls -l ."
+    ls -l .
 
     # Renomeia com OS_SUFFIX antes de sair do diretório
     RENAMED_ARCHIVE="${NAME}-${VERSION}${OS_SUFFIX}.tar.gz"
