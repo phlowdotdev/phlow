@@ -1,5 +1,3 @@
-echo "📦 Clean folder ./packages"
-echo "🎉 All modules packaged successfully!"
 #!/usr/bin/env bash
 
 set -euo pipefail
