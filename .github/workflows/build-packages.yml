@@ -53,6 +53,8 @@ jobs:
         uses: actions/checkout@v4
       - name: Make scripts executable
         run: chmod +x ./scripts/*.sh
+      - name: Install cross
+        run: cargo install cross --force
       - name: Build module
         run: ./scripts/packages.sh --single "modules/${{ matrix.module }}"
       - name: Upload package artifact
