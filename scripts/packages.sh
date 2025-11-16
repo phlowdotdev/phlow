@@ -116,7 +116,11 @@ package_module() {
 
     # Renomeia com OS_SUFFIX antes de sair do diretório
     RENAMED_ARCHIVE="${NAME}-${VERSION}${OS_SUFFIX}.tar.gz"
-    mv "$ARCHIVE_NAME" "../packages/$RENAMED_ARCHIVE"
+    # Verifica se ../../packages existe, se não existir cria
+    if [ ! -d "../../packages" ]; then
+      mkdir -p "../../packages"
+    fi
+    mv "$ARCHIVE_NAME" "../../packages/$RENAMED_ARCHIVE"
 
     cd - > /dev/null
 
