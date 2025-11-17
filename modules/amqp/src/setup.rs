@@ -3,7 +3,6 @@ use std::fmt::Display;
 
 #[derive(Debug)]
 pub enum Error {
-    RoutingKey,
     GenericError(String),
 }
 
@@ -16,7 +15,6 @@ impl From<Box<dyn std::error::Error>> for Error {
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::RoutingKey => write!(f, "routing_key is required"),
             Self::GenericError(msg) => write!(f, "Generic error: {}", msg),
         }
     }
@@ -68,7 +66,7 @@ impl TryFrom<&Value> for Config {
             value
                 .get("routing_key")
                 .map(|v| v.to_string())
-                .ok_or(Error::RoutingKey)?
+                .unwrap_or("".to_string())
         };
 
         let consumer_tag = value
@@ -370,23 +368,43 @@ fn import_definition(
                                     let key_str = key.to_string();
                                     match value {
                                         Value::String(s) => {
-                                            args_map.insert(key_str, serde_json::Value::String(s.as_string()));
+                                            args_map.insert(
+                                                key_str,
+                                                serde_json::Value::String(s.as_string()),
+                                            );
                                         }
                                         Value::Number(n) => {
                                             if let Some(i) = n.get_i64() {
-                                                args_map.insert(key_str, serde_json::Value::Number(serde_json::Number::from(i)));
+                                                args_map.insert(
+                                                    key_str,
+                                                    serde_json::Value::Number(
+                                                        serde_json::Number::from(i),
+                                                    ),
+                                                );
                                             } else if let Some(f) = n.get_f64() {
-                                                args_map.insert(key_str, serde_json::Value::Number(serde_json::Number::from_f64(f).unwrap_or(serde_json::Number::from(0))));
+                                                args_map.insert(
+                                                    key_str,
+                                                    serde_json::Value::Number(
+                                                        serde_json::Number::from_f64(f)
+                                                            .unwrap_or(serde_json::Number::from(0)),
+                                                    ),
+                                                );
                                             } else {
                                                 // fallback para outros tipos numéricos
-                                                args_map.insert(key_str, serde_json::Value::String(n.to_string()));
+                                                args_map.insert(
+                                                    key_str,
+                                                    serde_json::Value::String(n.to_string()),
+                                                );
                                             }
                                         }
                                         Value::Boolean(b) => {
                                             args_map.insert(key_str, serde_json::Value::Bool(*b));
                                         }
                                         _ => {
-                                            args_map.insert(key_str, serde_json::Value::String(value.to_string()));
+                                            args_map.insert(
+                                                key_str,
+                                                serde_json::Value::String(value.to_string()),
+                                            );
                                         }
                                     }
                                 }

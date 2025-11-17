@@ -73,3 +73,10 @@ tracing-log = "0.2.0"
 
 log = { version = "0.4.28" }
 env_logger = { version = "0.11" }
+
+[profile.release]
+# Foco em velocidade de build (ajusta desempenho de runtime marginalmente)
+codegen-units = 16
+lto = "off"
+debug = false
+strip = "symbols"
