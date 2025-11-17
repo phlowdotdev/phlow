@@ -1,4 +1,4 @@
-name: Release Stable Binary's and Docker image
+name: Release Stable Binary's, Docker image and Publish to Crates.io
 
 on:
   workflow_dispatch:
@@ -205,3 +205,37 @@ jobs:
           tags: |
             ghcr.io/${{ env.OWNER }}/phlow:latest
             ghcr.io/${{ env.OWNER }}/phlow:${{ env.VERSION }}
+
+  publish:
+    needs: [tag]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Publish phs
+        run: cargo publish -p phs --token "$CARGO_REGISTRY_TOKEN" --no-verify
+
+      - name: Wait for phs
+        run: sleep 30
+
+      - name: Publish phlow-sdk
+        run: cargo publish -p phlow-sdk --token "$CARGO_REGISTRY_TOKEN" --no-verify
+
+      - name: Wait for phlow-sdk
+        run: sleep 30
+
+      - name: Publish phlow-engine
+        run: cargo publish -p phlow-engine --token "$CARGO_REGISTRY_TOKEN" --no-verify
+
+      - name: Wait for phlow-engine
+        run: sleep 30
+
+      - name: Publish phlow-runtime
+        run: cargo publish -p phlow-runtime --token "$CARGO_REGISTRY_TOKEN" --no-verify
