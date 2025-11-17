@@ -1,5 +1,3 @@
-echo "📦 Clean folder ./packages"
-echo "🎉 All modules packaged successfully!"
 #!/usr/bin/env bash
 
 set -euo pipefail
@@ -106,13 +104,23 @@ package_module() {
     echo "📦 Creating archive: $ARCHIVE_NAME"
     tar -czf "$ARCHIVE_NAME" -C "$TMP_DIR" .
 
+
     rm -rf "$TMP_DIR"
 
-    cd - > /dev/null
+    # Diagnóstico: listar arquivos antes do mv
+    echo "🔍 Diagnostic: ls -l ."
+    ls -l .
+    echo "📂 Current directory: $(pwd)"
 
-    # Renomeia com OS_SUFFIX
+    # Renomeia com OS_SUFFIX antes de sair do diretório
     RENAMED_ARCHIVE="${NAME}-${VERSION}${OS_SUFFIX}.tar.gz"
-    mv "$MODULE_DIR/$ARCHIVE_NAME" "./packages/$RENAMED_ARCHIVE"
+    # Verifica se ../../packages existe, se não existir cria
+    if [ ! -d "../../packages" ]; then
+      mkdir -p "../../packages"
+    fi
+    mv "$ARCHIVE_NAME" "../../packages/$RENAMED_ARCHIVE"
+
+    cd - > /dev/null
 
     echo "✅ Module packaged: $RENAMED_ARCHIVE"
 }
@@ -132,7 +140,7 @@ fi
 # MODO PRINCIPAL: prepara ambiente e dispara empacotamento em paralelo
 # ------------------------------------------------------------
 
-cargo install cross || true
+# cargo install cross || true
 
 # Detect operating system or target
 # Define OS_SUFFIX, TARGET e MODULE_EXTENSION dinamicamente

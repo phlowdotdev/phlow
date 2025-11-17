@@ -19,36 +19,153 @@ jobs:
         run: |
           echo "modules=$(ls -d modules/* | xargs -n1 basename | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
-  build:
-    needs: discover_modules
-    strategy:
-      matrix:
-        module: ${{ fromJson(needs.discover_modules.outputs.modules) }}
-        arch:
-          - {
-              name: "macos-latest",
-              os_suffix: "-darwin-aarch64",
-              target: "aarch64-apple-darwin",
-            }
-          - {
-              name: "ubuntu-latest",
-              os_suffix: "-linux-amd64",
-              target: "x86_64-unknown-linux-gnu",
-            }
-          - {
-              name: "ubuntu-latest",
-              os_suffix: "-linux-aarch64",
-              target: "aarch64-unknown-linux-gnu",
-            }
-    runs-on: ${{ matrix.arch.name }}
-    env:
-      OS_SUFFIX: ${{ matrix.arch.os_suffix }}
-      TARGET: ${{ matrix.arch.target }}
+  prefetch-linux:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Cache cargo registry (Linux)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+      - name: Cargo fetch (Linux host)
+        run: cargo fetch --locked
+      - name: Cargo fetch (Linux amd64 target)
+        run: cargo fetch --locked --target x86_64-unknown-linux-gnu
+      - name: Cargo fetch (Linux aarch64 target)
+        run: cargo fetch --locked --target aarch64-unknown-linux-gnu
+
+  prefetch-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Cache cargo registry (macOS)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+      - name: Cargo fetch (macOS)
+        run: cargo fetch --locked
+
+  build-macos:
+    needs: [discover_modules, prefetch-macos]
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        module: ${{ fromJson(needs.discover_modules.outputs.modules) }}
+    env:
+      OS_SUFFIX: -darwin-aarch64
+      TARGET: aarch64-apple-darwin
+      MODULE_EXTENSION: dylib
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Restore cargo registry cache (macOS)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
       - name: Make scripts executable
         run: chmod +x ./scripts/*.sh
+      - name: Install yq (macOS)
+        run: |
+          curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_darwin_arm64 -o yq
+          chmod +x yq
+          sudo mv yq /usr/local/bin/yq
+      - name: Install cross
+        run: cargo install cross --force
+      - name: Build module
+        run: ./scripts/packages.sh --single "modules/${{ matrix.module }}"
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.module }}${{ env.OS_SUFFIX }}
+          path: packages/*.tar.gz
+          retention-days: 1
+
+  build-linux-amd64:
+    needs: [discover_modules, prefetch-linux]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: ${{ fromJson(needs.discover_modules.outputs.modules) }}
+    env:
+      OS_SUFFIX: -linux-amd64
+      TARGET: x86_64-unknown-linux-gnu
+      MODULE_EXTENSION: so
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Restore cargo registry cache (Linux)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+      - name: Make scripts executable
+        run: chmod +x ./scripts/*.sh
+      - name: Install yq (Linux)
+        run: |
+          sudo curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/local/bin/yq
+          sudo chmod +x /usr/local/bin/yq
+      - name: Install cross
+        run: cargo install cross --force
+      - name: Build module
+        run: ./scripts/packages.sh --single "modules/${{ matrix.module }}"
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.module }}${{ env.OS_SUFFIX }}
+          path: packages/*.tar.gz
+          retention-days: 1
+
+  build-linux-aarch64:
+    needs: [discover_modules, prefetch-linux]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: ${{ fromJson(needs.discover_modules.outputs.modules) }}
+    env:
+      OS_SUFFIX: -linux-aarch64
+      TARGET: aarch64-unknown-linux-gnu
+      MODULE_EXTENSION: so
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Restore cargo registry cache (Linux)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+      - name: Make scripts executable
+        run: chmod +x ./scripts/*.sh
+      - name: Install yq (Linux)
+        run: |
+          sudo curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/local/bin/yq
+          sudo chmod +x /usr/local/bin/yq
+      - name: Install cross
+        run: cargo install cross --force
       - name: Build module
         run: ./scripts/packages.sh --single "modules/${{ matrix.module }}"
       - name: Upload package artifact
@@ -59,13 +176,18 @@ jobs:
           retention-days: 1
 
   deploy:
-    needs: build
+    needs:
+      - build-macos
+      - build-linux-amd64
+      - build-linux-aarch64
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Make scripts executable
         run: chmod +x ./scripts/*.sh
       - name: Create raw directory
@@ -74,8 +196,19 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: raw
+          merge-multiple: true
+      - name: List downloaded tarballs
+        run: |
+          echo "🔍 Listing tarballs in raw (depth 2)"
+          find raw -maxdepth 2 -type f -name '*.tar.gz' -print -exec ls -lh {} \; || echo "Nenhum arquivo .tar.gz encontrado"
       - name: Run resolver script
         run: ./scripts/resolver-packages-dir.sh
+      - name: List resolved packages
+        run: |
+          echo "🔍 Listing resolved packages (*.tar.gz) under ./packages"
+          find packages -maxdepth 3 -type f -name '*.tar.gz' -print -exec ls -lh {} \; || echo "Nenhum .tar.gz encontrado em ./packages"
+          echo "📁 Preview of package directories"
+          find packages -maxdepth 3 -type d | sort | head -n 200
       - name: Setup Git for packages repo
         run: |
           git config --global user.name "GitHub Actions Bot"
