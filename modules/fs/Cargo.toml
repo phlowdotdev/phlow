@@ -1,0 +1,18 @@
+[package]
+name = "fs"
+version = "0.1.0"
+edition = { workspace = true }
+authors = ["Phlow Contributors"]
+description = "Phlow filesystem module: read files/dirs and write files/dirs"
+license = "MIT"
+
+[dependencies]
+phlow-sdk = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+base64 = "0.22"
+
+[lib]
+name = "fs"
+crate-type = ["cdylib"]

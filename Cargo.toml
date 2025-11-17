@@ -17,6 +17,7 @@ members = [
     "modules/openai",
     "modules/cache",
     "modules/aws",
+    "modules/fs",
 ]
 resolver = "2"
 

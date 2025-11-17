@@ -1,0 +1,39 @@
+name: FS Module Demo
+version: 1.0.0
+
+modules:
+    - module: log
+    - module: fs
+
+steps:
+    - use: fs
+        input:
+            action: write
+            path: ./tmp/fs-demo
+            # no content => creates directory
+            recursive: true
+
+    - use: fs
+        input:
+            action: write
+            path: ./tmp/fs-demo/hello.txt
+            content: "Hello from fs module!"
+            recursive: true
+            force: true
+
+    - use: fs
+        input:
+            action: read
+            path: ./tmp/fs-demo/hello.txt
+
+  - log.info:
+      message: payload
+
+    - use: fs
+        input:
+            action: read
+            path: ./tmp/fs-demo
+            recursive: true
+
+  - log.info:
+      message: payload
