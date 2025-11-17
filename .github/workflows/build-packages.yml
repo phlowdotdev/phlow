@@ -222,7 +222,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT  }}
         run: |
-          cp -R raw/* phlow-packages/packages/
+          cp -R packages/* phlow-packages/packages/
           cd phlow-packages
           git checkout -b update-packages-${{ github.run_id }}
           git add .
