@@ -1,11 +1,11 @@
 [package]
 name = "amqp"
-version = "0.0.2"
+version = "0.0.3"
 edition = { workspace = true }
 
 [dependencies]
 phlow-sdk = { workspace = true }
-lapin = "2.5.1"
+lapin = "3.7.2"
 futures-lite = "2.6.0"
 openssl = { version = "0.10.72", features = ["vendored"] }
 hostname = "0.4.1"

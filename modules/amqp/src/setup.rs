@@ -35,6 +35,7 @@ pub struct Config {
     pub vhost: String,
     pub max_retry: i64,
     pub dlq_enable: bool,
+    pub max_concurrency: u16,
 }
 
 impl Config {
@@ -163,6 +164,13 @@ impl TryFrom<&Value> for Config {
             .copied()
             .unwrap_or(true);
 
+        // Limite de concorrência (0 = sem limites)
+        let max_concurrency = value
+            .get("max_concurrency")
+            .map(|v| v.to_i64().unwrap_or(0))
+            .unwrap_or(0)
+            .clamp(0, u16::MAX as i64) as u16;
+
         // Parse RabbitMQ definition if available and import
         if let Some(definition) = value.get("definition") {
             log::debug!("Found definition in config, importing...");
@@ -197,6 +205,7 @@ impl TryFrom<&Value> for Config {
             uri,
             max_retry,
             dlq_enable,
+            max_concurrency,
         })
     }
 }
