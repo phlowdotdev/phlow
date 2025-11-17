@@ -20,6 +20,9 @@ pub fn preprocessor(
         return Err(errors);
     }
 
+    // Primeiro, converte blocos ``` em strings para evitar alterações indevidas dentro do bloco
+    let phlow = preprocessor_markdown_string_blocks(&phlow);
+    // Depois, aplica auto-transformações de objetos/arrays e PHS oculto
     let phlow = processor_transform_phs_hidden_object_and_arrays(&phlow);
     let phlow = preprocessor_transform_phs_hidden(&phlow);
     let phlow = preprocessor_eval(&phlow);
@@ -215,7 +218,10 @@ fn preprocessor_transform_phs_hidden(phlow: &str) -> String {
                 continue;
             }
 
-            if first_word.starts_with("`") || first_word.starts_with("${") {
+            // Não marcar blocos iniciando com ``` como !phs; são strings
+            if (first_word.starts_with("`") && !first_word.starts_with("```"))
+                || first_word.starts_with("${")
+            {
                 let indent = &line[..line.len() - trimmed_line.len()];
                 let content = &format!("{}{}: !phs {}\n", indent, key, value);
                 result.push_str(content);
@@ -251,7 +257,8 @@ fn preprocessor_transform_phs_hidden(phlow: &str) -> String {
                 continue;
             }
 
-            if first_word.starts_with("`") {
+            // Não marcar blocos iniciando com ``` como !phs; são strings
+            if first_word.starts_with("`") && !first_word.starts_with("```") {
                 let indent = &line[..line.len() - trimmed_line.len()];
                 result.push_str(&format!("{}- !phs {}\n", indent, after_dash));
                 continue;
@@ -277,12 +284,46 @@ fn preprocessor_transform_phs_hidden(phlow: &str) -> String {
     result.to_string()
 }
 
+fn is_inside_double_quotes(s: &str, idx: usize) -> bool {
+    let mut in_quotes = false;
+    let mut escaped = false;
+    for (i, ch) in s.chars().enumerate() {
+        if i >= idx {
+            break;
+        }
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        if ch == '\\' {
+            escaped = true;
+            continue;
+        }
+        if ch == '"' {
+            in_quotes = !in_quotes;
+        }
+    }
+    in_quotes
+}
+
 fn preprocessor_eval(phlow: &str) -> String {
     let mut result = String::new();
     let mut lines = phlow.lines().peekable();
 
     while let Some(line) = lines.next() {
-        if let Some(pos) = line.find("!phs") {
+        // Encontra um !phs fora de aspas na linha
+        let mut search_start = 0usize;
+        let mut found_pos: Option<usize> = None;
+        while let Some(rel) = line[search_start..].find("!phs") {
+            let pos = search_start + rel;
+            if !is_inside_double_quotes(line, pos) {
+                found_pos = Some(pos);
+                break;
+            }
+            search_start = pos + 4; // avança após !phs
+        }
+
+        if let Some(pos) = found_pos {
             let before_eval = &line[..pos];
             let after_eval = if line.len() > pos + 4 {
                 line[pos + 4..].trim()
@@ -292,7 +333,7 @@ fn preprocessor_eval(phlow: &str) -> String {
             let indent = " ".repeat(pos);
             // Verifica se o bloco é markdown-style ```
             if after_eval.starts_with("```") {
-                // Bloco markdown-style
+                // Bloco markdown-style interpretado como string literal
                 let mut block_lines = vec![];
 
                 if after_eval == "```" {
@@ -303,17 +344,25 @@ fn preprocessor_eval(phlow: &str) -> String {
                         block_lines.push(next_line.trim().to_string());
                     }
                 } else if let Some(end_pos) = after_eval[3..].find("```") {
-                    let inner_code = &after_eval[3..3 + end_pos];
-                    block_lines.push(inner_code.trim().to_string());
+                    let mut inner_code = after_eval[3..3 + end_pos].trim().to_string();
+                    // Remove rótulo de linguagem se existir no inline
+                    if let Some(space_idx) = inner_code.find(' ') {
+                        let (first, rest) = inner_code.split_at(space_idx);
+                        if !first.is_empty() {
+                            inner_code = rest.trim_start().to_string();
+                        }
+                    }
+                    block_lines.push(inner_code);
                 }
 
                 let single_line = block_lines.join(" ");
                 let escaped = single_line.replace('"', "\\\"");
 
+                // Saída como string simples, sem "{{ }}"
                 if before_eval.trim().is_empty() {
-                    result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", indent, escaped));
+                    result.push_str(&format!("{}\"{}\"\n", indent, escaped));
                 } else {
-                    result.push_str(&format!("{}\"{{{{ {} }}}}\"\n", before_eval, escaped));
+                    result.push_str(&format!("{}\"{}\"\n", before_eval, escaped));
                 }
             }
             // Verifica se o bloco é delimitado por ${}
@@ -449,6 +498,103 @@ fn preprocessor_eval(phlow: &str) -> String {
 
     result.pop();
     result.to_string()
+}
+
+// Converte blocos iniciados com ``` em valores de string, sem necessidade de !phs
+fn preprocessor_markdown_string_blocks(phlow: &str) -> String {
+    let mut result = String::new();
+    let mut lines = phlow.lines().peekable();
+
+    while let Some(line) = lines.next() {
+        let trimmed_line = line.trim_start();
+
+        // Caso: item de lista - ``` ... ``` (processar antes de propriedade para evitar confusão com ':')
+        if trimmed_line.starts_with('-') {
+            // Caso: item de lista - ``` ... ```
+            let after_dash = trimmed_line[1..].trim_start();
+            if after_dash.starts_with("```") {
+                let indent = &line[..line.len() - trimmed_line.len()];
+                let mut block_lines: Vec<String> = Vec::new();
+
+                if after_dash == "```" {
+                    while let Some(next_line) = lines.next() {
+                        if next_line.trim() == "```" {
+                            break;
+                        }
+                        block_lines.push(next_line.trim().to_string());
+                    }
+                } else if let Some(end_pos) = after_dash[3..].find("```") {
+                    let mut inner = after_dash[3..3 + end_pos].trim().to_string();
+                    if let Some(space_idx) = inner.find(' ') {
+                        let (first, rest) = inner.split_at(space_idx);
+                        if !first.is_empty() {
+                            inner = rest.trim_start().to_string();
+                        }
+                    }
+                    block_lines.push(inner);
+                } else {
+                    // Sem fechamento na mesma linha: continua lendo até ```
+                    while let Some(next_line) = lines.next() {
+                        if next_line.trim() == "```" {
+                            break;
+                        }
+                        block_lines.push(next_line.trim().to_string());
+                    }
+                }
+
+                let single_line = block_lines.join(" ");
+                let escaped = single_line.replace('"', "\\\"");
+                result.push_str(&format!("{}- \"{}\"\n", indent, escaped));
+                continue;
+            }
+        } else if let Some(colon_pos) = trimmed_line.find(':') {
+            // Caso: propriedade key: ``` ... ```
+            let key = &trimmed_line[..colon_pos].trim();
+            let value = trimmed_line[colon_pos + 1..].trim();
+            if value.starts_with("```") {
+                let indent = &line[..line.len() - trimmed_line.len()];
+                let mut block_lines: Vec<String> = Vec::new();
+
+                if value == "```" {
+                    while let Some(next_line) = lines.next() {
+                        if next_line.trim() == "```" {
+                            break;
+                        }
+                        block_lines.push(next_line.trim().to_string());
+                    }
+                } else if let Some(end_pos) = value[3..].find("```") {
+                    let mut inner = value[3..3 + end_pos].trim().to_string();
+                    // Se houver rótulo de linguagem no início, remove-o
+                    if let Some(space_idx) = inner.find(' ') {
+                        let (first, rest) = inner.split_at(space_idx);
+                        if !first.is_empty() {
+                            inner = rest.trim_start().to_string();
+                        }
+                    }
+                    block_lines.push(inner);
+                } else {
+                    // Sem fechamento na mesma linha: continua lendo até ```
+                    while let Some(next_line) = lines.next() {
+                        if next_line.trim() == "```" {
+                            break;
+                        }
+                        block_lines.push(next_line.trim().to_string());
+                    }
+                }
+
+                let single_line = block_lines.join(" ");
+                let escaped = single_line.replace('"', "\\\"");
+                result.push_str(&format!("{}{}: \"{}\"\n", indent, key, escaped));
+                continue;
+            }
+        }
+
+        result.push_str(line);
+        result.push('\n');
+    }
+
+    result.pop();
+    result
 }
 
 fn parse_include_args(args_str: &str) -> HashMap<String, String> {
@@ -842,7 +988,8 @@ mod tests {
         "#;
         let transformed = preprocessor_eval(input);
         assert!(transformed.contains("key1: \"{{ if condition { do_something() } }}\""));
-        assert!(transformed.contains("key2: \"{{ multi_line_code(); another_line(); }}\""));
+        // Blocos com ``` devem ser tratados como strings simples
+        assert!(transformed.contains("key2: \"multi_line_code(); another_line();\""));
         assert!(transformed.contains("key3: \"{{ for item in list { process(item) } }}\""));
     }
 
@@ -910,6 +1057,81 @@ steps:
         assert_eq!(transformed, expected);
     }
 
+    #[test]
+    fn test_preprocessor_eval_triple_backtick_blocks_as_string() {
+        // Multilinha com abertura/fechamento em linhas separadas
+        let input_multiline = r#"
+        key_md_block: !phs ```
+        first_line();
+        second_line();
+        ```
+        "#;
+        let transformed_multiline = preprocessor_eval(input_multiline);
+        assert!(transformed_multiline.contains("key_md_block: \"first_line(); second_line();\""));
+
+        // Inline na mesma linha
+        let input_inline = r#"
+        key_inline_block: !phs ```single_line();```
+        "#;
+        let transformed_inline = preprocessor_eval(input_inline);
+        assert!(transformed_inline.contains("key_inline_block: \"single_line();\""));
+
+        // Inline com linguagem
+        let input_inline_lang = r#"
+        key_inline_lang: !phs ```json {"a":1}```
+        "#;
+        let transformed_inline_lang = preprocessor_eval(input_inline_lang);
+        assert!(transformed_inline_lang.contains("key_inline_lang: \"{\\\"a\\\":1}\""));
+
+        // Item de lista com bloco markdown
+        let input_list = r#"
+        - !phs ```
+        a();
+        b();
+        ```
+        "#;
+        let transformed_list = preprocessor_eval(input_list);
+        assert!(transformed_list.contains("- \"a(); b();\""));
+    }
+
+    #[test]
+    fn test_preprocessor_markdown_string_blocks_with_language_labels() {
+        // Propriedade com linguagem e conteúdo inline
+        let input_prop_inline = r#"
+        prop: ```js doThing();```
+        "#;
+        let out_prop_inline = preprocessor_markdown_string_blocks(input_prop_inline);
+        assert!(out_prop_inline.contains("prop: \"doThing();\""));
+
+        // Propriedade multilinha com linguagem
+        let input_prop_multiline = r#"
+        prompt: ```md
+        Hello
+        World
+        ```
+        "#;
+        let out_prop_multi = preprocessor_markdown_string_blocks(input_prop_multiline);
+        assert!(out_prop_multi.contains("prompt: \"Hello World\""));
+
+        // Item de lista inline com linguagem
+        let input_list_inline = r#"
+        - ```json {"x":2}```
+        "#;
+        let out_list_inline = preprocessor_markdown_string_blocks(input_list_inline);
+        println!("out_list_inline=<<<{}>>>", out_list_inline);
+        assert!(out_list_inline.contains("- \"{\\\"x\\\":2}\""));
+
+        // Item de lista multilinha com linguagem
+        let input_list_multi = r#"
+        - ```sql
+        select 1;
+        select 2;
+        ```
+        "#;
+        let out_list_multi = preprocessor_markdown_string_blocks(input_list_multi);
+        assert!(out_list_multi.contains("- \"select 1; select 2;\""));
+    }
+
     fn temporary_included_file() -> std::io::Result<()> {
         let content = r#"
         {
@@ -938,7 +1160,7 @@ steps:
             "name": "value",
             "list": [1, 2, 3]
         }
-        key3: !phs ```
+        key3: ```
         multi_line_code();
         another_line();
         ```
@@ -966,7 +1188,7 @@ steps:
 
         key1: "{{ if condition { do_something() } }}"
         key2: "{{ { \"name\": \"value\", \"list\": [1, 2, 3] } }}"
-        key3: "{{ multi_line_code(); another_line(); }}"
+        key3: "multi_line_code(); another_line();"
         modules:
           - module: test_module
 
