@@ -79,6 +79,13 @@ jobs:
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
+      - name: Cache target (macOS)
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-${{ env.TARGET }}-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.TARGET }}-target-
       - name: Make scripts executable
         run: chmod +x ./scripts/*.sh
       - name: Install yq (macOS)
@@ -119,6 +126,13 @@ jobs:
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
+      - name: Cache target (Linux amd64)
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-${{ env.TARGET }}-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.TARGET }}-target-
       - name: Make scripts executable
         run: chmod +x ./scripts/*.sh
       - name: Install yq (Linux)
@@ -158,6 +172,13 @@ jobs:
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
+      - name: Cache target (Linux aarch64)
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-${{ env.TARGET }}-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.TARGET }}-target-
       - name: Make scripts executable
         run: chmod +x ./scripts/*.sh
       - name: Install yq (Linux)

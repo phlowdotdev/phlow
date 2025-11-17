@@ -73,6 +73,22 @@ pub async fn consumer(
     let id = Arc::new(id);
     let channel = Arc::new(channel);
 
+    // Se definido, limita o número de mensagens não confirmadas (concorrência)
+    if config.max_concurrency > 0 {
+        log::debug!(
+            "Setting basic_qos prefetch_count={} (max_concurrency)",
+            config.max_concurrency
+        );
+        channel
+            .basic_qos(
+                config.max_concurrency,
+                lapin::options::BasicQosOptions { global: false },
+            )
+            .await?;
+    } else {
+        log::debug!("max_concurrency=0 (sem limites), não aplicando basic_qos");
+    }
+
     // Declare queue if not already declared
     let consumer = channel
         .basic_consume(

@@ -32,7 +32,7 @@ The AMQP module provides a comprehensive interface for sending and receiving mes
 modules:
   - name: "message_processor"
     module: "amqp"
-    version: "0.0.2"
+    version: "0.0.3"
     with:
       host: "localhost"
       port: 5672
@@ -112,6 +112,9 @@ modules:
 ### Error Handling
 - `max_retry` (integer, optional): Maximum number of retry attempts before sending to DLQ (default: 3)
 - `dlq_enable` (boolean, optional): Enable Dead Letter Queue functionality (default: true)
+
+### Concurrency
+- `max_concurrency` (integer, optional): Limite máximo de mensagens processadas simultaneamente pelo consumidor. Implementado via AMQP QoS `prefetch_count`. Use `0` para ilimitado (padrão: 0).
 
 ## 📨 Usage as Consumer (Main Module)
 
@@ -324,7 +327,7 @@ steps:
 
 ---
 
-**Version**: 0.0.2  
+**Version**: 0.0.3  
 **Author**: Philippe Assis <codephilippe@gmail.com>  
 **License**: MIT  
 **Repository**: https://github.com/phlowdotdev/phlow

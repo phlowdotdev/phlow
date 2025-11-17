@@ -1,12 +1,11 @@
-
 name: amqp
 description: |
   This module provides a comprehensive interface to send and receive messages using AMQP 0.9.1 (Advanced Message Queuing Protocol).
-  
+
   **Usage Modes:**
   - **Consumer Mode**: When configured as 'main', it consumes messages from a specified queue
   - **Producer Mode**: When used with 'use' in steps, it sends messages to exchanges or queues
-  
+
   **Features:**
   - Auto-declaration of exchanges, queues, and bindings
   - Configurable durability, exclusivity, and auto-deletion
@@ -17,7 +16,7 @@ description: |
   - SSL/TLS support via OpenSSL
   - Full observability with OpenTelemetry tracing
   - RabbitMQ definitions import via Management API
-  
+
   **Examples:**
   ```yaml
   # As consumer (main)
@@ -31,7 +30,7 @@ description: |
         exchange: "task_exchange"
         declare: true
         auto_bind: true
-  
+
   # As producer (in steps)
   steps:
     - use: amqp
@@ -42,7 +41,7 @@ description: |
           priority: "high"
           timestamp: "2024-01-01T00:00:00Z"
   ```
-version: 0.0.2
+version: 0.0.3
 author: Philippe Assis <codephilippe@gmail.com>
 repository: https://github.com/phlowdotdev/phlow
 license: MIT
@@ -59,7 +58,7 @@ with:
   type: object
   required: true
   properties:
-    uri: 
+    uri:
       type: string
       required: false
       description: "AMQP URI (e.g., amqp://user:password@host:port/vhost)"
@@ -121,6 +120,10 @@ with:
       type: boolean
       required: false
       description: "Enable Dead Letter Queue functionality (default: true)"
+    max_concurrency:
+      type: number
+      required: false
+      description: "Limite máximo de mensagens processadas simultaneamente (0 = sem limites). Usa AMQP QoS prefetch."
 input:
   type: object
   required: true

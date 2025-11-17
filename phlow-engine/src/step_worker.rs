@@ -344,6 +344,10 @@ impl StepWorker {
         }
 
         if let Some(output) = self.evaluate_return(context)? {
+            debug!(
+                "[step {}] return case acionado (condicional de parada)",
+                self.id
+            );
             {
                 span.record("step.return", output.to_string());
             }
@@ -355,6 +359,12 @@ impl StepWorker {
         }
 
         if let Some((module, output, context)) = self.evaluate_module(context).await? {
+            debug!(
+                "[step {}] módulo '{}' executado; output inicial {:?}",
+                self.id,
+                module.as_deref().unwrap_or("<none>"),
+                output
+            );
             {
                 span.record("step.module", module.clone());
 
@@ -364,6 +374,10 @@ impl StepWorker {
             }
 
             let context = if let Some(output) = output.clone() {
+                debug!(
+                    "[step {}] definindo output no contexto após execução do módulo",
+                    self.id
+                );
                 context.clone_with_output(output)
             } else {
                 context.clone()
@@ -372,6 +386,10 @@ impl StepWorker {
             let output = self.evaluate_payload(&context, output)?;
 
             if let Some(to) = &self.to {
+                debug!(
+                    "[step {}] condição 'to' detectada após módulo -> pipeline {}, step {}",
+                    self.id, to.pipeline, to.step
+                );
                 debug!(
                     "Define switching to step {} in pipeline {}",
                     to.step, to.pipeline
@@ -382,6 +400,7 @@ impl StepWorker {
                 });
             }
 
+            debug!("[step {}] seguindo para próximo step após módulo", self.id);
             return Ok(StepOutput {
                 next_step: NextStep::Next,
                 output,
@@ -389,21 +408,28 @@ impl StepWorker {
         }
 
         if let Some(condition) = &self.condition {
+            debug!("[step {}] avaliando condição", self.id);
             let (next_step, output) = if condition
                 .evaluate(context)
                 .map_err(StepWorkerError::ConditionError)?
             {
+                debug!("[step {}] condição verdadeira", self.id);
                 let next_step = if let Some(ref then_case) = self.then_case {
+                    debug!("[step {}] then_case -> pipeline {}", self.id, then_case);
                     NextStep::Pipeline(*then_case)
                 } else {
+                    debug!("[step {}] then_case não definido -> Next", self.id);
                     NextStep::Next
                 };
 
                 (next_step, self.evaluate_payload(context, None)?)
             } else {
+                debug!("[step {}] condição falsa", self.id);
                 let next_step = if let Some(ref else_case) = self.else_case {
+                    debug!("[step {}] else_case -> pipeline {}", self.id, else_case);
                     NextStep::Pipeline(*else_case)
                 } else {
+                    debug!("[step {}] else_case não definido -> Next", self.id);
                     NextStep::Next
                 };
 
@@ -431,6 +457,10 @@ impl StepWorker {
 
         if let Some(to) = &self.to {
             debug!(
+                "[step {}] condição 'to' detectada (sem módulo) -> pipeline {}, step {}",
+                self.id, to.pipeline, to.step
+            );
+            debug!(
                 "Define switching to step {} in pipeline {}",
                 to.step, to.pipeline
             );
@@ -440,6 +470,7 @@ impl StepWorker {
             });
         }
 
+        debug!("[step {}] nenhuma condição especial -> Next", self.id);
         return Ok(StepOutput {
             next_step: NextStep::Next,
             output,
