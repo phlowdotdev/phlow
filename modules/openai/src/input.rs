@@ -97,7 +97,12 @@ impl TryFrom<Value> for LocalCompletionsBody {
                             .collect::<Vec<String>>(),
                     )
                 } else {
-                    Some(vec![p.to_string()])
+                    // Se for string única, transformar em objeto JSON {"role":"user","content": prompt}
+                    // Usamos p.to_string() pois já retorna o literal JSON corretamente (com aspas e escape)
+                    Some(vec![format!(
+                        "{{\"role\":\"user\",\"content\":{}}}",
+                        p.to_string()
+                    )])
                 }
             }
             None => None,

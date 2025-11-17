@@ -52,7 +52,12 @@ fn preprocessor_directives(phlow: &str, base_path: &Path) -> (String, Vec<String
         Ok(re) => re,
         Err(_) => return (phlow.to_string(), errors),
     };
-    let include_inline_regex = match Regex::new(r"!include\s+([^\s]+)(.*)") {
+    // Captura o prefixo da linha até o !include para poder aplicar a mesma
+    // tabulação nas linhas subsequentes do conteúdo incluído.
+    // Grupo 1: tudo desde o início da linha até antes de !include
+    // Grupo 2: caminho do arquivo
+    // Grupo 3: argumentos opcionais
+    let include_inline_regex = match Regex::new(r"(?m)^([^\n]*?)!include\s+([^\s]+)(.*)") {
         Ok(re) => re,
         Err(_) => return (phlow.to_string(), errors),
     };
@@ -82,15 +87,40 @@ fn preprocessor_directives(phlow: &str, base_path: &Path) -> (String, Vec<String
 
     let with_inline_includes =
         include_inline_regex.replace_all(&with_block_includes, |caps: &regex::Captures| {
-            let rel_path = &caps[1];
-            let args_str = caps.get(2).map(|m| m.as_str()).unwrap_or("").trim();
+            let prefix = &caps[1];
+            let rel_path = &caps[2];
+            let args_str = caps.get(3).map(|m| m.as_str()).unwrap_or("").trim();
             let args = parse_include_args(args_str);
             let full_path = base_path.join(rel_path);
+
             match process_include_file(&full_path, &args) {
-                Ok(json_str) => json_str,
+                Ok(json_str) => {
+                    // Calcula a indentação de continuação com o mesmo comprimento do prefixo
+                    // (convertendo caracteres não-branco em espaços para manter o alinhamento)
+                    let continuation_indent: String = prefix
+                        .chars()
+                        .map(|ch| if ch.is_whitespace() { ch } else { ' ' })
+                        .collect();
+
+                    let mut lines = json_str.lines();
+                    if let Some(first) = lines.next() {
+                        let mut out = String::new();
+                        out.push_str(prefix);
+                        out.push_str(first);
+                        for line in lines {
+                            out.push('\n');
+                            out.push_str(&continuation_indent);
+                            out.push_str(line);
+                        }
+                        out
+                    } else {
+                        // Conteúdo vazio: mantém apenas o prefixo
+                        prefix.to_string()
+                    }
+                }
                 Err(e) => {
                     errors.push(format!("Error including file {}: {}", rel_path, e));
-                    format!("<!-- Error including file: {} -->", rel_path)
+                    format!("{}<!-- Error including file: {} -->", prefix, rel_path)
                 }
             }
         });
@@ -1147,6 +1177,18 @@ steps:
         fs::remove_file("included_file.phlow")
     }
 
+    fn temporary_included_inline_file() -> std::io::Result<()> {
+        let content = r#"{
+    "a": 1,
+    "b": 2
+}"#;
+        fs::write("included_inline.phlow", content)
+    }
+
+    fn remove_temporary_included_inline_file() -> std::io::Result<()> {
+        fs::remove_file("included_inline.phlow")
+    }
+
     #[test]
     fn test_preprocessor() {
         // create temporay included_file.phlow
@@ -1204,5 +1246,30 @@ steps:
         assert_eq!(processed, expected);
 
         remove_temporary_included_file().unwrap();
+    }
+
+    #[test]
+    fn test_preprocessor_directives_inline_include_indentation_on_mapping_value() {
+        temporary_included_inline_file().unwrap();
+
+        let input = "  key: !include included_inline.phlow";
+        let (result, errors) = preprocessor_directives(input, Path::new("."));
+
+        assert!(errors.is_empty(), "Errors found: {:?}", errors);
+
+        // Espera-se que as quebras de linha do conteúdo incluído recebam a mesma
+        // tabulação do prefixo até o !include (no caso, 2 espaços + 'key: ' = 7 espaços)
+        // Observação: o conteúdo incluído possui indentação própria (4 espaços). Como
+        // preservamos a tabulação do include E a indentação interna do conteúdo,
+        // as linhas internas ficam com (tabulação_do_prefixo + indentação_do_conteúdo) = 7 + 4 = 11 espaços.
+        let expected = "  key: {\n           \"a\": 1,\n           \"b\": 2\n       }";
+
+        assert_eq!(
+            result, expected,
+            "Inline include indentation mismatch.\nGot:\n<<<{}>>>\nExpected:\n<<<{}>>>",
+            result, expected
+        );
+
+        remove_temporary_included_inline_file().unwrap();
     }
 }
