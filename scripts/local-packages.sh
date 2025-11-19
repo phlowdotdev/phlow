@@ -154,9 +154,9 @@ package_module() {
       fi
     fi
 
-    # Build do projeto
+    # Build do projeto (apenas o pacote do módulo)
     echo "⚙️ Building module..."
-    cross build --target "$TARGET" --release --locked
+    cross build -p "$NAME" --target "$TARGET" --release --locked
 
     SO_NAME="lib${NAME}.${MODULE_EXTENSION}"
     RELEASE_PATH="../../target/$TARGET/release/$SO_NAME"

@@ -1,3 +1,4 @@
+use phlow_sdk::prelude::*;
 use regex::Regex;
 use serde_yaml::{Mapping, Value};
 use std::collections::HashMap;
@@ -137,17 +138,21 @@ fn preprocessor_directives(phlow: &str, base_path: &Path) -> (String, Vec<String
 
             match fs::read_to_string(&full_path) {
                 Ok(contents) => {
-                    let one_line = contents
-                        .lines()
-                        .map(str::trim)
-                        .collect::<Vec<_>>()
-                        .join(" ")
-                        .replace('"', "\\\"");
+                    if extension == "phs" {
+                        let one_line = contents
+                            .lines()
+                            .map(str::trim)
+                            .collect::<Vec<_>>()
+                            .join(" ")
+                            .replace('"', "\\\"");
 
-                    if extension == "phs" || extension == "rhai" {
+                        // Somente arquivos com extensão .phs devem ser tratados como código PHS.
+                        // Demais extensões devem ser retornadas como string literal.
+
                         format!(r#""{{{{ {} }}}}""#, one_line)
                     } else {
-                        format!(r#""{}""#, one_line)
+                        let content = contents.to_value().to_json_inline();
+                        format!(r#"{}"#, content)
                     }
                 }
                 Err(_) => {
@@ -1271,5 +1276,52 @@ steps:
         );
 
         remove_temporary_included_inline_file().unwrap();
+    }
+
+    #[test]
+    fn test_no_phs() {
+        let input = r#"
+        steps:
+          - assert: '{{ payload.success != true }}'
+            then:
+            - use: log
+                input:
+                action: error
+                message: '{{ payload.error }}'
+          - return: false
+          - use: log
+            input:
+                action: info
+                message: Fetched object from S3
+          - use: fs
+            input:
+                action: write
+                path: ./input.json
+                content: '{{ steps.fetch_s3_object }}'
+                force: true
+          - id: gpt
+            use: openai
+            input:
+                action: chat
+                model: gpt-5-nano
+                messages:
+                - role: user
+                content: "Product Extraction Prompt with JSON Schema\n\nAnalyze an input HTML page, extract all relevant product information, and return this data as a single object strictly following the provided JSON schema for a \"Product\" as below.\n\n## JSON Schema for \"Product\"\n\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Product\",\n  \"type\": \"object\",\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"id\": { \"type\": \"string\" },\n    \"sku\": { \"type\": \"string\" },\n    \"name\": { \"type\": \"string\" },\n    \"description\": { \"type\": \"string\" },\n    \"price\": { \"type\": \"number\" },\n    \"originalPrice\": { \"type\": \"number\" },\n    \"currency\": { \"type\": \"string\" },\n    \"stock\": { \"type\": \"integer\" },\n    \"availability\": { \"type\": \"string\" },\n    \"brand\": { \"type\": \"string\" },\n    \"category\": { \"type\": \"string\" },\n    \"categories\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } },\n    \"tags\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } },\n    \"images\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"properties\": {\n          \"url\": { \"type\": \"string\", \"format\": \"uri\" },\n          \"alt\": { \"type\": \"string\" }\n        }\n      }\n    },\n    \"videos\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"properties\": {\n          \"url\": { \"type\": \"string\", \"format\": \"uri\" },\n          \"title\": { \"type\": \"string\" }\n        }\n      }\n    },\n    \"attributes\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"properties\": {\n          \"name\": { \"type\": \"string\" },\n          \"value\": { \"type\": [\"string\", \"number\", \"boolean\"] }\n        }\n      }\n    },\n    \"variants\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"properties\": {\n          \"id\": { \"type\": \"string\" },\n          \"sku\": { \"type\": \"string\" },\n          \"name\": { \"type\": \"string\" },\n          \"price\": { \"type\": \"number\" },\n          \"originalPrice\": { \"type\": \"number\" },\n          \"currency\": { \"type\": \"string\" },\n          \"stock\": { \"type\": \"integer\" },\n          \"attributes\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"object\",\n              \"additionalProperties\": false,\n              \"properties\": {\n                \"name\": { \"type\": \"string\" },\n                \"value\": { \"type\": [\"string\", \"number\", \"boolean\"] }\n              }\n            }\n          }\n        }\n      }\n    },\n    \"rating\": { \"type\": \"number\" },\n    \"reviewCount\": { \"type\": \"integer\" },\n    \"gtin\": { \"type\": \"string\" },\n    \"mpn\": { \"type\": \"string\" },\n    \"url\": { \"type\": \"string\", \"format\": \"uri\" },\n    \"language\": { \"type\": \"string\" },\n    \"currencySymbol\": { \"type\": \"string\" },\n    \"breadcrumbs\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } },\n    \"createdAt\": { \"type\": \"string\", \"format\": \"date-time\" },\n    \"updatedAt\": { \"type\": \"string\", \"format\": \"date-time\" },\n    \"metadata\": {\n      \"type\": \"object\",\n      \"additionalProperties\": {\n        \"type\": [\"string\", \"number\", \"boolean\", \"null\"]\n      }\n    }\n  }\n}\n```\n\n## Extraction Instructions\n\nCarefully identify and map as much product information as possible from the HTML content to the respective JSON fields.  \nNormalize price, numbers, dates; do not hallucinate; omit missing values; output only one product.\n\n## Reasoning Requirements\n\nBefore outputting JSON, reason step-by-step about:  \n- How each field can be detected  \n- What normalization is needed  \n- What cannot be extracted  \n\n## Output Format\n\nReturn only **one JSON object**, no commentary or code block.\n"
+                - role: user
+                content: '{{ steps.fetch_s3_object.data }}'
+          - use: fs
+            input:
+                action: write
+                path: ./payload.json
+                content: '{{ payload }}'
+                force: true
+          - use: log
+            input:
+                action: info
+                message: '{{ steps.gpt.data.choices[0].message.content }}'
+        "#;
+
+        let transformed = preprocessor(input, &Path::new(".").to_path_buf(), false).unwrap();
+        assert_eq!(transformed, input);
     }
 }
