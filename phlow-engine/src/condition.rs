@@ -133,7 +133,7 @@ impl Condition {
 
 #[cfg(test)]
 mod test {
-    use std::{collections::HashMap, hash::Hash};
+    use std::collections::HashMap;
 
     use super::*;
     use phs::build_engine;

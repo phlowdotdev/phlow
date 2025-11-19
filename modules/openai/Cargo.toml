@@ -6,6 +6,7 @@ edition = { workspace = true }
 [lib]
 name = "openai"
 crate-type = ["cdylib"]
+doctest = false
 
 [dependencies]
 phlow-sdk = { workspace = true }

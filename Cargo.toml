@@ -20,7 +20,7 @@ members = [
     "modules/fs",
 ]
 resolver = "2"
-
+doctest = false
 [workspace.package]
 version = "0.2.6"
 edition = "2024"
@@ -37,7 +37,7 @@ phs = { path = "phs", version = "0" }
 
 #phlow
 libloading = "0.9.0"
-clap = "4.5.52"
+clap = "4.5.53"
 serde_yaml = "0.9.34"
 regex = "1.12.2"
 futures = "0.3"
