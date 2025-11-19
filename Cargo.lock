@@ -1164,18 +1164,18 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.51"
+version = "4.5.52"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c26d721170e0295f191a69bd9a1f93efcdb0aff38684b61ab5750468972e5f5"
+checksum = "aa8120877db0e5c011242f96806ce3c94e0737ab8108532a76a3300a01db2ab8"
 dependencies = [
  "clap_builder",
 ]
 
 [[package]]
 name = "clap_builder"
-version = "4.5.51"
+version = "4.5.52"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75835f0c7bf681bfd05abe44e965760fea999a5286c6eb2d59883634fd02011a"
+checksum = "02576b399397b659c26064fbc92a75fede9d18ffd5f80ca1cd74ddab167016e1"
 dependencies = [
  "anstream",
  "anstyle",
@@ -5661,23 +5661,24 @@ dependencies = [
 
 [[package]]
 name = "valu3"
-version = "0.9.3"
+version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e408fc19ff730cef7d6619e01059e6fa08519e35491444baef5de078e080cac1"
+checksum = "851710f4fb8e148fe8cc8150a61d6ed756a241bd664aad271c4f00d3036c4bd2"
 dependencies = [
  "chrono",
  "pest",
  "pest_derive",
  "regex",
  "serde",
+ "serde_json",
  "valu3-derive",
 ]
 
 [[package]]
 name = "valu3-derive"
-version = "0.9.3"
+version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dda7aa95606be1d922b83a6c0a57dbe5f3de4519ed683e6fdbde9a41c16a855d"
+checksum = "f58f0914e8db7a699af527567ecef7b6ab451dedee7667775e3047fe93323afc"
 dependencies = [
  "proc-macro2",
  "quote",
