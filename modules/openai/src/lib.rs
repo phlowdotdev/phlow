@@ -131,10 +131,8 @@ pub async fn openai(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error 
                         Ok(v) => serde_to_value(&v),
                         Err(_) => Value::from(text.clone()),
                     };
-                    let mut map = std::collections::HashMap::new();
-                    map.insert("success".to_string(), Value::from(true));
-                    map.insert("data".to_string(), data_val);
-                    sender_safe!(package.sender, success_response!(map));
+
+                    sender_safe!(package.sender, success_response!(data_val));
                 } else {
                     let msg = format!("HTTP {}: {}", status.as_u16(), text);
                     log::error!("{}", msg);
