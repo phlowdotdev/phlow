@@ -48,23 +48,6 @@ impl Script {
         })
     }
 
-    pub fn to_code_string(code: &str) -> String {
-        let code = code.trim();
-        if code.starts_with("{{") && code.ends_with("}}") {
-            code[2..code.len() - 2].to_string()
-        } else if code.parse::<i128>().is_ok()
-            || code.parse::<f64>().is_ok()
-            || code == "true".to_string()
-            || code == "false".to_string()
-            || code == "null".to_string()
-            || code == "undefined".to_string()
-        {
-            code.to_string()
-        } else {
-            format!("`{}`", code)
-        }
-    }
-
     pub fn evaluate_from_scope(&self, scope: &mut Scope) -> Result<Value, ScriptError> {
         Self::default_scope(scope)?;
 
@@ -151,21 +134,42 @@ impl Script {
                 Ok(Value::from(new_array))
             }
             _ => {
-                let code = Self::to_code_string(&value.to_string());
+                let value_string = value.to_string();
 
-                let code_fixed = Self::replace_null_safe(&code);
+                let data_string = {
+                    let code = value_string.trim();
 
-                // Aplica o pré-processamento para spread syntax
-                let preprocessor = SpreadPreprocessor::new();
-                let code_with_spread = preprocessor.process(&code_fixed);
+                    if code.starts_with("{{") && code.ends_with("}}") {
+                        let code = code[2..code.len() - 2].to_string();
 
-                let ast = match engine.compile(&code_with_spread) {
+                        let code_fixed = Self::replace_null_safe(&code);
+
+                        // Aplica o pré-processamento para spread syntax
+                        let preprocessor = SpreadPreprocessor::new();
+                        preprocessor.process(&code_fixed)
+                    } else if code.parse::<i128>().is_ok()
+                        || code.parse::<f64>().is_ok()
+                        || code == "true".to_string()
+                        || code == "false".to_string()
+                        || code == "undefined".to_string()
+                    {
+                        code.to_string()
+                    } else if code == "null".to_string() {
+                        "()".to_string()
+                    } else {
+                        value.to_json_inline()
+                    }
+                };
+
+                let ast = match engine.compile(&data_string) {
                     Ok(ast) => ast,
-                    Err(err) => return Err(ScriptError::CompileError(code_with_spread, err)),
+                    Err(err) => {
+                        return Err(ScriptError::CompileError(data_string, err));
+                    }
                 };
                 map_index_ast.insert(*counter, ast);
+                let result = counter.to_value();
 
-                let result = Value::from(*counter);
                 *counter += 1;
 
                 Ok(result)

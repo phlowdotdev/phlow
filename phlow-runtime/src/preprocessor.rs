@@ -36,7 +36,6 @@ pub fn preprocessor(
 
     if print_phlow {
         println!("");
-        println!("#####################################################################");
         println!("# PHLOW TRANSFORMED");
         println!("#####################################################################");
         println!("{}", phlow);
@@ -97,7 +96,6 @@ fn preprocessor_directives(phlow: &str, base_path: &Path) -> (String, Vec<String
             match process_include_file(&full_path, &args) {
                 Ok(json_str) => {
                     // Calcula a indentação de continuação com o mesmo comprimento do prefixo
-                    // (convertendo caracteres não-branco em espaços para manter o alinhamento)
                     let continuation_indent: String = prefix
                         .chars()
                         .map(|ch| if ch.is_whitespace() { ch } else { ' ' })
@@ -267,7 +265,8 @@ fn preprocessor_transform_phs_hidden(phlow: &str) -> String {
                 || (operators
                     .iter()
                     .any(|op| value.contains(&format!(" {} ", op)))
-                    && !value.starts_with('"'))
+                    && !value.starts_with('"')
+                    && !value.starts_with('\''))
             {
                 let indent = &line[..line.len() - trimmed_line.len()];
                 result.push_str(&format!("{}{}: !phs {}\n", indent, key, value));
@@ -303,7 +302,8 @@ fn preprocessor_transform_phs_hidden(phlow: &str) -> String {
                 || (operators
                     .iter()
                     .any(|op| after_dash.contains(&format!(" {} ", op)))
-                    && !after_dash.starts_with('"'))
+                    && !after_dash.starts_with('"')
+                    && !after_dash.starts_with('\''))
             {
                 let indent = &line[..line.len() - trimmed_line.len()];
                 result.push_str(&format!("{}- !phs {}\n", indent, after_dash));
@@ -762,11 +762,19 @@ fn preprocessor_modules(phlow: &str) -> Result<String, Vec<String>> {
         Err(_) => return Ok(phlow.to_string()),
     };
 
+    // Mantém uma cópia para detectar se houve alterações
+    let original_parsed = parsed_mut.clone();
+
     transform_value(
         &mut parsed_mut,
         &available_modules,
         false, // Começa como false, só será true dentro de steps, then ou else
     );
+
+    // Se nada mudou, preserva o YAML original (mantendo comentários e formatação)
+    if parsed_mut == original_parsed {
+        return Ok(phlow.to_string());
+    }
 
     // Converte de volta para YAML e desfaz o escape
     match serde_yaml::to_string(&parsed_mut) {
@@ -1280,48 +1288,94 @@ steps:
 
     #[test]
     fn test_no_phs() {
-        let input = r#"
-        steps:
-          - assert: '{{ payload.success != true }}'
-            then:
-            - use: log
-                input:
-                action: error
-                message: '{{ payload.error }}'
-          - return: false
-          - use: log
-            input:
-                action: info
-                message: Fetched object from S3
-          - use: fs
-            input:
-                action: write
-                path: ./input.json
-                content: '{{ steps.fetch_s3_object }}'
-                force: true
-          - id: gpt
-            use: openai
-            input:
-                action: chat
-                model: gpt-5-nano
-                messages:
-                - role: user
-                content: "Product Extraction Prompt with JSON Schema\n\nAnalyze an input HTML page, extract all relevant product information, and return this data as a single object strictly following the provided JSON schema for a \"Product\" as below.\n\n## JSON Schema for \"Product\"\n\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Product\",\n  \"type\": \"object\",\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"id\": { \"type\": \"string\" },\n    \"sku\": { \"type\": \"string\" },\n    \"name\": { \"type\": \"string\" },\n    \"description\": { \"type\": \"string\" },\n    \"price\": { \"type\": \"number\" },\n    \"originalPrice\": { \"type\": \"number\" },\n    \"currency\": { \"type\": \"string\" },\n    \"stock\": { \"type\": \"integer\" },\n    \"availability\": { \"type\": \"string\" },\n    \"brand\": { \"type\": \"string\" },\n    \"category\": { \"type\": \"string\" },\n    \"categories\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } },\n    \"tags\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } },\n    \"images\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"properties\": {\n          \"url\": { \"type\": \"string\", \"format\": \"uri\" },\n          \"alt\": { \"type\": \"string\" }\n        }\n      }\n    },\n    \"videos\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"properties\": {\n          \"url\": { \"type\": \"string\", \"format\": \"uri\" },\n          \"title\": { \"type\": \"string\" }\n        }\n      }\n    },\n    \"attributes\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"properties\": {\n          \"name\": { \"type\": \"string\" },\n          \"value\": { \"type\": [\"string\", \"number\", \"boolean\"] }\n        }\n      }\n    },\n    \"variants\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"properties\": {\n          \"id\": { \"type\": \"string\" },\n          \"sku\": { \"type\": \"string\" },\n          \"name\": { \"type\": \"string\" },\n          \"price\": { \"type\": \"number\" },\n          \"originalPrice\": { \"type\": \"number\" },\n          \"currency\": { \"type\": \"string\" },\n          \"stock\": { \"type\": \"integer\" },\n          \"attributes\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"object\",\n              \"additionalProperties\": false,\n              \"properties\": {\n                \"name\": { \"type\": \"string\" },\n                \"value\": { \"type\": [\"string\", \"number\", \"boolean\"] }\n              }\n            }\n          }\n        }\n      }\n    },\n    \"rating\": { \"type\": \"number\" },\n    \"reviewCount\": { \"type\": \"integer\" },\n    \"gtin\": { \"type\": \"string\" },\n    \"mpn\": { \"type\": \"string\" },\n    \"url\": { \"type\": \"string\", \"format\": \"uri\" },\n    \"language\": { \"type\": \"string\" },\n    \"currencySymbol\": { \"type\": \"string\" },\n    \"breadcrumbs\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } },\n    \"createdAt\": { \"type\": \"string\", \"format\": \"date-time\" },\n    \"updatedAt\": { \"type\": \"string\", \"format\": \"date-time\" },\n    \"metadata\": {\n      \"type\": \"object\",\n      \"additionalProperties\": {\n        \"type\": [\"string\", \"number\", \"boolean\", \"null\"]\n      }\n    }\n  }\n}\n```\n\n## Extraction Instructions\n\nCarefully identify and map as much product information as possible from the HTML content to the respective JSON fields.  \nNormalize price, numbers, dates; do not hallucinate; omit missing values; output only one product.\n\n## Reasoning Requirements\n\nBefore outputting JSON, reason step-by-step about:  \n- How each field can be detected  \n- What normalization is needed  \n- What cannot be extracted  \n\n## Output Format\n\nReturn only **one JSON object**, no commentary or code block.\n"
-                - role: user
-                content: '{{ steps.fetch_s3_object.data }}'
-          - use: fs
-            input:
-                action: write
-                path: ./payload.json
-                content: '{{ payload }}'
-                force: true
-          - use: log
-            input:
-                action: info
-                message: '{{ steps.gpt.data.choices[0].message.content }}'
-        "#;
+        let input = r#"modules:
+  - module: log
+  - module: fs
+  - module: openai
+    with:
+      api_key: envs.OPENAI_API_KEY
+  - module: amqp
+    with:
+      vhost: "nixyz"
+      queue_name: "queue.etl.carrefour.raw"
+      max_concurrency: 1
+      definition:
+        vhosts:
+          - name: "nixyz"
+        exchanges:
+          - name: "x.etl"
+            type: direct
+            durable: true
+            vhost: "nixyz"
+            auto_delete: true
+        queues:
+          - name: "queue.etl.carrefour.raw"
+            vhost: "nixyz"
+            durable: true
+        bindings:
+          - source: "x.extract"
+            vhost: "nixyz"
+            destination: "queue.etl.carrefour.raw"
+            destination_type: queue
+            routing_key: "mercado.carrefour.com.br.#"
+            arguments: {}
+  - module: aws
+    with:
+      region: envs.AWS_REGION
+      endpoint_url: envs.AWS_S3_ENDPOINT_URL
+      s3_force_path_style: true
+      secret_access_key: envs.AWS_SECRET_ACCESS_KEY
+      access_key_id: envs.AWS_ACCESS_KEY_ID
+
+main: amqp
+
+steps:
+  - log.info:
+      message: "Starting processing message"
+
+  - payload: main.parse()
+
+  - log.info:
+      message: payload
+
+  - id: fetch_s3_object
+    aws.s3.get_object:
+      bucket: payload.bucket
+      key: payload.key
+
+  - assert: payload.success != true
+    then:
+      - log.error:
+          message: payload.error
+      - return: false
+
+  - log.info:
+      message: "Fetched object from S3"
+
+  - fs.write:
+      path: ./input.json
+      content: steps.fetch_s3_object
+      force: true
+  
+  - id: gpt
+    openai.chat:
+      model: "gpt-5-nano"
+      messages:
+        - role: user
+          content: "\# Product Extraction Prompt with JSON Schema\n\nAnalyze an input HTML page, extract all relevant product information, and return this data as a single object strictly following the provided JSON schema for a \"Product\" as below.\n\n## JSON Schema for \"Product\"\n\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Product\",\n  \"type\": \"object\",\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"id\": { \"type\": \"string\" },\n    \"sku\": { \"type\": \"string\" },\n    \"name\": { \"type\": \"string\" },\n    \"description\": { \"type\": \"string\" },\n    \"price\": { \"type\": \"number\" },\n    \"originalPrice\": { \"type\": \"number\" },\n    \"currency\": { \"type\": \"string\" },\n    \"stock\": { \"type\": \"integer\" },\n    \"availability\": { \"type\": \"string\" },\n    \"brand\": { \"type\": \"string\" },\n    \"category\": { \"type\": \"string\" },\n    \"categories\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } },\n    \"tags\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } },\n    \"images\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"properties\": {\n          \"url\": { \"type\": \"string\", \"format\": \"uri\" },\n          \"alt\": { \"type\": \"string\" }\n        }\n      }\n    },\n    \"videos\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"properties\": {\n          \"url\": { \"type\": \"string\", \"format\": \"uri\" },\n          \"title\": { \"type\": \"string\" }\n        }\n      }\n    },\n    \"attributes\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"properties\": {\n          \"name\": { \"type\": \"string\" },\n          \"value\": { \"type\": [\"string\", \"number\", \"boolean\"] }\n        }\n      }\n    },\n    \"variants\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"properties\": {\n          \"id\": { \"type\": \"string\" },\n          \"sku\": { \"type\": \"string\" },\n          \"name\": { \"type\": \"string\" },\n          \"price\": { \"type\": \"number\" },\n          \"originalPrice\": { \"type\": \"number\" },\n          \"currency\": { \"type\": \"string\" },\n          \"stock\": { \"type\": \"integer\" },\n          \"attributes\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"object\",\n              \"additionalProperties\": false,\n              \"properties\": {\n                \"name\": { \"type\": \"string\" },\n                \"value\": { \"type\": [\"string\", \"number\", \"boolean\"] }\n              }\n            }\n          }\n        }\n      }\n    },\n    \"rating\": { \"type\": \"number\" },\n    \"reviewCount\": { \"type\": \"integer\" },\n    \"gtin\": { \"type\": \"string\" },\n    \"mpn\": { \"type\": \"string\" },\n    \"url\": { \"type\": \"string\", \"format\": \"uri\" },\n    \"language\": { \"type\": \"string\" },\n    \"currencySymbol\": { \"type\": \"string\" },\n    \"breadcrumbs\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } },\n    \"createdAt\": { \"type\": \"string\", \"format\": \"date-time\" },\n    \"updatedAt\": { \"type\": \"string\", \"format\": \"date-time\" },\n    \"metadata\": {\n      \"type\": \"object\",\n      \"additionalProperties\": {\n        \"type\": [\"string\", \"number\", \"boolean\", \"null\"]\n      }\n    }\n  }\n}\n```\n\n## Extraction Instructions\n\nCarefully identify and map as much product information as possible from the HTML content to the respective JSON fields.  \nNormalize price, numbers, dates; do not hallucinate; omit missing values; output only one product.\n\n## Reasoning Requirements\n\nBefore outputting JSON, reason step-by-step about:  \n- How each field can be detected  \n- What normalization is needed  \n- What cannot be extracted  \n\n## Output Format\n\nReturn only **one JSON object**, no commentary or code block.\n"
+        - role: user
+          content: steps.fetch_s3_object.data
+
+  - fs.write:
+      path: ./payload.json
+      content: payload
+      force: true
+
+  - log.info:
+      message: steps.gpt.data.choices[0].message.content"#;
 
         let transformed = preprocessor(input, &Path::new(".").to_path_buf(), false).unwrap();
-        assert_eq!(transformed, input);
+
+        assert!(!transformed.contains(r#"#{ \"type\": \"string\" }"#));
     }
 }

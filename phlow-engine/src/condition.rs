@@ -100,103 +100,13 @@ impl Condition {
             return Ok(Self::try_build_with_assert(engine, assert.to_string())?);
         }
 
-        let left = match value.get("left") {
-            Some(left) => left.to_string(),
-            None => return Err(ConditionError::LeftInvalid("does not exist".to_string())),
-        };
-
-        let right = match value.get("right") {
-            Some(right) => {
-                if let Value::String(right) = right {
-                    right.to_string()
-                } else {
-                    right.to_json(valu3::prelude::JsonMode::Inline)
-                }
-            }
-            None => return Err(ConditionError::RightInvalid("does not exist".to_string())),
-        };
-
-        let operator = match value.get("operator") {
-            Some(operator) => Operator::from(operator),
-            None => {
-                return Err(ConditionError::InvalidOperator(
-                    "does not exist".to_string(),
-                ))
-            }
-        };
-
-        let condition = Self::try_build_with_operator(engine, left, right, operator)?;
-
-        Ok(condition)
+        return Err(ConditionError::AssertInvalid("does not exist".to_string()));
     }
 
     pub fn try_build_with_assert(
         engine: Arc<Engine>,
         assert: String,
     ) -> Result<Self, ConditionError> {
-        let expression =
-            Script::try_build(engine, &assert.to_value()).map_err(ConditionError::ScriptError)?;
-
-        Ok(Self {
-            expression,
-            raw: assert.to_value(),
-        })
-    }
-
-    pub fn try_build_with_operator(
-        engine: Arc<Engine>,
-        left: String,
-        right: String,
-        operator: Operator,
-    ) -> Result<Self, ConditionError> {
-        let left = phs::Script::to_code_string(&left);
-        let right = phs::Script::to_code_string(&right);
-
-        let assert = {
-            match operator {
-                Operator::Or => {
-                    let query = format!("{{{{{} || {}}}}}", left, right);
-                    query
-                }
-                Operator::And => {
-                    let query = format!("{{{{{} && {}}}}}", left, right);
-                    query
-                }
-                Operator::Equal => {
-                    let query = format!("{{{{{} == {}}}}}", left, right);
-                    query
-                }
-                Operator::NotEqual => {
-                    let query = format!("{{{{{} != {}}}}}", left, right);
-                    query
-                }
-                Operator::GreaterThan => {
-                    let query = format!("{{{{{} > {}}}}}", left, right);
-                    query
-                }
-                Operator::LessThan => {
-                    let query = format!("{{{{{} < {}}}}}", left, right);
-                    query
-                }
-                Operator::GreaterThanOrEqual => {
-                    let query = format!("{{{{{} >= {}}}}}", left, right);
-                    query
-                }
-                Operator::LessThanOrEqual => {
-                    let query = format!("{{{{{} <= {}}}}}", left, right);
-                    query
-                }
-                Operator::Contains => {
-                    let query = format!("{{{{{} in {}}}}}", right, left);
-                    query
-                }
-                Operator::NotContains => {
-                    let query = format!("{{{{!({} in {})}}}}", right, left);
-                    query
-                }
-            }
-        };
-
         let expression =
             Script::try_build(engine, &assert.to_value()).map_err(ConditionError::ScriptError)?;
 
@@ -223,70 +133,16 @@ impl Condition {
 
 #[cfg(test)]
 mod test {
+    use std::{collections::HashMap, hash::Hash};
+
     use super::*;
     use phs::build_engine;
 
     #[test]
-    fn test_condition_execute_equal() {
+    fn test_condition_execute_assert() {
         let engine = build_engine(None);
-        let condition = Condition::try_build_with_operator(
-            engine,
-            "10".to_string(),
-            "20".to_string(),
-            Operator::Equal,
-        )
-        .unwrap();
-
-        let context = Context::new();
-
-        let result = condition.evaluate(&context).unwrap();
-        assert_eq!(result, false);
-    }
-
-    #[test]
-    fn test_condition_execute_not_equal() {
-        let engine = build_engine(None);
-        let condition = Condition::try_build_with_operator(
-            engine,
-            "10".to_string(),
-            "20".to_string(),
-            Operator::NotEqual,
-        )
-        .unwrap();
-
-        let context = Context::new();
-
-        let result = condition.evaluate(&context).unwrap();
-        assert_eq!(result, true);
-    }
-
-    #[test]
-    fn test_condition_execute_greater_than() {
-        let engine = build_engine(None);
-        let condition = Condition::try_build_with_operator(
-            engine,
-            "10".to_string(),
-            "20".to_string(),
-            Operator::GreaterThan,
-        )
-        .unwrap();
-
-        let context = Context::new();
-
-        let result = condition.evaluate(&context).unwrap();
-        assert_eq!(result, false);
-    }
-
-    #[test]
-    fn test_condition_execute_contains() {
-        let engine = build_engine(None);
-        let condition = Condition::try_build_with_operator(
-            engine,
-            "hello world".to_string(),
-            "hello".to_string(),
-            Operator::Contains,
-        )
-        .unwrap();
+        let assert_map = HashMap::from([("assert".to_string(), "{{ 5 > 3 }}".to_value())]);
+        let condition = Condition::try_from_value(engine, &assert_map.to_value()).unwrap();
 
         let context = Context::new();
 
