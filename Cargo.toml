@@ -17,11 +17,12 @@ members = [
     "modules/openai",
     "modules/cache",
     "modules/aws",
+    "modules/fs",
 ]
 resolver = "2"
 
 [workspace.package]
-version = "0.2.4"
+version = "0.2.5"
 edition = "2024"
 rust-version = "1.90.0"
 authors = ["Philippe Assis <codephilippe@gmail.com>"]
@@ -36,12 +37,12 @@ phs = { path = "phs", version = "0" }
 
 #phlow
 libloading = "0.9.0"
-clap = "4.5.51"
+clap = "4.5.52"
 serde_yaml = "0.9.34"
 regex = "1.12.2"
 futures = "0.3"
 libc = "0.2.177"
-valu3 = "0.9.3"
+valu3 = "0.9.6"
 tokio = { version = "1.48.0", features = ["full", "tracing"] }
 serde = { version = "1.0.228", features = ["derive"] }
 crossbeam = "0.8"

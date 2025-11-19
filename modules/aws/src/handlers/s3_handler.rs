@@ -81,6 +81,13 @@ pub async fn handle_s3_get_object(
 
     if body.as_base64.unwrap_or(false) {
         let b64 = BASE64.encode(&bytes);
+        let first_line = b64.lines().next().unwrap_or("");
+
+        log::debug!(
+            "Note: Retrieved S3 object as base64. First line:\n{}",
+            first_line
+        );
+
         Ok(json!({
             "bucket": body.bucket,
             "key": body.key,
@@ -89,15 +96,30 @@ pub async fn handle_s3_get_object(
         }))
     } else {
         match String::from_utf8(bytes.to_vec()) {
-            Ok(text) => Ok(json!({
-                "bucket": body.bucket,
-                "key": body.key,
-                "encoding": "utf-8",
-                "content": text
-            })),
+            Ok(text) => {
+                let fist_line = text.lines().next().unwrap_or("");
+
+                log::debug!(
+                    "Note: Retrieved S3 object as UTF-8 text. First line:\n{}",
+                    fist_line
+                );
+
+                Ok(json!({
+                    "bucket": body.bucket,
+                    "key": body.key,
+                    "encoding": "utf-8",
+                    "content": text
+                }))
+            }
             Err(_) => {
                 // Fallback to base64 if not UTF-8
                 let b64 = BASE64.encode(bytes);
+
+                log::debug!(
+                    "Note: Retrieved S3 object is not valid UTF-8; returning as base64. First line:\n{}",
+                    b64.lines().next().unwrap_or("")
+                );
+
                 Ok(json!({
                     "bucket": body.bucket,
                     "key": body.key,

@@ -87,7 +87,7 @@ async fn main() {
         }
     };
 
-    if settings.no_run {
+    if settings.no_run || settings.analyzer {
         return;
     }
 
@@ -144,6 +144,36 @@ async fn main() {
         }
     };
 
-    // passamos a future para o escopo correto de dispatcher
-    tracing::dispatcher::with_default(&dispatch, || fut).await;
+    // Aguarda execução normal ou sinal de encerramento (Ctrl+C/SIGTERM)
+    #[cfg(not(unix))]
+    let shutdown = async {
+        // Ctrl+C (todas as plataformas)
+        let _ = tokio::signal::ctrl_c().await;
+    };
+
+    #[cfg(unix)]
+    let shutdown = async {
+        use tokio::signal::unix::{SignalKind, signal};
+        let mut sigint = signal(SignalKind::interrupt()).ok();
+        let mut sigterm = signal(SignalKind::terminate()).ok();
+
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {},
+            _ = async { if let Some(ref mut s)=sigint { s.recv().await; } } => {},
+            _ = async { if let Some(ref mut s)=sigterm { s.recv().await; } } => {},
+        }
+    };
+
+    tokio::select! {
+        _ = tracing::dispatcher::with_default(&dispatch, || fut) => {
+            // Execução terminou normalmente
+        },
+        _ = shutdown => {
+            log::info!("Sinal de encerramento recebido. Finalizando Phlow...");
+            // Liberar / descarregar instrumentação antes de sair
+            drop(guard);
+            // Sair com código 130 (Ctrl+C) para indicar interrupção pelo usuário
+            std::process::exit(130);
+        }
+    }
 }

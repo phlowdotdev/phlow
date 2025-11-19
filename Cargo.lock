@@ -108,7 +108,7 @@ dependencies = [
  "hostname",
  "lapin",
  "openssl",
- "phlow-sdk 0.2.4",
+ "phlow-sdk 0.2.5",
  "reqwest",
  "serde_json",
  "url",
@@ -406,7 +406,7 @@ dependencies = [
  "aws-sdk-sqs",
  "base64 0.22.1",
  "bytes",
- "phlow-sdk 0.2.4",
+ "phlow-sdk 0.2.5",
 ]
 
 [[package]]
@@ -1080,7 +1080,7 @@ name = "cache"
 version = "0.1.0"
 dependencies = [
  "log 0.4.28",
- "phlow-sdk 0.2.4",
+ "phlow-sdk 0.2.5",
  "quickleaf",
  "serde",
  "tokio",
@@ -1164,18 +1164,18 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.51"
+version = "4.5.52"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c26d721170e0295f191a69bd9a1f93efcdb0aff38684b61ab5750468972e5f5"
+checksum = "aa8120877db0e5c011242f96806ce3c94e0737ab8108532a76a3300a01db2ab8"
 dependencies = [
  "clap_builder",
 ]
 
 [[package]]
 name = "clap_builder"
-version = "4.5.51"
+version = "4.5.52"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75835f0c7bf681bfd05abe44e965760fea999a5286c6eb2d59883634fd02011a"
+checksum = "02576b399397b659c26064fbc92a75fede9d18ffd5f80ca1cd74ddab167016e1"
 dependencies = [
  "anstream",
  "anstyle",
@@ -1194,7 +1194,7 @@ name = "cli"
 version = "0.1.0"
 dependencies = [
  "colored",
- "phlow-sdk 0.2.4",
+ "phlow-sdk 0.2.5",
 ]
 
 [[package]]
@@ -1657,7 +1657,7 @@ dependencies = [
 name = "echo"
 version = "0.1.0"
 dependencies = [
- "phlow-sdk 0.2.4",
+ "phlow-sdk 0.2.5",
  "serde_json",
 ]
 
@@ -1988,6 +1988,17 @@ name = "from-path"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5a32daba01ad4b00b41373a471bbf6b68a53598b6c5d55bfa995f858288712b"
+
+[[package]]
+name = "fs"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "phlow-sdk 0.2.5",
+ "serde",
+ "serde_json",
+ "tokio",
+]
 
 [[package]]
 name = "fs_extra"
@@ -2361,7 +2372,7 @@ version = "0.1.0"
 dependencies = [
  "lazy_static",
  "openssl",
- "phlow-sdk 0.2.4",
+ "phlow-sdk 0.2.5",
  "reqwest",
 ]
 
@@ -2833,7 +2844,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "jsonwebtoken",
- "phlow-sdk 0.2.4",
+ "phlow-sdk 0.2.5",
  "serde",
  "serde_json",
  "tokio-test",
@@ -3028,7 +3039,7 @@ version = "0.0.2"
 dependencies = [
  "env_logger",
  "log 0.4.28",
- "phlow-sdk 0.2.4",
+ "phlow-sdk 0.2.5",
 ]
 
 [[package]]
@@ -3266,7 +3277,7 @@ name = "openai"
 version = "0.1.0"
 dependencies = [
  "openai_api_rust",
- "phlow-sdk 0.2.4",
+ "phlow-sdk 0.2.5",
 ]
 
 [[package]]
@@ -3656,11 +3667,11 @@ dependencies = [
 
 [[package]]
 name = "phlow-engine"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "once_cell",
- "phlow-sdk 0.2.4",
- "phs 0.2.4",
+ "phlow-sdk 0.2.5",
+ "phs 0.2.5",
  "regex",
  "rhai",
  "serde",
@@ -3675,7 +3686,7 @@ dependencies = [
  "anyhow",
  "futures",
  "hostname",
- "phlow-sdk 0.2.4",
+ "phlow-sdk 0.2.5",
  "serde",
  "tarpc",
  "tokio",
@@ -3685,7 +3696,7 @@ dependencies = [
 
 [[package]]
 name = "phlow-runtime"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "anyhow",
  "chrono",
@@ -3703,7 +3714,7 @@ dependencies = [
  "mimalloc",
  "openssl",
  "phlow-engine",
- "phlow-sdk 0.2.4",
+ "phlow-sdk 0.2.5",
  "regex",
  "reqwest",
  "serde",
@@ -3741,7 +3752,7 @@ dependencies = [
 
 [[package]]
 name = "phlow-sdk"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "crossbeam",
  "env_logger",
@@ -3752,7 +3763,7 @@ dependencies = [
  "opentelemetry-semantic-conventions 0.31.0",
  "opentelemetry-stdout",
  "opentelemetry_sdk 0.31.0",
- "phs 0.2.4",
+ "phs 0.2.5",
  "serde",
  "tokio",
  "tracing",
@@ -3780,7 +3791,7 @@ dependencies = [
 
 [[package]]
 name = "phs"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -3934,11 +3945,11 @@ dependencies = [
 
 [[package]]
 name = "postgres"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "chrono",
  "deadpool-postgres",
- "phlow-sdk 0.2.4",
+ "phlow-sdk 0.2.5",
  "tokio-postgres",
 ]
 
@@ -4723,14 +4734,15 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.140"
+version = "1.0.145"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20068b6e96dc6c9bd23e01df8827e6c7e1f2fddd43c21810382803c136b99373"
+checksum = "402a6f66d8c709116cf22f558eab210f5a50187f702eb4d7e5ef38d9a7f1c79c"
 dependencies = [
  "itoa",
  "memchr",
  "ryu",
  "serde",
+ "serde_core",
 ]
 
 [[package]]
@@ -4867,7 +4879,7 @@ dependencies = [
 name = "sleep"
 version = "0.1.0"
 dependencies = [
- "phlow-sdk 0.2.4",
+ "phlow-sdk 0.2.5",
 ]
 
 [[package]]
@@ -5649,23 +5661,24 @@ dependencies = [
 
 [[package]]
 name = "valu3"
-version = "0.9.3"
+version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e408fc19ff730cef7d6619e01059e6fa08519e35491444baef5de078e080cac1"
+checksum = "851710f4fb8e148fe8cc8150a61d6ed756a241bd664aad271c4f00d3036c4bd2"
 dependencies = [
  "chrono",
  "pest",
  "pest_derive",
  "regex",
  "serde",
+ "serde_json",
  "valu3-derive",
 ]
 
 [[package]]
 name = "valu3-derive"
-version = "0.9.3"
+version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dda7aa95606be1d922b83a6c0a57dbe5f3de4519ed683e6fdbde9a41c16a855d"
+checksum = "f58f0914e8db7a699af527567ecef7b6ab451dedee7667775e3047fe93323afc"
 dependencies = [
  "proc-macro2",
  "quote",
