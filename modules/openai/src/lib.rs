@@ -39,9 +39,11 @@ pub async fn openai(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error 
     );
 
     let mut client_builder = Client::builder().default_headers(headers);
+
     if let Some(proxy) = &setup.proxy {
         client_builder = client_builder.proxy(reqwest::Proxy::all(proxy)?);
     }
+
     let client = client_builder.build()?;
 
     let base = setup.api_url.trim_end_matches('/').to_string();
