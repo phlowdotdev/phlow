@@ -116,7 +116,7 @@ pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Erro
 
     for handle in handles {
         if let Err(e) = handle.await {
-            eprintln!("Error in task: {:?}", e);
+            log::error!("Error in task: {:?}", e);
         }
     }
 

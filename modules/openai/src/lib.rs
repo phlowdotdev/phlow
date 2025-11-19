@@ -46,7 +46,7 @@ pub async fn openai(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error 
 
     let base = setup.api_url.trim_end_matches('/').to_string();
 
-    println!("OpenAI module initialized with model: {}", setup.model);
+    log::debug!("OpenAI module initialized with model: {}", setup.model);
 
     for package in rx {
         let mut input = package.input().unwrap_or(Value::Null);
@@ -59,7 +59,7 @@ pub async fn openai(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error 
         let openai_input = match OpenaiInput::try_from(input) {
             Ok(cfg) => cfg,
             Err(e) => {
-                println!("Error parsing OpenAI config: {}", e);
+                log::error!("Error parsing OpenAI config: {}", e);
                 sender_safe!(
                     package.sender,
                     Value::from(format!("Error parsing OpenAI config: {}", e)).into()
@@ -84,7 +84,7 @@ pub async fn openai(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error 
                 Ok(v) => v,
                 Err(err) => {
                     let msg = format!("Invalid JSON body: {}", err);
-                    println!("{}", msg);
+                    log::error!("{}", msg);
                     sender_safe!(package.sender, error_response!(msg));
                     continue;
                 }
@@ -100,7 +100,7 @@ pub async fn openai(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error 
                     Ok(f) => f,
                     Err(e) => {
                         let msg = format!("Erro ao montar multipart: {}", e);
-                        println!("{}", msg);
+                        log::error!("{}", msg);
                         sender_safe!(package.sender, error_response!(msg));
                         continue;
                     }
@@ -117,7 +117,7 @@ pub async fn openai(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error 
                     Ok(b) => b,
                     Err(e) => {
                         let msg = format!("Erro lendo resposta: {}", e);
-                        println!("{}", msg);
+                        log::error!("{}", msg);
                         sender_safe!(package.sender, error_response!(msg));
                         continue;
                     }
@@ -135,13 +135,13 @@ pub async fn openai(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error 
                     sender_safe!(package.sender, success_response!(map));
                 } else {
                     let msg = format!("HTTP {}: {}", status.as_u16(), text);
-                    println!("{}", msg);
+                    log::error!("{}", msg);
                     sender_safe!(package.sender, error_response!(msg));
                 }
             }
             Err(e) => {
                 let msg = format!("Erro na requisição: {}", e);
-                println!("{}", msg);
+                log::error!("{}", msg);
                 sender_safe!(package.sender, error_response!(msg));
             }
         }
