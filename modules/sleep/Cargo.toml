@@ -10,3 +10,4 @@ phlow-sdk = { workspace = true }
 [lib]
 name = "sleep"
 crate-type = ["cdylib"]
+doctest = false

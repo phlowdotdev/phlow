@@ -11,3 +11,4 @@ env_logger = { version = "0.11" }
 [lib]
 name = "log"
 crate-type = ["cdylib"]
+doctest = false

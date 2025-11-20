@@ -10,3 +10,4 @@ colored = "3.0.0"
 [lib]
 name = "cli"
 crate-type = ["cdylib"]
+doctest = false

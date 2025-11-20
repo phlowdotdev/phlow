@@ -19,3 +19,4 @@ regex = "1.10"
 [lib]
 name = "http_server"
 crate-type = ["cdylib"]
+doctest = false

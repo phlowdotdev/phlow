@@ -16,3 +16,4 @@ base64 = "0.22"
 [lib]
 name = "fs"
 crate-type = ["cdylib"]
+doctest = false

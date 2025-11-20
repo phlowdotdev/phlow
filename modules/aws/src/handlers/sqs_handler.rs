@@ -170,7 +170,6 @@ pub async fn handle_sqs_delete_queue(
 ) -> Result<Value, String> {
     let queue_url = resolve_queue_url(client, body.queue_url, body.queue_name).await?;
 
-    println!("------------ force: {:?}", body.force);
     if body.force.unwrap_or(false) {
         debug!("Force deleting SQS queue: {}", &queue_url);
         // Best-effort purge before deletion; ignore errors like PurgeQueueInProgress
@@ -189,7 +188,6 @@ pub async fn handle_sqs_delete_queue(
             .await
             .map_err(|e| format!("SQS receive_message error: {:?}", e))?;
         let msgs = resp.messages();
-        println!("------------ msgs: {:?}", msgs);
         if !msgs.is_empty() {
             return Err("SQS queue is not empty; use 'force' to delete".to_string());
         }

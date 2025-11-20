@@ -6,7 +6,14 @@ edition = { workspace = true }
 [lib]
 name = "openai"
 crate-type = ["cdylib"]
+doctest = false
 
 [dependencies]
 phlow-sdk = { workspace = true }
-openai_api_rust = "0.1.9"
+reqwest = { version = "0.12", default-features = false, features = [
+    "json",
+    "multipart",
+    "rustls-tls",
+] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

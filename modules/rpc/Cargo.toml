@@ -17,3 +17,4 @@ hostname = "0.4.1"
 [lib]
 name = "rpc"
 crate-type = ["cdylib"]
+doctest = false

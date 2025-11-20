@@ -1,8 +1,7 @@
-use openai_api_rust::Auth;
 use phlow_sdk::prelude::{ToValueBehavior, Value};
 
 pub struct Setup {
-    pub auth: Auth,
+    pub api_key: String,
     pub model: Value,
     pub proxy: Option<String>,
     pub api_url: String,
@@ -13,8 +12,8 @@ impl TryFrom<Value> for Setup {
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         if value.is_null() {
-            let auth = if let Ok(key) = std::env::var("OPENAI_API_KEY") {
-                Auth::new(&key)
+            let api_key = if let Ok(key) = std::env::var("OPENAI_API_KEY") {
+                key
             } else {
                 return Err(
                     "OpenAI API key not provided in config or OPENAI_API_KEY env variable".into(),
@@ -22,18 +21,18 @@ impl TryFrom<Value> for Setup {
             };
 
             return Ok(Setup {
-                auth,
+                api_key,
                 model: "gpt-5-mini".to_value(),
                 proxy: None,
                 api_url: "https://api.openai.com/v1/".to_string(),
             });
         }
 
-        let auth: Auth = {
+        let api_key: String = {
             if let Some(api_key) = value.get("api_key") {
-                Auth::new(api_key.to_string().as_str())
+                api_key.to_string()
             } else if let Ok(api_key) = std::env::var("OPENAI_API_KEY") {
-                Auth::new(&api_key)
+                api_key
             } else {
                 return Err(
                     "OpenAI API key not provided in config or OPENAI_API_KEY env variable".into(),
@@ -54,7 +53,7 @@ impl TryFrom<Value> for Setup {
             .unwrap_or("https://api.openai.com/v1/".to_string());
 
         Ok(Setup {
-            auth,
+            api_key,
             model,
             proxy,
             api_url,

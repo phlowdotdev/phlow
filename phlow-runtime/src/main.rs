@@ -169,7 +169,7 @@ async fn main() {
             // Execução terminou normalmente
         },
         _ = shutdown => {
-            log::info!("Sinal de encerramento recebido. Finalizando Phlow...");
+            log::info!("Received shutdown signal. Bye bye!");
             // Liberar / descarregar instrumentação antes de sair
             drop(guard);
             // Sair com código 130 (Ctrl+C) para indicar interrupção pelo usuário
