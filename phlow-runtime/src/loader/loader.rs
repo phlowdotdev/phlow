@@ -260,13 +260,26 @@ fn resolve_script(file: &str, main_file_path: String, print_yaml: bool) -> Resul
         let script_path = Path::new(&main_file_path)
             .parent()
             .unwrap_or_else(|| Path::new("."));
-        let script: String = preprocessor(&file, script_path, print_yaml).map_err(|errors| {
-            eprintln!("❌ Failed to transform YAML file: {}", main_file_path);
-            Error::ModuleLoaderError(format!(
-                "YAML transformation failed with {} error(s)",
-                errors.len()
-            ))
-        })?;
+
+        // Se a extensão do arquivo for yaml ou yml, não executar o preprocessor
+        let extension = Path::new(&main_file_path)
+            .extension()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_lowercase();
+
+        let script: String = if extension == "yaml" || extension == "yml" {
+            // Usar o conteúdo original do arquivo quando for YAML
+            file.to_string()
+        } else {
+            preprocessor(&file, script_path, print_yaml).map_err(|errors| {
+                eprintln!("❌ Failed to transform YAML file: {}", main_file_path);
+                Error::ModuleLoaderError(format!(
+                    "YAML transformation failed with {} error(s)",
+                    errors.len()
+                ))
+            })?
+        };
 
         if let Ok(yaml_show) = std::env::var("PHLOW_SCRIPT_SHOW") {
             if yaml_show == "true" {

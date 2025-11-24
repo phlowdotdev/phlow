@@ -102,13 +102,13 @@ dependencies = [
 
 [[package]]
 name = "amqp"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "futures-lite",
  "hostname",
  "lapin",
  "openssl",
- "phlow-sdk 0.2.6",
+ "phlow-sdk 0.2.7",
  "reqwest",
  "serde_json",
  "url",
@@ -405,7 +405,7 @@ dependencies = [
  "aws-sdk-sqs",
  "base64 0.22.1",
  "bytes",
- "phlow-sdk 0.2.6",
+ "phlow-sdk 0.2.7",
 ]
 
 [[package]]
@@ -1047,7 +1047,7 @@ dependencies = [
 name = "cache"
 version = "0.1.0"
 dependencies = [
- "phlow-sdk 0.2.6",
+ "phlow-sdk 0.2.7",
  "quickleaf",
  "serde",
  "tokio",
@@ -1142,7 +1142,7 @@ name = "cli"
 version = "0.1.0"
 dependencies = [
  "colored",
- "phlow-sdk 0.2.6",
+ "phlow-sdk 0.2.7",
 ]
 
 [[package]]
@@ -1606,7 +1606,7 @@ dependencies = [
 name = "echo"
 version = "0.1.0"
 dependencies = [
- "phlow-sdk 0.2.6",
+ "phlow-sdk 0.2.7",
  "serde_json",
 ]
 
@@ -1949,7 +1949,7 @@ name = "fs"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
- "phlow-sdk 0.2.6",
+ "phlow-sdk 0.2.7",
  "serde",
  "serde_json",
  "tokio",
@@ -2321,7 +2321,7 @@ version = "0.1.0"
 dependencies = [
  "lazy_static",
  "openssl",
- "phlow-sdk 0.2.6",
+ "phlow-sdk 0.2.7",
  "reqwest",
 ]
 
@@ -2781,7 +2781,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "jsonwebtoken",
- "phlow-sdk 0.2.6",
+ "phlow-sdk 0.2.7",
  "serde",
  "serde_json",
  "tokio-test",
@@ -2969,7 +2969,7 @@ dependencies = [
 name = "log"
 version = "0.0.4"
 dependencies = [
- "phlow-sdk 0.2.6",
+ "phlow-sdk 0.2.7",
 ]
 
 [[package]]
@@ -3215,7 +3215,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 name = "openai"
 version = "0.1.0"
 dependencies = [
- "phlow-sdk 0.2.6",
+ "phlow-sdk 0.2.7",
  "reqwest",
  "serde",
  "serde_json",
@@ -3593,11 +3593,11 @@ dependencies = [
 
 [[package]]
 name = "phlow-engine"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "once_cell",
- "phlow-sdk 0.2.6",
- "phs 0.2.6",
+ "phlow-sdk 0.2.7",
+ "phs 0.2.7",
  "regex",
  "rhai",
  "serde",
@@ -3612,7 +3612,7 @@ dependencies = [
  "anyhow",
  "futures",
  "hostname",
- "phlow-sdk 0.2.6",
+ "phlow-sdk 0.2.7",
  "serde",
  "tarpc",
  "tokio",
@@ -3622,7 +3622,7 @@ dependencies = [
 
 [[package]]
 name = "phlow-runtime"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "anyhow",
  "chrono",
@@ -3640,7 +3640,7 @@ dependencies = [
  "mimalloc",
  "openssl",
  "phlow-engine",
- "phlow-sdk 0.2.6",
+ "phlow-sdk 0.2.7",
  "regex",
  "reqwest",
  "serde",
@@ -3665,7 +3665,7 @@ dependencies = [
  "opentelemetry-semantic-conventions 0.31.0",
  "opentelemetry-stdout",
  "opentelemetry_sdk 0.31.0",
- "phs 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phs 0.2.6",
  "serde",
  "tokio",
  "tracing",
@@ -3678,7 +3678,7 @@ dependencies = [
 
 [[package]]
 name = "phlow-sdk"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "crossbeam",
  "env_logger",
@@ -3689,7 +3689,7 @@ dependencies = [
  "opentelemetry-semantic-conventions 0.31.0",
  "opentelemetry-stdout",
  "opentelemetry_sdk 0.31.0",
- "phs 0.2.6",
+ "phs 0.2.7",
  "serde",
  "tokio",
  "tracing",
@@ -3703,6 +3703,8 @@ dependencies = [
 [[package]]
 name = "phs"
 version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e0d1452b2e3d4409cb80d8a18b9cad79285ee6d9526cd70e11eeee1f3e533f2"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -3716,9 +3718,7 @@ dependencies = [
 
 [[package]]
 name = "phs"
-version = "0.2.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e0d1452b2e3d4409cb80d8a18b9cad79285ee6d9526cd70e11eeee1f3e533f2"
+version = "0.2.7"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -3871,11 +3871,11 @@ dependencies = [
 
 [[package]]
 name = "postgres"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "chrono",
  "deadpool-postgres",
- "phlow-sdk 0.2.6",
+ "phlow-sdk 0.2.7",
  "tokio-postgres",
 ]
 
@@ -4798,7 +4798,7 @@ checksum = "7a2ae44ef20feb57a68b23d846850f861394c2e02dc425a50098ae8c90267589"
 name = "sleep"
 version = "0.1.0"
 dependencies = [
- "phlow-sdk 0.2.6",
+ "phlow-sdk 0.2.7",
 ]
 
 [[package]]

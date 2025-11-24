@@ -1,6 +1,7 @@
 use crate::preprocessor::SpreadPreprocessor;
 use crate::variable::Variable;
-use regex::Regex;
+// regex crate was previously used to detect `null` but a custom scanner
+// replaced that logic. Keep imports minimal.
 use rhai::{
     AST, Engine, EvalAltResult, ParseError, Scope,
     serde::{from_dynamic, to_dynamic},
@@ -102,8 +103,87 @@ impl Script {
     }
 
     fn replace_null_safe(code: &str) -> String {
-        let re = Regex::new(r"\bnull\b").unwrap();
-        re.replace_all(code, "()").to_string()
+        // Replace occurrences of the token `null` with `()` only when
+        // the token is not inside single or double quoted strings.
+        // We perform a simple stateful scan to track whether we're inside
+        // a string and respect escape sequences.
+        let mut out = String::with_capacity(code.len());
+        let mut i = 0usize;
+        let len = code.len();
+        let mut in_single = false;
+        let mut in_double = false;
+
+        while i < len {
+            // Get next char and its byte length (handles UTF-8 correctly).
+            let ch = code[i..].chars().next().unwrap();
+            let ch_len = ch.len_utf8();
+
+            // Handle escape sequences: copy escape and next char verbatim.
+            if ch == '\\' {
+                out.push('\\');
+                if i + ch_len < len {
+                    let next_ch = code[i + ch_len..].chars().next().unwrap();
+                    out.push(next_ch);
+                    i += ch_len + next_ch.len_utf8();
+                } else {
+                    i += ch_len;
+                }
+                continue;
+            }
+
+            // Toggle string states when encountering quotes (unless escaped,
+            // but escapes were handled above).
+            if ch == '"' && !in_single {
+                in_double = !in_double;
+                out.push(ch);
+                i += ch_len;
+                continue;
+            }
+
+            if ch == '\'' && !in_double {
+                in_single = !in_single;
+                out.push(ch);
+                i += ch_len;
+                continue;
+            }
+
+            // If we're not inside any string, attempt to match the token `null`
+            // ensuring token boundaries (previous and next are non-word or edges).
+            if !in_single && !in_double {
+                if code[i..].starts_with("null") {
+                    let prev_char = if i == 0 {
+                        None
+                    } else {
+                        Some(code[..i].chars().rev().next().unwrap())
+                    };
+                    let after_index = i + 4;
+                    let next_char = if after_index >= len {
+                        None
+                    } else {
+                        Some(code[after_index..].chars().next().unwrap())
+                    };
+
+                    let prev_is_word = prev_char
+                        .map(|c| c.is_alphanumeric() || c == '_')
+                        .unwrap_or(false);
+                    let next_is_word = next_char
+                        .map(|c| c.is_alphanumeric() || c == '_')
+                        .unwrap_or(false);
+
+                    if !prev_is_word && !next_is_word {
+                        out.push_str("()");
+                        i += 4;
+                        continue;
+                    }
+                }
+            }
+
+            // Default: copy current char.
+            out.push(ch);
+            i += ch_len;
+        }
+
+        out
     }
 
     fn extract_primitives(
@@ -531,5 +611,23 @@ mod test {
         } else {
             panic!("Result should be an object");
         }
+    }
+
+    #[test]
+    fn test_null_token_vs_string() {
+        // Verifica que a string "null" não é substituída e que o token null
+        // (não-quoted) ainda compila quando presente no código.
+        let script = r#"{{
+            let a = "null";
+            let b = null;
+            a
+        }}"#;
+
+        let context = Context::new();
+        let engine = build_engine(None);
+        let payload = Script::try_build(engine, &script.to_value()).unwrap();
+
+        let result = payload.evaluate(&context).unwrap();
+        assert_eq!(result, Value::from("null"));
     }
 }
