@@ -1,0 +1,55 @@
+modules:
+  - module: log
+  - module: amqp
+    with:
+      vhost: "demo"
+      queue_name: "queue.my-result"
+      max_concurrency: 1
+      definition:
+        vhosts:
+          - name: "demo"
+        exchanges:
+          - name: "x.my-result"
+            type: "direct"
+            durable: true
+            vhost: "demo"
+            auto_delete: true
+          - name: "x.my-result.dlq"
+            type: "direct"
+            durable: true
+            vhost: "demo"
+            auto_delete: true
+        queues:
+          - name: "queue.my-result"
+            vhost: "demo"
+            durable: true
+            arguments:
+              x-dead-letter-exchange: "x.my-result.dlq"
+              x-dead-letter-routing-key: "my-result.dlq"
+          - name: "queue.my-result.dlq"
+            vhost: "demo"
+            durable: true
+            arguments: {}
+        bindings:
+          - source: "x.my-result"
+            vhost: "demo"
+            destination: "queue.my-result"
+            destination_type: "queue"
+            routing_key: "my-result"
+            arguments: {}
+          - source: "x.my-result.dlq"
+            vhost: "demo"
+            destination: "queue.my-result.dlq"
+            destination_type: "queue"
+            routing_key: "my-result.dlq"
+            arguments: {}
+
+main: amqp
+
+steps:
+  - log.info:
+      message: "Starting processing message"
+
+  - payload: main.parse()
+
+  - return: false

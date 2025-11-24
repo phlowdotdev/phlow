@@ -1,6 +1,6 @@
 use phlow_sdk::prelude::*;
 
-create_step!(log(rx));
+create_step!(phlow_log(rx));
 
 #[derive(Debug)]
 enum LogLevel {
@@ -24,14 +24,23 @@ impl From<&Value> for Log {
                 "debug" => LogLevel::Debug,
                 "warn" => LogLevel::Warn,
                 "error" => LogLevel::Error,
-                _ => LogLevel::Info,
+                _ => match value.get("action") {
+                    Some(action) => match action.to_string().as_str() {
+                        "info" => LogLevel::Info,
+                        "debug" => LogLevel::Debug,
+                        "warn" => LogLevel::Warn,
+                        "error" => LogLevel::Error,
+                        _ => LogLevel::Info,
+                    },
+                    _ => LogLevel::Info,
+                },
             },
             _ => match value.get("action") {
                 Some(action) => match action.to_string().as_str() {
-                    "log_info" => LogLevel::Info,
-                    "log_debug" => LogLevel::Debug,
-                    "log_warn" => LogLevel::Warn,
-                    "log_error" => LogLevel::Error,
+                    "info" => LogLevel::Info,
+                    "debug" => LogLevel::Debug,
+                    "warn" => LogLevel::Warn,
+                    "error" => LogLevel::Error,
                     _ => LogLevel::Info,
                 },
                 _ => LogLevel::Info,
@@ -44,7 +53,7 @@ impl From<&Value> for Log {
     }
 }
 
-pub async fn log(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn phlow_log(rx: ModuleReceiver) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     log::debug!("Log module started, waiting for messages");
 
     listen!(rx, move |package: ModulePackage| async {

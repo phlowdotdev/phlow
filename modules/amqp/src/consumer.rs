@@ -6,58 +6,8 @@ use phlow_sdk::tracing::{field, Dispatch, Level};
 
 use std::sync::Arc;
 
-// Função para verificar se DLQ está configurada via API do RabbitMQ
-async fn check_dlq_configured(config: &Config) -> bool {
-    let management_port = 15672; // Porta padrão da Management API
-    let client = reqwest::Client::new();
-    
-    // Verificar se a fila tem dead letter exchange configurado
-    let url = format!(
-        "http://{}:{}/api/queues/{}/{}",
-        config.host,
-        management_port,
-        urlencoding::encode(&config.vhost),
-        urlencoding::encode(&config.queue_name)
-    );
-    
-    match client
-        .get(&url)
-        .basic_auth(&config.username, Some(&config.password))
-        .send()
-        .await
-    {
-        Ok(response) => {
-            if response.status().is_success() {
-                match response.json::<serde_json::Value>().await {
-                    Ok(queue_info) => {
-                        // Verificar se há x-dead-letter-exchange configurado
-                        if let Some(arguments) = queue_info.get("arguments") {
-                            if let Some(dle) = arguments.get("x-dead-letter-exchange") {
-                                if !dle.is_null() && dle.as_str().unwrap_or("").trim() != "" {
-                                    log::debug!("DLQ configured: x-dead-letter-exchange = {}", dle);
-                                    return true;
-                                }
-                            }
-                        }
-                        log::debug!("DLQ not configured: no x-dead-letter-exchange found");
-                        false
-                    }
-                    Err(e) => {
-                        log::warn!("Failed to parse queue info: {}", e);
-                        false
-                    }
-                }
-            } else {
-                log::warn!("Failed to get queue info: HTTP {}", response.status());
-                false
-            }
-        }
-        Err(e) => {
-            log::warn!("Failed to connect to RabbitMQ Management API: {}", e);
-            false
-        }
-    }
-}
+// Nota: decisão sobre DLQ foi simplificada para tentar NACK com requeue=false
+// diretamente; se falhar, o código faz fallback para requeue=true.
 
 pub async fn consumer(
     id: ModuleId,
@@ -66,7 +16,8 @@ pub async fn consumer(
     channel: lapin::Channel,
     dispatch: Dispatch,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    log::debug!("Starting consumer with max_retry={} and dlq_enable={}", config.max_retry, config.dlq_enable);
+    use_log!();
+    println!("Starting consumer with max_retry={} and dlq_enable={}", config.max_retry, config.dlq_enable);
 
     let config = Arc::new(config);
     let main_sender = Arc::new(main_sender);
@@ -75,7 +26,7 @@ pub async fn consumer(
 
     // Se definido, limita o número de mensagens não confirmadas (concorrência)
     if config.max_concurrency > 0 {
-        log::debug!(
+        println!(
             "Setting basic_qos prefetch_count={} (max_concurrency)",
             config.max_concurrency
         );
@@ -86,7 +37,7 @@ pub async fn consumer(
             )
             .await?;
     } else {
-        log::debug!("max_concurrency=0 (sem limites), não aplicando basic_qos");
+        println!("max_concurrency=0 (sem limites), não aplicando basic_qos");
     }
 
     // Declare queue if not already declared
@@ -123,6 +74,7 @@ pub async fn consumer(
             let channel = Arc::clone(&channel);
 
             phlow_sdk::tracing::dispatcher::with_default(&dispatch.clone(), || {
+                use_log!();
                 let span = tracing::span!(
                     Level::INFO,
                     "message_receive",
@@ -169,14 +121,14 @@ pub async fn consumer(
                         .and_then(|v| v.as_long_long_int())
                         .unwrap_or(0);
 
-                    log::debug!("Received message (retry {}/{}): {:?}", retry_count, config.max_retry, data);
+                    println!("Received message (retry {}/{}): {:?}", retry_count, config.max_retry, data);
 
                     let response_value =
                         sender_package!(span.clone(), dispatch.clone(), id, sender, Some(data))
                             .await
                             .unwrap_or(Value::Null);
 
-                    log::debug!("Response: {:?}", response_value);
+                    println!("Response: {:?}", response_value);
 
                     let should_ack = match response_value {
                         Value::Null => true,
@@ -188,34 +140,38 @@ pub async fn consumer(
                     if should_ack {
                         match delivery.ack(BasicAckOptions::default()).await {
                             Ok(_) => {
-                                log::debug!("Message acknowledged successfully");
+                                println!("Message acknowledged successfully");
                             }
                             Err(e) => {
                                 log::error!("Failed to ack message: {}", e);
                             }
                         }
                     } else {
+                        println!("Message processing indicated NACK (not acknowledged)");
                         // Processamento falhou
                         if retry_count < config.max_retry {
+                            println!("Retrying message, current retry count: {}, max_retry: {}", retry_count, config.max_retry);
                             let mut headers = delivery.properties.headers().as_ref().cloned().unwrap_or_default();
                             headers.insert("x-retry-count".into(), (retry_count + 1).into());
                             
                             let properties = BasicProperties::default().with_headers(headers);
                             
                             match channel.basic_publish(
-                                &config.exchange,
-                                &config.routing_key,
+                                "",
+                                &config.queue_name,
                                 BasicPublishOptions::default(),
                                 &delivery.data,
                                 properties,
                             ).await {
                                 Ok(_) => {
                                     log::warn!("Message requeued for retry {}/{}", retry_count + 1, config.max_retry);
+                                    println!("Message requeued for retry {}/{}", retry_count + 1, config.max_retry);
                                     // ACK a mensagem original para removê-la da fila
                                     let _ = delivery.ack(BasicAckOptions::default()).await;
                                 }
                                 Err(e) => {
                                     log::error!("Failed to requeue message: {}", e);
+                                    println!("Failed to requeue message: {}", e);
                                     // Em caso de erro no requeue, manter mensagem na fila
                                     let _ = delivery.nack(BasicNackOptions {
                                         multiple: false,
@@ -224,51 +180,48 @@ pub async fn consumer(
                                 }
                             }
                         } else if config.dlq_enable {
+                            println!("Max retries exceeded and DLQ enabled");
                             // Excedeu limite de tentativas - verificar se DLQ está configurada
                             log::warn!("Max retries ({}) exceeded for message, checking DLQ configuration...", config.max_retry);
                             
-                            // Verificar se DLQ está configurada via API do RabbitMQ
-                            let dlq_configured = check_dlq_configured(&config).await;
-                            
-                            if dlq_configured {
-                                // DLQ está configurada - enviar para DLQ
-                                log::warn!("DLQ is configured, sending message to DLQ");
-                                match delivery.nack(BasicNackOptions {
-                                    multiple: false,
-                                    requeue: false, // false = vai para DLQ
-                                }).await {
-                                    Ok(_) => {
-                                        log::warn!("Message rejected (NACK) after {} retries - sent to DLQ", retry_count);
-                                    }
-                                    Err(e) => {
-                                        log::error!("Failed to nack message to DLQ: {}", e);
-                                    }
+                            // Tentar enviar para DLQ (NACK requeue=false). Se falhar, fazer fallback para requeue=true
+                            log::warn!(
+                                "Max retries ({}) exceeded for message, attempting NACK to DLQ (requeue=false) with fallback to requeue=true",
+                                config.max_retry
+                            );
+
+                            match delivery.nack(BasicNackOptions { multiple: false, requeue: false }).await {
+                                Ok(_) => {
+                                    println!("Message rejected (NACK) after {} retries - sent to DLQ", retry_count);
+                                    log::warn!("Message rejected (NACK) after {} retries - sent to DLQ", retry_count);
                                 }
-                            } else {
-                                // DLQ NÃO está configurada - requeue com warning
-                                log::warn!("DLQ is enabled but NOT configured (no x-dead-letter-exchange found)");
-                                log::warn!("Requeuing message to continue processing (DLQ enabled but not configured)");
-                                
-                                // Requeue para continuar processando
-                                match delivery.nack(BasicNackOptions {
-                                    multiple: false,
-                                    requeue: true,
-                                }).await {
-                                    Ok(_) => {
-                                        log::warn!("Message requeued - will continue processing until DLQ is properly configured");
-                                    }
-                                    Err(e) => {
-                                        log::error!("Failed to requeue message: {}", e);
+                                Err(e) => {
+                                    println!("Failed to nack message to DLQ: {}. Falling back to requeue", e);
+                                    log::error!("Failed to nack message to DLQ: {}. Falling back to requeue", e);
+
+                                    // Fallback: requeue para continuar processamento
+                                    match delivery.nack(BasicNackOptions { multiple: false, requeue: true }).await {
+                                        Ok(_) => {
+                                            println!("Message requeued - will continue processing until DLQ is properly configured");
+                                            log::warn!("Message requeued - will continue processing until DLQ is properly configured");
+                                        }
+                                        Err(e) => {
+                                            println!("Failed to requeue message: {}", e);
+                                            log::error!("Failed to requeue message: {}", e);
+                                        }
                                     }
                                 }
                             }
                         } else {
+                            println!("Max retries exceeded and DLQ disabled");
                             // DLQ desabilitada - descartar mensagem
                             match delivery.ack(BasicAckOptions::default()).await {
                                 Ok(_) => {
+                                    println!("DLQ disabled - message discarded after {} retries", retry_count);
                                     log::warn!("DLQ disabled - discarding message after {} retries", retry_count);
                                 }
                                 Err(e) => {
+                                    println!("Failed to ack message for discard: {}", e);
                                     log::error!("Failed to ack message for discard: {}", e);
                                 }
                             }

@@ -20,7 +20,6 @@ members = [
     "modules/fs",
 ]
 resolver = "2"
-doctest = false
 [workspace.package]
 version = "0.2.6"
 edition = "2024"
