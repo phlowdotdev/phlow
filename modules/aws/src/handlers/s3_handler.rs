@@ -3,6 +3,7 @@ use aws_sdk_s3::types::{BucketLocationConstraint, CreateBucketConfiguration, Obj
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use phlow_sdk::prelude::*;
+use std::collections::HashMap;
 
 use crate::setup::Setup;
 
@@ -463,4 +464,44 @@ pub async fn handle_s3_list_buckets(client: &S3Client) -> Result<Value, String> 
         .map(|b| json!({ "name": b.name(), "creation_date": b.creation_date().map(|d| d.to_string()) }))
         .collect();
     Ok(json!({ "buckets": items }))
+}
+
+pub async fn handle_s3_get_object_attributes(
+    client: &S3Client,
+    body: crate::input::S3GetObjectAttributesBody,
+) -> Result<Value, String> {
+    // Use HEAD object to retrieve basic attributes (size, etag, last_modified, content_type, metadata)
+    let mut req = client.head_object().bucket(&body.bucket).key(&body.key);
+
+    if let Some(vid) = body.version_id {
+        req = req.version_id(vid);
+    }
+
+    let resp = match req.send().await {
+        Ok(r) => r,
+        Err(e) => return Err(e.to_string()),
+    };
+
+    let metadata = resp
+        .metadata()
+        .map(|m| {
+            let mut map: HashMap<String, Value> = HashMap::new();
+            for (k, v) in m.iter() {
+                map.insert(k.clone(), Value::from(v.clone()));
+            }
+            map.to_value()
+        })
+        .unwrap_or(json!(null));
+
+    let result = json!({
+        "bucket": body.bucket,
+        "key": body.key,
+        "content_length": resp.content_length(),
+        "etag": resp.e_tag().map(|s| s.to_string()),
+        "last_modified": resp.last_modified().map(|d| d.to_string()),
+        "content_type": resp.content_type().map(|s| s.to_string()),
+        "metadata": metadata
+    });
+
+    Ok(result)
 }

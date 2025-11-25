@@ -173,6 +173,19 @@ pub async fn aws(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error + S
                     }
                 }
             }
+            AwsApi::S3GetObjectAttributes(body) => {
+                log::debug!("aws module: handling S3GetObjectAttributes");
+                match handlers::handle_s3_get_object_attributes(&s3_client, body).await {
+                    Ok(data) => {
+                        log::debug!("aws module: S3GetObjectAttributes success");
+                        success_response!(data)
+                    }
+                    Err(e) => {
+                        log::debug!("aws module: S3GetObjectAttributes error: {}", e);
+                        error_response!(e)
+                    }
+                }
+            }
             AwsApi::SqsSendMessage(body) => {
                 log::debug!("aws module: handling SqsSendMessage");
                 match handlers::handle_sqs_send_message(&sqs_client, body).await {

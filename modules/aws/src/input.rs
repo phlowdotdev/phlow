@@ -13,6 +13,7 @@ pub enum AwsAction {
     S3GetBucketLocation,
     S3PutBucketVersioning,
     S3ListBuckets,
+    S3GetObjectAttributes,
     // SQS
     SqsSendMessage,
     SqsReceiveMessages,
@@ -35,6 +36,7 @@ pub enum AwsApi {
     S3GetBucketLocation(S3GetBucketLocationBody),
     S3PutBucketVersioning(S3PutBucketVersioningBody),
     S3ListBuckets,
+    S3GetObjectAttributes(S3GetObjectAttributesBody),
     // SQS
     SqsSendMessage(SqsSendMessageBody),
     SqsReceiveMessages(SqsReceiveMessagesBody),
@@ -112,6 +114,15 @@ pub struct S3GetBucketLocationBody {
 pub struct S3PutBucketVersioningBody {
     pub bucket: String,
     pub enabled: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct S3GetObjectAttributesBody {
+    pub bucket: String,
+    pub key: String,
+    pub version_id: Option<String>,
+    pub attributes: Option<Vec<String>>,
+    pub object_parts: Option<Value>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -240,6 +251,38 @@ impl TryFrom<Value> for AwsInput {
                             bucket,
                             key,
                             as_base64,
+                        }),
+                    )
+                }
+                "get_object_attributes" => {
+                    let bucket = value
+                        .get("bucket")
+                        .ok_or_else(|| {
+                            "missing field 'bucket' for get_object_attributes".to_string()
+                        })?
+                        .to_string();
+                    let key = value
+                        .get("key")
+                        .ok_or_else(|| "missing field 'key' for get_object_attributes".to_string())?
+                        .to_string();
+
+                    let version_id = value.get("version_id").map(|v| v.to_string());
+
+                    let attributes = value
+                        .get("attributes")
+                        .and_then(|v| v.as_array().cloned())
+                        .map(|arr| arr.into_iter().map(|it| it.to_string()).collect());
+
+                    let object_parts = value.get("object_parts").cloned();
+
+                    (
+                        AwsAction::S3GetObjectAttributes,
+                        AwsApi::S3GetObjectAttributes(S3GetObjectAttributesBody {
+                            bucket,
+                            key,
+                            version_id,
+                            attributes,
+                            object_parts,
                         }),
                     )
                 }
