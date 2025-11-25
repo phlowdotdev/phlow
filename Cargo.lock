@@ -104,6 +104,7 @@ dependencies = [
 name = "amqp"
 version = "0.0.4"
 dependencies = [
+ "async-global-executor",
  "futures-lite",
  "hostname",
  "lapin",

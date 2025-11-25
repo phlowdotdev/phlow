@@ -167,8 +167,8 @@ impl TryFrom<&Value> for Config {
         // Limite de concorrência (0 = sem limites)
         let max_concurrency = value
             .get("max_concurrency")
-            .map(|v| v.to_i64().unwrap_or(0))
-            .unwrap_or(0)
+            .map(|v| v.to_i64().unwrap_or(10))
+            .unwrap_or(10)
             .clamp(0, u16::MAX as i64) as u16;
 
         // Parse RabbitMQ definition if available and import
