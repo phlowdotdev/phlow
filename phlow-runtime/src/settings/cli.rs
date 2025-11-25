@@ -28,6 +28,8 @@ pub struct Cli {
     pub analyzer_json: bool,
     pub analyzer_inner: bool,
     pub analyzer_all: bool,
+    // pre preprocessor variables
+    pub var_pre: Option<String>,
 }
 
 impl Cli {
@@ -114,10 +116,15 @@ impl Cli {
             .arg(
                 Arg::new("var_main")
                     .long("var-main")
-                    .help("Set the main variable value (simulates main module output)")
+                    .help("Set the main variable value")
                     .value_name("VALUE"),
+            )
+            .arg(
+                Arg::new("var_pre")
+                    .long("var-pre")
+                    .help("Set the preprocessor variable value")
+                    .value_name("PRE_VALUE"),
             );
-
         // Analyzer flags
         let command = command
             .arg(
@@ -219,6 +226,7 @@ impl Cli {
         let analyzer_json = *matches.get_one::<bool>("json").unwrap_or(&false);
         let analyzer_inner = *matches.get_one::<bool>("inner").unwrap_or(&false);
         let analyzer_all = *matches.get_one::<bool>("all").unwrap_or(&false);
+        let var_pre: Option<String> = matches.get_one::<String>("var_pre").map(|s| s.to_string());
 
         Ok(Cli {
             main_target: main,
@@ -240,6 +248,7 @@ impl Cli {
             analyzer_json,
             analyzer_inner,
             analyzer_all,
+            var_pre,
         })
     }
 }
