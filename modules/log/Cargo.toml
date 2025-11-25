@@ -1,12 +1,10 @@
 [package]
 name = "log"
-version = "0.0.2"
+version = "0.0.4"
 edition = { workspace = true }
 
 [dependencies]
 phlow-sdk = { workspace = true }
-log = { version = "0.4" }
-env_logger = { version = "0.11" }
 
 [lib]
 name = "log"

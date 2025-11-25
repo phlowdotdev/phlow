@@ -20,9 +20,8 @@ members = [
     "modules/fs",
 ]
 resolver = "2"
-doctest = false
 [workspace.package]
-version = "0.2.6"
+version = "0.2.7"
 edition = "2024"
 rust-version = "1.90.0"
 authors = ["Philippe Assis <codephilippe@gmail.com>"]

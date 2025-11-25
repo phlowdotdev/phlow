@@ -41,7 +41,7 @@ description: |
           priority: "high"
           timestamp: "2024-01-01T00:00:00Z"
   ```
-version: 0.0.3
+version: 0.0.4
 author: Philippe Assis <codephilippe@gmail.com>
 repository: https://github.com/phlowdotdev/phlow
 license: MIT

@@ -678,7 +678,13 @@ fn process_args_in_content(content: &str, args: &HashMap<String, String>) -> (St
 }
 
 fn process_include_file(path: &Path, args: &HashMap<String, String>) -> Result<String, String> {
-    let path = if path.extension().is_none() {
+    // Preserve original extension info: if no extension provided, default to .phlow
+    let original_extension = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|s| s.to_lowercase());
+
+    let path = if original_extension.is_none() {
         let mut new_path = path.to_path_buf();
         new_path.set_extension("phlow");
         new_path
@@ -696,8 +702,16 @@ fn process_include_file(path: &Path, args: &HashMap<String, String>) -> Result<S
         return Err(arg_errors.join("; "));
     }
 
+    // If the included file had an explicit extension and it's NOT .phlow,
+    // do not run the preprocessor: include its content directly (respecting indentation)
+    if let Some(ext) = original_extension {
+        if ext != "phlow" {
+            return Ok(with_args);
+        }
+    }
+
     let parent = path.parent().unwrap_or_else(|| Path::new("."));
-    // Para arquivos incluídos, só aplicamos preprocessor_directives para processar outros !include
+    // Para arquivos incluídos (com extensão .phlow), só aplicamos preprocessor_directives para processar outros !include
     // mas não aplicamos modules, auto_phs e eval pois isso será feito no arquivo principal
     let (transformed, errors) = preprocessor_directives(&with_args, parent);
 
@@ -1197,6 +1211,18 @@ steps:
         fs::remove_file("included_inline.phlow")
     }
 
+    fn temporary_included_non_phlow_inline_file() -> std::io::Result<()> {
+        let content = r#"{
+    "a": 1,
+    "b": 2
+}"#;
+        fs::write("included_inline.json", content)
+    }
+
+    fn remove_temporary_included_non_phlow_inline_file() -> std::io::Result<()> {
+        fs::remove_file("included_inline.json")
+    }
+
     #[test]
     fn test_preprocessor() {
         // create temporay included_file.phlow
@@ -1279,6 +1305,32 @@ steps:
         );
 
         remove_temporary_included_inline_file().unwrap();
+    }
+
+    #[test]
+    fn test_preprocessor_directives_inline_include_indentation_on_mapping_value_non_phlow() {
+        // cria o arquivo temporário included_inline.json
+        temporary_included_non_phlow_inline_file().unwrap();
+
+        let input = "  key: !include included_inline.json";
+        let (result, errors) = preprocessor_directives(input, Path::new("."));
+
+        assert!(errors.is_empty(), "Errors found: {:?}", errors);
+
+        // Espera-se que as quebras de linha do conteúdo incluído recebam a mesma
+        // tabulação do prefixo até o !include (no caso, 2 espaços + 'key: ' = 7 espaços)
+        // Observação: o conteúdo incluído possui indentação própria (4 espaços). Como
+        // preservamos a tabulação do include E a indentação interna do conteúdo,
+        // as linhas internas ficam com (tabulação_do_prefixo + indentação_do_conteúdo) = 7 + 4 = 11 espaços.
+        let expected = "  key: {\n           \"a\": 1,\n           \"b\": 2\n       }";
+
+        assert_eq!(
+            result, expected,
+            "Inline include indentation mismatch for non-phlow file.\nGot:\n<<<{}>>>\nExpected:\n<<<{}>>>",
+            result, expected
+        );
+
+        remove_temporary_included_non_phlow_inline_file().unwrap();
     }
 
     #[test]

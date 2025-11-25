@@ -3,6 +3,7 @@ use aws_sdk_s3::types::{BucketLocationConstraint, CreateBucketConfiguration, Obj
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use phlow_sdk::prelude::*;
+use std::collections::HashMap;
 
 use crate::setup::Setup;
 
@@ -56,7 +57,7 @@ pub async fn handle_s3_put_object(
 
     match req.send().await {
         Ok(_) => Ok(json!({ "bucket": body.bucket, "key": body.key })),
-        Err(e) => Err(format!("S3 put_object error: {}", e)),
+        Err(e) => Err(e.to_string()),
     }
 }
 
@@ -64,19 +65,21 @@ pub async fn handle_s3_get_object(
     client: &S3Client,
     body: crate::input::S3GetObjectBody,
 ) -> Result<Value, String> {
-    let resp = client
+    let resp = match client
         .get_object()
         .bucket(&body.bucket)
         .key(&body.key)
         .send()
         .await
-        .map_err(|e| format!("S3 get_object error: {}", e))?;
+    {
+        Ok(r) => r,
+        Err(e) => return Err(e.to_string()),
+    };
 
-    let data = resp
-        .body
-        .collect()
-        .await
-        .map_err(|e| format!("error collecting S3 body: {}", e))?;
+    let data = match resp.body.collect().await {
+        Ok(d) => d,
+        Err(e) => return Err(e.to_string()),
+    };
     let bytes = data.into_bytes();
 
     if body.as_base64.unwrap_or(false) {
@@ -135,15 +138,16 @@ pub async fn handle_s3_delete_object(
     client: &S3Client,
     body: crate::input::S3DeleteObjectBody,
 ) -> Result<Value, String> {
-    client
+    match client
         .delete_object()
         .bucket(&body.bucket)
         .key(&body.key)
         .send()
         .await
-        .map_err(|e| format!("S3 delete_object error: {}", e))?;
-
-    Ok(json!({ "bucket": body.bucket, "key": body.key, "deleted": true }))
+    {
+        Ok(_) => Ok(json!({ "bucket": body.bucket, "key": body.key, "deleted": true })),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
 pub async fn handle_s3_list_objects(
@@ -162,10 +166,10 @@ pub async fn handle_s3_list_objects(
         req = req.continuation_token(token);
     }
 
-    let resp = req
-        .send()
-        .await
-        .map_err(|e| format!("S3 list_objects error: {}", e))?;
+    let resp = match req.send().await {
+        Ok(r) => r,
+        Err(e) => return Err(e.to_string()),
+    };
 
     let mut items = Vec::new();
     for obj in resp.contents() {
@@ -260,10 +264,10 @@ pub async fn handle_s3_create_bucket(
         return Err("missing region: set with.region or provide 'location'".to_string());
     }
 
-    req.send()
-        .await
-        .map_err(|e| format!("S3 create_bucket error: {}", e))?;
-    Ok(json!({ "bucket": body.bucket, "created": true }))
+    match req.send().await {
+        Ok(_) => Ok(json!({ "bucket": body.bucket, "created": true })),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
 pub async fn handle_s3_delete_bucket(
@@ -275,13 +279,16 @@ pub async fn handle_s3_delete_bucket(
         empty_bucket_versions(client, &body.bucket).await?;
         empty_bucket_objects(client, &body.bucket).await?;
     } else {
-        let resp = client
+        let resp = match client
             .list_objects_v2()
             .bucket(&body.bucket)
             .max_keys(1)
             .send()
             .await
-            .map_err(|e| format!("S3 list_objects_v2 error: {}", e))?;
+        {
+            Ok(r) => r,
+            Err(e) => return Err(e.to_string()),
+        };
 
         let contents = resp.contents();
         if !contents.is_empty() {
@@ -291,25 +298,25 @@ pub async fn handle_s3_delete_bucket(
             ));
         }
     }
-    client
-        .delete_bucket()
-        .bucket(&body.bucket)
-        .send()
-        .await
-        .map_err(|e| format!("S3 delete_bucket error: {}", e))?;
-    Ok(json!({ "bucket": body.bucket, "deleted": true }))
+    match client.delete_bucket().bucket(&body.bucket).send().await {
+        Ok(_) => Ok(json!({ "bucket": body.bucket, "deleted": true })),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
 async fn empty_bucket_objects(client: &S3Client, bucket: &str) -> Result<(), String> {
     use aws_sdk_s3::types::Delete;
     loop {
-        let resp = client
+        let resp = match client
             .list_objects_v2()
             .bucket(bucket)
             .max_keys(1000)
             .send()
             .await
-            .map_err(|e| format!("S3 list_objects_v2 error: {}", e))?;
+        {
+            Ok(r) => r,
+            Err(e) => return Err(e.to_string()),
+        };
         let contents = resp.contents();
         if contents.is_empty() {
             break;
@@ -326,17 +333,20 @@ async fn empty_bucket_objects(client: &S3Client, bucket: &str) -> Result<(), Str
             }
         }
 
-        let del = Delete::builder()
-            .set_objects(Some(ids))
-            .build()
-            .map_err(|e| format!("build Delete error: {}", e))?;
-        client
+        let del = match Delete::builder().set_objects(Some(ids)).build() {
+            Ok(d) => d,
+            Err(e) => return Err(e.to_string()),
+        };
+        match client
             .delete_objects()
             .bucket(bucket)
             .delete(del)
             .send()
             .await
-            .map_err(|e| format!("S3 delete_objects error: {}", e))?;
+        {
+            Ok(_) => {}
+            Err(e) => return Err(e.to_string()),
+        }
     }
     Ok(())
 }
@@ -344,13 +354,16 @@ async fn empty_bucket_objects(client: &S3Client, bucket: &str) -> Result<(), Str
 async fn empty_bucket_versions(client: &S3Client, bucket: &str) -> Result<(), String> {
     use aws_sdk_s3::types::Delete;
     loop {
-        let resp = client
+        let resp = match client
             .list_object_versions()
             .bucket(bucket)
             .max_keys(1000)
             .send()
             .await
-            .map_err(|e| format!("S3 list_object_versions error: {}", e))?;
+        {
+            Ok(r) => r,
+            Err(e) => return Err(e.to_string()),
+        };
 
         let mut ids: Vec<aws_sdk_s3::types::ObjectIdentifier> = Vec::new();
 
@@ -383,17 +396,20 @@ async fn empty_bucket_versions(client: &S3Client, bucket: &str) -> Result<(), St
             break;
         }
 
-        let del = Delete::builder()
-            .set_objects(Some(ids))
-            .build()
-            .map_err(|e| format!("build Delete error: {}", e))?;
-        client
+        let del = match Delete::builder().set_objects(Some(ids)).build() {
+            Ok(d) => d,
+            Err(e) => return Err(e.to_string()),
+        };
+        match client
             .delete_objects()
             .bucket(bucket)
             .delete(del)
             .send()
             .await
-            .map_err(|e| format!("S3 delete_objects (versions) error: {}", e))?;
+        {
+            Ok(_) => {}
+            Err(e) => return Err(e.to_string()),
+        }
     }
     Ok(())
 }
@@ -402,12 +418,15 @@ pub async fn handle_s3_get_bucket_location(
     client: &S3Client,
     body: crate::input::S3GetBucketLocationBody,
 ) -> Result<Value, String> {
-    let out = client
+    let out = match client
         .get_bucket_location()
         .bucket(&body.bucket)
         .send()
         .await
-        .map_err(|e| format!("S3 get_bucket_location error: {}", e))?;
+    {
+        Ok(o) => o,
+        Err(e) => return Err(e.to_string()),
+    };
     Ok(json!({ "bucket": body.bucket, "location": out.location_constraint().map(|v| v.as_str()) }))
 }
 
@@ -422,26 +441,67 @@ pub async fn handle_s3_put_bucket_versioning(
         BucketVersioningStatus::Suspended
     };
     let cfg = VersioningConfiguration::builder().status(status).build();
-    client
+    match client
         .put_bucket_versioning()
         .bucket(&body.bucket)
         .versioning_configuration(cfg)
         .send()
         .await
-        .map_err(|e| format!("S3 put_bucket_versioning error: {}", e))?;
-    Ok(json!({ "bucket": body.bucket, "versioning_enabled": body.enabled }))
+    {
+        Ok(_) => Ok(json!({ "bucket": body.bucket, "versioning_enabled": body.enabled })),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
 pub async fn handle_s3_list_buckets(client: &S3Client) -> Result<Value, String> {
-    let out = client
-        .list_buckets()
-        .send()
-        .await
-        .map_err(|e| format!("S3 list_buckets error: {}", e))?;
+    let out = match client.list_buckets().send().await {
+        Ok(o) => o,
+        Err(e) => return Err(e.to_string()),
+    };
     let items: Vec<_> = out
         .buckets()
         .iter()
         .map(|b| json!({ "name": b.name(), "creation_date": b.creation_date().map(|d| d.to_string()) }))
         .collect();
     Ok(json!({ "buckets": items }))
+}
+
+pub async fn handle_s3_get_object_attributes(
+    client: &S3Client,
+    body: crate::input::S3GetObjectAttributesBody,
+) -> Result<Value, String> {
+    // Use HEAD object to retrieve basic attributes (size, etag, last_modified, content_type, metadata)
+    let mut req = client.head_object().bucket(&body.bucket).key(&body.key);
+
+    if let Some(vid) = body.version_id {
+        req = req.version_id(vid);
+    }
+
+    let resp = match req.send().await {
+        Ok(r) => r,
+        Err(e) => return Err(e.to_string()),
+    };
+
+    let metadata = resp
+        .metadata()
+        .map(|m| {
+            let mut map: HashMap<String, Value> = HashMap::new();
+            for (k, v) in m.iter() {
+                map.insert(k.clone(), Value::from(v.clone()));
+            }
+            map.to_value()
+        })
+        .unwrap_or(json!(null));
+
+    let result = json!({
+        "bucket": body.bucket,
+        "key": body.key,
+        "content_length": resp.content_length(),
+        "etag": resp.e_tag().map(|s| s.to_string()),
+        "last_modified": resp.last_modified().map(|d| d.to_string()),
+        "content_type": resp.content_type().map(|s| s.to_string()),
+        "metadata": metadata
+    });
+
+    Ok(result)
 }

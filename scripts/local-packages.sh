@@ -156,7 +156,10 @@ package_module() {
 
     # Build do projeto (apenas o pacote do módulo)
     echo "⚙️ Building module..."
-    cross build -p "$NAME" --target "$TARGET" --release --locked
+    # Usa especificação com versão para evitar ambiguidades quando existir
+    # um dependency externo com o mesmo nome (ex: crate `log` do crates.io).
+    # Formato suportado pelo Cargo: nome@versao
+    cross build -p "${NAME}@${VERSION}" --target "$TARGET" --release --locked
 
     SO_NAME="lib${NAME}.${MODULE_EXTENSION}"
     RELEASE_PATH="../../target/$TARGET/release/$SO_NAME"

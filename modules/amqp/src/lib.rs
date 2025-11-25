@@ -11,6 +11,7 @@ create_main!(start_server(setup));
 pub async fn start_server(
     setup: ModuleSetup,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    use_log!();
     log::debug!("AMQP start_server called");
     let config = Config::try_from(&setup.with).map_err(|e| format!("{:?}", e))?;
     log::debug!("Config created successfully: {:?}", config);

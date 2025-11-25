@@ -4,6 +4,7 @@ description: |
 
   Actions:
   - S3: put_object, get_object, delete_object, list_objects, create_bucket, delete_bucket, get_bucket_location, put_bucket_versioning, list_buckets
+  - S3: get_object_attributes
   - SQS: send_message, receive_messages, delete_message, create_queue, delete_queue, get_queue_attributes, set_queue_attributes
   - SNS: publish
   - DynamoDB: put_item, get_item, update_item, delete_item, query, scan
@@ -13,7 +14,7 @@ description: |
   2) Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN, AWS_REGION, AWS_PROFILE)
   3) Default AWS SDK chain (config files, IMDS, etc.)
 
-version: 0.1.0
+version: 0.1.1
 author: Philippe Assis <codephilippe@gmail.com>
 license: MIT
 type: step
@@ -85,6 +86,7 @@ input:
           # S3
           "put_object",
           "get_object",
+          "get_object_attributes",
           "delete_object",
           "list_objects",
           "create_bucket",
@@ -158,6 +160,18 @@ input:
       type: boolean
       required: false
       description: If true, returns object body as base64 (s3_get_object)
+    version_id:
+      type: string
+      required: false
+      description: S3 object version id (for get_object_attributes)
+    object_attributes:
+      type: array
+      required: false
+      description: Array of object attribute names to fetch (e.g., ["ETag","ContentLength"]). If omitted, returns a standard set of attributes.
+    object_parts:
+      type: object
+      required: false
+      description: Parts specification for objects stored with multipart or ranged information (optional)
 
     # -----------------------
     # SQS parameters

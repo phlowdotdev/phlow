@@ -1,8 +1,8 @@
+use lapin::BasicProperties;
 use lapin::options::BasicPublishOptions;
 use lapin::protocol::basic::AMQPProperties;
 use lapin::publisher_confirm::Confirmation;
 use lapin::types::{AMQPValue, ShortString};
-use lapin::BasicProperties;
 use phlow_sdk::prelude::*;
 
 use crate::setup::Config;
@@ -10,12 +10,18 @@ use crate::setup::Config;
 struct Input {
     message: String,
     basic_props: AMQPProperties,
+    exchange: Option<String>,
+    routing_key: Option<String>,
+    vhost: Option<String>,
 }
 
 impl From<&Value> for Input {
     fn from(value: &Value) -> Self {
         let message = value.get("message").unwrap_or(&Value::Null).to_string();
         let headers = value.get("headers").cloned();
+        let exchange = value.get("exchange").and_then(|v| Some(v.to_string()));
+        let routing_key = value.get("routing_key").and_then(|v| Some(v.to_string()));
+        let vhost = value.get("vhost").and_then(|v| Some(v.to_string()));
 
         let basic_props = if let Some(headers) = headers {
             let mut field_table = lapin::types::FieldTable::default();
@@ -36,6 +42,9 @@ impl From<&Value> for Input {
         Self {
             message,
             basic_props,
+            exchange,
+            routing_key,
+            vhost,
         }
     }
 }
@@ -68,7 +77,7 @@ pub async fn producer(
     log::debug!("Producer started");
 
     // Create connection for potential channel recreation
-    let uri = match config.uri.clone() {
+    let uri: String = match config.uri.clone() {
         Some(uri) => uri,
         None => config.to_connection_string(),
     };
@@ -86,10 +95,31 @@ pub async fn producer(
             }
         };
 
-        let routing_key = match config.exchange_type.as_str() {
-            "fanout" | "headers" => "",
-            _ => config.routing_key.as_str(),
+        // Determine effective vhost (input overrides config)
+        let effective_vhost = input
+            .vhost
+            .clone()
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| config.vhost.clone());
+
+        // Determine effective exchange (input overrides config)
+        let effective_exchange = input
+            .exchange
+            .clone()
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| config.exchange.clone());
+
+        // Determine effective routing_key
+        let effective_routing_key_owned: String = match config.exchange_type.as_str() {
+            // fanout/headers ignore routing_key
+            "fanout" | "headers" => String::from(""),
+            _ => input
+                .routing_key
+                .clone()
+                .filter(|s| !s.is_empty())
+                .unwrap_or_else(|| config.routing_key.clone()),
         };
+        let routing_key = effective_routing_key_owned.as_str();
 
         // Check if channel is closed and recreate if needed
         if !channel.status().connected() {
@@ -108,15 +138,56 @@ pub async fn producer(
             }
         }
 
-        let publish_result = channel
-            .basic_publish(
-                &config.exchange,
-                routing_key,
-                BasicPublishOptions::default(),
-                input.message.as_bytes(),
-                input.basic_props,
-            )
-            .await;
+        // If the effective vhost differs from the channel's config vhost, publish using a temp channel
+        let publish_result = if effective_vhost != config.vhost {
+            // Build URI preserving scheme/creds if config.uri provided
+            let uri_override = if let Some(uri_str) = config.uri.clone() {
+                if let Ok(mut parsed) = url::Url::parse(&uri_str) {
+                    parsed.set_path(&format!("/{}", effective_vhost));
+                    parsed.to_string()
+                } else {
+                    format!(
+                        "amqp://{}:{}@{}:{}/{}",
+                        config.username, config.password, config.host, config.port, effective_vhost
+                    )
+                }
+            } else {
+                format!(
+                    "amqp://{}:{}@{}:{}/{}",
+                    config.username, config.password, config.host, config.port, effective_vhost
+                )
+            };
+
+            match lapin::Connection::connect(&uri_override, lapin::ConnectionProperties::default())
+                .await
+            {
+                Ok(temp_conn) => match temp_conn.create_channel().await {
+                    Ok(temp_channel) => {
+                        temp_channel
+                            .basic_publish(
+                                &effective_exchange,
+                                routing_key,
+                                BasicPublishOptions::default(),
+                                input.message.as_bytes(),
+                                input.basic_props.clone(),
+                            )
+                            .await
+                    }
+                    Err(e) => Err(e.into()),
+                },
+                Err(e) => Err(e.into()),
+            }
+        } else {
+            channel
+                .basic_publish(
+                    &effective_exchange,
+                    routing_key,
+                    BasicPublishOptions::default(),
+                    input.message.as_bytes(),
+                    input.basic_props,
+                )
+                .await
+        };
 
         let confirm = match publish_result {
             Ok(confirm_future) => match confirm_future.await {
@@ -135,7 +206,12 @@ pub async fn producer(
             }
         };
 
-        log::debug!("Published message to {} ({})", config.exchange, routing_key);
+        log::debug!(
+            "Published message to {} ({}) on vhost {}",
+            effective_exchange,
+            routing_key,
+            effective_vhost
+        );
 
         let (success, error_message) = match confirm {
             Confirmation::NotRequested => {
