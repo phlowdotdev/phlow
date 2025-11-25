@@ -1,8 +1,8 @@
 use crate::setup::Config;
 use lapin::message::DeliveryResult;
-use lapin::{options::*, types::FieldTable, BasicProperties};
+use lapin::{BasicProperties, options::*, types::FieldTable};
 use phlow_sdk::prelude::*;
-use phlow_sdk::tracing::{field, Dispatch, Level};
+use phlow_sdk::tracing::{Dispatch, Level, field};
 
 use std::sync::Arc;
 
@@ -17,7 +17,11 @@ pub async fn consumer(
     dispatch: Dispatch,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     use_log!();
-    log::debug!("Starting consumer with max_retry={} and dlq_enable={}", config.max_retry, config.dlq_enable);
+    log::debug!(
+        "Starting consumer with max_retry={} and dlq_enable={}",
+        config.max_retry,
+        config.dlq_enable
+    );
 
     let config = Arc::new(config);
     let main_sender = Arc::new(main_sender);
@@ -65,154 +69,116 @@ pub async fn consumer(
         let main_sender = main_sender_cloned;
         let id = id_cloned;
         let channel = channel_cloned;
+        let hostname_base = hostname;
 
-            move |delivery: DeliveryResult| {
+        move |delivery: DeliveryResult| {
             let config = Arc::clone(&config);
             let main_sender = Arc::clone(&main_sender);
             let id = Arc::clone(&id);
             let dispatch = dispatch.clone();
             let channel = Arc::clone(&channel);
-            let hostname = hostname.clone();
+            let hostname = hostname_base.clone();
 
             Box::pin(async move {
-                // Ensure tracing dispatch is set for the async execution context
-                let _guard = phlow_sdk::tracing::dispatcher::set_default(&dispatch);
-                use_log!();
+                match delivery {
+                    Ok(Some(delivery)) => {
+                        // Cada mensagem processada em sua própria task
+                        async_global_executor::spawn(async move {
+                            let _guard = phlow_sdk::tracing::dispatcher::set_default(&dispatch);
+                            use_log!();
 
-                let span = tracing::span!(
-                    Level::INFO,
-                    "message_receive",
-                    // Atributos gerais
-                    "messaging.system" = "rabbitmq",
-                    "messaging.destination.name" = &config.queue_name,
-                    "messaging.destination.kind" = "queue",
-                    "messaging.operation" = "receive",
-                    "messaging.protocol" = "AMQP",
-                    "messaging.protocol_version" = "0.9.1",
-                    "messaging.rabbitmq.consumer_tag" = &config.consumer_tag,
-                    "messaging.client.id" = hostname,
-                    // Campos opcionais para debugging
-                    "messaging.message.payload_size_bytes" = field::Empty,
-                    "messaging.message.conversation_id" = field::Empty,
-                );
+                            let span = tracing::span!(
+                                Level::INFO,
+                                "message_receive",
+                                "messaging.system" = "rabbitmq",
+                                "messaging.destination.name" = &config.queue_name,
+                                "messaging.destination.kind" = "queue",
+                                "messaging.operation" = "receive",
+                                "messaging.protocol" = "AMQP",
+                                "messaging.protocol_version" = "0.9.1",
+                                "messaging.rabbitmq.consumer_tag" = &config.consumer_tag,
+                                "messaging.client.id" = hostname,
+                                "messaging.message.payload_size_bytes" = field::Empty,
+                                "messaging.message.conversation_id" = field::Empty,
+                            );
+                            span_enter!(span);
 
-                span_enter!(span);
+                            let sender = (*main_sender).clone();
+                            let id_clone = (*id).clone();
+                            let data: Value = String::from_utf8_lossy(&delivery.data).to_string().to_value();
+                            span.record("messaging.message.payload_size_bytes", delivery.data.len());
+                            span.record("messaging.message.conversation_id", &id_clone.to_string());
 
-                let sender = (*main_sender).clone();
-                let id = (*id).clone();
+                            let retry_count = delivery.properties.headers()
+                                .as_ref()
+                                .and_then(|h| h.inner().get("x-retry-count"))
+                                .and_then(|v| v.as_long_long_int())
+                                .unwrap_or(0);
+                            log::debug!("Received message (retry {}/{}) {:?}", retry_count, config.max_retry, data);
 
-                let delivery = match delivery {
-                    Ok(Some(delivery)) => delivery,
-                    Ok(None) => return,
-                    Err(error) => {
-                        dbg!("Failed to consume queue message {}", error);
-                        return;
-                    }
-                };
+                            let response_value = sender_package!(span.clone(), dispatch.clone(), id_clone, sender, Some(data))
+                                .await
+                                .unwrap_or(Value::Null);
+                            log::debug!("Response: {:?}", response_value);
 
-                let data: Value = String::from_utf8_lossy(&delivery.data)
-                    .to_string()
-                    .to_value();
+                            let should_ack = match response_value {
+                                Value::Null => true,
+                                Value::Boolean(false) => false,
+                                Value::Boolean(true) => true,
+                                _ => true,
+                            };
 
-                span.record("messaging.message.payload_size_bytes", delivery.data.len());
-                span.record("messaging.message.conversation_id", &id.to_string());
-
-                // Obter contagem de tentativas do header (se existir)
-                let retry_count = delivery.properties.headers()
-                    .as_ref()
-                    .and_then(|h| h.inner().get("x-retry-count"))
-                    .and_then(|v| v.as_long_long_int())
-                    .unwrap_or(0);
-
-                log::debug!("Received message (retry {}/{}): {:?}", retry_count, config.max_retry, data);
-
-                let response_value =
-                    sender_package!(span.clone(), dispatch.clone(), id, sender, Some(data))
-                        .await
-                        .unwrap_or(Value::Null);
-
-                log::debug!("Response: {:?}", response_value);
-
-                let should_ack = match response_value {
-                    Value::Null => true,
-                    Value::Boolean(false) => false,
-                    Value::Boolean(true) => true,
-                    _ => true,
-                };
-
-                if should_ack {
-                    match delivery.ack(BasicAckOptions::default()).await {
-                        Ok(_) => {
-                            log::debug!("Message acknowledged successfully");
-                        }
-                        Err(e) => {
-                            log::error!("Failed to ack message: {}", e);
-                        }
-                    }
-                } else {
-                    log::debug!("Message processing indicated NACK (not acknowledged)");
-                    // Processamento falhou
-                    if retry_count < config.max_retry {
-                        log::debug!("Retrying message, current retry count: {}, max_retry: {}", retry_count, config.max_retry);
-                        let mut headers = delivery.properties.headers().as_ref().cloned().unwrap_or_default();
-                        headers.insert("x-retry-count".into(), (retry_count + 1).into());
-                        
-                        let properties = BasicProperties::default().with_headers(headers);
-                        
-                        match channel.basic_publish(
-                            "",
-                            &config.queue_name,
-                            BasicPublishOptions::default(),
-                            &delivery.data,
-                            properties,
-                        ).await {
-                            Ok(_) => {
-                                log::debug!("Message requeued for retry {}/{}", retry_count + 1, config.max_retry);
-                                // ACK a mensagem original para removê-la da fila
-                                let _ = delivery.ack(BasicAckOptions::default()).await;
-                            }
-                            Err(e) => {
-                                log::error!("Failed to requeue message: {}", e);
-                                log::debug!("Failed to requeue message: {}", e);
-                                // Em caso de erro no requeue, manter mensagem na fila
-                                let _ = delivery.nack(BasicNackOptions {
-                                    multiple: false,
-                                    requeue: true,
-                                }).await;
-                            }
-                        }
-                    } else if config.dlq_enable {
-                        log::debug!("Max retries exceeded and DLQ enabled");
-
-                        match delivery.nack(BasicNackOptions { multiple: false, requeue: false }).await {
-                            Ok(_) => {
-                                log::debug!("Message rejected (NACK) after {} retries - sent to DLQ", retry_count);
-                            }
-                            Err(e) => {
-                                log::error!("Failed to nack message to DLQ: {}. Falling back to requeue", e);
-
-                                // Fallback: requeue para continuar processamento
-                                match delivery.nack(BasicNackOptions { multiple: false, requeue: true }).await {
-                                    Ok(_) => {
-                                        log::debug!("Message requeued - will continue processing until DLQ is properly configured");
+                            if should_ack {
+                                if let Err(e) = delivery.ack(BasicAckOptions::default()).await {
+                                    log::error!("Failed to ack message: {}", e);
+                                } else {
+                                    log::debug!("Message acknowledged successfully");
+                                }
+                            } else {
+                                // Lógica de retry / DLQ
+                                if retry_count < config.max_retry {
+                                    log::debug!("Retrying message, current retry count: {}, max_retry: {}", retry_count, config.max_retry);
+                                    let mut headers = delivery.properties.headers().as_ref().cloned().unwrap_or_default();
+                                    headers.insert("x-retry-count".into(), (retry_count + 1).into());
+                                    let properties = BasicProperties::default().with_headers(headers);
+                                    match channel.basic_publish(
+                                        "",
+                                        &config.queue_name,
+                                        BasicPublishOptions::default(),
+                                        &delivery.data,
+                                        properties,
+                                    ).await {
+                                        Ok(_) => {
+                                            log::debug!("Message requeued for retry {}/{}", retry_count + 1, config.max_retry);
+                                            let _ = delivery.ack(BasicAckOptions::default()).await;
+                                        }
+                                        Err(e) => {
+                                            log::error!("Failed to requeue message: {}", e);
+                                            let _ = delivery.nack(BasicNackOptions { multiple: false, requeue: true }).await;
+                                        }
                                     }
-                                    Err(e) => {
-                                        log::error!("Failed to requeue message: {}", e);
+                                } else if config.dlq_enable {
+                                    log::debug!("Max retries exceeded and DLQ enabled");
+                                    match delivery.nack(BasicNackOptions { multiple: false, requeue: false }).await {
+                                        Ok(_) => log::debug!("Message rejected (NACK) after {} retries - sent to DLQ", retry_count),
+                                        Err(e) => {
+                                            log::error!("Failed to nack message to DLQ: {}. Falling back to requeue", e);
+                                            let _ = delivery.nack(BasicNackOptions { multiple: false, requeue: true }).await;
+                                        }
+                                    }
+                                } else {
+                                    log::debug!("Max retries exceeded and DLQ disabled");
+                                    match delivery.ack(BasicAckOptions::default()).await {
+                                        Ok(_) => log::debug!("DLQ disabled - message discarded after {} retries", retry_count),
+                                        Err(e) => log::error!("Failed to ack message for discard: {}", e),
                                     }
                                 }
                             }
-                        }
-                    } else {
-                        log::debug!("Max retries exceeded and DLQ disabled");
-                        // DLQ desabilitada - descartar mensagem
-                        match delivery.ack(BasicAckOptions::default()).await {
-                            Ok(_) => {
-                                log::debug!("DLQ disabled - message discarded after {} retries", retry_count);
-                            }
-                            Err(e) => {
-                                log::error!("Failed to ack message for discard: {}", e);
-                            }
-                        }
+                        }).detach();
+                    }
+                    Ok(None) => { /* sem mensagens */ }
+                    Err(error) => {
+                        dbg!("Failed to consume queue message {}", error);
                     }
                 }
             })

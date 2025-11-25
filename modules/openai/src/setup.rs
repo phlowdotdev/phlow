@@ -7,6 +7,17 @@ pub struct Setup {
     pub api_url: String,
 }
 
+impl Clone for Setup {
+    fn clone(&self) -> Self {
+        Setup {
+            api_key: self.api_key.clone(),
+            model: self.model.clone(),
+            proxy: self.proxy.clone(),
+            api_url: self.api_url.clone(),
+        }
+    }
+}
+
 impl TryFrom<Value> for Setup {
     type Error = String;
 

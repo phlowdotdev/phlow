@@ -7,6 +7,7 @@ use reqwest::Client;
 use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderValue};
 use reqwest::multipart::{Form, Part};
 use serde_json::Value as JsonValue;
+// concurrency is unbounded; tasks are spawned for each package
 
 create_step!(openai(setup));
 
@@ -49,102 +50,112 @@ pub async fn openai(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Error 
     let base = setup.api_url.trim_end_matches('/').to_string();
 
     log::debug!("OpenAI module initialized with model: {}", setup.model);
+    // Note: removed semaphore-based concurrency limit — tasks are spawned without a global limit
 
     for package in rx {
-        let mut input = package.input().unwrap_or(Value::Null);
+        let client = client.clone();
+        let setup = setup.clone();
+        let base = base.clone();
 
-        // Garante model default no nível raiz, sem validar payloads
-        if input.get("model").is_none() {
-            input.insert("model", setup.model.clone());
-        }
+        // Spawna uma task para processar o package sem bloquear o loop principal
+        tokio::spawn(async move {
+            let mut input = package.input().unwrap_or(Value::Null);
 
-        let openai_input = match OpenaiInput::try_from(input) {
-            Ok(cfg) => cfg,
-            Err(e) => {
-                log::error!("Error parsing OpenAI config: {}", e);
-                sender_safe!(
-                    package.sender,
-                    Value::from(format!("Error parsing OpenAI config: {}", e)).into()
-                );
-                continue;
+            // Garante model default no nível raiz, sem validar payloads
+            if input.get("model").is_none() {
+                input.insert("model", setup.model.clone());
             }
-        };
-        let url: String = match openai_input.action {
-            OpenaiAction::Chat => format!("{}/chat/completions", base),
-            OpenaiAction::Completions => format!("{}/completions", base),
-            OpenaiAction::AudioTranscribe => format!("{}/audio/transcriptions", base),
-            OpenaiAction::AudioTranslate => format!("{}/audio/translations", base),
-            OpenaiAction::Embeddings => format!("{}/embeddings", base),
-            OpenaiAction::ImagesEdit => format!("{}/images/edits", base),
-            OpenaiAction::ImagesCreate => format!("{}/images/generations", base),
-            OpenaiAction::Responses => format!("{}/responses", base),
-        };
 
-        // Corpo bruto como JSON (sem validação)
-        let body_json: JsonValue =
-            match serde_json::from_str::<JsonValue>(&openai_input.with.to_string()) {
-                Ok(v) => v,
-                Err(err) => {
-                    let msg = format!("Invalid JSON body: {}", err);
-                    log::error!("{}", msg);
-                    sender_safe!(package.sender, error_response!(msg));
-                    continue;
+            let openai_input = match OpenaiInput::try_from(input) {
+                Ok(cfg) => cfg,
+                Err(e) => {
+                    log::error!("Error parsing OpenAI config: {}", e);
+                    let _ = sender_safe!(
+                        package.sender,
+                        Value::from(format!("Error parsing OpenAI config: {}", e)).into()
+                    );
+                    return;
                 }
             };
 
-        // Envia conforme o tipo de ação (JSON vs multipart)
-        let result = match openai_input.action {
-            OpenaiAction::AudioTranscribe
-            | OpenaiAction::AudioTranslate
-            | OpenaiAction::ImagesEdit => {
-                // Constrói multipart dinamicamente: arquivos em chaves [file|image|mask] se apontarem para paths existentes
-                let form = match build_multipart_form(&body_json) {
-                    Ok(f) => f,
-                    Err(e) => {
-                        let msg = format!("Erro ao montar multipart: {}", e);
-                        log::error!("{}", msg);
-                        sender_safe!(package.sender, error_response!(msg));
-                        continue;
-                    }
-                };
-                client.post(&url).multipart(form).send().await
-            }
-            _ => client.post(&url).json(&body_json).send().await,
-        };
+            let url: String = match openai_input.action {
+                OpenaiAction::Chat => format!("{}/chat/completions", base),
+                OpenaiAction::Completions => format!("{}/completions", base),
+                OpenaiAction::AudioTranscribe => format!("{}/audio/transcriptions", base),
+                OpenaiAction::AudioTranslate => format!("{}/audio/translations", base),
+                OpenaiAction::Embeddings => format!("{}/embeddings", base),
+                OpenaiAction::ImagesEdit => format!("{}/images/edits", base),
+                OpenaiAction::ImagesCreate => format!("{}/images/generations", base),
+                OpenaiAction::Responses => format!("{}/responses", base),
+            };
 
-        match result {
-            Ok(resp) => {
-                let status = resp.status();
-                let bytes = match resp.bytes().await {
-                    Ok(b) => b,
-                    Err(e) => {
-                        let msg = format!("Erro lendo resposta: {}", e);
+            // Corpo bruto como JSON (sem validação)
+            let body_json: JsonValue =
+                match serde_json::from_str::<JsonValue>(&openai_input.with.to_string()) {
+                    Ok(v) => v,
+                    Err(err) => {
+                        let msg = format!("Invalid JSON body: {}", err);
                         log::error!("{}", msg);
-                        sender_safe!(package.sender, error_response!(msg));
-                        continue;
+                        let _ = sender_safe!(package.sender, error_response!(msg));
+                        return;
                     }
                 };
-                let text = String::from_utf8_lossy(&bytes).to_string();
-                if status.is_success() {
-                    // Tenta converter JSON; caso contrário, retorna texto cru
-                    let data_val: Value = match serde_json::from_str::<serde_json::Value>(&text) {
-                        Ok(v) => serde_to_value(&v),
-                        Err(_) => Value::from(text.clone()),
+
+            // Envia conforme o tipo de ação (JSON vs multipart)
+            let result = match openai_input.action {
+                OpenaiAction::AudioTranscribe
+                | OpenaiAction::AudioTranslate
+                | OpenaiAction::ImagesEdit => {
+                    // Constrói multipart dinamicamente: arquivos em chaves [file|image|mask] se apontarem para paths existentes
+                    let form = match build_multipart_form(&body_json) {
+                        Ok(f) => f,
+                        Err(e) => {
+                            let msg = format!("Erro ao montar multipart: {}", e);
+                            log::error!("{}", msg);
+                            let _ = sender_safe!(package.sender, error_response!(msg));
+                            return;
+                        }
                     };
+                    client.post(&url).multipart(form).send().await
+                }
+                _ => client.post(&url).json(&body_json).send().await,
+            };
 
-                    sender_safe!(package.sender, success_response!(data_val));
-                } else {
-                    let msg = format!("HTTP {}: {}", status.as_u16(), text);
+            match result {
+                Ok(resp) => {
+                    let status = resp.status();
+                    let bytes = match resp.bytes().await {
+                        Ok(b) => b,
+                        Err(e) => {
+                            let msg = format!("Erro lendo resposta: {}", e);
+                            log::error!("{}", msg);
+                            let _ = sender_safe!(package.sender, error_response!(msg));
+                            return;
+                        }
+                    };
+                    let text = String::from_utf8_lossy(&bytes).to_string();
+                    if status.is_success() {
+                        // Tenta converter JSON; caso contrário, retorna texto cru
+                        let data_val: Value = match serde_json::from_str::<serde_json::Value>(&text)
+                        {
+                            Ok(v) => serde_to_value(&v),
+                            Err(_) => Value::from(text.clone()),
+                        };
+
+                        let _ = sender_safe!(package.sender, success_response!(data_val));
+                    } else {
+                        let msg = format!("HTTP {}: {}", status.as_u16(), text);
+                        log::error!("{}", msg);
+                        let _ = sender_safe!(package.sender, error_response!(msg));
+                    }
+                }
+                Err(e) => {
+                    let msg = format!("Erro na requisição: {}", e);
                     log::error!("{}", msg);
-                    sender_safe!(package.sender, error_response!(msg));
+                    let _ = sender_safe!(package.sender, error_response!(msg));
                 }
             }
-            Err(e) => {
-                let msg = format!("Erro na requisição: {}", e);
-                log::error!("{}", msg);
-                sender_safe!(package.sender, error_response!(msg));
-            }
-        }
+        });
     }
 
     Ok(())
