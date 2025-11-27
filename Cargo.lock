@@ -109,7 +109,7 @@ dependencies = [
  "hostname",
  "lapin",
  "openssl",
- "phlow-sdk 0.2.7",
+ "phlow-sdk",
  "reqwest",
  "serde_json",
  "url",
@@ -406,7 +406,7 @@ dependencies = [
  "aws-sdk-sqs",
  "base64 0.22.1",
  "bytes",
- "phlow-sdk 0.2.7",
+ "phlow-sdk",
 ]
 
 [[package]]
@@ -1048,7 +1048,7 @@ dependencies = [
 name = "cache"
 version = "0.1.0"
 dependencies = [
- "phlow-sdk 0.2.7",
+ "phlow-sdk",
  "quickleaf",
  "serde",
  "tokio",
@@ -1143,7 +1143,7 @@ name = "cli"
 version = "0.1.0"
 dependencies = [
  "colored",
- "phlow-sdk 0.2.7",
+ "phlow-sdk",
 ]
 
 [[package]]
@@ -1607,7 +1607,7 @@ dependencies = [
 name = "echo"
 version = "0.1.0"
 dependencies = [
- "phlow-sdk 0.2.7",
+ "phlow-sdk",
  "serde_json",
 ]
 
@@ -1950,7 +1950,7 @@ name = "fs"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
- "phlow-sdk 0.2.7",
+ "phlow-sdk",
  "serde",
  "serde_json",
  "tokio",
@@ -2322,7 +2322,7 @@ version = "0.1.0"
 dependencies = [
  "lazy_static",
  "openssl",
- "phlow-sdk 0.2.7",
+ "phlow-sdk",
  "reqwest",
 ]
 
@@ -2337,7 +2337,7 @@ dependencies = [
  "hyper 1.8.1",
  "hyper-util",
  "openssl",
- "phlow-sdk 0.1.1",
+ "phlow-sdk",
  "regex",
  "serde",
  "serde_yaml",
@@ -2782,7 +2782,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "jsonwebtoken",
- "phlow-sdk 0.2.7",
+ "phlow-sdk",
  "serde",
  "serde_json",
  "tokio-test",
@@ -2970,7 +2970,7 @@ dependencies = [
 name = "log"
 version = "0.0.4"
 dependencies = [
- "phlow-sdk 0.2.7",
+ "phlow-sdk",
 ]
 
 [[package]]
@@ -3216,7 +3216,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 name = "openai"
 version = "0.1.0"
 dependencies = [
- "phlow-sdk 0.2.7",
+ "phlow-sdk",
  "reqwest",
  "serde",
  "serde_json",
@@ -3597,8 +3597,8 @@ name = "phlow-engine"
 version = "0.2.7"
 dependencies = [
  "once_cell",
- "phlow-sdk 0.2.7",
- "phs 0.2.7",
+ "phlow-sdk",
+ "phs",
  "regex",
  "rhai",
  "serde",
@@ -3613,7 +3613,7 @@ dependencies = [
  "anyhow",
  "futures",
  "hostname",
- "phlow-sdk 0.2.7",
+ "phlow-sdk",
  "serde",
  "tarpc",
  "tokio",
@@ -3641,7 +3641,7 @@ dependencies = [
  "mimalloc",
  "openssl",
  "phlow-engine",
- "phlow-sdk 0.2.7",
+ "phlow-sdk",
  "regex",
  "reqwest",
  "serde",
@@ -3649,32 +3649,6 @@ dependencies = [
  "tar",
  "tokio",
  "zip",
-]
-
-[[package]]
-name = "phlow-sdk"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74ecee6d3fd9abcf6886c7944bae5d61e22fb039bd6560740e243fec0360ae04"
-dependencies = [
- "crossbeam",
- "env_logger",
- "log 0.4.28",
- "once_cell",
- "opentelemetry 0.31.0",
- "opentelemetry-otlp",
- "opentelemetry-semantic-conventions 0.31.0",
- "opentelemetry-stdout",
- "opentelemetry_sdk 0.31.0",
- "phs 0.2.6",
- "serde",
- "tokio",
- "tracing",
- "tracing-core",
- "tracing-log",
- "tracing-opentelemetry 0.32.0",
- "tracing-subscriber",
- "valu3",
 ]
 
 [[package]]
@@ -3690,7 +3664,7 @@ dependencies = [
  "opentelemetry-semantic-conventions 0.31.0",
  "opentelemetry-stdout",
  "opentelemetry_sdk 0.31.0",
- "phs 0.2.7",
+ "phs",
  "serde",
  "tokio",
  "tracing",
@@ -3698,22 +3672,6 @@ dependencies = [
  "tracing-log",
  "tracing-opentelemetry 0.32.0",
  "tracing-subscriber",
- "valu3",
-]
-
-[[package]]
-name = "phs"
-version = "0.2.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e0d1452b2e3d4409cb80d8a18b9cad79285ee6d9526cd70e11eeee1f3e533f2"
-dependencies = [
- "base64 0.22.1",
- "chrono",
- "regex",
- "rhai",
- "serde",
- "tokio",
- "uuid",
  "valu3",
 ]
 
@@ -3876,7 +3834,7 @@ version = "0.2.7"
 dependencies = [
  "chrono",
  "deadpool-postgres",
- "phlow-sdk 0.2.7",
+ "phlow-sdk",
  "tokio-postgres",
 ]
 
@@ -4799,7 +4757,7 @@ checksum = "7a2ae44ef20feb57a68b23d846850f861394c2e02dc425a50098ae8c90267589"
 name = "sleep"
 version = "0.1.0"
 dependencies = [
- "phlow-sdk 0.2.7",
+ "phlow-sdk",
 ]
 
 [[package]]
