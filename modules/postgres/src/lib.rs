@@ -7,6 +7,7 @@ use input::Input;
 use phlow_sdk::prelude::*;
 use postgres::PostgresConfig;
 use response::QueryResult;
+use std::error::Error;
 use tokio_postgres::types::ToSql;
 
 create_step!(postgres(setup));
@@ -85,12 +86,29 @@ pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Erro
                 match client.query(&stmt, &param_refs[..]).await {
                     Ok(rows) => {
                         let result = QueryResult::from(rows);
+                        let response: ModuleResponse = ModuleResponse::from_success(json!({
+                            "success": true,
+                            "data": result.to_value()
+                        }));
 
-                        sender_safe!(package.sender, result.to_value().into());
+                        sender_safe!(package.sender, response.into());
                     }
                     Err(e) => {
-                        let response =
-                            ModuleResponse::from_error(format!("Query execution failed: {}", e));
+                        let code = e.code().map(|c| c.code()).unwrap_or("UNKNOWN");
+                        let message = e
+                            .as_db_error()
+                            .map(|db| db.message().to_string())
+                            .unwrap_or_else(|| e.to_string());
+                        let cause = e.source().map(|s| s.to_string()).unwrap_or_default();
+
+                        let response = ModuleResponse::from_success(json!({
+                            "success": false,
+                            "error": {
+                                "code": code,
+                                "cause": cause,
+                                "message": message,
+                            }
+                        }));
 
                         sender_safe!(package.sender, response.into());
                         return;

@@ -1,7 +1,6 @@
-
 name: postgres
 description: PostgreSQL database operations.
-version: 0.0.1
+version: 0.1.0
 author: Philippe Assis <codephilippe@gmail.com>
 repository: https://github.com/phlowdotdev/phlow
 license: MIT
@@ -82,7 +81,7 @@ input:
       type: boolean
       description: Whether to cache the query result.
       default: true
-      required: false  
+      required: false
 output:
   type: object
   required: true

@@ -1,6 +1,6 @@
 [package]
 name = "postgres"
-version = "0.0.1"
+version = "0.1.0"
 edition = { workspace = true }
 
 [dependencies]
@@ -10,7 +10,7 @@ deadpool-postgres = "0.14"
 chrono = "0.4"
 tokio-postgres-rustls = "0.13"
 rustls = "0.23"
-webpki-roots = "0.26"
+webpki-roots = "1.0.4"
 
 [lib]
 name = "postgres"
