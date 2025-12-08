@@ -140,7 +140,13 @@ impl TryFrom<Value> for PostgresConfig {
             .get("host")
             .map(Value::to_string)
             .unwrap_or_else(|| "localhost".to_string());
-        let port = value.get("port").and_then(Value::to_i64).unwrap_or(5432) as u16;
+        let port = match value.get("port") {
+            Some(port) => match port.to_string() {
+                s if s.is_empty() => 5432,
+                s => s.parse().unwrap_or(5432),
+            },
+            None => 5432,
+        };
         let user = value
             .get("user")
             .map(Value::to_string)
