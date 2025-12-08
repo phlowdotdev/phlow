@@ -1,17 +1,16 @@
 [package]
 name = "postgres"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-authors.workspace = true
-license.workspace = true
-repository.workspace = true
+version = "0.0.1"
+edition = { workspace = true }
 
 [dependencies]
 phlow-sdk = { workspace = true }
 tokio-postgres = { version = "0.7", features = ["with-chrono-0_4"] }
 deadpool-postgres = "0.14"
 chrono = "0.4"
+tokio-postgres-rustls = "0.13"
+rustls = "0.23"
+webpki-roots = "0.26"
 
 [lib]
 name = "postgres"
