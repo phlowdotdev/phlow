@@ -16,7 +16,7 @@ pub async fn postgres(setup: ModuleSetup) -> Result<(), Box<dyn std::error::Erro
     let rx = module_channel!(setup);
     let config = PostgresConfig::try_from(setup.with.clone())?;
     let pool = Arc::new(config.create_pool()?);
-
+    println!("Postgres module initialized with config: {:?}", config);
     let mut handles = Vec::new();
 
     for package in rx {
