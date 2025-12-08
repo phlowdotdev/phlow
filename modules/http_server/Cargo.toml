@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = { workspace = true }
 
 [dependencies]
-phlow-sdk = { version = "0.1.1" }
+phlow-sdk = { workspace = true }
 hyper = { version = "1", features = ["full"] }
 http-body-util = "0.1"
 hyper-util = { version = "0.1", features = ["full"] }
@@ -13,7 +13,7 @@ futures-util = "0.3.31"
 openssl = { version = "0.10.72", features = ["vendored"] }
 from-path = "0.2.1"
 serde = { version = "1.0", features = ["derive"] }
-serde_yaml = "0.9"
+serde_yaml = { workspace = true }
 regex = "1.10"
 
 [lib]
