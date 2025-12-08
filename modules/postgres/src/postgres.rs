@@ -1,11 +1,11 @@
 use deadpool_postgres::{Pool, Runtime};
 use phlow_sdk::prelude::*;
-use tokio_postgres::NoTls;
-use tokio_postgres_rustls::MakeRustlsConnect;
 use rustls::ClientConfig;
 use rustls::client::danger::{ServerCertVerified, ServerCertVerifier};
 use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
 use std::sync::Arc;
+use tokio_postgres::NoTls;
+use tokio_postgres_rustls::MakeRustlsConnect;
 
 #[derive(Debug)]
 struct NoVerifier;
