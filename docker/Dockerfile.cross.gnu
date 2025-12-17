@@ -1,7 +1,8 @@
 FROM debian:bookworm-slim
 
 # Arquivo alterado para baixar binários pré-compilados em vez de buildar
-ARG ARCH=amd64
+ARG ARCH
+ARG TARGETARCH
 ARG PHLOW_VERSION
 WORKDIR /app
 
@@ -15,10 +16,11 @@ RUN apt-get update && \
 
 # Escolhe o binário pela arquitetura e baixa da release
 RUN set -eux; \
+    ARCH="${ARCH:-${TARGETARCH}}"; \
     case "$ARCH" in \
-    amd64) FILE=phlow-amd64 ;; \
-    arm64) FILE=phlow-arm64 ;; \
-    *) echo "Unsupported ARCH: $ARCH" >&2; exit 1 ;; \
+    amd64 | x86_64) FILE=phlow-amd64 ;; \
+    arm64 | aarch64) FILE=phlow-arm64 ;; \
+    *) echo "Unsupported ARCH: $ARCH (TARGETARCH=${TARGETARCH})" >&2; exit 1 ;; \
     esac; \
     URL="https://github.com/phlowdotdev/phlow/releases/download/v$PHLOW_VERSION/$FILE"; \
     echo "Downloading $URL"; \
