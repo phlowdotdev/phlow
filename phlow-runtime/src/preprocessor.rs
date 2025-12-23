@@ -4,11 +4,13 @@ use serde_yaml::{Mapping, Value};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use crate::settings::PrintOutput;
 
 pub fn preprocessor(
     phlow: &str,
     base_path: &Path,
     print_phlow: bool,
+    print_output: PrintOutput,
 ) -> Result<String, Vec<String>> {
     let (phlow, errors) = preprocessor_directives(phlow, base_path);
 
@@ -30,12 +32,29 @@ pub fn preprocessor(
     let phlow = preprocessor_modules(&phlow)?;
 
     if print_phlow {
-        println!("");
-        println!("# PHLOW TRANSFORMED");
-        println!("#####################################################################");
-        println!("{}", phlow);
-        println!("#####################################################################");
-        println!("");
+        match print_output {
+            PrintOutput::Yaml => {
+                println!("");
+                println!("# PHLOW TRANSFORMED");
+                println!("#####################################################################");
+                println!("{}", phlow);
+                println!("#####################################################################");
+                println!("");
+            }
+            PrintOutput::Json => {
+                match serde_yaml::from_str::<serde_yaml::Value>(&phlow) {
+                    Ok(value) => match serde_json::to_string_pretty(&value) {
+                        Ok(json) => println!("{}", json),
+                        Err(err) => {
+                            eprintln!("❌ Failed to serialize JSON output: {}", err);
+                        }
+                    },
+                    Err(err) => {
+                        eprintln!("❌ Failed to parse transformed YAML for JSON output: {}", err);
+                    }
+                }
+            }
+        }
     }
 
     Ok(phlow)
@@ -1274,7 +1293,13 @@ steps:
               param2: value2
         "#;
 
-        let processed = preprocessor(input, &Path::new(".").to_path_buf(), false).unwrap();
+        let processed = preprocessor(
+            input,
+            &Path::new(".").to_path_buf(),
+            false,
+            crate::settings::PrintOutput::Yaml,
+        )
+        .unwrap();
         println!("Processed:\n{}", processed);
 
         assert_eq!(processed, expected);
@@ -1421,7 +1446,13 @@ steps:
   - log.info:
       message: steps.gpt.data.choices[0].message.content"#;
 
-        let transformed = preprocessor(input, &Path::new(".").to_path_buf(), false).unwrap();
+        let transformed = preprocessor(
+            input,
+            &Path::new(".").to_path_buf(),
+            false,
+            crate::settings::PrintOutput::Yaml,
+        )
+        .unwrap();
 
         assert!(!transformed.contains(r#"#{ \"type\": \"string\" }"#));
     }

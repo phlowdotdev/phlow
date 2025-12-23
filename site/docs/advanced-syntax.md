@@ -421,10 +421,11 @@ steps:
 ## Debugging
 
 ### Print Transformed YAML
-Use `--print` flag to see preprocessor output:
+Use `--print` to see preprocessor output. Choose the format with `--output yaml|json`:
 
 ```bash
-phlow main.phlow --print
+phlow main.phlow --print --output yaml
+phlow main.phlow --print --output json
 ```
 
 ### Common Issues

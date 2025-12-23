@@ -224,7 +224,7 @@ steps:
 
 ### Error Handling
 - **Validation**: All transformations are validated with clear error messages
-- **Testing**: Test flows with `--print` flag to verify transformations
+- **Testing**: Test flows with `--print --output yaml|json` to verify transformations
 - **Debugging**: Use appropriate log levels for troubleshooting
 
 ## Performance Impact

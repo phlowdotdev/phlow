@@ -39,9 +39,11 @@ impl Loader {
     pub async fn load(
         script_absolute_path: &str,
         print_yaml: bool,
+        print_output: crate::settings::PrintOutput,
         analyzer: Option<&crate::analyzer::Analyzer>,
     ) -> Result<Self, Error> {
-        let script_loaded = load_script(script_absolute_path, print_yaml, analyzer).await?;
+        let script_loaded =
+            load_script(script_absolute_path, print_yaml, print_output, analyzer).await?;
 
         let base_path = Path::new(&script_loaded.script_file_path)
             .parent()

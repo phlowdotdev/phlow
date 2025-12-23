@@ -22,7 +22,12 @@ pub fn run_script(path: &str, setup: ModuleSetup, settings: &Settings) {
             rt.block_on(async move {
                 // build an Analyzer from settings and pass to loader so analyzer runs during load
                 let analyzer = crate::analyzer::Analyzer::from_settings(settings);
-                let loader = Loader::load(&path, settings.print_yaml, Some(&analyzer))
+                let loader = Loader::load(
+                    &path,
+                    settings.print_yaml,
+                    settings.print_output,
+                    Some(&analyzer),
+                )
                     .await
                     .unwrap();
                 let (tx_main_package, rx_main_package) = channel::unbounded::<Package>();

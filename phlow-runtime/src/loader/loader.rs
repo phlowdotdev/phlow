@@ -1,8 +1,9 @@
 use super::Error;
 use crate::preprocessor::preprocessor;
+use crate::settings::PrintOutput;
 use flate2::read::GzDecoder;
 use log::debug;
-use phlow_sdk::prelude::*;
+use phlow_sdk::{prelude::*, valu3};
 use reqwest::Client;
 use reqwest::header::AUTHORIZATION;
 use std::fs;
@@ -21,6 +22,7 @@ use crate::analyzer::Analyzer;
 pub async fn load_script(
     script_target: &str,
     print_yaml: bool,
+    print_output: PrintOutput,
     analyzer: Option<&Analyzer>,
 ) -> Result<ScriptLoaded, Error> {
     let script_file_path = match resolve_script_path(script_target).await {
@@ -33,12 +35,13 @@ pub async fn load_script(
         Err(_) => return Err(Error::ModuleNotFound(script_file_path.to_string())),
     };
 
-    let script = resolve_script(&file, script_file_path.clone(), print_yaml).map_err(|err| {
-        Error::ModuleLoaderError(format!(
-            "Failed to resolve script: {}. Error: {}",
-            script_file_path, err
-        ))
-    })?;
+    let script = resolve_script(&file, script_file_path.clone(), print_yaml, print_output)
+        .map_err(|err| {
+            Error::ModuleLoaderError(format!(
+                "Failed to resolve script: {}. Error: {}",
+                script_file_path, err
+            ))
+        })?;
 
     // If analyzer was provided and is enabled, run it using the script target
     if let Some(a) = analyzer {
@@ -255,7 +258,12 @@ async fn resolve_script_path(script_path: &str) -> Result<String, Error> {
     Err(Error::MainNotFound(script_path.to_string()))
 }
 
-fn resolve_script(file: &str, main_file_path: String, print_yaml: bool) -> Result<Value, Error> {
+fn resolve_script(
+    file: &str,
+    main_file_path: String,
+    print_yaml: bool,
+    print_output: PrintOutput,
+) -> Result<Value, Error> {
     let mut value: Value = {
         let script_path = Path::new(&main_file_path)
             .parent()
@@ -268,11 +276,11 @@ fn resolve_script(file: &str, main_file_path: String, print_yaml: bool) -> Resul
             .unwrap_or("")
             .to_lowercase();
 
-        let script: String = if extension == "yaml" || extension == "yml" {
+        let script: String = if extension == "yaml" || extension == "yml" || extension == "json" {
             // Usar o conteúdo original do arquivo quando for YAML
             file.to_string()
         } else {
-            preprocessor(&file, script_path, print_yaml).map_err(|errors| {
+            preprocessor(&file, script_path, print_yaml, print_output).map_err(|errors| {
                 eprintln!("❌ Failed to transform YAML file: {}", main_file_path);
                 Error::ModuleLoaderError(format!(
                     "YAML transformation failed with {} error(s)",
@@ -287,7 +295,12 @@ fn resolve_script(file: &str, main_file_path: String, print_yaml: bool) -> Resul
             }
         }
 
-        serde_yaml::from_str(&script).map_err(Error::LoaderErrorScript)?
+        if extension == "json" {
+            println!("Parsing JSON script");
+            valu3::value::Value::json_to_value(&script).map_err(Error::LoaderErrorJsonValu3)?
+        } else {
+            serde_yaml::from_str::<Value>(&script).map_err(Error::LoaderErrorScript)?
+        }
     };
 
     if value.get("steps").is_none() {

@@ -76,6 +76,7 @@ async fn main() {
     let mut loader = match Loader::load(
         &settings.script_main_absolute_path,
         settings.print_yaml,
+        settings.print_output,
         Some(&analyzer),
     )
     .await
