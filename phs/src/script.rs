@@ -36,6 +36,18 @@ pub struct Script {
 }
 
 impl Script {
+    fn unescape_json_string(code: &str) -> String {
+        if !code.contains('\\') {
+            return code.to_string();
+        }
+
+        let wrapped = format!("\"{}\"", code);
+        match serde_json::from_str::<String>(&wrapped) {
+            Ok(value) => value,
+            Err(_) => code.to_string(),
+        }
+    }
+
     pub fn try_build(engine: Arc<Engine>, script: &Value) -> Result<Self, ScriptError> {
         let mut map_index_ast = HashMap::new();
         let mut counter = 0;
@@ -221,8 +233,8 @@ impl Script {
 
                     if code.starts_with("{{") && code.ends_with("}}") {
                         let code = code[2..code.len() - 2].to_string();
-
-                        let code_fixed = Self::replace_null_safe(&code);
+                        let code_unescaped = Self::unescape_json_string(&code);
+                        let code_fixed = Self::replace_null_safe(&code_unescaped);
 
                         // Aplica o pré-processamento para spread syntax
                         let preprocessor = SpreadPreprocessor::new();

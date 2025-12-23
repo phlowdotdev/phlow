@@ -19,6 +19,7 @@ rhai = { workspace = true }
 regex = { workspace = true }
 valu3 = { workspace = true }
 tokio = { workspace = true }
+serde_json = { workspace = true }
 base64 = "0.22"
 chrono = { workspace = true }
 uuid = { version = "1.18.1", features = ["v4", "v3", "v5", "v6", "v7"] }
