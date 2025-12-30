@@ -3594,7 +3594,7 @@ dependencies = [
 
 [[package]]
 name = "phlow-engine"
-version = "0.2.8"
+version = "0.3.0"
 dependencies = [
  "once_cell",
  "phlow-sdk",
@@ -3623,7 +3623,7 @@ dependencies = [
 
 [[package]]
 name = "phlow-runtime"
-version = "0.2.8"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -3645,6 +3645,7 @@ dependencies = [
  "regex",
  "reqwest",
  "serde",
+ "serde_json",
  "serde_yaml",
  "tar",
  "tokio",
@@ -3653,7 +3654,7 @@ dependencies = [
 
 [[package]]
 name = "phlow-sdk"
-version = "0.2.8"
+version = "0.3.0"
 dependencies = [
  "crossbeam",
  "env_logger",
@@ -3677,13 +3678,14 @@ dependencies = [
 
 [[package]]
 name = "phs"
-version = "0.2.8"
+version = "0.3.0"
 dependencies = [
  "base64 0.22.1",
  "chrono",
  "regex",
  "rhai",
  "serde",
+ "serde_json",
  "tokio",
  "uuid",
  "valu3",

@@ -6,6 +6,13 @@ pub enum Error {
     #[allow(dead_code)]
     ModuleNotFound(String),
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PrintOutput {
+    Yaml,
+    Json,
+}
+
 #[derive(Debug)]
 pub struct Cli {
     pub main_target: Option<String>,
@@ -16,6 +23,7 @@ pub struct Cli {
     pub no_run: bool,
     pub download: bool,
     pub print_yaml: bool,
+    pub print_output: PrintOutput,
     pub test: bool,
     pub test_filter: Option<String>,
     pub var_main: Option<String>,
@@ -28,8 +36,6 @@ pub struct Cli {
     pub analyzer_json: bool,
     pub analyzer_inner: bool,
     pub analyzer_all: bool,
-    // pre preprocessor variables
-    pub var_pre: Option<String>,
 }
 
 impl Cli {
@@ -96,6 +102,14 @@ impl Cli {
                     .value_parser(clap::builder::BoolishValueParser::new())
                     .action(ArgAction::SetTrue)
                     .default_value("false"),
+            )
+            .arg(
+                Arg::new("print_output")
+                    .long("output")
+                    .help("Output format for --print (yaml|json)")
+                    .value_name("FORMAT")
+                    .value_parser(["yaml", "json"])
+                    .requires("print_yaml"),
             )
             .arg(
                 Arg::new("test")
@@ -208,6 +222,13 @@ impl Cli {
         let download = *matches.get_one::<bool>("download").unwrap_or(&true);
 
         let print_yaml = *matches.get_one::<bool>("print_yaml").unwrap_or(&false);
+        let print_output = matches
+            .get_one::<String>("print_output")
+            .map(|s| match s.as_str() {
+                "json" => PrintOutput::Json,
+                _ => PrintOutput::Yaml,
+            })
+            .unwrap_or(PrintOutput::Yaml);
 
         let test = *matches.get_one::<bool>("test").unwrap_or(&false);
 
@@ -226,8 +247,6 @@ impl Cli {
         let analyzer_json = *matches.get_one::<bool>("json").unwrap_or(&false);
         let analyzer_inner = *matches.get_one::<bool>("inner").unwrap_or(&false);
         let analyzer_all = *matches.get_one::<bool>("all").unwrap_or(&false);
-        let var_pre: Option<String> = matches.get_one::<String>("var_pre").map(|s| s.to_string());
-
         Ok(Cli {
             main_target: main,
             only_download_modules: install,
@@ -237,6 +256,7 @@ impl Cli {
             no_run,
             download,
             print_yaml,
+            print_output,
             test,
             test_filter,
             var_main,
@@ -248,7 +268,6 @@ impl Cli {
             analyzer_json,
             analyzer_inner,
             analyzer_all,
-            var_pre,
         })
     }
 }

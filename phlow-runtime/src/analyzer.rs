@@ -312,7 +312,12 @@ fn analyze_internal<'a>(
 
         // Try preprocessor (preferred). If it fails or the resulting YAML cannot be parsed,
         // fall back to the tolerant heuristic analysis below.
-        let preprocessed = preprocessor(&raw, &main_path.parent().unwrap_or(Path::new(".")), false);
+        let preprocessed = preprocessor(
+            &raw,
+            &main_path.parent().unwrap_or(Path::new(".")),
+            false,
+            crate::settings::PrintOutput::Yaml,
+        );
 
         if let Ok(transformed) = preprocessed {
             // parse the YAML into valu3::Value for analysis

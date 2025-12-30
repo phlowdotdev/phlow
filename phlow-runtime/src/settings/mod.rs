@@ -3,6 +3,7 @@ use envs::Envs;
 
 pub mod cli;
 pub mod envs;
+pub use cli::PrintOutput;
 
 #[derive(Debug, Clone)]
 pub struct Settings {
@@ -14,6 +15,7 @@ pub struct Settings {
     pub no_run: bool,
     pub download: bool,
     pub print_yaml: bool,
+    pub print_output: PrintOutput,
     pub test: bool,
     pub test_filter: Option<String>,
     pub var_main: Option<String>,
@@ -81,6 +83,7 @@ impl Settings {
             default_package_repository_url: envs.default_package_repository_url,
             download: cli.download,
             print_yaml: cli.print_yaml,
+            print_output: cli.print_output,
             test: cli.test,
             test_filter: cli.test_filter,
             var_main: cli.var_main,
