@@ -1,6 +1,7 @@
 use crate::{
     condition::{Condition, ConditionError},
     context::Context,
+    debug::debug_controller,
     id::ID,
     script::Script,
 };
@@ -12,6 +13,7 @@ use phlow_sdk::{
 use rhai::Engine;
 use serde::Serialize;
 use std::{fmt::Display, sync::Arc};
+use uuid::Uuid;
 
 static PHLOW_TRUNCATE_SPAN_VALUE: Lazy<usize> =
     Lazy::new(|| match std::env::var("PHLOW_TRUNCATE_SPAN_VALUE") {
@@ -224,7 +226,14 @@ impl StepWorker {
             None => None,
         };
 
-        let step_value = Some(value.clone());
+        let mut step_value = value.clone();
+        if Self::should_add_uuid() {
+            if let Some(obj) = step_value.as_object_mut() {
+                if !obj.contains_key(&"#uuid".to_string()) {
+                    obj.insert("#uuid".to_string(), Uuid::new_v4().to_string().to_value());
+                }
+            }
+        }
         #[cfg(debug_assertions)]
         let step_raw = value.to_string();
 
@@ -241,7 +250,7 @@ impl StepWorker {
             return_case,
             to,
             log,
-            step_value,
+            step_value: Some(step_value),
             #[cfg(debug_assertions)]
             step_raw,
         })
@@ -271,6 +280,15 @@ impl StepWorker {
             }
         }
         map.to_value()
+    }
+
+    fn should_add_uuid() -> bool {
+        if debug_controller().is_some() {
+            return true;
+        }
+        std::env::var("PHLOW_DEBUG")
+            .map(|value| value.eq_ignore_ascii_case("true"))
+            .unwrap_or(false)
     }
 
     fn evaluate_payload(

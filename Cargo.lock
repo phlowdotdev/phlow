@@ -3757,6 +3757,7 @@ dependencies = [
  "rhai",
  "serde",
  "tokio",
+ "uuid",
  "valu3",
 ]
 

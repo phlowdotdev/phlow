@@ -168,6 +168,14 @@ impl DebugController {
         DebugReleaseResult::Released
     }
 
+    pub async fn pause_release(&self) -> bool {
+        let mut state = self.state.lock().await;
+        let was_active = state.release_pipeline.is_some();
+        state.release_pipeline = None;
+        state.release_current = false;
+        was_active
+    }
+
     pub async fn finish_step(&self) {
         let mut state = self.state.lock().await;
         state.executing = false;

@@ -78,6 +78,10 @@ async fn handle_client(
                     DebugReleaseResult::NoStep => error_value("no step waiting"),
                 }
             }
+            "PAUSE" => {
+                controller.pause_release().await;
+                ok_value()
+            }
             _ => error_value("unknown command"),
         };
 

@@ -1,5 +1,6 @@
 use crate::{
     context::Context,
+    debug::debug_controller,
     pipeline::{Pipeline, PipelineError},
     step_worker::NextStep,
     transform::{TransformError, value_to_pipelines},
@@ -7,6 +8,7 @@ use crate::{
 use phlow_sdk::prelude::{log::error, *};
 use phs::build_engine;
 use std::{collections::HashMap, fmt::Display, sync::Arc};
+use uuid::Uuid;
 
 #[derive(Debug)]
 pub enum PhlowError {
@@ -65,12 +67,19 @@ impl Phlow {
             Arc::new(Modules::default())
         };
 
+        let script = if should_add_uuid() {
+            let in_steps = value.is_array();
+            add_uuids(value, in_steps)
+        } else {
+            value.clone()
+        };
+
         let pipelines =
-            value_to_pipelines(engine, modules, value).map_err(PhlowError::TransformError)?;
+            value_to_pipelines(engine, modules, &script).map_err(PhlowError::TransformError)?;
 
         Ok(Self {
             pipelines,
-            script: value.clone(),
+            script,
         })
     }
 
@@ -152,5 +161,44 @@ impl Phlow {
 
     pub fn script(&self) -> Value {
         self.script.clone()
+    }
+}
+
+fn should_add_uuid() -> bool {
+    if debug_controller().is_some() {
+        return true;
+    }
+    std::env::var("PHLOW_DEBUG")
+        .map(|value| value.eq_ignore_ascii_case("true"))
+        .unwrap_or(false)
+}
+
+fn add_uuids(value: &Value, in_steps: bool) -> Value {
+    match value {
+        Value::Object(map) => {
+            let mut new_map = HashMap::new();
+            for (key, value) in map.iter() {
+                let key_str = key.to_string();
+                let is_pipeline = matches!(key_str.as_str(), "then" | "else")
+                    && (value.is_object() || value.is_array());
+                let next_in_steps = key_str == "steps" || is_pipeline;
+                new_map.insert(key_str, add_uuids(value, next_in_steps));
+            }
+            if in_steps && !map.contains_key(&"#uuid".to_string()) {
+                new_map.insert(
+                    "#uuid".to_string(),
+                    Uuid::new_v4().to_string().to_value(),
+                );
+            }
+            Value::from(new_map)
+        }
+        Value::Array(array) => {
+            let mut new_array = Vec::new();
+            for value in array.values.iter() {
+                new_array.push(add_uuids(value, in_steps));
+            }
+            Value::from(new_array)
+        }
+        _ => value.clone(),
     }
 }
