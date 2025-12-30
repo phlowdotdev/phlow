@@ -155,6 +155,14 @@ fn handle_key(key: KeyEvent, state: &mut AppState) -> bool {
             true
         }
         KeyEvent {
+            code: KeyCode::Char('w'),
+            modifiers: KeyModifiers::CONTROL,
+            ..
+        } => {
+            set_output(state, run_show());
+            true
+        }
+        KeyEvent {
             code: KeyCode::Char('d'),
             modifiers: KeyModifiers::CONTROL,
             ..
@@ -248,6 +256,7 @@ fn handle_slash_command(command: &str, state: &mut AppState) {
         "/n" => set_output(state, run_next_and_step()),
         "/a" => set_output(state, run_next_and_all()),
         "/r" => set_output(state, run_release_and_all()),
+        "/w" => set_output(state, run_show()),
         "/d" => move_search(state, -1),
         "/e" => move_search(state, 1),
         "/x" => clear_search(state),
@@ -405,6 +414,10 @@ fn run_release_and_all() -> String {
     }
 
     poll_for_response("ALL", |_| true)
+}
+
+fn run_show() -> String {
+    run_command("SHOW")
 }
 
 fn run_next_and_all() -> String {
@@ -903,7 +916,7 @@ fn split_at_char_idx(value: &str, idx: usize) -> (String, String) {
 }
 
 fn summary_text() -> &'static str {
-    "(/n|^n) next+step  (/a|^a) next+all  (/r|^r) release+all  (/s term) search  (/d|^d) prev  (/e|^e) next  (/x|^x) clear"
+    "(/n|^n) next+step  (/a|^a) next+all  (/r|^r) release+all  (/w|^w) show  (/s term) search  (/d|^d) prev  (/e|^e) next  (/x|^x) clear"
 }
 
 fn output_height_for_size(width: u16, height: u16) -> usize {

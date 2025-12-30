@@ -16,6 +16,7 @@ pub struct DebugSnapshot {
     pub context: DebugContext,
     pub step: Value,
     pub pipeline: usize,
+    pub compiled: Value,
 }
 
 #[derive(Debug)]
@@ -23,6 +24,7 @@ struct DebugState {
     current: Option<DebugSnapshot>,
     history: Vec<DebugSnapshot>,
     executing: bool,
+    script: Option<Value>,
     release_current: bool,
     release_pipeline: Option<usize>,
 }
@@ -33,6 +35,7 @@ impl DebugState {
             current: None,
             history: Vec::new(),
             executing: false,
+            script: None,
             release_current: false,
             release_pipeline: None,
         }
@@ -106,6 +109,27 @@ impl DebugController {
     pub async fn current_snapshot(&self) -> Option<DebugSnapshot> {
         let state = self.state.lock().await;
         state.current.clone()
+    }
+
+    pub async fn show_snapshot(&self) -> Option<DebugSnapshot> {
+        let state = self.state.lock().await;
+        if let Some(current) = &state.current {
+            return Some(current.clone());
+        }
+        if state.executing {
+            return state.history.last().cloned();
+        }
+        None
+    }
+
+    pub async fn set_script(&self, script: Value) {
+        let mut state = self.state.lock().await;
+        state.script = Some(script);
+    }
+
+    pub async fn show_script(&self) -> Option<Value> {
+        let state = self.state.lock().await;
+        state.script.clone()
     }
 
     pub async fn history(&self) -> Vec<DebugSnapshot> {

@@ -1,6 +1,6 @@
 use crate::{
     context::Context,
-    debug::{debug_controller, DebugContext, DebugSnapshot},
+    debug::{DebugContext, DebugSnapshot, debug_controller},
     step_worker::{NextStep, StepOutput, StepWorker, StepWorkerError},
 };
 use phlow_sdk::prelude::Value;
@@ -53,6 +53,7 @@ impl Pipeline {
                     },
                     step: step.step_value.clone().unwrap_or(Value::Null),
                     pipeline: self.id + 1,
+                    compiled: step.compiled_debug(),
                 };
                 controller.before_step(snapshot).await;
             }

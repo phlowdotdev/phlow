@@ -55,6 +55,10 @@ async fn handle_client(
                 Some(snapshot) => snapshot_to_value(&snapshot),
                 None => error_value("no step waiting"),
             },
+            "SHOW" => match controller.show_script().await {
+                Some(script) => script,
+                None => error_value("no script loaded"),
+            },
             "NEXT" => {
                 match controller.release_next().await {
                     DebugReleaseResult::Released => ok_value(),

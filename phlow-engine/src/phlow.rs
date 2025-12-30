@@ -2,7 +2,7 @@ use crate::{
     context::Context,
     pipeline::{Pipeline, PipelineError},
     step_worker::NextStep,
-    transform::{value_to_pipelines, TransformError},
+    transform::{TransformError, value_to_pipelines},
 };
 use phlow_sdk::prelude::{log::error, *};
 use phs::build_engine;
@@ -43,6 +43,7 @@ pub type PipelineMap = HashMap<usize, Pipeline>;
 #[derive(Debug, Default)]
 pub struct Phlow {
     pipelines: PipelineMap,
+    script: Value,
 }
 
 impl Phlow {
@@ -67,7 +68,10 @@ impl Phlow {
         let pipelines =
             value_to_pipelines(engine, modules, value).map_err(PhlowError::TransformError)?;
 
-        Ok(Self { pipelines })
+        Ok(Self {
+            pipelines,
+            script: value.clone(),
+        })
     }
 
     pub async fn execute(&self, context: &mut Context) -> Result<Option<Value>, PhlowError> {
@@ -103,14 +107,20 @@ impl Phlow {
                                 return Ok(step_output.output);
                             }
                             NextStep::Next => {
-                                log::debug!("NextStep::Next - checking if sub-pipeline needs to return to parent");
+                                log::debug!(
+                                    "NextStep::Next - checking if sub-pipeline needs to return to parent"
+                                );
                                 // Check if this is the main pipeline (highest index)
                                 let main_pipeline = self.pipelines.len() - 1;
                                 if current_pipeline == main_pipeline {
-                                    log::debug!("NextStep::Next - terminating execution (main pipeline completed)");
+                                    log::debug!(
+                                        "NextStep::Next - terminating execution (main pipeline completed)"
+                                    );
                                     return Ok(step_output.output);
                                 } else {
-                                    log::debug!("NextStep::Next - sub-pipeline completed, checking for parent return");
+                                    log::debug!(
+                                        "NextStep::Next - sub-pipeline completed, checking for parent return"
+                                    );
                                     // This is a sub-pipeline that completed - we should return to parent
                                     // For now, terminate execution but this needs proper parent tracking
                                     return Ok(step_output.output);
@@ -138,5 +148,9 @@ impl Phlow {
                 }
             }
         }
+    }
+
+    pub fn script(&self) -> Value {
+        self.script.clone()
     }
 }

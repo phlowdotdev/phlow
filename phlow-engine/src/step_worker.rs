@@ -251,6 +251,28 @@ impl StepWorker {
         &self.id
     }
 
+    pub(crate) fn compiled_debug(&self) -> Value {
+        let mut map = std::collections::HashMap::new();
+        if let Some(payload) = &self.payload {
+            map.insert("payload".to_string(), payload.compiled_debug());
+        }
+        if let Some(input) = &self.input {
+            map.insert("input".to_string(), input.compiled_debug());
+        }
+        if let Some(return_case) = &self.return_case {
+            map.insert("return".to_string(), return_case.compiled_debug());
+        }
+        if let Some(condition) = &self.condition {
+            map.insert("condition".to_string(), condition.expression.compiled_debug());
+        }
+        if let Some(log_step) = &self.log {
+            if let Some(message) = &log_step.message {
+                map.insert("log".to_string(), message.compiled_debug());
+            }
+        }
+        map.to_value()
+    }
+
     fn evaluate_payload(
         &self,
         context: &Context,
