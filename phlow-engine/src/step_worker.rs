@@ -25,6 +25,7 @@ pub enum StepWorkerError {
     PayloadError(phs::ScriptError),
     ModulesError(ModulesError),
     InputError(phs::ScriptError),
+    LogError(phs::ScriptError),
 }
 
 impl Display for StepWorkerError {
@@ -34,6 +35,7 @@ impl Display for StepWorkerError {
             StepWorkerError::PayloadError(err) => write!(f, "Payload error: {}", err),
             StepWorkerError::ModulesError(err) => write!(f, "Modules error: {}", err),
             StepWorkerError::InputError(err) => write!(f, "Input error: {}", err),
+            StepWorkerError::LogError(err) => write!(f, "Log error: {}", err),
         }
     }
 }
@@ -45,8 +47,46 @@ impl std::error::Error for StepWorkerError {
             StepWorkerError::PayloadError(_) => None, // ScriptError doesn't implement std::error::Error
             StepWorkerError::ModulesError(_) => None, // ModulesError doesn't implement std::error::Error
             StepWorkerError::InputError(_) => None, // ScriptError doesn't implement std::error::Error
+            StepWorkerError::LogError(_) => None, // ScriptError doesn't implement std::error::Error
         }
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum LogLevel {
+    Info,
+    Debug,
+    Warn,
+    Error,
+    Trace,
+}
+
+impl LogLevel {
+    fn from_str(level: &str) -> Self {
+        match level.to_ascii_lowercase().as_str() {
+            "debug" => LogLevel::Debug,
+            "warn" | "warning" => LogLevel::Warn,
+            "error" => LogLevel::Error,
+            "trace" => LogLevel::Trace,
+            _ => LogLevel::Info,
+        }
+    }
+
+    fn log(self, message: &str) {
+        match self {
+            LogLevel::Info => log::info!("{}", message),
+            LogLevel::Debug => log::debug!("{}", message),
+            LogLevel::Warn => log::warn!("{}", message),
+            LogLevel::Error => log::error!("{}", message),
+            LogLevel::Trace => log::trace!("{}", message),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct LogStep {
+    level: LogLevel,
+    message: Option<Script>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -82,6 +122,7 @@ pub struct StepWorker {
     pub(crate) modules: Arc<Modules>,
     pub(crate) return_case: Option<Script>,
     pub(crate) to: Option<StepReference>,
+    pub(crate) log: Option<LogStep>,
     #[cfg(debug_assertions)]
     pub(crate) step_raw: String,
 }
@@ -150,7 +191,7 @@ impl StepWorker {
             None => None,
         };
         let return_case = match value.get("return") {
-            Some(return_case) => match Script::try_build(engine, return_case) {
+            Some(return_case) => match Script::try_build(engine.clone(), return_case) {
                 Ok(return_case) => Some(return_case),
                 Err(err) => return Err(StepWorkerError::PayloadError(err)),
             },
@@ -160,6 +201,7 @@ impl StepWorker {
             Some(module) => Some(module.to_string()),
             None => None,
         };
+        let log = build_log_step(engine.clone(), value, module.as_deref())?;
 
         let to = match value.get("to") {
             Some(to_step) => match to_step.as_object() {
@@ -196,6 +238,7 @@ impl StepWorker {
             modules,
             return_case,
             to,
+            log,
             #[cfg(debug_assertions)]
             step_raw,
         })
@@ -260,6 +303,10 @@ impl StepWorker {
         &self,
         context: &Context,
     ) -> Result<Option<(Option<String>, Option<Value>, Context)>, StepWorkerError> {
+        if self.module.as_deref() == Some("log") {
+            return Ok(None);
+        }
+
         if let Some(ref module) = self.module {
             let input = self.evaluate_input(context)?;
 
@@ -341,6 +388,17 @@ impl StepWorker {
             if let Some(ref label) = self.label {
                 span.record("step.label", label.to_string());
             }
+        }
+
+        if let Some(log_step) = &self.log {
+            let message = match &log_step.message {
+                Some(script) => script
+                    .evaluate(context)
+                    .map_err(StepWorkerError::LogError)?
+                    .to_string(),
+                None => String::new(),
+            };
+            log_step.level.log(&message);
         }
 
         if let Some(output) = self.evaluate_return(context)? {
@@ -447,7 +505,12 @@ impl StepWorker {
             return Ok(StepOutput { next_step, output });
         }
 
-        let output = self.evaluate_payload(context, None)?;
+        let default_output = if self.log.is_some() {
+            context.get_payload()
+        } else {
+            None
+        };
+        let output = self.evaluate_payload(context, default_output)?;
 
         {
             if let Some(ref output) = output {
@@ -476,6 +539,86 @@ impl StepWorker {
             output,
         });
     }
+}
+
+fn build_log_step(
+    engine: Arc<Engine>,
+    value: &Value,
+    module: Option<&str>,
+) -> Result<Option<LogStep>, StepWorkerError> {
+    if let Some(log_step) = extract_log_from_key(engine.clone(), value)? {
+        return Ok(Some(log_step));
+    }
+
+    if module == Some("log") {
+        let input_value = value.get("input");
+        let log_step = build_log_from_input(engine, input_value)?;
+        return Ok(Some(log_step));
+    }
+
+    Ok(None)
+}
+
+fn extract_log_from_key(
+    engine: Arc<Engine>,
+    value: &Value,
+) -> Result<Option<LogStep>, StepWorkerError> {
+    let Some(obj) = value.as_object() else {
+        return Ok(None);
+    };
+
+    for (key, value) in obj.iter() {
+        let key_str = key.to_string();
+        let Some(level_key) = key_str.strip_prefix("log.") else {
+            continue;
+        };
+        let level = level_key.split('.').next().unwrap_or(level_key);
+        let level = LogLevel::from_str(level);
+        let message_value = if let Some(obj) = value.as_object() {
+            obj.get("message").cloned().unwrap_or_else(|| value.clone())
+        } else {
+            value.clone()
+        };
+        let message =
+            Script::try_build(engine.clone(), &message_value).map_err(StepWorkerError::LogError)?;
+
+        return Ok(Some(LogStep {
+            level,
+            message: Some(message),
+        }));
+    }
+
+    Ok(None)
+}
+
+fn build_log_from_input(
+    engine: Arc<Engine>,
+    input_value: Option<&Value>,
+) -> Result<LogStep, StepWorkerError> {
+    let mut level = LogLevel::Info;
+    let mut message_value: Option<Value> = None;
+
+    if let Some(input_value) = input_value {
+        if let Some(obj) = input_value.as_object() {
+            if let Some(level_value) = obj.get("action").or_else(|| obj.get("level")) {
+                level = LogLevel::from_str(level_value.as_string().as_str());
+            }
+
+            message_value = obj.get("message").cloned();
+        } else {
+            message_value = Some(input_value.clone());
+        }
+    }
+
+    let message = if let Some(message_value) = message_value {
+        Some(
+            Script::try_build(engine, &message_value).map_err(StepWorkerError::LogError)?,
+        )
+    } else {
+        None
+    };
+
+    Ok(LogStep { level, message })
 }
 
 fn truncate_string(string: &Value) -> String {

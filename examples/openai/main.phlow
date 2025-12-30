@@ -10,9 +10,7 @@ modules:
 steps:
   - id: "storage"
     payload: payload ?? main
-  - log:
-      level: when steps.storage.len % 2 == 0 then "warn" else "error"
-      message: steps.storage[-1].content
+  - log.info: `${when steps.storage.len % 2 == 0 then "assistant" else "user"}: ${steps.storage[-1].content}` 
   - openai.chat:
       messages: steps.storage
   - payload: ${

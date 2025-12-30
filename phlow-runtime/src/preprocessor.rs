@@ -822,6 +822,7 @@ const EXCLUSIVE_PROPERTIES: &[&str] = &[
     "return",
     "payload",
     "input",
+    "log",
     "then",
     "else",
     "steps",
