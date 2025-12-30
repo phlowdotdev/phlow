@@ -20,6 +20,35 @@ Phlow uses a **4-stage preprocessor pipeline** that transforms your `.phlow` fil
 3. **Script Evaluation** - Converts `!phs` blocks to executable format
 4. **Module Transformation** - Converts shorthand module calls to standard format
 
+## JSON Flow Support
+
+Phlow also accepts `.json` files as entry points. The structure mirrors the YAML version, only serialized as JSON:
+
+```json
+{
+  "modules": [
+    { "module": "log" }
+  ],
+  "steps": [
+    {
+      "use": "log",
+      "input": {
+        "message": "Hello from JSON"
+      }
+    }
+  ]
+}
+```
+
+- `.json` entry points skip the preprocessor entirely. Features such as `!include`, `!import`, auto `!phs`, and shorthand module conversion **do not run**, so write the flow in its final form (`use` + `input`).
+- Inspect JSON flows with the CLI using `--print --output json` to preserve the original format:
+
+```bash
+cargo run -p phlow-runtime -- ./flows/open.json --print --output json
+```
+
+- When a `!include` references a file with an explicit extension other than `.phlow` (for example, `.json`), the content is inserted as-is. This is handy for embedding JSON payload samples or schemas inside a YAML-based flow.
+
 ## Preprocessor Pipeline
 
 ### Stage 1: Directives Processing

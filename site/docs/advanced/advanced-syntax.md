@@ -7,6 +7,10 @@ title: Advanced Syntax
 
 This guide covers advanced Phlow syntax including enhanced module patterns and code block support for complex workflows.
 
+## JSON Entry Points
+
+Phlow can load `.json` files directly as the main flow. Because the preprocessor is bypassed, keep the document in its fully expanded shape (for example, use `use` + `input` blocks instead of shorthand module syntax) and avoid directives such as `!include` or `!import`. To inspect the parsed structure, run `cargo run -p phlow-runtime -- ./flows/open.json --print --output json`. Any `!include` pointing to a file with an explicit non-`.phlow` extension—such as `.json`—injects the raw content, which is useful for bundling payload samples or schemas with YAML-based flows.
+
 ## Enhanced Module Syntax
 
 ### Automatic Transformation
