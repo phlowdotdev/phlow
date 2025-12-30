@@ -14,3 +14,6 @@ Estrutura relevante:
 - `phlow-sdk/`: SDKs
 - `examples/`: fluxos de exemplo
 - `scripts/`: scripts auxiliares
+
+Regra:
+- Antes de concluir a tarefa, buildar todos os pacotes: `cargo build --workspace`

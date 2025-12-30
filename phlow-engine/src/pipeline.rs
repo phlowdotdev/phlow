@@ -1,7 +1,9 @@
 use crate::{
     context::Context,
+    debug::{debug_controller, DebugContext, DebugSnapshot},
     step_worker::{NextStep, StepOutput, StepWorker, StepWorkerError},
 };
+use phlow_sdk::prelude::Value;
 use std::fmt::Display;
 
 #[derive(Debug)]
@@ -42,7 +44,25 @@ impl Pipeline {
         skip: usize,
     ) -> Result<Option<StepOutput>, PipelineError> {
         for (step_index, step) in self.steps.iter().enumerate().skip(skip) {
-            match step.execute(&context).await {
+            let controller = debug_controller().cloned();
+            if let Some(controller) = &controller {
+                let snapshot = DebugSnapshot {
+                    context: DebugContext {
+                        payload: context.get_payload(),
+                        main: context.get_main(),
+                    },
+                    step: step.step_value.clone().unwrap_or(Value::Null),
+                    pipeline: self.id + 1,
+                };
+                controller.before_step(snapshot).await;
+            }
+
+            let result = step.execute(&context).await;
+            if let Some(controller) = &controller {
+                controller.finish_step().await;
+            }
+
+            match result {
                 Ok(step_output) => {
                     context.add_step_payload(step_output.output.clone());
 

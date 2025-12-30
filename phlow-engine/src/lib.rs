@@ -136,6 +136,7 @@
 pub mod collector;
 pub mod condition;
 pub mod context;
+pub mod debug;
 pub mod id;
 pub mod phlow;
 pub mod pipeline;
@@ -145,4 +146,8 @@ pub mod transform;
 pub use phs;
 
 pub use context::Context;
+pub use debug::{
+    debug_controller, set_debug_controller, DebugContext, DebugController, DebugReleaseResult,
+    DebugSnapshot,
+};
 pub use phlow::{Phlow, PhlowError};

@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "phlow-engine",
+    "phlow-cli-inspect",
     "phlow-runtime",
     "phlow-sdk",
     "phs",

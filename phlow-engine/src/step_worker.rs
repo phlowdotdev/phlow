@@ -123,6 +123,7 @@ pub struct StepWorker {
     pub(crate) return_case: Option<Script>,
     pub(crate) to: Option<StepReference>,
     pub(crate) log: Option<LogStep>,
+    pub(crate) step_value: Option<Value>,
     #[cfg(debug_assertions)]
     pub(crate) step_raw: String,
 }
@@ -223,6 +224,7 @@ impl StepWorker {
             None => None,
         };
 
+        let step_value = Some(value.clone());
         #[cfg(debug_assertions)]
         let step_raw = value.to_string();
 
@@ -239,6 +241,7 @@ impl StepWorker {
             return_case,
             to,
             log,
+            step_value,
             #[cfg(debug_assertions)]
             step_raw,
         })

@@ -1,4 +1,5 @@
 mod analyzer;
+mod debug_server;
 mod loader;
 mod memory;
 mod package;
@@ -12,6 +13,7 @@ use phlow_sdk::otel::init_tracing_subscriber;
 use phlow_sdk::{tracing, use_log};
 use runtime::Runtime;
 use settings::Settings;
+use std::sync::Arc;
 mod scripts;
 
 #[cfg(all(feature = "mimalloc", target_env = "musl"))]
@@ -100,6 +102,25 @@ async fn main() {
     }
 
     let dispatch = guard.dispatch.clone();
+
+    let debug_enabled = std::env::var("PHLOW_DEBUG")
+        .map(|value| value.eq_ignore_ascii_case("true"))
+        .unwrap_or(false);
+    if debug_enabled {
+        let controller = Arc::new(phlow_engine::debug::DebugController::new());
+        match debug_server::spawn(controller.clone()).await {
+            Ok(()) => {
+                if phlow_engine::debug::set_debug_controller(controller).is_err() {
+                    log::warn!("Debug controller already set");
+                }
+                log::info!("Phlow debug enabled");
+            }
+            Err(err) => {
+                log::error!("Failed to start debug server: {}", err);
+            }
+        }
+    }
+
     let fut = async {
         if settings.download {
             if let Err(err) = loader
