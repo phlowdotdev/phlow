@@ -7,7 +7,7 @@ using JSON-based configurations and embedded scripting via [`Rhai`](https://rhai
 ## Features
 - **Dynamic workflows** with JSON-defined rules
 - **Embedded scripting** with Rhai for advanced expressions
-- **Conditional branching** with custom operators (`starts_with`, `ends_with`, `search`)
+- **Conditional branching** with assert expressions
 - **Step-based execution** with context-aware evaluation
 - **Extensible engine** with pluggable functions
 
@@ -25,19 +25,11 @@ fn main() {
     let decision_tree = json!({
       "steps": [
         {
-          "condition": {
-            "left": "payload.age",
-            "right": 18,
-            "operator": "greater_than_or_equal"
-          },
+          "assert": "{{ payload.age >= 18 }}",
           "then": {
             "steps": [
               {
-                "condition": {
-                  "left": "payload.income",
-                  "right": 5000.0,
-                  "operator": "greater_than_or_equal"
-                },
+                "assert": "{{ payload.income >= 5000.0 }}",
                 "then": {
                   "return": "Approved"
                 },
@@ -72,7 +64,7 @@ fn main() {
 - `step_worker` - Handles conditional logic and step execution.
 - `script` - Integrates Rhai scripting for dynamic evaluation.
 - `engine` - Configures and extends the scripting engine.
-- `condition` - Defines logical operators and conditions.
+- `condition` - Evaluates assert expressions for branching.
 - `collector` - Logs execution steps and tracks workflow state.
 
 ## Architecture Overview

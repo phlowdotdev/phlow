@@ -136,12 +136,15 @@ impl Runtime {
         settings: Settings,
         default_context: Option<Context>,
     ) -> Result<(), RuntimeError> {
-        let flow = Arc::new({
+        let phlow = Arc::new({
             match Phlow::try_from_value(&steps, Some(Arc::new(modules))) {
-                Ok(flow) => flow,
+                Ok(phlow) => phlow,
                 Err(err) => return Err(RuntimeError::FlowExecutionError(err.to_string())),
             }
         });
+        if let Some(controller) = phlow_engine::debug::debug_controller() {
+            controller.set_script(phlow.script()).await;
+        }
 
         drop(steps);
 
@@ -150,12 +153,12 @@ impl Runtime {
 
         for _i in 0..settings.package_consumer_count {
             let rx_main_pkg = rx_main_package.clone();
-            let flow = flow.clone();
+            let phlow = phlow.clone();
             let default_context = default_context.clone();
 
             let handle = tokio::task::spawn_blocking(move || {
                 for mut main_package in rx_main_pkg {
-                    let flow = flow.clone();
+                    let phlow = phlow.clone();
                     let parent = match main_package.span.clone() {
                         Some(span) => span,
                         None => {
@@ -187,7 +190,7 @@ impl Runtime {
                             let rt = tokio::runtime::Handle::current();
 
                             rt.block_on(async {
-                                match flow.execute(&mut context).await {
+                                match phlow.execute(&mut context).await {
                                     Ok(result) => {
                                         let result_value = result.unwrap_or(Value::Undefined);
                                         main_package.send(result_value);
@@ -297,7 +300,7 @@ impl Runtime {
         info!("Phlow!");
 
         // -------------------------
-        // Create the flow
+        // Create the phlow
         // -------------------------
         Self::listener(rx_main_package, steps, modules, settings, None)
             .await

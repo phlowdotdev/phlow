@@ -2,6 +2,7 @@ use crate::context::Context;
 use phlow_sdk::prelude::*;
 use phs::ScriptError;
 use rhai::{Engine, Scope, plugin::*, serde::to_dynamic};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
@@ -39,5 +40,17 @@ impl Script {
         scope.push_constant("setup", setup);
 
         self.script.evaluate_from_scope(&mut scope)
+    }
+
+    pub fn compiled_debug(&self) -> Value {
+        let mut map = HashMap::new();
+        let mut compiled = HashMap::new();
+        for (index, code) in self.script.compiled_sources() {
+            compiled.insert(index.to_string(), code.to_value());
+        }
+        map.insert("template".to_string(), self.script.compiled_template());
+        map.insert("compiled".to_string(), compiled.to_value());
+        map.insert("expanded".to_string(), self.script.compiled_value());
+        map.to_value()
     }
 }

@@ -94,10 +94,7 @@ steps:
       operation: "risky_operation"
       
   - name: "check_success"
-    condition:
-      left: "{{ $attempt_operation.success }}"
-      operator: "equals"
-      right: false
+    assert: "{{ $attempt_operation.success == false }}"
     then:
       # Esperar antes de retry
       use: "sleep_module"
@@ -203,10 +200,7 @@ steps:
             url: "https://api.example.com/data/{{ $loop.item }}"
             
         - name: "check_rate_limit"
-          condition:
-            left: "{{ $make_request.response.status_code }}"
-            operator: "equals"
-            right: 429
+          assert: "{{ $make_request.response.status_code == 429 }}"
           then:
             # Rate limit hit, wait longer
             use: "sleep_module"
@@ -261,10 +255,7 @@ steps:
     use: "external_service"
     
   - name: "handle_failure"
-    condition:
-      left: "{{ $service_call.success }}"
-      operator: "equals"
-      right: false
+    assert: "{{ $service_call.success == false }}"
     then:
       # Circuit breaker - wait before next attempt
       use: "sleep_module"

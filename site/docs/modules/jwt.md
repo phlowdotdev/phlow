@@ -103,10 +103,7 @@ steps:
       token: "{{ $request.headers.authorization | replace('Bearer ', '') }}"
       
   - name: "check_validation"
-    condition:
-      left: "{{ $verify_token.valid }}"
-      operator: "equals"
-      right: true
+    assert: "{{ $verify_token.valid == true }}"
     then:
       return: "{{ $verify_token.data }}"
     else:
@@ -206,10 +203,7 @@ steps:
       params: ["{{ $input.email }}"]
       
   - name: "check_user_exists"
-    condition:
-      left: "{{ $validate_user.result.count }}"
-      operator: "greater_than"
-      right: 0
+    assert: "{{ $validate_user.result.count > 0 }}"
     then:
       # User found, verify password
       name: "verify_password"
@@ -235,10 +229,7 @@ steps:
         error: "User not found"
         
   - name: "check_password"
-    condition:
-      left: "{{ $verify_password.valid }}"
-      operator: "equals"
-      right: true
+    assert: "{{ $verify_password.valid == true }}"
     then:
       # Valid password, create token
       use: "jwt_handler"
@@ -300,10 +291,7 @@ steps:
       }
       
   - name: "check_token_extraction"
-    condition:
-      left: "{{ $extract_token.error }}"
-      operator: "exists"
-      right: true
+    assert: "{{ is_not_null($extract_token.error) }}"
     then:
       return:
         status_code: 401
@@ -318,10 +306,7 @@ steps:
         token: "{{ $extract_token.token }}"
         
   - name: "validate_jwt"
-    condition:
-      left: "{{ $check_token_extraction.valid }}"
-      operator: "equals"
-      right: true
+    assert: "{{ $check_token_extraction.valid == true }}"
     then:
       # Valid token, continue processing
       script: |
@@ -331,10 +316,7 @@ steps:
         }
     else:
       # Invalid token
-      condition:
-        left: "{{ $check_token_extraction.expired }}"
-        operator: "equals"
-        right: true
+      assert: "{{ $check_token_extraction.expired == true }}"
       then:
         return:
           status_code: 401

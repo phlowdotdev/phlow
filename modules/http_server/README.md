@@ -92,15 +92,9 @@ modules:
 
 steps:
   - name: "route_handler"
-    condition:
-      left: "{{ $input.method }}"
-      operator: "equals"
-      right: "GET"
+    assert: "{{ $input.method == \"GET\" }}"
     then:
-      condition:
-        left: "{{ $input.path }}"
-        operator: "equals"
-        right: "/users"
+      assert: "{{ $input.path == \"/users\" }}"
       then:
         # GET /users
         return:
@@ -113,10 +107,7 @@ steps:
               { id: 2, name: "Bob" }
             ]
       else:
-        condition:
-          left: "{{ $input.path }}"
-          operator: "starts_with"
-          right: "/users/"
+        assert: "{{ $input.path.starts_with(\"/users/\") }}"
         then:
           # GET /users/:id
           script: |
@@ -134,15 +125,9 @@ steps:
             status_code: 404
             body: { error: "Not Found" }
     else:
-      condition:
-        left: "{{ $input.method }}"
-        operator: "equals"
-        right: "POST"
+      assert: "{{ $input.method == \"POST\" }}"
       then:
-        condition:
-          left: "{{ $input.path }}"
-          operator: "equals"
-          right: "/users"
+        assert: "{{ $input.path == \"/users\" }}"
         then:
           # POST /users
           return:
@@ -182,15 +167,9 @@ modules:
 
 steps:
   - name: "check_auth"
-    condition:
-      left: "{{ $input.headers.authorization }}"
-      operator: "exists"
-      right: true
+    assert: "{{ is_not_null($input.headers.authorization) }}"
     then:
-      condition:
-        left: "{{ $input.headers.authorization }}"
-        operator: "starts_with"
-        right: "Bearer "
+      assert: "{{ $input.headers.authorization.starts_with(\"Bearer \") }}"
       then:
         # Token válido, continuar processamento
         script: |
@@ -211,15 +190,9 @@ steps:
         body: { error: "Authentication required" }
 
   - name: "handle_request"
-    condition:
-      left: "{{ $input.method }}"
-      operator: "equals"
-      right: "GET"
+    assert: "{{ $input.method == \"GET\" }}"
     then:
-      condition:
-        left: "{{ $input.path }}"
-        operator: "equals"
-        right: "/protected"
+      assert: "{{ $input.path == \"/protected\" }}"
       then:
         return:
           status_code: 200
@@ -255,21 +228,12 @@ modules:
 
 steps:
   - name: "validate_webhook"
-    condition:
-      left: "{{ $input.method }}"
-      operator: "equals"
-      right: "POST"
+    assert: "{{ $input.method == \"POST\" }}"
     then:
-      condition:
-        left: "{{ $input.path }}"
-        operator: "equals"
-        right: "/webhook"
+      assert: "{{ $input.path == \"/webhook\" }}"
       then:
         # Validar signature se necessário
-        condition:
-          left: "{{ $input.headers['x-signature'] }}"
-          operator: "exists"
-          right: true
+        assert: "{{ is_not_null($input.headers['x-signature']) }}"
         then:
           # Processar webhook
           script: |
@@ -335,10 +299,7 @@ modules:
 
 steps:
   - name: "handle_cors"
-    condition:
-      left: "{{ $input.method }}"
-      operator: "equals"
-      right: "OPTIONS"
+    assert: "{{ $input.method == \"OPTIONS\" }}"
     then:
       # Preflight CORS
       return:
@@ -387,25 +348,13 @@ modules:
 
 steps:
   - name: "route_handler"
-    condition:
-      left: "{{ $input.method }}"
-      operator: "equals"
-      right: "GET"
+    assert: "{{ $input.method == \"GET\" }}"
     then:
-      condition:
-        left: "{{ $input.path_params.username }}"
-        operator: "exists"
-        right: true
+      assert: "{{ is_not_null($input.path_params.username) }}"
       then:
-        condition:
-          left: "{{ $input.path_params.post_id }}"
-          operator: "exists"
-          right: true
+        assert: "{{ is_not_null($input.path_params.post_id) }}"
         then:
-          condition:
-            left: "{{ $input.path_params.comment_id }}"
-            operator: "exists"
-            right: true
+          assert: "{{ is_not_null($input.path_params.comment_id) }}"
           then:
             # GET /users/:username/posts/:post_id/comments/:comment_id
             return:
@@ -719,15 +668,9 @@ modules:
 
 steps:
   - name: "api_handler"
-    condition:
-      left: "{{ $input.path }}"
-      operator: "starts_with"
-      right: "/api/"
+    assert: "{{ $input.path.starts_with(\"/api/\") }}"
     then:
-      condition:
-        left: "{{ $input.method }}"
-        operator: "equals"
-        right: "GET"
+      assert: "{{ $input.method == \"GET\" }}"
       then:
         # GET /api/*
         return:
@@ -740,10 +683,7 @@ steps:
             origin: "{{ $input.headers.origin }}"
             timestamp: "2024-01-01T00:00:00Z"
       else:
-        condition:
-          left: "{{ $input.method }}"
-          operator: "equals"
-          right: "POST"
+        assert: "{{ $input.method == \"POST\" }}"
         then:
           # POST /api/*
           return:
@@ -817,30 +757,21 @@ curl http://localhost:8080/health
 ```yaml
 steps:
   - name: "error_handler"
-    condition:
-      left: "{{ $some_condition }}"
-      operator: "equals"
-      right: "error"
+    assert: "{{ $some_condition == \"error\" }}"
     then:
       # Bad Request
       return:
         status_code: 400
         body: { error: "Invalid request parameters" }
     else:
-      condition:
-        left: "{{ $auth_failed }}"
-        operator: "equals"
-        right: true
+      assert: "{{ $auth_failed == true }}"
       then:
         # Unauthorized
         return:
           status_code: 401
           body: { error: "Authentication required" }
       else:
-        condition:
-          left: "{{ $resource_not_found }}"
-          operator: "equals"
-          right: true
+        assert: "{{ $resource_not_found == true }}"
         then:
           # Not Found
           return:
@@ -876,10 +807,7 @@ steps:
 ```yaml
 steps:
   - name: "validate_input"
-    condition:
-      left: "{{ $input.body.email }}"
-      operator: "matches"
-      right: "^[\\w\\.-]+@[\\w\\.-]+\\.[a-zA-Z]{2,}$"
+    assert: "{{ $input.body.email.search(\"^[\\w\\.-]+@[\\w\\.-]+\\.[a-zA-Z]{2,}$\") }}"
     then:
       # Email válido
       script: "Valid email: {{ $input.body.email }}"

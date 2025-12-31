@@ -32,6 +32,7 @@ impl Display for ScriptError {
 pub struct Script {
     map_extracted: Value,
     map_index_ast: HashMap<usize, AST>,
+    map_index_code: HashMap<usize, String>,
     engine: Arc<Engine>,
 }
 
@@ -50,13 +51,21 @@ impl Script {
 
     pub fn try_build(engine: Arc<Engine>, script: &Value) -> Result<Self, ScriptError> {
         let mut map_index_ast = HashMap::new();
+        let mut map_index_code = HashMap::new();
         let mut counter = 0;
         let map_extracted =
-            Self::extract_primitives(&engine, &script, &mut map_index_ast, &mut counter)?;
+            Self::extract_primitives(
+                &engine,
+                &script,
+                &mut map_index_ast,
+                &mut map_index_code,
+                &mut counter,
+            )?;
 
         Ok(Self {
             map_extracted,
             map_index_ast,
+            map_index_code,
             engine,
         })
     }
@@ -98,6 +107,22 @@ impl Script {
     pub fn evaluate_variable(&self, context: &Context) -> Result<Variable, ScriptError> {
         let value = self.evaluate(context)?;
         Ok(Variable::new(value))
+    }
+
+    pub fn compiled_sources(&self) -> HashMap<usize, String> {
+        self.map_index_code.clone()
+    }
+
+    pub fn compiled_template(&self) -> Value {
+        self.map_extracted.clone()
+    }
+
+    pub fn compiled_value(&self) -> Value {
+        let mut result_map: HashMap<usize, Value> = HashMap::new();
+        for (key, value) in self.map_index_code.iter() {
+            result_map.insert(*key, Value::from(value.clone()));
+        }
+        Self::replace_primitives(&self.map_extracted, &result_map)
     }
 
     fn default_scope(scope: &mut Scope) -> Result<(), ScriptError> {
@@ -202,6 +227,7 @@ impl Script {
         engine: &Engine,
         value: &Value,
         map_index_ast: &mut HashMap<usize, AST>,
+        map_index_code: &mut HashMap<usize, String>,
         counter: &mut usize,
     ) -> Result<Value, ScriptError> {
         match value {
@@ -209,7 +235,13 @@ impl Script {
                 let mut new_map = HashMap::new();
 
                 for (key, value) in map.iter() {
-                    let item = Self::extract_primitives(engine, value, map_index_ast, counter)?;
+                    let item = Self::extract_primitives(
+                        engine,
+                        value,
+                        map_index_ast,
+                        map_index_code,
+                        counter,
+                    )?;
                     new_map.insert(key.to_string(), item);
                 }
 
@@ -218,7 +250,13 @@ impl Script {
             Value::Array(array) => {
                 let mut new_array = Vec::new();
                 for value in array.into_iter() {
-                    let item = Self::extract_primitives(engine, value, map_index_ast, counter)?;
+                    let item = Self::extract_primitives(
+                        engine,
+                        value,
+                        map_index_ast,
+                        map_index_code,
+                        counter,
+                    )?;
 
                     new_array.push(item);
                 }
@@ -260,6 +298,7 @@ impl Script {
                     }
                 };
                 map_index_ast.insert(*counter, ast);
+                map_index_code.insert(*counter, data_string);
                 let result = counter.to_value();
 
                 *counter += 1;

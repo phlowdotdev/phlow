@@ -294,10 +294,7 @@ steps:
         }
 
   - name: "check_auth_success"
-    condition:
-      left: "{{ $authenticate.is_success }}"
-      operator: "equals"
-      right: true
+    assert: "{{ $authenticate.is_success == true }}"
     else:
       return: "Authentication failed: {{ $authenticate.message }}"
 
@@ -408,10 +405,7 @@ steps:
       url: "https://api.example.com/data"
       
   - name: "handle_response"
-    condition:
-      left: "{{ $api_call.is_success }}"
-      operator: "equals"
-      right: true
+    assert: "{{ $api_call.is_success == true }}"
     then:
       # Processar dados de sucesso
       script: "Success: {{ $api_call.response.body }}"
@@ -424,17 +418,11 @@ steps:
 ```yaml
 steps:
   - name: "check_error_type"
-    condition:
-      left: "{{ $api_call.response.status_code }}"
-      operator: "equals"
-      right: 404
+    assert: "{{ $api_call.response.status_code == 404 }}"
     then:
       return: "Resource not found"
     else:
-      condition:
-        left: "{{ $api_call.response.status_code }}"
-        operator: "greater_than_or_equal"
-        right: 500
+      assert: "{{ $api_call.response.status_code >= 500 }}"
       then:
         return: "Server error"
       else:
