@@ -3738,15 +3738,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "phlow-cli-inspect"
-version = "0.3.2"
-dependencies = [
- "crossterm",
- "ratatui",
- "serde_json",
-]
-
-[[package]]
 name = "phlow-engine"
 version = "0.3.2"
 dependencies = [
@@ -3829,6 +3820,15 @@ dependencies = [
  "tracing-opentelemetry 0.32.0",
  "tracing-subscriber",
  "valu3",
+]
+
+[[package]]
+name = "phlow-tui-inspect"
+version = "0.3.2"
+dependencies = [
+ "crossterm",
+ "ratatui",
+ "serde_json",
 ]
 
 [[package]]

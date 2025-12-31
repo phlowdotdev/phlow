@@ -48,7 +48,7 @@ fn main() -> io::Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     let mut state = AppState {
-        output: "phlow-cli-inspect: waiting for command".to_string(),
+        output: "phlow-tui-inspect: waiting for command".to_string(),
         input: String::new(),
         scroll_from_bottom: 0,
         search_term: None,
