@@ -444,6 +444,55 @@ impl StepWorker {
             log_step.level.log(&message);
         }
 
+        if let Some(condition) = &self.condition {
+            debug!("[step {}] avaliando condição", self.id);
+            let result = condition
+                .evaluate(context)
+                .map_err(StepWorkerError::ConditionError)?;
+
+            span.record("step.condition", condition.raw.to_string());
+
+            if self.then_case.is_some() || self.else_case.is_some() {
+                let (next_step, output) = if result {
+                    debug!("[step {}] condição verdadeira", self.id);
+                    let next_step = if let Some(ref then_case) = self.then_case {
+                        debug!("[step {}] then_case -> pipeline {}", self.id, then_case);
+                        NextStep::Pipeline(*then_case)
+                    } else {
+                        debug!("[step {}] then_case não definido -> Next", self.id);
+                        NextStep::Next
+                    };
+
+                    (next_step, self.evaluate_payload(context, None)?)
+                } else {
+                    debug!("[step {}] condição falsa", self.id);
+                    let next_step = if let Some(ref else_case) = self.else_case {
+                        debug!("[step {}] else_case -> pipeline {}", self.id, else_case);
+                        NextStep::Pipeline(*else_case)
+                    } else {
+                        debug!("[step {}] else_case não definido -> Next", self.id);
+                        NextStep::Next
+                    };
+
+                    (next_step, None)
+                };
+
+                if let Some(ref output) = output {
+                    span.record("context.payload", truncate_string(output));
+                }
+
+                return Ok(StepOutput { next_step, output });
+            }
+
+            if !result {
+                debug!("[step {}] condição falsa - pulando step", self.id);
+                return Ok(StepOutput {
+                    next_step: NextStep::Next,
+                    output: None,
+                });
+            }
+        }
+
         if let Some(output) = self.evaluate_return(context)? {
             debug!(
                 "[step {}] return case acionado (condicional de parada)",
@@ -506,46 +555,6 @@ impl StepWorker {
                 next_step: NextStep::Next,
                 output,
             });
-        }
-
-        if let Some(condition) = &self.condition {
-            debug!("[step {}] avaliando condição", self.id);
-            let (next_step, output) = if condition
-                .evaluate(context)
-                .map_err(StepWorkerError::ConditionError)?
-            {
-                debug!("[step {}] condição verdadeira", self.id);
-                let next_step = if let Some(ref then_case) = self.then_case {
-                    debug!("[step {}] then_case -> pipeline {}", self.id, then_case);
-                    NextStep::Pipeline(*then_case)
-                } else {
-                    debug!("[step {}] then_case não definido -> Next", self.id);
-                    NextStep::Next
-                };
-
-                (next_step, self.evaluate_payload(context, None)?)
-            } else {
-                debug!("[step {}] condição falsa", self.id);
-                let next_step = if let Some(ref else_case) = self.else_case {
-                    debug!("[step {}] else_case -> pipeline {}", self.id, else_case);
-                    NextStep::Pipeline(*else_case)
-                } else {
-                    debug!("[step {}] else_case não definido -> Next", self.id);
-                    NextStep::Next
-                };
-
-                (next_step, None)
-            };
-
-            {
-                span.record("step.condition", condition.raw.to_string());
-
-                if let Some(ref output) = output {
-                    span.record("context.payload", truncate_string(output));
-                }
-            }
-
-            return Ok(StepOutput { next_step, output });
         }
 
         let default_output = if self.log.is_some() {
@@ -742,5 +751,30 @@ mod test {
 
         assert_eq!(result.next_step, NextStep::Stop);
         assert_eq!(result.output, Some(Value::from(20i64)));
+    }
+
+    #[tokio::test]
+    async fn test_step_execute_with_assert_and_return_case() {
+        let engine = build_engine(None);
+        let step = StepWorker {
+            condition: Some(
+                Condition::try_build_with_assert(engine.clone(), "{{ payload == 0 }}".to_string())
+                    .unwrap(),
+            ),
+            return_case: Some(Script::try_build(engine.clone(), &"10".to_value()).unwrap()),
+            ..Default::default()
+        };
+
+        let context_true = Context::new().clone_with_output(Value::from(0i64));
+        let result_true = step.execute(&context_true).await.unwrap();
+
+        assert_eq!(result_true.next_step, NextStep::Stop);
+        assert_eq!(result_true.output, Some(Value::from(10i64)));
+
+        let context_false = Context::new().clone_with_output(Value::from(1i64));
+        let result_false = step.execute(&context_false).await.unwrap();
+
+        assert_eq!(result_false.next_step, NextStep::Next);
+        assert_eq!(result_false.output, None);
     }
 }
