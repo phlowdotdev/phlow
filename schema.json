@@ -1,0 +1,140 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://phlow.dev/schemas/script.json",
+  "title": "Phlow Script JSON",
+  "description": "Schema for Phlow runtime/engine JSON script payloads.",
+  "type": "object",
+  "required": ["steps"],
+  "additionalProperties": false,
+  "properties": {
+    "modules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Module" }
+    },
+    "steps": { "$ref": "#/$defs/Pipeline" },
+    "tests": { "$ref": "#/$defs/Tests" }
+  },
+  "$defs": {
+    "ScriptValue": {
+      "description": "Any JSON value; strings may embed Phlow script expressions (e.g. \"{{ ... }}\").",
+      "anyOf": [
+        { "type": "null" },
+        { "type": "boolean" },
+        { "type": "number" },
+        { "type": "string" },
+        {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ScriptValue" }
+        },
+        {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/ScriptValue" }
+        }
+      ]
+    },
+    "Module": {
+      "type": "object",
+      "required": ["module"],
+      "additionalProperties": true,
+      "properties": {
+        "module": { "type": "string" },
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "repository": { "type": "string" },
+        "repository_raw_content": { "type": "string" },
+        "with": { "$ref": "#/$defs/ScriptValue" }
+      }
+    },
+    "Pipeline": {
+      "description": "A pipeline is either an array of steps or a step-like object (optionally with nested steps).",
+      "oneOf": [
+        {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Step" }
+        },
+        { "$ref": "#/$defs/Step" }
+      ]
+    },
+    "Step": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": { "oneOf": [{ "type": "string" }, { "type": "number" }] },
+        "label": { "type": "string" },
+        "use": { "type": "string" },
+        "input": { "$ref": "#/$defs/ScriptValue" },
+        "payload": { "$ref": "#/$defs/ScriptValue" },
+        "return": { "$ref": "#/$defs/ScriptValue" },
+        "assert": { "$ref": "#/$defs/ScriptValue" },
+        "then": { "$ref": "#/$defs/Pipeline" },
+        "else": { "$ref": "#/$defs/Pipeline" },
+        "to": { "$ref": "#/$defs/StepTo" },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Step" }
+        }
+      },
+      "patternProperties": {
+        "^log\\.[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)?$": { "$ref": "#/$defs/LogShortcut" }
+      }
+    },
+    "StepTo": {
+      "description": "Go-to step reference (step id string or resolved pipeline/step).",
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "required": ["pipeline", "step"],
+          "additionalProperties": true,
+          "properties": {
+            "pipeline": { "type": "integer", "minimum": 0 },
+            "step": { "type": "integer", "minimum": 0 }
+          }
+        }
+      ]
+    },
+    "LogShortcut": {
+      "description": "Value for log.<level> shortcut steps.",
+      "anyOf": [
+        { "$ref": "#/$defs/ScriptValue" },
+        {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "message": { "$ref": "#/$defs/ScriptValue" }
+          }
+        }
+      ]
+    },
+    "Tests": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/TestItem" }
+    },
+    "TestItem": {
+      "oneOf": [{ "$ref": "#/$defs/TestGroup" }, { "$ref": "#/$defs/TestCase" }]
+    },
+    "TestGroup": {
+      "type": "object",
+      "required": ["tests"],
+      "additionalProperties": true,
+      "properties": {
+        "describe": { "type": "string" },
+        "name": { "type": "string" },
+        "tests": { "$ref": "#/$defs/Tests" }
+      }
+    },
+    "TestCase": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "describe": { "type": "string" },
+        "it": { "type": "string" },
+        "main": { "$ref": "#/$defs/ScriptValue" },
+        "payload": { "$ref": "#/$defs/ScriptValue" },
+        "assert": { "$ref": "#/$defs/ScriptValue" },
+        "assert_eq": { "$ref": "#/$defs/ScriptValue" }
+      }
+    }
+  }
+}
