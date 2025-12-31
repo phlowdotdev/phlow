@@ -3739,7 +3739,7 @@ dependencies = [
 
 [[package]]
 name = "phlow-engine"
-version = "0.3.2"
+version = "0.3.1"
 dependencies = [
  "once_cell",
  "phlow-sdk",
@@ -3769,7 +3769,7 @@ dependencies = [
 
 [[package]]
 name = "phlow-runtime"
-version = "0.3.2"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -3800,7 +3800,7 @@ dependencies = [
 
 [[package]]
 name = "phlow-sdk"
-version = "0.3.2"
+version = "0.3.1"
 dependencies = [
  "crossbeam",
  "env_logger",
@@ -3824,7 +3824,7 @@ dependencies = [
 
 [[package]]
 name = "phlow-tui-inspect"
-version = "0.3.2"
+version = "0.3.1"
 dependencies = [
  "crossterm",
  "ratatui",
@@ -3833,7 +3833,7 @@ dependencies = [
 
 [[package]]
 name = "phs"
-version = "0.3.2"
+version = "0.3.1"
 dependencies = [
  "base64 0.22.1",
  "chrono",
