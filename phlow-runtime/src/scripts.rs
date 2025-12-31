@@ -22,14 +22,20 @@ pub fn run_script(path: &str, setup: ModuleSetup, settings: &Settings) {
             rt.block_on(async move {
                 // build an Analyzer from settings and pass to loader so analyzer runs during load
                 let analyzer = crate::analyzer::Analyzer::from_settings(settings);
-                let loader = Loader::load(
+                let loader = match Loader::load(
                     &path,
                     settings.print_yaml,
                     settings.print_output,
                     Some(&analyzer),
                 )
-                    .await
-                    .unwrap();
+                .await
+                {
+                    Ok(loader) => loader,
+                    Err(err) => {
+                        error!("Runtime error loading script module: {:?}", err);
+                        return;
+                    }
+                };
                 let (tx_main_package, rx_main_package) = channel::unbounded::<Package>();
                 let app_data = loader.app_data.clone();
                 let dispatch = setup.dispatch.clone();
@@ -102,16 +108,15 @@ pub fn run_script(path: &str, setup: ModuleSetup, settings: &Settings) {
 
                 debug!("Script module no listeners, waiting for runtime to finish");
 
-                runtime_handle
-                    .await
-                    .unwrap_or_else(|err| {
-                        error!("Runtime task error: {:?}", err);
-                        std::process::exit(1);
-                    })
-                    .unwrap_or_else(|err| {
+                match runtime_handle.await {
+                    Ok(Ok(())) => {}
+                    Ok(Err(err)) => {
                         error!("Runtime error: {:?}", err);
-                        std::process::exit(1);
-                    });
+                    }
+                    Err(err) => {
+                        error!("Runtime task error: {:?}", err);
+                    }
+                }
             });
         } else {
             tracing::error!("Error creating runtime");

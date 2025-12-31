@@ -12,6 +12,7 @@ observados na analise estatica do codigo.
    - Risco: se o plugin mantiver ponteiros/threads, ocorre use-after-free e crash.
    - Sugestao: manter o `Library` vivo enquanto o modulo estiver registrado (ex.: armazenar
      `Arc<Library>` no runtime/Modules).
+   - Status: concluido (handle do `Library` retido no runtime).
 
 2. Alto: panics/aborts em entradas invalidas ou ambiente incompleto.
    - Arquivos:

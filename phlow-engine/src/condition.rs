@@ -70,21 +70,28 @@ impl ToValueBehavior for Operator {
     }
 }
 
+impl Operator {
+    pub fn try_from_value(value: &Value) -> Result<Self, ConditionError> {
+        match value.as_str() {
+            "or" => Ok(Operator::Or),
+            "and" => Ok(Operator::And),
+            "equal" => Ok(Operator::Equal),
+            "not_equal" => Ok(Operator::NotEqual),
+            "greater_than" => Ok(Operator::GreaterThan),
+            "less_than" => Ok(Operator::LessThan),
+            "greater_than_or_equal" => Ok(Operator::GreaterThanOrEqual),
+            "less_than_or_equal" => Ok(Operator::LessThanOrEqual),
+            "contains" => Ok(Operator::Contains),
+            "not_contains" => Ok(Operator::NotContains),
+            _ => Err(ConditionError::InvalidOperator(value.as_str().to_string())),
+        }
+    }
+}
+
 impl From<&Value> for Operator {
     fn from(value: &Value) -> Self {
-        match value.as_str() {
-            "or" => Operator::Or,
-            "and" => Operator::And,
-            "equal" => Operator::Equal,
-            "not_equal" => Operator::NotEqual,
-            "greater_than" => Operator::GreaterThan,
-            "less_than" => Operator::LessThan,
-            "greater_than_or_equal" => Operator::GreaterThanOrEqual,
-            "less_than_or_equal" => Operator::LessThanOrEqual,
-            "contains" => Operator::Contains,
-            "not_contains" => Operator::NotContains,
-            _ => panic!("Invalid operator"),
-        }
+        // Fall back to Equal to avoid panics; prefer try_from_value for error handling.
+        Operator::try_from_value(value).unwrap_or(Operator::Equal)
     }
 }
 

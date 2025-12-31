@@ -676,11 +676,20 @@ fn build_log_from_input(
 fn truncate_string(string: &Value) -> String {
     let limit = *PHLOW_TRUNCATE_SPAN_VALUE;
     let string = string.to_string();
-    if string.len() > limit {
-        format!("{}...", &string[..limit])
-    } else {
-        string.to_string()
+    if string.len() <= limit {
+        return string;
     }
+
+    let mut end = 0;
+    for (idx, ch) in string.char_indices() {
+        let next = idx + ch.len_utf8();
+        if next > limit {
+            break;
+        }
+        end = next;
+    }
+
+    format!("{}...", &string[..end])
 }
 
 #[cfg(test)]
