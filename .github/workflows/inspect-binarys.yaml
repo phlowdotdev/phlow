@@ -49,16 +49,7 @@ jobs:
 
   macos_binary:
     name: Prepare macOS Binaries
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: macos-13
-            target: x86_64-apple-darwin
-            artifact: macos-amd64
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            artifact: macos-arm64
+    runs-on: macos-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -71,16 +62,16 @@ jobs:
           override: true
 
       - name: Build with Cargo
-        run: cargo build --release -p phlow-tui-inspect --target ${{ matrix.target }}
+        run: cargo build --release -p phlow-tui-inspect
 
       - name: Package binary
         run: |
           mkdir -p dist
-          cp target/${{ matrix.target }}/release/phlow-tui-inspect dist/phlow-tui-inspect
-          tar -czf phlow-tui-inspect-${{ matrix.artifact }}.tar.gz -C dist phlow-tui-inspect
+          cp target/release/phlow-tui-inspect dist/phlow-tui-inspect
+          tar -czf phlow-tui-inspect-macos.tar.gz -C dist phlow-tui-inspect
 
       - name: Upload macOS binary artifact
         uses: actions/upload-artifact@v4
         with:
-          name: phlow-tui-inspect-${{ matrix.artifact }}
-          path: phlow-tui-inspect-${{ matrix.artifact }}.tar.gz
+          name: phlow-tui-inspect-macos
+          path: phlow-tui-inspect-macos.tar.gz
