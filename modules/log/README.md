@@ -136,10 +136,7 @@ steps:
       message: "Configuração carregada: {{ JSON.stringify($load_config) }}"
       
   - name: "validate_config"
-    condition:
-      left: "{{ $load_config.database }}"
-      operator: "exists"
-      right: true
+    assert: "{{ is_not_null($load_config.database) }}"
     then:
       use: "logger"
       input:
@@ -152,10 +149,7 @@ steps:
         message: "Configuração de banco de dados ausente"
         
   - name: "performance_warning"
-    condition:
-      left: "{{ $load_config.debug }}"
-      operator: "equals"
-      right: true
+    assert: "{{ $load_config.debug == true }}"
     then:
       use: "logger"
       input:

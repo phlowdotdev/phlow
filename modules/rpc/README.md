@@ -33,10 +33,7 @@ modules:
 
 steps:
   - name: "handle_rpc_call"
-    condition:
-      left: "{{ $input.method }}"
-      operator: "equals"
-      right: "get_user"
+    assert: "{{ $input.method == \"get_user\" }}"
     then:
       return:
         id: "{{ $input.params.user_id }}"
@@ -127,20 +124,14 @@ steps:
       message: "RPC call: {{ $input.method }} with params: {{ $input.params }}"
 
   - name: "route_method"
-    condition:
-      left: "{{ $input.method }}"
-      operator: "equals"
-      right: "get_user"
+    assert: "{{ $input.method == \"get_user\" }}"
     then:
       use: "db"
       input:
         query: "SELECT id, name, email FROM users WHERE id = $1"
         params: ["{{ $input.params.user_id }}"]
     else:
-      condition:
-        left: "{{ $input.method }}"
-        operator: "equals"
-        right: "create_user"
+      assert: "{{ $input.method == \"create_user\" }}"
       then:
         use: "db"
         input:
@@ -178,10 +169,7 @@ steps:
       action: "info"
 
   - name: "check_health_status"
-    condition:
-      left: "{{ $health_check.healthy }}"
-      operator: "equals"
-      right: true
+    assert: "{{ $health_check.healthy == true }}"
     then:
       # Serviço saudável, fazer chamada
       use: "user_service"
@@ -242,15 +230,9 @@ steps:
         quantity: "{{ $order.quantity }}"
 
   - name: "process_payment"
-    condition:
-      left: "{{ $validate_user.result.valid }}"
-      operator: "equals"
-      right: true
+    assert: "{{ $validate_user.result.valid == true }}"
     then:
-      condition:
-        left: "{{ $check_inventory.result.available }}"
-        operator: "equals"
-        right: true
+      assert: "{{ $check_inventory.result.available == true }}"
       then:
         use: "payment_service"
         input:

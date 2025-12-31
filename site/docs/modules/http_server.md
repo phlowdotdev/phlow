@@ -528,15 +528,9 @@ steps:
   # Com OpenAPI, a validação é automática antes de chegar aos steps
   
   - name: "handle_users"
-    condition:
-      left: "{{ $input.method }}"
-      operator: "equals"
-      right: "POST"
+    assert: "{{ $input.method == \"POST\" }}"
     then:
-      condition:
-        left: "{{ $input.path }}"
-        operator: "equals"
-        right: "/users"
+      assert: "{{ $input.path == \"/users\" }}"
       then:
         # POST /users - dados já validados pelo OpenAPI
         use: "db"
@@ -552,10 +546,7 @@ steps:
             - "{{ $input.body.age }}"
       else:
         # GET /users
-        condition:
-          left: "{{ $input.method }}"
-          operator: "equals"
-          right: "GET"
+        assert: "{{ $input.method == \"GET\" }}"
         then:
           use: "db"
           input:
@@ -572,15 +563,9 @@ steps:
             status_code: 405
             body: { error: "Method not allowed" }
     else:
-      condition:
-        left: "{{ $input.method }}"
-        operator: "equals"
-        right: "GET"
+      assert: "{{ $input.method == \"GET\" }}"
       then:
-        condition:
-          left: "{{ $input.path }}"
-          operator: "matches"
-          right: "^/users/\\d+$"
+        assert: "{{ $input.path.search(\"^/users/\\\\d+$\") }}"
         then:
           # GET /users/:id - parâmetro já validado pelo OpenAPI
           script: |
@@ -596,10 +581,7 @@ steps:
           body: { error: "Method not allowed" }
 
   - name: "get_user_by_id"
-    condition:
-      left: "{{ $handle_users.user_id }}"
-      operator: "exists"
-      right: true
+    assert: "{{ is_not_null($handle_users.user_id) }}"
     then:
       use: "db"
       input:
@@ -608,10 +590,7 @@ steps:
           - "{{ $handle_users.user_id }}"
 
   - name: "format_response"
-    condition:
-      left: "{{ $input.method }}"
-      operator: "equals"
-      right: "POST"
+    assert: "{{ $input.method == \"POST\" }}"
     then:
       return:
         status_code: 201
@@ -620,10 +599,7 @@ steps:
           "Location": "/users/{{ $handle_users.rows[0].id }}"
         body: "{{ $handle_users.rows[0] }}"
     else:
-      condition:
-        left: "{{ $get_user_by_id.rows }}"
-        operator: "length_gt"
-        right: 0
+      assert: "{{ $get_user_by_id.rows.len > 0 }}"
       then:
         return:
           status_code: 200
@@ -631,10 +607,7 @@ steps:
             "Content-Type": "application/json"
           body: "{{ $get_user_by_id.rows[0] }}"
       else:
-        condition:
-          left: "{{ $handle_users }}"
-          operator: "exists"
-          right: true
+        assert: "{{ is_not_null($handle_users) }}"
         then:
           return:
             status_code: 404
@@ -696,15 +669,9 @@ modules:
 
 steps:
   - name: "route_handler"
-    condition:
-      left: "{{ $input.method }}"
-      operator: "equals"
-      right: "GET"
+    assert: "{{ $input.method == \"GET\" }}"
     then:
-      condition:
-        left: "{{ $input.path }}"
-        operator: "equals"
-        right: "/users"
+      assert: "{{ $input.path == \"/users\" }}"
       then:
         # GET /users
         return:
@@ -717,10 +684,7 @@ steps:
               { id: 2, name: "Bob" }
             ]
       else:
-        condition:
-          left: "{{ $input.path }}"
-          operator: "starts_with"
-          right: "/users/"
+        assert: "{{ $input.path.starts_with(\"/users/\") }}"
         then:
           # GET /users/:id
           script: |
@@ -738,15 +702,9 @@ steps:
             status_code: 404
             body: { error: "Not Found" }
     else:
-      condition:
-        left: "{{ $input.method }}"
-        operator: "equals"
-        right: "POST"
+      assert: "{{ $input.method == \"POST\" }}"
       then:
-        condition:
-          left: "{{ $input.path }}"
-          operator: "equals"
-          right: "/users"
+        assert: "{{ $input.path == \"/users\" }}"
         then:
           # POST /users
           return:
@@ -786,15 +744,9 @@ modules:
 
 steps:
   - name: "check_auth"
-    condition:
-      left: "{{ $input.headers.authorization }}"
-      operator: "exists"
-      right: true
+    assert: "{{ is_not_null($input.headers.authorization) }}"
     then:
-      condition:
-        left: "{{ $input.headers.authorization }}"
-        operator: "starts_with"
-        right: "Bearer "
+      assert: "{{ $input.headers.authorization.starts_with(\"Bearer \") }}"
       then:
         # Token válido, continuar processamento
         script: |
@@ -815,15 +767,9 @@ steps:
         body: { error: "Authentication required" }
 
   - name: "handle_request"
-    condition:
-      left: "{{ $input.method }}"
-      operator: "equals"
-      right: "GET"
+    assert: "{{ $input.method == \"GET\" }}"
     then:
-      condition:
-        left: "{{ $input.path }}"
-        operator: "equals"
-        right: "/protected"
+      assert: "{{ $input.path == \"/protected\" }}"
       then:
         return:
           status_code: 200
@@ -859,21 +805,12 @@ modules:
 
 steps:
   - name: "validate_webhook"
-    condition:
-      left: "{{ $input.method }}"
-      operator: "equals"
-      right: "POST"
+    assert: "{{ $input.method == \"POST\" }}"
     then:
-      condition:
-        left: "{{ $input.path }}"
-        operator: "equals"
-        right: "/webhook"
+      assert: "{{ $input.path == \"/webhook\" }}"
       then:
         # Validar signature se necessário
-        condition:
-          left: "{{ $input.headers['x-signature'] }}"
-          operator: "exists"
-          right: true
+        assert: "{{ is_not_null($input.headers['x-signature']) }}"
         then:
           # Processar webhook
           script: |
@@ -952,15 +889,9 @@ steps:
   # O servidor automaticamente trata requisições preflight
   
   - name: "handle_api"
-    condition:
-      left: "{{ $input.method }}"
-      operator: "equals"
-      right: "GET"
+    assert: "{{ $input.method == \"GET\" }}"
     then:
-      condition:
-        left: "{{ $input.path }}"
-        operator: "equals"
-        right: "/api/data"
+      assert: "{{ $input.path == \"/api/data\" }}"
       then:
         # Resposta normal - headers CORS aplicados automaticamente
         return:
@@ -976,15 +907,9 @@ steps:
           status_code: 404
           body: { error: "Endpoint not found" }
     else:
-      condition:
-        left: "{{ $input.method }}"
-        operator: "equals"
-        right: "POST"
+      assert: "{{ $input.method == \"POST\" }}"
       then:
-        condition:
-          left: "{{ $input.path }}"
-          operator: "equals"
-          right: "/api/data"
+        assert: "{{ $input.path == \"/api/data\" }}"
         then:
           return:
             status_code: 201
@@ -1020,15 +945,9 @@ modules:
 
 steps:
   - name: "handle_api"
-    condition:
-      left: "{{ $input.method }}"
-      operator: "equals"
-      right: "GET"
+    assert: "{{ $input.method == \"GET\" }}"
     then:
-      condition:
-        left: "{{ $input.path }}"
-        operator: "equals"
-        right: "/api/internal"
+      assert: "{{ $input.path == \"/api/internal\" }}"
       then:
         # Resposta sem headers CORS
         return:
@@ -1166,30 +1085,21 @@ curl http://localhost:8080/health
 ```phlow
 steps:
   - name: "error_handler"
-    condition:
-      left: "{{ $some_condition }}"
-      operator: "equals"
-      right: "error"
+    assert: "{{ $some_condition == \"error\" }}"
     then:
       # Bad Request
       return:
         status_code: 400
         body: { error: "Invalid request parameters" }
     else:
-      condition:
-        left: "{{ $auth_failed }}"
-        operator: "equals"
-        right: true
+      assert: "{{ $auth_failed == true }}"
       then:
         # Unauthorized
         return:
           status_code: 401
           body: { error: "Authentication required" }
       else:
-        condition:
-          left: "{{ $resource_not_found }}"
-          operator: "equals"
-          right: true
+        assert: "{{ $resource_not_found == true }}"
         then:
           # Not Found
           return:
@@ -1225,10 +1135,7 @@ steps:
 ```phlow
 steps:
   - name: "validate_input"
-    condition:
-      left: "{{ $input.body.email }}"
-      operator: "matches"
-      right: "^[\\w\\.-]+@[\\w\\.-]+\\.[a-zA-Z]{2,}$"
+    assert: "{{ $input.body.email.search(\"^[\\w\\.-]+@[\\w\\.-]+\\.[a-zA-Z]{2,}$\") }}"
     then:
       # Email válido
       script: "Valid email: {{ $input.body.email }}"

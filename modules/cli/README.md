@@ -304,10 +304,7 @@ modules:
 
 steps:
   - name: "validate_action"
-    condition:
-      left: "args.action"
-      operator: "in"
-      right: ["process", "validate", "convert"]
+    assert: "{{ args.action == \"process\" || args.action == \"validate\" || args.action == \"convert\" }}"
     else:
       return: "Invalid action. Use: process, validate or convert"
       
@@ -557,10 +554,7 @@ modules:
 
 steps:
   - name: "validate_action"
-    condition:
-      left: "args.action"
-      operator: "in"
-      right: ["process", "validate", "convert"]
+    assert: "{{ args.action == \"process\" || args.action == \"validate\" || args.action == \"convert\" }}"
     else:
       return: "Ação inválida. Use: process, validate ou convert"
       
