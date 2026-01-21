@@ -1,6 +1,8 @@
 steps:
   - payload: 5
+  - log.info: "Initial payload"
   - payload: payload + 10
+  - log.warn: "Updated payload"
 
 tests:
   - describe: Simple test

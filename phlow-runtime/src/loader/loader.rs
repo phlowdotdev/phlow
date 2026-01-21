@@ -97,8 +97,17 @@ fn clone_git_repo(url: &str, branch: Option<&str>) -> Result<String, Error> {
     if url.contains("@") {
         debug!("Using SSH authentication for Git: {}", url);
         if let Some(ssh_user) = url.split('@').next() {
-            let id_rsa_path: String = std::env::var("PHLOW_REMOTE_ID_RSA_PATH")
-                .unwrap_or_else(|_| format!("{}/.ssh/id_rsa", std::env::var("HOME").unwrap()));
+            let id_rsa_path: String = match std::env::var("PHLOW_REMOTE_ID_RSA_PATH") {
+                Ok(path) => path,
+                Err(_) => {
+                    let home = std::env::var("HOME").map_err(|_| {
+                        Error::ModuleLoaderError(
+                            "HOME not set and PHLOW_REMOTE_ID_RSA_PATH not set".to_string(),
+                        )
+                    })?;
+                    format!("{}/.ssh/id_rsa", home)
+                }
+            };
 
             debug!("Using SSH user: {}", ssh_user);
             debug!("Using SSH key path: {}", id_rsa_path);
@@ -336,9 +345,16 @@ pub fn load_external_module_info(module: &str) -> Value {
     let mut input_order = Vec::new();
 
     {
-        let value: serde_yaml::Value = serde_yaml::from_str::<serde_yaml::Value>(&file)
-            .map_err(Error::LoaderErrorScript)
-            .unwrap();
+        let value: serde_yaml::Value = match serde_yaml::from_str::<serde_yaml::Value>(&file) {
+            Ok(value) => value,
+            Err(err) => {
+                debug!(
+                    "Failed to parse module metadata {}: {}",
+                    module_path, err
+                );
+                return Value::Null;
+            }
+        };
 
         if let Some(input) = value.get("input") {
             if let serde_yaml::Value::Mapping(input) = input {
@@ -361,9 +377,16 @@ pub fn load_external_module_info(module: &str) -> Value {
         drop(value)
     }
 
-    let mut value: Value = serde_yaml::from_str::<Value>(&file)
-        .map_err(Error::LoaderErrorScript)
-        .unwrap();
+    let mut value: Value = match serde_yaml::from_str::<Value>(&file) {
+        Ok(value) => value,
+        Err(err) => {
+            debug!(
+                "Failed to parse module metadata {}: {}",
+                module_path, err
+            );
+            return Value::Null;
+        }
+    };
 
     value.insert("input_order".to_string(), input_order.to_value());
 
@@ -387,9 +410,16 @@ pub fn load_local_module_info(local_path: &str) -> Value {
     let mut input_order = Vec::new();
 
     {
-        let value: serde_yaml::Value = serde_yaml::from_str::<serde_yaml::Value>(&file)
-            .map_err(Error::LoaderErrorScript)
-            .unwrap();
+        let value: serde_yaml::Value = match serde_yaml::from_str::<serde_yaml::Value>(&file) {
+            Ok(value) => value,
+            Err(err) => {
+                debug!(
+                    "Failed to parse module metadata {}: {}",
+                    module_path, err
+                );
+                return Value::Null;
+            }
+        };
 
         if let Some(input) = value.get("input") {
             if let serde_yaml::Value::Mapping(input) = input {
@@ -412,9 +442,16 @@ pub fn load_local_module_info(local_path: &str) -> Value {
         drop(value)
     }
 
-    let mut value: Value = serde_yaml::from_str::<Value>(&file)
-        .map_err(Error::LoaderErrorScript)
-        .unwrap();
+    let mut value: Value = match serde_yaml::from_str::<Value>(&file) {
+        Ok(value) => value,
+        Err(err) => {
+            debug!(
+                "Failed to parse module metadata {}: {}",
+                module_path, err
+            );
+            return Value::Null;
+        }
+    };
 
     value.insert("input_order".to_string(), input_order.to_value());
 

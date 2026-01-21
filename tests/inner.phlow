@@ -1,6 +1,0 @@
-steps:
-  - log:
-      level: debug
-      message: !phs main + 1
-
-  - payload: !phs main + 1

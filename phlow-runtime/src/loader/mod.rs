@@ -14,6 +14,7 @@ use phlow_sdk::structs::{ApplicationData, ModuleData, ModuleSetup};
 use phlow_sdk::valu3::json;
 use reqwest::Client;
 use std::io::Write;
+use std::sync::{Mutex, OnceLock};
 use std::{fs::File, path::Path};
 
 enum ModuleType {
@@ -24,6 +25,14 @@ enum ModuleType {
 struct ModuleTarget {
     pub path: String,
     pub module_type: ModuleType,
+}
+
+static LOADED_LIBRARIES: OnceLock<Mutex<Vec<Library>>> = OnceLock::new();
+
+fn retain_library(lib: Library) {
+    let libraries = LOADED_LIBRARIES.get_or_init(|| Mutex::new(Vec::new()));
+    let mut libraries = libraries.lock().unwrap_or_else(|err| err.into_inner());
+    libraries.push(lib);
 }
 
 #[derive(Debug, Clone)]
@@ -393,12 +402,16 @@ pub fn load_module(
                 Err(err) => return Err(Error::LibLoadingError(err)),
             };
 
-            let func: Symbol<unsafe extern "C" fn(ModuleSetup)> = match lib.get(b"plugin") {
-                Ok(func) => func,
-                Err(err) => return Err(Error::LibLoadingError(err)),
-            };
+            {
+                let func: Symbol<unsafe extern "C" fn(ModuleSetup)> = match lib.get(b"plugin") {
+                    Ok(func) => func,
+                    Err(err) => return Err(Error::LibLoadingError(err)),
+                };
 
-            func(setup);
+                func(setup);
+            }
+
+            retain_library(lib);
         },
     }
 

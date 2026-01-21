@@ -1,7 +1,0 @@
-modules:
-  - module: log
-
-steps:
-  - assert: main == 1
-  - payload: main + 1  
-  - return: payload * 2
