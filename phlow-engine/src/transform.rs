@@ -151,10 +151,7 @@ fn value_to_structs(
                             new_step.insert("to".to_string(), go_to_step.to_value());
                         }
                     } else {
-                        if step.get("then").is_none()
-                            && step.get("else").is_none()
-                            && step.get("return").is_none()
-                            && step_index == arr.len() - 1
+                        if step.get("return").is_none() && step_index == arr.len() - 1
                         {
                             if let Some(target) = parents.get(&StepReference {
                                 pipeline: pipeline_index,
@@ -169,7 +166,7 @@ fn value_to_structs(
                                     log::warn!("Invalid next step reference: pipeline {} step {} - looking for alternative", next_step_ref.pipeline, next_step_ref.step);
                                     // Try to find a valid continuation point
                                     if let Some(valid_step) =
-                                        find_valid_continuation(&pipelines_raw, target)
+                                        find_valid_continuation(&pipelines_raw, &parents, target)
                                     {
                                         log::debug!("Found valid continuation: pipeline {} → pipeline {} step {}", pipeline_index, valid_step.pipeline, valid_step.step);
                                         new_step.insert("to".to_string(), valid_step.to_value());
@@ -230,17 +227,21 @@ fn value_to_structs(
                                                                         step: 0,
                                                                     })
                                                                 {
-                                                                    let next_step = get_next_step(
-                                                                        &pipelines_raw,
-                                                                        parent_target,
-                                                                    );
-                                                                    log::debug!("Setting up then branch return via grandparent: pipeline {} → pipeline {} step {}", pipeline_index, next_step.pipeline, next_step.step);
-                                                                    new_step.insert(
-                                                                        "to".to_string(),
-                                                                        next_step.to_value(),
-                                                                    );
-                                                                    found_parent = true;
-                                                                    break;
+                                                                    if let Some(next_step) =
+                                                                        find_valid_continuation(
+                                                                            &pipelines_raw,
+                                                                            &parents,
+                                                                            parent_target,
+                                                                        )
+                                                                    {
+                                                                        log::debug!("Setting up then branch return via grandparent: pipeline {} → pipeline {} step {}", pipeline_index, next_step.pipeline, next_step.step);
+                                                                        new_step.insert(
+                                                                            "to".to_string(),
+                                                                            next_step.to_value(),
+                                                                        );
+                                                                        found_parent = true;
+                                                                        break;
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -278,17 +279,21 @@ fn value_to_structs(
                                                                         step: 0,
                                                                     })
                                                                 {
-                                                                    let next_step = get_next_step(
-                                                                        &pipelines_raw,
-                                                                        parent_target,
-                                                                    );
-                                                                    log::debug!("Setting up else branch return via grandparent: pipeline {} → pipeline {} step {}", pipeline_index, next_step.pipeline, next_step.step);
-                                                                    new_step.insert(
-                                                                        "to".to_string(),
-                                                                        next_step.to_value(),
-                                                                    );
-                                                                    found_parent = true;
-                                                                    break;
+                                                                    if let Some(next_step) =
+                                                                        find_valid_continuation(
+                                                                            &pipelines_raw,
+                                                                            &parents,
+                                                                            parent_target,
+                                                                        )
+                                                                    {
+                                                                        log::debug!("Setting up else branch return via grandparent: pipeline {} → pipeline {} step {}", pipeline_index, next_step.pipeline, next_step.step);
+                                                                        new_step.insert(
+                                                                            "to".to_string(),
+                                                                            next_step.to_value(),
+                                                                        );
+                                                                        found_parent = true;
+                                                                        break;
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -359,39 +364,40 @@ fn is_valid_step(pipelines: &Vec<Value>, step_ref: &StepReference) -> bool {
 /// Function to find a valid continuation point when the direct next step is invalid
 fn find_valid_continuation(
     pipelines: &Vec<Value>,
+    parents: &HashMap<StepReference, StepReference>,
     target: &StepReference,
 ) -> Option<StepReference> {
-    let main_pipeline = pipelines.len() - 1;
+    let mut current = target.clone();
+    let mut depth = 0usize;
 
-    // If we're looking for continuation and the target is in the main pipeline,
-    // we should go to the main pipeline's next available step
-    if target.pipeline == main_pipeline {
-        // Try the next step in main pipeline
+    loop {
         let next_step_ref = StepReference {
-            pipeline: main_pipeline,
-            step: target.step + 1,
+            pipeline: current.pipeline,
+            step: current.step + 1,
         };
 
         if is_valid_step(pipelines, &next_step_ref) {
             return Some(next_step_ref);
-        } else {
-            // No more steps in main pipeline - execution should end
+        }
+
+        let parent_key = StepReference {
+            pipeline: current.pipeline,
+            step: 0,
+        };
+        let Some(parent) = parents.get(&parent_key) else {
+            return None;
+        };
+
+        if parent.pipeline == current.pipeline && parent.step == current.step {
+            return None;
+        }
+
+        current = parent.clone();
+        depth += 1;
+        if depth > pipelines.len() {
             return None;
         }
     }
-
-    // For non-main pipelines, try to continue from the main pipeline
-    // starting from the step after the conditional
-    let main_continuation = StepReference {
-        pipeline: main_pipeline,
-        step: 1, // Step after the conditional
-    };
-
-    if is_valid_step(pipelines, &main_continuation) {
-        return Some(main_continuation);
-    }
-
-    None
 }
 
 /// Function to get the next step
@@ -431,7 +437,7 @@ fn map_parents(
     HashMap<String, StepReference>,
 ) {
     let (parents, go_to_step_references) = build_parent_map(pipelines);
-    (resolve_final_parents(parents), go_to_step_references)
+    (parents, go_to_step_references)
 }
 
 /// Function to build the parent map
@@ -492,22 +498,4 @@ fn build_parent_map(
     }
 
     (parents, go_to_step_id)
-}
-
-/// Function to resolve final parents
-/// This function takes a parent map and resolves the final parents.
-fn resolve_final_parents(
-    parents: HashMap<StepReference, StepReference>,
-) -> HashMap<StepReference, StepReference> {
-    let mut final_parents = HashMap::new();
-
-    for (child, mut parent) in parents.iter() {
-        // Resolve o pai final seguindo a cadeia de ancestrais
-        while let Some(grandparent) = parents.get(parent) {
-            parent = grandparent;
-        }
-        final_parents.insert(child.clone(), parent.clone());
-    }
-
-    final_parents
 }
