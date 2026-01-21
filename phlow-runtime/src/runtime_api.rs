@@ -1,3 +1,34 @@
+//! Phlow runtime API for in-memory pipelines.
+//!
+//! # Example
+//!
+//! ```no_run
+//! use phlow_engine::Context;
+//! use phlow_runtime::PhlowBuilder;
+//! use phlow_sdk::prelude::json;
+//!
+//! # tokio::runtime::Runtime::new().unwrap().block_on(async {
+//! let pipeline = json!({
+//!     "steps": [
+//!         { "payload": "{{ main.name }}" }
+//!     ]
+//! });
+//! let context = Context::from_main(json!({ "name": "Phlow" }));
+//!
+//! let mut builder = PhlowBuilder::new();
+//! builder.settings_mut().download = false;
+//! let mut runtime = builder
+//!     .set_pipeline(pipeline)
+//!     .set_context(context)
+//!     .build()
+//!     .await
+//!     .unwrap();
+//!
+//! let result = runtime.run().await.unwrap();
+//! let _ = result;
+//! runtime.shutdown().await.unwrap();
+//! # });
+//! ```
 use crate::debug_server;
 use crate::loader::Loader;
 use crate::runtime::Runtime;
@@ -13,13 +44,20 @@ use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::sync::Arc;
 
+/// Errors returned by the runtime API.
 #[derive(Debug)]
 pub enum PhlowRuntimeError {
+    /// Pipeline was not provided.
     MissingPipeline,
+    /// Failed to load the pipeline into a loader.
     LoaderError(crate::loader::error::Error),
+    /// Failed to send a package to the runtime loop.
     PackageSendError,
+    /// Response channel closed before a result arrived.
     ResponseChannelClosed,
+    /// Error reported by runtime execution.
     RuntimeError(RuntimeError),
+    /// Join error from the runtime task.
     RuntimeJoinError(tokio::task::JoinError),
 }
 
@@ -50,6 +88,7 @@ impl From<RuntimeError> for PhlowRuntimeError {
     }
 }
 
+/// Prepared runtime that can execute an in-memory pipeline.
 pub struct PhlowRuntime {
     pipeline: Option<Value>,
     context: Option<Context>,
@@ -59,6 +98,9 @@ pub struct PhlowRuntime {
     prepared: Option<PreparedRuntime>,
 }
 
+/// Builder for creating a prepared [`PhlowRuntime`].
+///
+/// Use this when you want a fluent API that returns a ready runtime.
 pub struct PhlowBuilder {
     pipeline: Option<Value>,
     context: Option<Context>,
@@ -74,6 +116,9 @@ impl Default for PhlowRuntime {
 }
 
 impl PhlowRuntime {
+    /// Create a new runtime with default settings.
+    ///
+    /// This sets `var_main` to a default value so non-main pipelines auto-start.
     pub fn new() -> Self {
         let mut settings = Settings::for_runtime();
         if settings.var_main.is_none() {
@@ -90,6 +135,7 @@ impl PhlowRuntime {
         }
     }
 
+    /// Create a new runtime using explicit settings.
     pub fn with_settings(settings: Settings) -> Self {
         Self {
             pipeline: None,
@@ -101,45 +147,67 @@ impl PhlowRuntime {
         }
     }
 
+    /// Set the pipeline to be executed.
+    ///
+    /// This clears any prepared runtime state.
     pub fn set_pipeline(&mut self, pipeline: Value) -> &mut Self {
         self.pipeline = Some(pipeline);
         self.prepared = None;
         self
     }
 
+    /// Set the execution context.
+    ///
+    /// This clears any prepared runtime state.
     pub fn set_context(&mut self, context: Context) -> &mut Self {
         self.context = Some(context);
         self.prepared = None;
         self
     }
 
+    /// Replace the runtime settings.
+    ///
+    /// This clears any prepared runtime state.
     pub fn set_settings(&mut self, settings: Settings) -> &mut Self {
         self.settings = settings;
         self.prepared = None;
         self
     }
 
+    /// Set the base path used for resolving local module paths.
+    ///
+    /// This clears any prepared runtime state.
     pub fn set_base_path<P: Into<PathBuf>>(&mut self, base_path: P) -> &mut Self {
         self.base_path = Some(base_path.into());
         self.prepared = None;
         self
     }
 
+    /// Provide a custom tracing dispatch instead of initializing OpenTelemetry.
+    ///
+    /// This clears any prepared runtime state.
     pub fn set_dispatch(&mut self, dispatch: tracing::Dispatch) -> &mut Self {
         self.dispatch = Some(dispatch);
         self.prepared = None;
         self
     }
 
+    /// Read-only access to the current settings.
     pub fn settings(&self) -> &Settings {
         &self.settings
     }
 
+    /// Mutable access to settings.
+    ///
+    /// This clears any prepared runtime state.
     pub fn settings_mut(&mut self) -> &mut Settings {
         self.prepared = None;
         &mut self.settings
     }
 
+    /// Build and prepare the runtime (load modules, tracing, and start loop).
+    ///
+    /// Calling this multiple times is safe; it is a no-op if already prepared.
     pub async fn build(&mut self) -> Result<(), PhlowRuntimeError> {
         if self.prepared.is_some() {
             return Ok(());
@@ -239,6 +307,13 @@ impl PhlowRuntime {
         Ok(())
     }
 
+    /// Execute the pipeline and return its result.
+    ///
+    /// This can be called multiple times after [`build`](Self::build). When the
+    /// pipeline cannot auto-start (for example, a main module is present and
+    /// `var_main` is not set), this returns `Value::Undefined` and shuts down
+    /// the prepared runtime. For normal execution, call [`shutdown`](Self::shutdown)
+    /// when you are done to release resources.
     pub async fn run(&mut self) -> Result<Value, PhlowRuntimeError> {
         self.build().await?;
 
@@ -290,6 +365,10 @@ impl PhlowRuntime {
         Ok(result)
     }
 
+    /// Shut down the prepared runtime and release resources.
+    ///
+    /// Call this when you are done reusing the runtime to close channels,
+    /// wait for the runtime task, and flush tracing providers.
     pub async fn shutdown(&mut self) -> Result<(), PhlowRuntimeError> {
         let prepared = match self.prepared.take() {
             Some(prepared) => prepared,
@@ -311,6 +390,9 @@ impl PhlowRuntime {
 }
 
 impl PhlowBuilder {
+    /// Create a new builder with default settings.
+    ///
+    /// This sets `var_main` to a default value so non-main pipelines auto-start.
     pub fn new() -> Self {
         let mut settings = Settings::for_runtime();
         if settings.var_main.is_none() {
@@ -326,6 +408,7 @@ impl PhlowBuilder {
         }
     }
 
+    /// Create a new builder using explicit settings.
     pub fn with_settings(settings: Settings) -> Self {
         Self {
             pipeline: None,
@@ -336,39 +419,59 @@ impl PhlowBuilder {
         }
     }
 
+    /// Set the pipeline to be executed.
+    ///
+    /// Returns the builder for chaining.
     pub fn set_pipeline(mut self, pipeline: Value) -> Self {
         self.pipeline = Some(pipeline);
         self
     }
 
+    /// Set the execution context.
+    ///
+    /// Returns the builder for chaining.
     pub fn set_context(mut self, context: Context) -> Self {
         self.context = Some(context);
         self
     }
 
+    /// Replace the runtime settings.
+    ///
+    /// Returns the builder for chaining.
     pub fn set_settings(mut self, settings: Settings) -> Self {
         self.settings = settings;
         self
     }
 
+    /// Set the base path used for resolving local module paths.
+    ///
+    /// Returns the builder for chaining.
     pub fn set_base_path<P: Into<PathBuf>>(mut self, base_path: P) -> Self {
         self.base_path = Some(base_path.into());
         self
     }
 
+    /// Provide a custom tracing dispatch instead of initializing OpenTelemetry.
+    ///
+    /// Returns the builder for chaining.
     pub fn set_dispatch(mut self, dispatch: tracing::Dispatch) -> Self {
         self.dispatch = Some(dispatch);
         self
     }
 
+    /// Read-only access to the current settings.
     pub fn settings(&self) -> &Settings {
         &self.settings
     }
 
+    /// Mutable access to settings.
     pub fn settings_mut(&mut self) -> &mut Settings {
         &mut self.settings
     }
 
+    /// Build and return a prepared [`PhlowRuntime`].
+    ///
+    /// This consumes the builder and prepares the runtime for execution.
     pub async fn build(mut self) -> Result<PhlowRuntime, PhlowRuntimeError> {
         let mut runtime = PhlowRuntime::with_settings(self.settings);
 
