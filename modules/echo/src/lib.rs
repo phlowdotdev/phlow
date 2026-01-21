@@ -67,6 +67,7 @@ mod tests {
             .set_base_path(std::env::current_dir()?)
             .set_pipeline(pipeline)
             .set_context(Context::new())
+            .set_module("echo", module)
             .build()
             .await?;
 
