@@ -368,6 +368,8 @@ impl Runtime {
         )
         .await?;
 
+        drop(tx_main_package);
+
         Self::listener(rx_main_package, steps, modules, settings, Some(context))
             .await
             .map_err(|err| {

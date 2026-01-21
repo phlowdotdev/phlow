@@ -95,4 +95,53 @@ impl Settings {
 
         Ok(settings)
     }
+
+    pub fn for_runtime() -> Self {
+        let envs = Envs::load();
+
+        let current_path = std::env::current_dir()
+            .unwrap_or_else(|_| "./".into())
+            .to_string_lossy()
+            .to_string();
+
+        let main_target = envs.main.clone();
+        let script_main_absolute_path = if main_target.starts_with(".") {
+            format!("{}/{}", current_path, main_target)
+        } else {
+            main_target.clone()
+        };
+
+        Self {
+            script_main_absolute_path,
+            only_download_modules: false,
+            package_path: None,
+            package_target: "./phlow_packages".to_string(),
+            create_tar: false,
+            no_run: false,
+            download: true,
+            print_yaml: false,
+            print_output: PrintOutput::Yaml,
+            test: false,
+            test_filter: None,
+            var_main: None,
+            var_payload: None,
+            start_step: None,
+            analyzer: false,
+            analyzer_files: false,
+            analyzer_modules: false,
+            analyzer_total_steps: false,
+            analyzer_total_pipelines: false,
+            analyzer_json: false,
+            analyzer_inner: false,
+            analyzer_all: false,
+            package_consumer_count: envs.package_consumer_count,
+            #[cfg(target_env = "gnu")]
+            min_allocated_memory: envs.min_allocated_memory,
+            #[cfg(target_env = "gnu")]
+            garbage_collection: envs.garbage_collection,
+            #[cfg(target_env = "gnu")]
+            garbage_collection_interval: envs.garbage_collection_interval,
+            default_package_repository_url: envs.default_package_repository_url,
+        }
+    }
 }

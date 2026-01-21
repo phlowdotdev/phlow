@@ -1,20 +1,7 @@
-mod analyzer;
-mod debug_server;
-mod loader;
-mod memory;
-mod package;
-mod preprocessor;
-mod runtime;
-mod settings;
-mod test_runner;
-use loader::Loader;
-use package::Package;
+use phlow_runtime::{analyzer, debug_server, test_runner, Loader, Package, Runtime, Settings};
 use phlow_sdk::otel::init_tracing_subscriber;
 use phlow_sdk::{tracing, use_log};
-use runtime::Runtime;
-use settings::Settings;
 use std::sync::Arc;
-mod scripts;
 
 #[cfg(all(feature = "mimalloc", target_env = "musl"))]
 #[global_allocator]
@@ -23,20 +10,6 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 #[cfg(all(feature = "jemalloc", target_env = "musl"))]
 #[global_allocator]
 static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
-
-#[cfg(target_os = "macos")]
-pub const MODULE_EXTENSION: &str = "dylib";
-#[cfg(target_os = "linux")]
-pub const MODULE_EXTENSION: &str = "so";
-#[cfg(target_os = "windows")]
-pub const MODULE_EXTENSION: &str = "dll";
-
-#[cfg(target_os = "macos")]
-pub const RUNTIME_ARCH: &str = "darwin";
-#[cfg(all(target_os = "linux", target_arch = "aarch64"))]
-pub const RUNTIME_ARCH: &str = "linux-aarch64";
-#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-pub const RUNTIME_ARCH: &str = "linux-amd64";
 
 #[tokio::main]
 async fn main() {
