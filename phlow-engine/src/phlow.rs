@@ -2,7 +2,7 @@ use crate::{
     context::Context,
     debug::debug_controller,
     pipeline::{Pipeline, PipelineError},
-    step_worker::NextStep,
+    step_worker::{NextStep, StepReference},
     transform::{TransformError, value_to_pipelines},
 };
 use phlow_sdk::prelude::{log::error, *};
@@ -15,6 +15,7 @@ pub enum PhlowError {
     TransformError(TransformError),
     PipelineError(PipelineError),
     PipelineNotFound,
+    InvalidStartStep { pipeline: usize, step: usize },
     ParentError,
 }
 
@@ -24,6 +25,9 @@ impl Display for PhlowError {
             PhlowError::TransformError(err) => write!(f, "Transform error: {}", err),
             PhlowError::PipelineError(err) => write!(f, "Pipeline error: {}", err),
             PhlowError::PipelineNotFound => write!(f, "Pipeline not found"),
+            PhlowError::InvalidStartStep { pipeline, step } => {
+                write!(f, "Invalid start step: pipeline {} step {}", pipeline, step)
+            }
             PhlowError::ParentError => write!(f, "Parent error"),
         }
     }
@@ -35,6 +39,7 @@ impl std::error::Error for PhlowError {
             PhlowError::TransformError(err) => Some(err),
             PhlowError::PipelineError(err) => Some(err),
             PhlowError::PipelineNotFound => None,
+            PhlowError::InvalidStartStep { .. } => None,
             PhlowError::ParentError => None,
         }
     }
@@ -88,8 +93,57 @@ impl Phlow {
             return Ok(None);
         }
 
-        let mut current_pipeline = self.pipelines.len() - 1;
-        let mut current_step = 0;
+        let main_pipeline = self.pipelines.len() - 1;
+        let start = StepReference {
+            pipeline: main_pipeline,
+            step: 0,
+        };
+
+        self.execute_from(context, start).await
+    }
+
+    pub fn find_step_reference(&self, id: &str) -> Option<StepReference> {
+        for pipeline in self.pipelines.values() {
+            let pipeline_id = pipeline.get_id();
+            for (step_index, step) in pipeline.steps.iter().enumerate() {
+                let step_id = step.get_id();
+                if step_id.is_some() && step_id.to_string() == id {
+                    return Some(StepReference {
+                        pipeline: pipeline_id,
+                        step: step_index,
+                    });
+                }
+            }
+        }
+
+        None
+    }
+
+    pub async fn execute_from(
+        &self,
+        context: &mut Context,
+        start: StepReference,
+    ) -> Result<Option<Value>, PhlowError> {
+        if self.pipelines.is_empty() {
+            return Ok(None);
+        }
+
+        let mut current_pipeline = start.pipeline;
+        let mut current_step = start.step;
+        let main_pipeline = self.pipelines.len() - 1;
+
+        {
+            let pipeline = self
+                .pipelines
+                .get(&current_pipeline)
+                .ok_or(PhlowError::PipelineNotFound)?;
+            if current_step >= pipeline.steps.len() {
+                return Err(PhlowError::InvalidStartStep {
+                    pipeline: current_pipeline,
+                    step: current_step,
+                });
+            }
+        }
 
         loop {
             log::debug!(
@@ -119,8 +173,6 @@ impl Phlow {
                                 log::debug!(
                                     "NextStep::Next - checking if sub-pipeline needs to return to parent"
                                 );
-                                // Check if this is the main pipeline (highest index)
-                                let main_pipeline = self.pipelines.len() - 1;
                                 if current_pipeline == main_pipeline {
                                     log::debug!(
                                         "NextStep::Next - terminating execution (main pipeline completed)"

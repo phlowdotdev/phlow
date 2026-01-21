@@ -146,6 +146,20 @@ impl Runtime {
             controller.set_script(phlow.script()).await;
         }
 
+        let start_step = if let Some(step_id) = settings.start_step.as_deref() {
+            match phlow.find_step_reference(step_id) {
+                Some(step_ref) => Some(step_ref),
+                None => {
+                    return Err(RuntimeError::FlowExecutionError(format!(
+                        "Step id '{}' not found",
+                        step_id
+                    )));
+                }
+            }
+        } else {
+            None
+        };
+
         drop(steps);
 
         let mut handles = Vec::new();
@@ -155,6 +169,7 @@ impl Runtime {
             let rx_main_pkg = rx_main_package.clone();
             let phlow = phlow.clone();
             let default_context = default_context.clone();
+            let start_step = start_step.clone();
 
             let handle = tokio::task::spawn_blocking(move || {
                 for mut main_package in rx_main_pkg {
@@ -183,6 +198,7 @@ impl Runtime {
                             Context::from_main(data)
                         }
                     };
+                    let start_step = start_step.clone();
 
                     tokio::task::block_in_place(move || {
                         dispatcher::with_default(&dispatch, || {
@@ -190,7 +206,12 @@ impl Runtime {
                             let rt = tokio::runtime::Handle::current();
 
                             rt.block_on(async {
-                                match phlow.execute(&mut context).await {
+                                let result = if let Some(step_ref) = start_step.clone() {
+                                    phlow.execute_from(&mut context, step_ref).await
+                                } else {
+                                    phlow.execute(&mut context).await
+                                };
+                                match result {
                                     Ok(result) => {
                                         let result_value = result.unwrap_or(Value::Undefined);
                                         main_package.send(result_value);

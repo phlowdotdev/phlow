@@ -12,7 +12,8 @@ steps:
           then:
             - log.info: `Finished with payload 6`
             - return: 100
-  - payload: payload + 10
+  - id: final_step
+    payload: payload ?? main + 10
   - log.info: `Final payload is ${payload}`
 
 tests:

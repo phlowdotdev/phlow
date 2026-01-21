@@ -19,6 +19,7 @@ pub struct Settings {
     pub test: bool,
     pub test_filter: Option<String>,
     pub var_main: Option<String>,
+    pub start_step: Option<String>,
     // analyzer
     pub analyzer: bool,
     pub analyzer_files: bool,
@@ -87,6 +88,7 @@ impl Settings {
             test: cli.test,
             test_filter: cli.test_filter,
             var_main: cli.var_main,
+            start_step: cli.start_step,
         };
 
         Ok(settings)
