@@ -1,0 +1,8 @@
+steps:
+    - log.info: "Imported payload"
+    - payload: !import "./tests/data.json"
+    - log.info: payload
+
+tests:
+    - describe: Import test
+      assert: payload.name == "João da Silva"

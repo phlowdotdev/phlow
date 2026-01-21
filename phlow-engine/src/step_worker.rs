@@ -204,7 +204,9 @@ impl StepWorker {
             Some(module) => Some(module.to_string()),
             None => None,
         };
-        let log = build_log_step(engine.clone(), value, module.as_deref())?;
+        let is_log_module = module.as_deref() == Some("log");
+        let log = build_log_step(engine.clone(), value, is_log_module)?;
+        let module = if is_log_module { None } else { module };
 
         let to = match value.get("to") {
             Some(to_step) => match to_step.as_object() {
@@ -346,10 +348,6 @@ impl StepWorker {
         &self,
         context: &Context,
     ) -> Result<Option<(Option<String>, Option<Value>, Context)>, StepWorkerError> {
-        if self.module.as_deref() == Some("log") {
-            return Ok(None);
-        }
-
         if let Some(ref module) = self.module {
             let input = self.evaluate_input(context)?;
 
@@ -596,13 +594,13 @@ impl StepWorker {
 fn build_log_step(
     engine: Arc<Engine>,
     value: &Value,
-    module: Option<&str>,
+    is_log_module: bool,
 ) -> Result<Option<LogStep>, StepWorkerError> {
     if let Some(log_step) = extract_log_from_key(engine.clone(), value)? {
         return Ok(Some(log_step));
     }
 
-    if module == Some("log") {
+    if is_log_module {
         let input_value = value.get("input");
         let log_step = build_log_from_input(engine, input_value)?;
         return Ok(Some(log_step));
@@ -697,6 +695,7 @@ mod test {
     use super::*;
     use phlow_sdk::valu3;
     use phs::build_engine;
+    use valu3::json;
     use valu3::prelude::ToValueBehavior;
     use valu3::value::Value;
 
@@ -785,5 +784,33 @@ mod test {
 
         assert_eq!(result_false.next_step, NextStep::Next);
         assert_eq!(result_false.output, None);
+    }
+
+    #[test]
+    fn test_step_from_value_log_key() {
+        let engine = build_engine(None);
+        let value = json!({ "log.info": "Hello" });
+        let step =
+            StepWorker::try_from_value(engine, Arc::new(Modules::default()), &value).unwrap();
+
+        assert!(step.module.is_none());
+        assert!(matches!(step.log.map(|log| log.level), Some(LogLevel::Info)));
+    }
+
+    #[test]
+    fn test_step_from_value_log_module_internal() {
+        let engine = build_engine(None);
+        let value = json!({
+            "use": "log",
+            "input": {
+                "level": "warn",
+                "message": "User not found"
+            }
+        });
+        let step =
+            StepWorker::try_from_value(engine, Arc::new(Modules::default()), &value).unwrap();
+
+        assert!(step.module.is_none());
+        assert!(matches!(step.log.map(|log| log.level), Some(LogLevel::Warn)));
     }
 }
