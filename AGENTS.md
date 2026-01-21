@@ -17,4 +17,4 @@ Estrutura relevante:
 
 Regra:
 - Analisar de concluir a tarefa, testar localmente os fluxos alterados.
-- Commit depois de testar localmente.
+- Quando uma tarefa for concluida e testada, comitar as mudancas.
