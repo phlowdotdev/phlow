@@ -1,5 +1,6 @@
 pub mod analyzer;
 pub mod debug_server;
+pub mod inline_module;
 pub mod loader;
 pub mod memory;
 pub mod package;
@@ -12,6 +13,9 @@ pub mod test_runner;
 mod runtime_api;
 
 pub use loader::Loader;
+pub use inline_module::{
+    InlineModules, PhlowModule, PhlowModuleHandler, PhlowModuleRequest, PhlowModuleSchema,
+};
 pub use package::Package;
 pub use runtime::{Runtime, RuntimeError};
 pub use runtime_api::{PhlowBuilder, PhlowRuntime, PhlowRuntimeError};

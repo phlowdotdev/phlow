@@ -30,6 +30,7 @@
 //! # });
 //! ```
 use crate::debug_server;
+use crate::inline_module::{InlineModules, PhlowModule};
 use crate::loader::Loader;
 use crate::runtime::Runtime;
 use crate::runtime::RuntimeError;
@@ -95,6 +96,7 @@ pub struct PhlowRuntime {
     settings: Settings,
     base_path: Option<PathBuf>,
     dispatch: Option<tracing::Dispatch>,
+    inline_modules: InlineModules,
     prepared: Option<PreparedRuntime>,
 }
 
@@ -107,6 +109,7 @@ pub struct PhlowBuilder {
     settings: Settings,
     base_path: Option<PathBuf>,
     dispatch: Option<tracing::Dispatch>,
+    inline_modules: InlineModules,
 }
 
 impl Default for PhlowRuntime {
@@ -131,6 +134,7 @@ impl PhlowRuntime {
             settings,
             base_path: None,
             dispatch: None,
+            inline_modules: InlineModules::default(),
             prepared: None,
         }
     }
@@ -143,6 +147,7 @@ impl PhlowRuntime {
             settings,
             base_path: None,
             dispatch: None,
+            inline_modules: InlineModules::default(),
             prepared: None,
         }
     }
@@ -188,6 +193,17 @@ impl PhlowRuntime {
     /// This clears any prepared runtime state.
     pub fn set_dispatch(&mut self, dispatch: tracing::Dispatch) -> &mut Self {
         self.dispatch = Some(dispatch);
+        self.prepared = None;
+        self
+    }
+
+    /// Register an inline module by name.
+    ///
+    /// The module must be declared in the pipeline `modules` list.
+    ///
+    /// This clears any prepared runtime state.
+    pub fn set_module<S: Into<String>>(&mut self, name: S, module: PhlowModule) -> &mut Self {
+        self.inline_modules.insert(name.into(), module);
         self.prepared = None;
         self
     }
@@ -279,16 +295,18 @@ impl PhlowRuntime {
         let (tx_main_package, rx_main_package) = channel::unbounded::<Package>();
         let tx_for_runtime = tx_main_package.clone();
         let dispatch_for_runtime = dispatch.clone();
+        let inline_modules = self.inline_modules.clone();
 
         let runtime_handle = tokio::spawn(async move {
             tracing::dispatcher::with_default(&dispatch_for_runtime, || {
-                Runtime::run_script(
+                Runtime::run_script_with_modules(
                     tx_for_runtime,
                     rx_main_package,
                     loader,
                     dispatch_for_runtime.clone(),
                     settings,
                     context_for_runtime,
+                    inline_modules,
                 )
             })
             .await
@@ -405,6 +423,7 @@ impl PhlowBuilder {
             settings,
             base_path: None,
             dispatch: None,
+            inline_modules: InlineModules::default(),
         }
     }
 
@@ -416,6 +435,7 @@ impl PhlowBuilder {
             settings,
             base_path: None,
             dispatch: None,
+            inline_modules: InlineModules::default(),
         }
     }
 
@@ -459,6 +479,16 @@ impl PhlowBuilder {
         self
     }
 
+    /// Register an inline module by name.
+    ///
+    /// The module must be declared in the pipeline `modules` list.
+    ///
+    /// Returns the builder for chaining.
+    pub fn set_module<S: Into<String>>(mut self, name: S, module: PhlowModule) -> Self {
+        self.inline_modules.insert(name.into(), module);
+        self
+    }
+
     /// Read-only access to the current settings.
     pub fn settings(&self) -> &Settings {
         &self.settings
@@ -474,6 +504,7 @@ impl PhlowBuilder {
     /// This consumes the builder and prepares the runtime for execution.
     pub async fn build(mut self) -> Result<PhlowRuntime, PhlowRuntimeError> {
         let mut runtime = PhlowRuntime::with_settings(self.settings);
+        runtime.inline_modules = self.inline_modules;
 
         if let Some(pipeline) = self.pipeline.take() {
             runtime.set_pipeline(pipeline);
