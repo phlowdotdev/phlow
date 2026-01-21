@@ -4471,6 +4471,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "runtime-embed"
+version = "0.1.0"
+dependencies = [
+ "phlow-engine",
+ "phlow-runtime",
+ "phlow-sdk",
+ "tokio",
+]
+
+[[package]]
 name = "rusqlite"
 version = "0.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -1,0 +1,10 @@
+[package]
+name = "runtime-embed"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+phlow-runtime = { path = "../../phlow-runtime" }
+phlow-engine = { path = "../../phlow-engine" }
+phlow-sdk = { path = "../../phlow-sdk" }
+tokio = { version = "1.48.0", features = ["full"] }
