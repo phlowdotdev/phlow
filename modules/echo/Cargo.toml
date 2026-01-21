@@ -8,6 +8,8 @@ phlow-sdk = { workspace = true }
 
 [dev-dependencies]
 serde_json = "1.0"
+phlow-runtime = { workspace = true }
+phlow-engine = { workspace = true }
 
 [lib]
 name = "echo"

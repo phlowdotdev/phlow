@@ -1696,6 +1696,8 @@ dependencies = [
 name = "echo"
 version = "0.1.0"
 dependencies = [
+ "phlow-engine",
+ "phlow-runtime",
  "phlow-sdk",
  "serde_json",
 ]

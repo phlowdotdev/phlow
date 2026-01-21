@@ -9,7 +9,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "modules": [
             {
                 "module": "inline_echo",
-                "name": "inline_echo",
                 "with": { "prefix": "Hello, " }
             }
         ],
