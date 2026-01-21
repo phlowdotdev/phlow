@@ -34,6 +34,21 @@ steps:
     then:
       return: !phs `Step ID is valid and payload key matches`
 ```
+
+You can also start a flow from a specific step id using the runtime flag `--step`. This is useful for debugging or resuming execution without running the earlier steps.
+
+```phlow
+steps:
+  - id: final_step
+    payload: !phs main.value + 10
+  - return: !phs payload
+```
+
+```bash
+phlow ./flow.phlow --var-main '{"value": 5}' --step final_step
+```
+
+Note: when you start from a step, earlier steps are not executed, so `payload` is whatever already exists in context (often undefined). Make sure the step can handle missing payloads or compute its inputs from `main`.
 ### label
 A descriptive label for the step, often used as the span name in OpenTelemetry for tracing and monitoring purposes. This label helps in identifying and analyzing the step during distributed tracing. For example:
 
