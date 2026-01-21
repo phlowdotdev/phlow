@@ -19,6 +19,7 @@ pub struct Settings {
     pub test: bool,
     pub test_filter: Option<String>,
     pub var_main: Option<String>,
+    pub var_payload: Option<String>,
     pub start_step: Option<String>,
     // analyzer
     pub analyzer: bool,
@@ -88,6 +89,7 @@ impl Settings {
             test: cli.test,
             test_filter: cli.test_filter,
             var_main: cli.var_main,
+            var_payload: cli.var_payload,
             start_step: cli.start_step,
         };
 
