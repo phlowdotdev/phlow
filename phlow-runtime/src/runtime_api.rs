@@ -84,19 +84,42 @@
 //! runtime.shutdown().await.unwrap();
 //! # });
 //! ```
+//!
+//! # Preprocess and run strings
+//!
+//! If you have a script string, preprocess it once and reuse the resulting value.
+//!
+//! ```no_run
+//! use phlow_engine::Context;
+//! use phlow_runtime::PhlowRuntime;
+//!
+//! # tokio::runtime::Runtime::new().unwrap().block_on(async {
+//! let script = r#"
+//! steps:
+//!   - return: "ok"
+//! "#;
+//! let runtime = PhlowRuntime::new();
+//! let pipeline = runtime.preprocess_string(script).unwrap();
+//! let result = PhlowRuntime::run_preprocessed(pipeline, Context::new()).await.unwrap();
+//! let _ = result;
+//! # });
+//! ```
 use crate::debug_server;
 use crate::inline_module::{InlineModules, PhlowModule};
 use crate::loader::Loader;
+use crate::loader::error::Error as LoaderError;
+use crate::preprocessor::preprocessor;
 use crate::runtime::Runtime;
 use crate::runtime::RuntimeError;
 use crate::settings::Settings;
 use crossbeam::channel;
 use phlow_engine::Context;
 use phlow_sdk::otel::{OtelGuard, init_tracing_subscriber};
-use phlow_sdk::prelude::Value;
+use phlow_sdk::prelude::{Array, Value};
 use phlow_sdk::structs::Package;
 use phlow_sdk::{tracing, use_log};
 use std::fmt::{Display, Formatter};
+use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -111,6 +134,10 @@ pub enum PhlowRuntimeError {
     PackageSendError,
     /// Response channel closed before a result arrived.
     ResponseChannelClosed,
+    /// Preprocessor errors while expanding a script string.
+    PreprocessError(Vec<String>),
+    /// Failed to parse the preprocessed script into a value.
+    ScriptParseError(serde_yaml::Error),
     /// Error reported by runtime execution.
     RuntimeError(RuntimeError),
     /// Join error from the runtime task.
@@ -124,6 +151,10 @@ impl Display for PhlowRuntimeError {
             PhlowRuntimeError::LoaderError(err) => write!(f, "Loader error: {}", err),
             PhlowRuntimeError::PackageSendError => write!(f, "Failed to send package"),
             PhlowRuntimeError::ResponseChannelClosed => write!(f, "Response channel closed"),
+            PhlowRuntimeError::PreprocessError(errs) => {
+                write!(f, "Preprocess error: {}", errs.join(", "))
+            }
+            PhlowRuntimeError::ScriptParseError(err) => write!(f, "Script parse error: {}", err),
             PhlowRuntimeError::RuntimeError(err) => write!(f, "Runtime error: {}", err),
             PhlowRuntimeError::RuntimeJoinError(err) => write!(f, "Runtime task error: {}", err),
         }
@@ -142,6 +173,36 @@ impl From<RuntimeError> for PhlowRuntimeError {
     fn from(err: RuntimeError) -> Self {
         PhlowRuntimeError::RuntimeError(err)
     }
+}
+
+fn preprocess_string_inner(
+    script: &str,
+    base_path: &Path,
+    print_yaml: bool,
+    print_output: crate::settings::PrintOutput,
+) -> Result<Value, PhlowRuntimeError> {
+    let processed = preprocessor(script, base_path, print_yaml, print_output)
+        .map_err(PhlowRuntimeError::PreprocessError)?;
+    let mut value: Value =
+        serde_yaml::from_str(&processed).map_err(PhlowRuntimeError::ScriptParseError)?;
+
+    if value.get("steps").is_none() {
+        return Err(PhlowRuntimeError::LoaderError(LoaderError::StepsNotDefined));
+    }
+
+    if let Some(modules) = value.get("modules") {
+        if !modules.is_array() {
+            return Err(PhlowRuntimeError::LoaderError(
+                LoaderError::ModuleLoaderError("Modules not an array".to_string()),
+            ));
+        }
+
+        value.insert("modules", modules.clone());
+    } else {
+        value.insert("modules", Value::Array(Array::new()));
+    }
+
+    Ok(value)
 }
 
 /// Prepared runtime that can execute an in-memory pipeline.
@@ -207,6 +268,23 @@ impl PhlowRuntime {
         }
     }
 
+    /// Preprocess a phlow script string and parse it into a [`Value`].
+    ///
+    /// This uses the runtime settings for preprocessor options and the base path
+    /// (or the current directory) to resolve `!include`.
+    pub fn preprocess_string(&self, script: &str) -> Result<Value, PhlowRuntimeError> {
+        let base_path = self.base_path.clone().unwrap_or_else(|| {
+            std::env::current_dir().unwrap_or_else(|_| PathBuf::from("./"))
+        });
+
+        preprocess_string_inner(
+            script,
+            base_path.as_path(),
+            self.settings.print_yaml,
+            self.settings.print_output,
+        )
+    }
+
     /// Set the pipeline to be executed.
     ///
     /// This clears any prepared runtime state.
@@ -223,6 +301,13 @@ impl PhlowRuntime {
         self.context = Some(context);
         self.prepared = None;
         self
+    }
+
+    /// Set a preprocessed pipeline to be executed.
+    ///
+    /// This does not run the preprocessor again.
+    pub fn set_preprocessed_pipeline(&mut self, pipeline: Value) -> &mut Self {
+        self.set_pipeline(pipeline)
     }
 
     /// Replace the runtime settings.
@@ -439,6 +524,22 @@ impl PhlowRuntime {
         Ok(result)
     }
 
+    /// Execute a preprocessed pipeline in one call and return its result.
+    ///
+    /// This creates a new runtime with default settings, runs the pipeline,
+    /// and shuts down the runtime before returning.
+    pub async fn run_preprocessed(
+        pipeline: Value,
+        context: Context,
+    ) -> Result<Value, PhlowRuntimeError> {
+        let mut runtime = PhlowRuntime::new();
+        runtime.set_preprocessed_pipeline(pipeline);
+        runtime.set_context(context);
+        let result = runtime.run().await?;
+        runtime.shutdown().await?;
+        Ok(result)
+    }
+
     /// Shut down the prepared runtime and release resources.
     ///
     /// Call this when you are done reusing the runtime to close channels,
@@ -495,10 +596,35 @@ impl PhlowBuilder {
         }
     }
 
+    /// Preprocess a phlow script string and parse it into a [`Value`].
+    ///
+    /// This uses the builder settings for preprocessor options and the base path
+    /// (or the current directory) to resolve `!include`.
+    pub fn preprocess_string(&self, script: &str) -> Result<Value, PhlowRuntimeError> {
+        let base_path = self.base_path.clone().unwrap_or_else(|| {
+            std::env::current_dir().unwrap_or_else(|_| PathBuf::from("./"))
+        });
+
+        preprocess_string_inner(
+            script,
+            base_path.as_path(),
+            self.settings.print_yaml,
+            self.settings.print_output,
+        )
+    }
+
     /// Set the pipeline to be executed.
     ///
     /// Returns the builder for chaining.
     pub fn set_pipeline(mut self, pipeline: Value) -> Self {
+        self.pipeline = Some(pipeline);
+        self
+    }
+
+    /// Set a preprocessed pipeline to be executed.
+    ///
+    /// Returns the builder for chaining.
+    pub fn set_preprocessed_pipeline(mut self, pipeline: Value) -> Self {
         self.pipeline = Some(pipeline);
         self
     }
