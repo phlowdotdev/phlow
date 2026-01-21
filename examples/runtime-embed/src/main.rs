@@ -28,14 +28,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut builder = PhlowBuilder::new();
     builder.settings_mut().download = false;
-    let mut inline_module = PhlowModule::new();
-    inline_module.set_schema(
+    let mut module = PhlowModule::new();
+    module.set_schema(
         PhlowModuleSchema::new()
             .with_input(json!({ "name": "string" }))
             .with_output(json!({ "message": "string" }))
             .with_input_order(vec!["name"]),
     );
-    inline_module.set_handler(|request| async move {
+    module.set_handler(|request| async move {
         let name = request
             .input
             .and_then(|value| value.get("name").cloned())
@@ -51,7 +51,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut runtime = builder
         .set_pipeline(pipeline)
         .set_context(context)
-        .set_module("inline_echo", inline_module)
+        .set_module("inline_echo", module)
         .build()
         .await?;
 
