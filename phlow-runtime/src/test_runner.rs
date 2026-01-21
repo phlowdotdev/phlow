@@ -464,28 +464,32 @@ async fn run_single_test(
     // Extract test inputs
     let main_value = {
         let data = test_case.get("main").cloned().unwrap_or(Value::Undefined);
-        
-        match Script::try_build(engine.clone(), &Value::from(data)) {
-            Ok(script) => match script.evaluate(&context) {
-                Ok(val) => val.to_value(),
+
+        if data.is_undefined() {
+            Value::Undefined
+        } else {
+            match Script::try_build(engine.clone(), &data) {
+                Ok(script) => match script.evaluate(&context) {
+                    Ok(val) => val.to_value(),
+                    Err(e) => {
+                        return SingleTestReport {
+                            ok: false,
+                            message: format!("Failed to evaluate main script: {}", e),
+                            main: Value::Undefined,
+                            initial_payload: Value::Undefined,
+                            result: Value::Undefined,
+                        };
+                    }
+                },
                 Err(e) => {
                     return SingleTestReport {
                         ok: false,
-                        message: format!("Failed to evaluate main script: {}", e),
+                        message: format!("Failed to build main script: {}", e),
                         main: Value::Undefined,
                         initial_payload: Value::Undefined,
                         result: Value::Undefined,
                     };
                 }
-            },
-            Err(e) => {
-                return SingleTestReport {
-                    ok: false,
-                    message: format!("Failed to build main script: {}", e),
-                    main: Value::Undefined,
-                    initial_payload: Value::Undefined,
-                    result: Value::Undefined,
-                };
             }
         }
     };
@@ -529,7 +533,9 @@ async fn run_single_test(
         main_value, initial_payload
     );
 
-    context = context.clone_with_main(main_value.clone());
+    if !main_value.is_undefined() {
+        context = context.clone_with_main(main_value.clone());
+    }
 
     // Set initial payload if provided
     if !initial_payload.is_undefined() {
