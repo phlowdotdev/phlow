@@ -1,22 +1,23 @@
 use crate::loader::{Loader, load_module};
+use crate::inline_module::{InlineModules, PhlowModuleRequest};
 #[cfg(target_env = "gnu")]
 use crate::memory::force_memory_release;
 use crate::settings::Settings;
 use crossbeam::channel;
 use futures::future::join_all;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use phlow_engine::phs::{Script, ScriptError, build_engine};
 use phlow_engine::{Context, Phlow};
 use phlow_sdk::structs::Package;
 use phlow_sdk::tokio;
 use phlow_sdk::{
-    prelude::Value,
+    prelude::{Array, Value},
     structs::{ModulePackage, ModuleSetup, Modules},
     tracing::{self, Dispatch, dispatcher},
 };
+use std::collections::HashSet;
 use std::fmt::Display;
 use std::sync::Arc;
-#[cfg(target_env = "gnu")]
 use std::thread;
 use tokio::sync::oneshot;
 
@@ -25,6 +26,7 @@ pub enum RuntimeError {
     ModuleWithError(ScriptError),
     ModuleRegisterError,
     FlowExecutionError(String),
+    InlineModuleError(String),
 }
 
 impl Display for RuntimeError {
@@ -33,6 +35,7 @@ impl Display for RuntimeError {
             RuntimeError::ModuleRegisterError => write!(f, "Module register error"),
             RuntimeError::FlowExecutionError(err) => write!(f, "Flow execution error: {}", err),
             RuntimeError::ModuleWithError(err) => write!(f, "Module with error: {}", err),
+            RuntimeError::InlineModuleError(err) => write!(f, "Inline module error: {}", err),
         }
     }
 }
@@ -52,27 +55,63 @@ fn parse_cli_value(flag: &str, value: &str) -> Result<Value, RuntimeError> {
 
 pub struct Runtime {}
 
+fn spawn_inline_module_worker(
+    name: String,
+    handler: crate::inline_module::PhlowModuleHandler,
+    with: Value,
+    app_data: phlow_sdk::structs::ApplicationData,
+    dispatch: Dispatch,
+    runtime_handle: tokio::runtime::Handle,
+    receiver: channel::Receiver<ModulePackage>,
+) {
+    thread::spawn(move || {
+        for package in receiver {
+            let request = PhlowModuleRequest {
+                input: package.input(),
+                payload: package.payload(),
+                with: with.clone(),
+                app_data: app_data.clone(),
+                dispatch: dispatch.clone(),
+            };
+
+            let response = dispatcher::with_default(&dispatch, || {
+                runtime_handle.block_on((handler)(request))
+            });
+
+            if package.sender.send(response).is_err() {
+                debug!("Inline module '{}' response channel closed", name);
+            }
+        }
+
+        debug!("Inline module '{}' stopped", name);
+    });
+}
+
 impl Runtime {
     async fn load_modules(
         loader: Loader,
         dispatch: Dispatch,
         settings: Settings,
         tx_main_package: channel::Sender<Package>,
+        inline_modules: &InlineModules,
     ) -> Result<Modules, RuntimeError> {
         let mut modules = Modules::default();
         let engine = build_engine(None);
+        let runtime_handle = tokio::runtime::Handle::current();
         // -------------------------
         // Load the modules
         // -------------------------
         let app_data = loader.app_data.clone();
         let loader_main_id = loader.main.clone();
+        let mut unused_inline: HashSet<String> = inline_modules.keys().cloned().collect();
 
         for (id, module) in loader.modules.into_iter().enumerate() {
             let (setup_sender, setup_receive) =
                 oneshot::channel::<Option<channel::Sender<ModulePackage>>>();
 
+            let is_main = loader_main_id == id as i32;
             // Se --var-main foi especificado, não permitir que módulos principais sejam executados
-            let main_sender = if loader_main_id == id as i32 && settings.var_main.is_none() {
+            let main_sender = if is_main && settings.var_main.is_none() {
                 Some(tx_main_package.clone())
             } else {
                 None
@@ -96,47 +135,129 @@ impl Runtime {
                 with
             };
 
-            let setup = ModuleSetup {
-                id,
-                setup_sender,
-                main_sender,
-                with,
-                dispatch: dispatch.clone(),
-                app_data: app_data.clone(),
-                is_test_mode: false,
-            };
+            let inline_module = inline_modules.get(&module.name).cloned();
+            if inline_module.is_some() {
+                unused_inline.remove(&module.name);
+            }
 
-            let module_target = module.module.clone();
-            let module_version = module.version.clone();
-            let local_path = module.local_path.clone();
-            let settings = settings.clone();
+            if inline_module.is_some() && is_main && settings.var_main.is_none() {
+                return Err(RuntimeError::InlineModuleError(format!(
+                    "Inline module '{}' is declared as main, but runtime is waiting for main output",
+                    module.name
+                )));
+            }
 
-            std::thread::spawn(move || {
-                let result: Result<(), crate::loader::error::Error> =
-                    load_module(setup, &module_target, &module_version, local_path, settings);
+            let mut module_data = module;
+            let mut inline_worker = None;
 
-                if let Err(err) = result {
-                    error!("Runtime Error Load Module: {:?}", err)
+            if let Some(inline_module) = inline_module {
+                let handler = inline_module.handler().ok_or_else(|| {
+                    RuntimeError::InlineModuleError(format!(
+                        "Inline module '{}' is missing a handler",
+                        module_data.name
+                    ))
+                })?;
+
+                let schema = inline_module.schema();
+                if !schema.input.is_null() {
+                    module_data.input = schema.input.clone();
                 }
-            });
+                if !schema.output.is_null() {
+                    module_data.output = schema.output.clone();
+                }
+                if !schema.input_order.is_empty() {
+                    module_data.input_order = Value::Array(Array::from(schema.input_order.clone()));
+                }
+                module_data.with = with.clone();
 
-            debug!(
-                "Module {} loaded with name \"{}\" and version \"{}\"",
-                module.module, module.name, module.version
-            );
+                let (sender, receiver) = channel::unbounded::<ModulePackage>();
+                if setup_sender.send(Some(sender)).is_err() {
+                    return Err(RuntimeError::InlineModuleError(format!(
+                        "Inline module '{}' failed to register",
+                        module_data.name
+                    )));
+                }
+
+                inline_worker = Some((
+                    module_data.name.clone(),
+                    handler,
+                    with,
+                    app_data.clone(),
+                    dispatch.clone(),
+                    runtime_handle.clone(),
+                    receiver,
+                ));
+            } else {
+                let setup = ModuleSetup {
+                    id,
+                    setup_sender,
+                    main_sender,
+                    with,
+                    dispatch: dispatch.clone(),
+                    app_data: app_data.clone(),
+                    is_test_mode: false,
+                };
+
+                let module_target = module_data.module.clone();
+                let module_version = module_data.version.clone();
+                let local_path = module_data.local_path.clone();
+                let settings = settings.clone();
+
+                thread::spawn(move || {
+                    let result: Result<(), crate::loader::error::Error> =
+                        load_module(setup, &module_target, &module_version, local_path, settings);
+
+                    if let Err(err) = result {
+                        error!("Runtime Error Load Module: {:?}", err)
+                    }
+                });
+
+                debug!(
+                    "Module {} loaded with name \"{}\" and version \"{}\"",
+                    module_data.module, module_data.name, module_data.version
+                );
+            }
 
             match setup_receive.await {
                 Ok(Some(sender)) => {
-                    debug!("Module {} registered", module.name);
-                    modules.register(module, sender);
+                    debug!("Module {} registered", module_data.name);
+                    modules.register(module_data, sender);
                 }
                 Ok(None) => {
-                    debug!("Module {} did not register", module.name);
+                    debug!("Module {} did not register", module_data.name);
                 }
                 Err(_) => {
                     return Err(RuntimeError::ModuleRegisterError);
                 }
             }
+
+            if let Some((
+                name,
+                handler,
+                with,
+                app_data,
+                dispatch,
+                runtime_handle,
+                receiver,
+            )) = inline_worker
+            {
+                spawn_inline_module_worker(
+                    name,
+                    handler,
+                    with,
+                    app_data,
+                    dispatch,
+                    runtime_handle,
+                    receiver,
+                );
+            }
+        }
+
+        if !unused_inline.is_empty() {
+            warn!(
+                "Inline modules not declared in pipeline: {}",
+                unused_inline.into_iter().collect::<Vec<_>>().join(", ")
+            );
         }
 
         Ok(modules)
@@ -269,11 +390,13 @@ impl Runtime {
 
         let no_main = loader.main == -1 || settings.var_main.is_some();
         let steps = loader.get_steps();
+        let inline_modules = InlineModules::default();
         let modules = Self::load_modules(
             loader,
             dispatch.clone(),
             settings.clone(),
             tx_main_package.clone(),
+            &inline_modules,
         )
         .await?;
 
@@ -352,6 +475,28 @@ impl Runtime {
         settings: Settings,
         context: Context,
     ) -> Result<(), RuntimeError> {
+        let inline_modules = InlineModules::default();
+        Self::run_script_with_modules(
+            tx_main_package,
+            rx_main_package,
+            loader,
+            dispatch,
+            settings,
+            context,
+            inline_modules,
+        )
+        .await
+    }
+
+    pub async fn run_script_with_modules(
+        tx_main_package: channel::Sender<Package>,
+        rx_main_package: channel::Receiver<Package>,
+        loader: Loader,
+        dispatch: Dispatch,
+        settings: Settings,
+        context: Context,
+        inline_modules: InlineModules,
+    ) -> Result<(), RuntimeError> {
         let steps = loader.get_steps();
         let context = if let Some(var_payload_str) = &settings.var_payload {
             let payload = parse_cli_value("var-payload", var_payload_str)?;
@@ -365,6 +510,7 @@ impl Runtime {
             dispatch.clone(),
             settings.clone(),
             tx_main_package.clone(),
+            &inline_modules,
         )
         .await?;
 
