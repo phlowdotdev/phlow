@@ -15,7 +15,20 @@ use phlow_sdk::valu3::json;
 use reqwest::Client;
 use std::io::Write;
 use std::sync::{Mutex, OnceLock};
-use std::{fs::File, path::Path};
+use std::{
+    fs::File,
+    path::{Path, PathBuf},
+};
+
+pub async fn load_script_value(
+    script_absolute_path: &str,
+    print_yaml: bool,
+    print_output: crate::settings::PrintOutput,
+    analyzer: Option<&crate::analyzer::Analyzer>,
+) -> Result<(Value, String), Error> {
+    let script_loaded = load_script(script_absolute_path, print_yaml, print_output, analyzer).await?;
+    Ok((script_loaded.script, script_loaded.script_file_path))
+}
 
 enum ModuleType {
     Binary,
@@ -59,13 +72,26 @@ impl Loader {
             .map(|p| p.to_string_lossy().to_string())
             .unwrap_or_else(|| "./".to_string());
 
-        let (main, modules) = match script_loaded.script.get("modules") {
+        Self::from_script_value(script_loaded.script, &base_path)
+    }
+
+    pub fn from_value(script: &Value, base_path: Option<&Path>) -> Result<Self, Error> {
+        let base_path = base_path
+            .map(|path| path.to_path_buf())
+            .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from("./")));
+        let base_path = base_path.to_string_lossy().to_string();
+
+        Self::from_script_value(script.clone(), &base_path)
+    }
+
+    fn from_script_value(script: Value, base_path: &str) -> Result<Self, Error> {
+        let (main, modules) = match script.get("modules") {
             Some(modules) => {
                 if !modules.is_array() {
                     return Err(Error::ModuleLoaderError("Modules not an array".to_string()));
                 }
 
-                let main_name = match script_loaded.script.get("main") {
+                let main_name = match script.get("main") {
                     Some(main) => Some(main.to_string()),
                     None => None,
                 };
@@ -96,28 +122,19 @@ impl Loader {
             None => (-1, Vec::new()),
         };
 
-        let steps = match script_loaded.script.get("steps") {
+        let steps = match script.get("steps") {
             Some(steps) => steps.clone(),
             None => return Err(Error::StepsNotDefined),
         };
 
-        let name = script_loaded.script.get("name").map(|v| v.to_string());
-        let version = script_loaded.script.get("version").map(|v| v.to_string());
-        let environment = script_loaded
-            .script
-            .get("environment")
-            .map(|v| v.to_string());
-        let author = script_loaded.script.get("author").map(|v| v.to_string());
-        let description = script_loaded
-            .script
-            .get("description")
-            .map(|v| v.to_string());
-        let license = script_loaded.script.get("license").map(|v| v.to_string());
-        let repository = script_loaded
-            .script
-            .get("repository")
-            .map(|v| v.to_string());
-        let homepage = script_loaded.script.get("homepage").map(|v| v.to_string());
+        let name = script.get("name").map(|v| v.to_string());
+        let version = script.get("version").map(|v| v.to_string());
+        let environment = script.get("environment").map(|v| v.to_string());
+        let author = script.get("author").map(|v| v.to_string());
+        let description = script.get("description").map(|v| v.to_string());
+        let license = script.get("license").map(|v| v.to_string());
+        let repository = script.get("repository").map(|v| v.to_string());
+        let homepage = script.get("homepage").map(|v| v.to_string());
 
         let app_data = ApplicationData {
             name,
@@ -131,7 +148,7 @@ impl Loader {
         };
 
         // Extract tests if they exist
-        let tests = script_loaded.script.get("tests").cloned();
+        let tests = script.get("tests").cloned();
 
         Ok(Self {
             main,

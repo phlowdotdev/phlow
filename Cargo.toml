@@ -5,6 +5,7 @@ members = [
     "phlow-runtime",
     "phlow-sdk",
     "phs",
+    "examples/runtime-embed",
     "modules/http_server",
     "modules/echo",
     "modules/amqp",
@@ -22,7 +23,7 @@ members = [
 ]
 resolver = "2"
 [workspace.package]
-version = "0.3.3"
+version = "0.4.0"
 edition = "2024"
 rust-version = "1.90.0"
 authors = ["Philippe Assis <codephilippe@gmail.com>"]

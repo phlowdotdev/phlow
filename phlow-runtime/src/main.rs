@@ -1,20 +1,16 @@
-mod analyzer;
-mod debug_server;
-mod loader;
-mod memory;
-mod package;
-mod preprocessor;
-mod runtime;
-mod settings;
-mod test_runner;
-use loader::Loader;
-use package::Package;
-use phlow_sdk::otel::init_tracing_subscriber;
-use phlow_sdk::{tracing, use_log};
-use runtime::Runtime;
-use settings::Settings;
-use std::sync::Arc;
-mod scripts;
+use phlow_engine::Context;
+use phlow_runtime::{
+    PhlowBuilder,
+    Settings,
+    analyzer,
+    loader::load_script_value,
+    test_runner,
+    Loader,
+    Package,
+};
+use phlow_sdk::prelude::Value;
+use phlow_sdk::use_log;
+use std::path::{Path, PathBuf};
 
 #[cfg(all(feature = "mimalloc", target_env = "musl"))]
 #[global_allocator]
@@ -23,20 +19,6 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 #[cfg(all(feature = "jemalloc", target_env = "musl"))]
 #[global_allocator]
 static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
-
-#[cfg(target_os = "macos")]
-pub const MODULE_EXTENSION: &str = "dylib";
-#[cfg(target_os = "linux")]
-pub const MODULE_EXTENSION: &str = "so";
-#[cfg(target_os = "windows")]
-pub const MODULE_EXTENSION: &str = "dll";
-
-#[cfg(target_os = "macos")]
-pub const RUNTIME_ARCH: &str = "darwin";
-#[cfg(all(target_os = "linux", target_arch = "aarch64"))]
-pub const RUNTIME_ARCH: &str = "linux-aarch64";
-#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-pub const RUNTIME_ARCH: &str = "linux-amd64";
 
 #[tokio::main]
 async fn main() {
@@ -74,8 +56,7 @@ async fn main() {
     // Build Analyzer and pass it down to loader; loader/load_script will execute the analyzer
     let analyzer = analyzer::Analyzer::from_settings(&settings);
 
-    // Load the script into Loader (parsing / preprocessing) for normal runtime path
-    let mut loader = match Loader::load(
+    let (script, script_file_path) = match load_script_value(
         &settings.script_main_absolute_path,
         settings.print_yaml,
         settings.print_output,
@@ -83,7 +64,7 @@ async fn main() {
     )
     .await
     {
-        Ok(main) => main,
+        Ok(script) => script,
         Err(err) => {
             log::error!("Runtime Error Main File: {:?}", err);
             return;
@@ -94,34 +75,20 @@ async fn main() {
         return;
     }
 
-    let guard = init_tracing_subscriber(loader.app_data.clone());
+    let base_path = Path::new(&script_file_path)
+        .parent()
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| PathBuf::from("./"));
 
-    if let Err(err) = tracing::dispatcher::set_global_default(guard.dispatch.clone()) {
-        log::error!("Failed to set global subscriber: {:?}", err);
-        std::process::exit(1);
-    }
-
-    let dispatch = guard.dispatch.clone();
-
-    let debug_enabled = std::env::var("PHLOW_DEBUG")
-        .map(|value| value.eq_ignore_ascii_case("true"))
-        .unwrap_or(false);
-    if debug_enabled {
-        let controller = Arc::new(phlow_engine::debug::DebugController::new());
-        match debug_server::spawn(controller.clone()).await {
-            Ok(()) => {
-                if phlow_engine::debug::set_debug_controller(controller).is_err() {
-                    log::warn!("Debug controller already set");
-                }
-                log::info!("Phlow debug enabled");
-            }
+    if settings.only_download_modules || settings.test {
+        let mut loader = match Loader::from_value(&script, Some(base_path.as_path())) {
+            Ok(loader) => loader,
             Err(err) => {
-                log::error!("Failed to start debug server: {}", err);
+                log::error!("Runtime Error Main File: {:?}", err);
+                return;
             }
-        }
-    }
+        };
 
-    let fut = async {
         if settings.download {
             if let Err(err) = loader
                 .download(&settings.default_package_repository_url)
@@ -134,35 +101,52 @@ async fn main() {
 
         loader.update_info();
 
-        if !settings.only_download_modules {
-            if settings.test {
-                log::debug!("Run test");
-                // Run tests
-                match test_runner::run_tests(
-                    loader,
-                    settings.test_filter.as_deref(),
-                    settings.clone(),
-                )
-                .await
-                {
-                    Ok(summary) => {
-                        // Exit with error code if tests failed
-                        if summary.failed > 0 {
-                            std::process::exit(1);
-                        }
-                    }
-                    Err(err) => {
-                        log::error!("Test execution error: {}", err);
+        if settings.only_download_modules {
+            return;
+        }
+
+        if settings.test {
+            log::debug!("Run test");
+            // Run tests
+            match test_runner::run_tests(
+                loader,
+                settings.test_filter.as_deref(),
+                settings.clone(),
+            )
+            .await
+            {
+                Ok(summary) => {
+                    // Exit with error code if tests failed
+                    if summary.failed > 0 {
                         std::process::exit(1);
                     }
                 }
-            } else {
-                log::debug!("Run application");
-                // Run normal workflow
-                if let Err(rr) = Runtime::run(loader, dispatch.clone(), settings).await {
-                    log::error!("Runtime Error: {:?}", rr);
+                Err(err) => {
+                    log::error!("Test execution error: {}", err);
+                    std::process::exit(1);
                 }
             }
+            return;
+        }
+    }
+
+    let context = if let Some(var_main) = &settings.var_main {
+        Context::from_main(parse_cli_value("var-main", var_main))
+    } else {
+        Context::new()
+    };
+
+    let mut runtime = match PhlowBuilder::with_settings(settings.clone())
+        .set_base_path(base_path)
+        .set_pipeline(script)
+        .set_context(context)
+        .build()
+        .await
+    {
+        Ok(runtime) => runtime,
+        Err(err) => {
+            log::error!("Runtime Error: {:?}", err);
+            return;
         }
     };
 
@@ -186,16 +170,40 @@ async fn main() {
         }
     };
 
+    let mut run_handle = tokio::spawn(async move {
+        let result = runtime.run().await;
+        let _ = runtime.shutdown().await;
+        result
+    });
+
     tokio::select! {
-        _ = tracing::dispatcher::with_default(&dispatch, || fut) => {
-            // Execução terminou normalmente
+        result = &mut run_handle => {
+            match result {
+                Ok(Ok(_)) => {}
+                Ok(Err(err)) => {
+                    log::error!("Runtime Error: {:?}", err);
+                }
+                Err(err) => {
+                    log::error!("Runtime task error: {:?}", err);
+                }
+            }
         },
         _ = shutdown => {
             log::info!("Received shutdown signal. Bye bye!");
-            // Liberar / descarregar instrumentação antes de sair
-            drop(guard);
+            run_handle.abort();
+            let _ = run_handle.await;
             // Sair com código 130 (Ctrl+C) para indicar interrupção pelo usuário
             std::process::exit(130);
+        }
+    }
+}
+
+fn parse_cli_value(flag: &str, value: &str) -> Value {
+    match Value::json_to_value(value) {
+        Ok(parsed) => parsed,
+        Err(err) => {
+            log::error!("Failed to parse --{} value '{}': {:?}", flag, value, err);
+            std::process::exit(1);
         }
     }
 }

@@ -18,3 +18,5 @@ Estrutura relevante:
 Regra:
 - Analisar de concluir a tarefa, testar localmente os fluxos alterados.
 - Quando uma tarefa for concluida e testada, comitar as mudancas.
+- Documente todas as features novas ou alteracoes significativas com rustdoc.
+- Sempre escreva testes para novas funcionalidades.
