@@ -170,7 +170,11 @@ async fn main() {
         }
     };
 
-    let mut run_handle = tokio::spawn(async move { runtime.run().await });
+    let mut run_handle = tokio::spawn(async move {
+        let result = runtime.run().await;
+        let _ = runtime.shutdown().await;
+        result
+    });
 
     tokio::select! {
         result = &mut run_handle => {

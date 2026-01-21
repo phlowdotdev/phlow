@@ -242,61 +242,71 @@ impl PhlowRuntime {
     pub async fn run(&mut self) -> Result<Value, PhlowRuntimeError> {
         self.build().await?;
 
-        let prepared = self
-            .prepared
-            .take()
-            .ok_or(PhlowRuntimeError::MissingPipeline)?;
+        let auto_start = match self.prepared.as_ref() {
+            Some(prepared) => prepared.auto_start,
+            None => return Err(PhlowRuntimeError::MissingPipeline),
+        };
 
-        if prepared.auto_start {
-            let (response_tx, response_rx) = tokio::sync::oneshot::channel::<Value>();
-            let package = tracing::dispatcher::with_default(&prepared.dispatch, || {
-                let span = tracing::span!(
-                    tracing::Level::INFO,
-                    "phlow_run",
-                    otel.name = prepared.app_name.as_str()
-                );
-
-                Package {
-                    response: Some(response_tx),
-                    request_data: prepared.request_data.clone(),
-                    origin: 0,
-                    span: Some(span),
-                    dispatch: Some(prepared.dispatch.clone()),
-                }
-            });
-
-            if prepared.tx_main_package.send(package).is_err() {
-                return Err(PhlowRuntimeError::PackageSendError);
-            }
-
-            drop(prepared.tx_main_package);
-
-            let result = response_rx
-                .await
-                .map_err(|_| PhlowRuntimeError::ResponseChannelClosed)?;
-
-            let runtime_result = prepared
-                .runtime_handle
-                .await
-                .map_err(PhlowRuntimeError::RuntimeJoinError)?;
-            runtime_result?;
-
-            drop(prepared.guard);
-
-            Ok(result)
-        } else {
-            drop(prepared.tx_main_package);
-
-            let runtime_result = prepared
-                .runtime_handle
-                .await
-                .map_err(PhlowRuntimeError::RuntimeJoinError)?;
-            runtime_result?;
-
-            drop(prepared.guard);
-
-            Ok(Value::Undefined)
+        if !auto_start {
+            self.shutdown().await?;
+            return Ok(Value::Undefined);
         }
+
+        let (tx_main_package, dispatch, app_name, request_data) = match self.prepared.as_ref() {
+            Some(prepared) => (
+                prepared.tx_main_package.clone(),
+                prepared.dispatch.clone(),
+                prepared.app_name.clone(),
+                prepared.request_data.clone(),
+            ),
+            None => return Err(PhlowRuntimeError::MissingPipeline),
+        };
+
+        let (response_tx, response_rx) = tokio::sync::oneshot::channel::<Value>();
+        let package = tracing::dispatcher::with_default(&dispatch, || {
+            let span = tracing::span!(
+                tracing::Level::INFO,
+                "phlow_run",
+                otel.name = app_name.as_str()
+            );
+
+            Package {
+                response: Some(response_tx),
+                request_data,
+                origin: 0,
+                span: Some(span),
+                dispatch: Some(dispatch.clone()),
+            }
+        });
+
+        if tx_main_package.send(package).is_err() {
+            return Err(PhlowRuntimeError::PackageSendError);
+        }
+
+        let result = response_rx
+            .await
+            .map_err(|_| PhlowRuntimeError::ResponseChannelClosed)?;
+
+        Ok(result)
+    }
+
+    pub async fn shutdown(&mut self) -> Result<(), PhlowRuntimeError> {
+        let prepared = match self.prepared.take() {
+            Some(prepared) => prepared,
+            None => return Ok(()),
+        };
+
+        drop(prepared.tx_main_package);
+
+        let runtime_result = prepared
+            .runtime_handle
+            .await
+            .map_err(PhlowRuntimeError::RuntimeJoinError)?;
+        runtime_result?;
+
+        drop(prepared.guard);
+
+        Ok(())
     }
 }
 

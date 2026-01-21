@@ -25,6 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let result = runtime.run().await?;
     println!("{}", result.to_json(JsonMode::Inline));
+    runtime.shutdown().await?;
 
     Ok(())
 }
