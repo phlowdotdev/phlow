@@ -27,6 +27,7 @@ pub struct Cli {
     pub test: bool,
     pub test_filter: Option<String>,
     pub var_main: Option<String>,
+    pub var_payload: Option<String>,
     pub start_step: Option<String>,
     // analyzer options
     pub analyzer: bool,
@@ -107,6 +108,7 @@ impl Cli {
             .arg(
                 Arg::new("print_output")
                     .long("output")
+                    .short('o')
                     .help("Output format for --print (yaml|json)")
                     .value_name("FORMAT")
                     .value_parser(["yaml", "json"])
@@ -132,6 +134,12 @@ impl Cli {
                 Arg::new("var_main")
                     .long("var-main")
                     .help("Set the main variable value")
+                    .value_name("VALUE"),
+            )
+            .arg(
+                Arg::new("var_payload")
+                    .long("var-payload")
+                    .help("Set the initial payload value")
                     .value_name("VALUE"),
             )
             .arg(
@@ -244,6 +252,9 @@ impl Cli {
             .map(|s| s.to_string());
 
         let var_main = matches.get_one::<String>("var_main").map(|s| s.to_string());
+        let var_payload = matches
+            .get_one::<String>("var_payload")
+            .map(|s| s.to_string());
         let start_step = matches
             .get_one::<String>("start_step")
             .map(|s| s.to_string());
@@ -270,6 +281,7 @@ impl Cli {
             test,
             test_filter,
             var_main,
+            var_payload,
             start_step,
             analyzer,
             analyzer_files,

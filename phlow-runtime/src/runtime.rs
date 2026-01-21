@@ -37,6 +37,19 @@ impl Display for RuntimeError {
     }
 }
 
+fn parse_cli_value(flag: &str, value: &str) -> Result<Value, RuntimeError> {
+    match Value::json_to_value(value) {
+        Ok(parsed) => Ok(parsed),
+        Err(err) => {
+            error!("Failed to parse --{} value '{}': {:?}", flag, value, err);
+            Err(RuntimeError::FlowExecutionError(format!(
+                "Failed to parse --{} value: {:?}",
+                flag, err
+            )))
+        }
+    }
+}
+
 pub struct Runtime {}
 
 impl Runtime {
@@ -244,6 +257,16 @@ impl Runtime {
         // -------------------------
         let (tx_main_package, rx_main_package) = channel::unbounded::<Package>();
 
+        let var_payload_value = match &settings.var_payload {
+            Some(var_payload_str) => Some(parse_cli_value("var-payload", var_payload_str)?),
+            None => None,
+        };
+        let default_context = var_payload_value.as_ref().map(|payload| {
+            let mut context = Context::new();
+            context.add_step_payload(Some(payload.clone()));
+            context
+        });
+
         let no_main = loader.main == -1 || settings.var_main.is_some();
         let steps = loader.get_steps();
         let modules = Self::load_modules(
@@ -266,19 +289,7 @@ impl Runtime {
             // Se --var-main foi especificado, processar o valor usando valu3
             let request_data = if let Some(var_main_str) = &settings.var_main {
                 // Usar valu3 para processar o valor da mesma forma que outros valores
-                match Value::json_to_value(var_main_str) {
-                    Ok(value) => Some(value),
-                    Err(err) => {
-                        error!(
-                            "Failed to parse --var-main value '{}': {:?}",
-                            var_main_str, err
-                        );
-                        return Err(RuntimeError::FlowExecutionError(format!(
-                            "Failed to parse --var-main value: {:?}",
-                            err
-                        )));
-                    }
-                }
+                Some(parse_cli_value("var-main", var_main_str)?)
             } else {
                 None
             };
@@ -323,7 +334,7 @@ impl Runtime {
         // -------------------------
         // Create the phlow
         // -------------------------
-        Self::listener(rx_main_package, steps, modules, settings, None)
+        Self::listener(rx_main_package, steps, modules, settings, default_context)
             .await
             .map_err(|err| {
                 error!("Runtime Error: {:?}", err);
@@ -342,6 +353,12 @@ impl Runtime {
         context: Context,
     ) -> Result<(), RuntimeError> {
         let steps = loader.get_steps();
+        let context = if let Some(var_payload_str) = &settings.var_payload {
+            let payload = parse_cli_value("var-payload", var_payload_str)?;
+            context.clone_with_output(payload)
+        } else {
+            context
+        };
 
         let modules = Self::load_modules(
             loader,
