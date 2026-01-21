@@ -14,7 +14,7 @@ mod runtime_api;
 pub use loader::Loader;
 pub use package::Package;
 pub use runtime::{Runtime, RuntimeError};
-pub use runtime_api::{PhlowRuntime, PhlowRuntimeError};
+pub use runtime_api::{PhlowBuilder, PhlowRuntime, PhlowRuntimeError};
 pub use settings::{PrintOutput, Settings};
 
 #[cfg(target_os = "macos")]

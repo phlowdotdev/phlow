@@ -59,6 +59,14 @@ pub struct PhlowRuntime {
     prepared: Option<PreparedRuntime>,
 }
 
+pub struct PhlowBuilder {
+    pipeline: Option<Value>,
+    context: Option<Context>,
+    settings: Settings,
+    base_path: Option<PathBuf>,
+    dispatch: Option<tracing::Dispatch>,
+}
+
 impl Default for PhlowRuntime {
     fn default() -> Self {
         Self::new()
@@ -271,6 +279,95 @@ impl PhlowRuntime {
         drop(prepared.guard);
 
         Ok(result)
+    }
+}
+
+impl PhlowBuilder {
+    pub fn new() -> Self {
+        let mut settings = Settings::for_runtime();
+        if settings.var_main.is_none() {
+            settings.var_main = Some("__phlow_runtime__".to_string());
+        }
+
+        Self {
+            pipeline: None,
+            context: None,
+            settings,
+            base_path: None,
+            dispatch: None,
+        }
+    }
+
+    pub fn with_settings(settings: Settings) -> Self {
+        Self {
+            pipeline: None,
+            context: None,
+            settings,
+            base_path: None,
+            dispatch: None,
+        }
+    }
+
+    pub fn set_pipeline(mut self, pipeline: Value) -> Self {
+        self.pipeline = Some(pipeline);
+        self
+    }
+
+    pub fn set_context(mut self, context: Context) -> Self {
+        self.context = Some(context);
+        self
+    }
+
+    pub fn set_settings(mut self, settings: Settings) -> Self {
+        self.settings = settings;
+        self
+    }
+
+    pub fn set_base_path<P: Into<PathBuf>>(mut self, base_path: P) -> Self {
+        self.base_path = Some(base_path.into());
+        self
+    }
+
+    pub fn set_dispatch(mut self, dispatch: tracing::Dispatch) -> Self {
+        self.dispatch = Some(dispatch);
+        self
+    }
+
+    pub fn settings(&self) -> &Settings {
+        &self.settings
+    }
+
+    pub fn settings_mut(&mut self) -> &mut Settings {
+        &mut self.settings
+    }
+
+    pub async fn build(mut self) -> Result<PhlowRuntime, PhlowRuntimeError> {
+        let mut runtime = PhlowRuntime::with_settings(self.settings);
+
+        if let Some(pipeline) = self.pipeline.take() {
+            runtime.set_pipeline(pipeline);
+        }
+
+        if let Some(context) = self.context.take() {
+            runtime.set_context(context);
+        }
+
+        if let Some(base_path) = self.base_path.take() {
+            runtime.set_base_path(base_path);
+        }
+
+        if let Some(dispatch) = self.dispatch.take() {
+            runtime.set_dispatch(dispatch);
+        }
+
+        runtime.build().await?;
+        Ok(runtime)
+    }
+}
+
+impl Default for PhlowBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -1,5 +1,5 @@
 use phlow_engine::Context;
-use phlow_runtime::PhlowRuntime;
+use phlow_runtime::PhlowBuilder;
 use phlow_sdk::prelude::{json, JsonMode, Value};
 
 #[tokio::main]
@@ -15,11 +15,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "name": "Phlow"
     }));
 
-    let mut runtime = PhlowRuntime::new();
-    runtime.set_pipeline(pipeline);
-    runtime.set_context(context);
-    runtime.settings_mut().download = false;
-    runtime.build().await?;
+    let mut builder = PhlowBuilder::new();
+    builder.settings_mut().download = false;
+    let mut runtime = builder
+        .set_pipeline(pipeline)
+        .set_context(context)
+        .build()
+        .await?;
 
     let result = runtime.run().await?;
     println!("{}", result.to_json(JsonMode::Inline));
