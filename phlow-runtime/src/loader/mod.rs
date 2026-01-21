@@ -20,6 +20,16 @@ use std::{
     path::{Path, PathBuf},
 };
 
+pub async fn load_script_value(
+    script_absolute_path: &str,
+    print_yaml: bool,
+    print_output: crate::settings::PrintOutput,
+    analyzer: Option<&crate::analyzer::Analyzer>,
+) -> Result<(Value, String), Error> {
+    let script_loaded = load_script(script_absolute_path, print_yaml, print_output, analyzer).await?;
+    Ok((script_loaded.script, script_loaded.script_file_path))
+}
+
 enum ModuleType {
     Binary,
     Script,

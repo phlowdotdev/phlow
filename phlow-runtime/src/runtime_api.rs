@@ -194,15 +194,18 @@ impl PhlowRuntime {
             }
         }
 
+        let context = self.context.clone().unwrap_or_else(Context::new);
+        let request_data = context.get_main();
+        let context_for_runtime = context.clone();
+        let auto_start = self.settings.var_main.is_some()
+            || loader.main == -1
+            || context.get_main().is_some();
+
         let app_name = loader
             .app_data
             .name
             .clone()
             .unwrap_or_else(|| "phlow runtime".to_string());
-
-        let context = self.context.clone().unwrap_or_else(Context::new);
-        let request_data = context.get_main();
-        let context_for_runtime = context.clone();
 
         let settings = self.settings.clone();
         let (tx_main_package, rx_main_package) = channel::unbounded::<Package>();
@@ -230,6 +233,7 @@ impl PhlowRuntime {
             guard,
             app_name,
             request_data,
+            auto_start,
         });
 
         Ok(())
@@ -243,42 +247,56 @@ impl PhlowRuntime {
             .take()
             .ok_or(PhlowRuntimeError::MissingPipeline)?;
 
-        let (response_tx, response_rx) = tokio::sync::oneshot::channel::<Value>();
-        let package = tracing::dispatcher::with_default(&prepared.dispatch, || {
-            let span = tracing::span!(
-                tracing::Level::INFO,
-                "phlow_run",
-                otel.name = prepared.app_name.as_str()
-            );
+        if prepared.auto_start {
+            let (response_tx, response_rx) = tokio::sync::oneshot::channel::<Value>();
+            let package = tracing::dispatcher::with_default(&prepared.dispatch, || {
+                let span = tracing::span!(
+                    tracing::Level::INFO,
+                    "phlow_run",
+                    otel.name = prepared.app_name.as_str()
+                );
 
-            Package {
-                response: Some(response_tx),
-                request_data: prepared.request_data.clone(),
-                origin: 0,
-                span: Some(span),
-                dispatch: Some(prepared.dispatch.clone()),
+                Package {
+                    response: Some(response_tx),
+                    request_data: prepared.request_data.clone(),
+                    origin: 0,
+                    span: Some(span),
+                    dispatch: Some(prepared.dispatch.clone()),
+                }
+            });
+
+            if prepared.tx_main_package.send(package).is_err() {
+                return Err(PhlowRuntimeError::PackageSendError);
             }
-        });
 
-        if prepared.tx_main_package.send(package).is_err() {
-            return Err(PhlowRuntimeError::PackageSendError);
+            drop(prepared.tx_main_package);
+
+            let result = response_rx
+                .await
+                .map_err(|_| PhlowRuntimeError::ResponseChannelClosed)?;
+
+            let runtime_result = prepared
+                .runtime_handle
+                .await
+                .map_err(PhlowRuntimeError::RuntimeJoinError)?;
+            runtime_result?;
+
+            drop(prepared.guard);
+
+            Ok(result)
+        } else {
+            drop(prepared.tx_main_package);
+
+            let runtime_result = prepared
+                .runtime_handle
+                .await
+                .map_err(PhlowRuntimeError::RuntimeJoinError)?;
+            runtime_result?;
+
+            drop(prepared.guard);
+
+            Ok(Value::Undefined)
         }
-
-        drop(prepared.tx_main_package);
-
-        let result = response_rx
-            .await
-            .map_err(|_| PhlowRuntimeError::ResponseChannelClosed)?;
-
-        let runtime_result = prepared
-            .runtime_handle
-            .await
-            .map_err(PhlowRuntimeError::RuntimeJoinError)?;
-        runtime_result?;
-
-        drop(prepared.guard);
-
-        Ok(result)
     }
 }
 
@@ -378,4 +396,5 @@ struct PreparedRuntime {
     guard: Option<OtelGuard>,
     app_name: String,
     request_data: Option<Value>,
+    auto_start: bool,
 }
