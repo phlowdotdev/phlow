@@ -5,7 +5,7 @@ use crate::runtime::RuntimeError;
 use crate::settings::Settings;
 use crossbeam::channel;
 use phlow_engine::Context;
-use phlow_sdk::otel::init_tracing_subscriber;
+use phlow_sdk::otel::{OtelGuard, init_tracing_subscriber};
 use phlow_sdk::prelude::Value;
 use phlow_sdk::structs::Package;
 use phlow_sdk::{tracing, use_log};
@@ -56,6 +56,7 @@ pub struct PhlowRuntime {
     settings: Settings,
     base_path: Option<PathBuf>,
     dispatch: Option<tracing::Dispatch>,
+    prepared: Option<PreparedRuntime>,
 }
 
 impl Default for PhlowRuntime {
@@ -77,6 +78,7 @@ impl PhlowRuntime {
             settings,
             base_path: None,
             dispatch: None,
+            prepared: None,
         }
     }
 
@@ -87,31 +89,37 @@ impl PhlowRuntime {
             settings,
             base_path: None,
             dispatch: None,
+            prepared: None,
         }
     }
 
     pub fn set_pipeline(&mut self, pipeline: Value) -> &mut Self {
         self.pipeline = Some(pipeline);
+        self.prepared = None;
         self
     }
 
     pub fn set_context(&mut self, context: Context) -> &mut Self {
         self.context = Some(context);
+        self.prepared = None;
         self
     }
 
     pub fn set_settings(&mut self, settings: Settings) -> &mut Self {
         self.settings = settings;
+        self.prepared = None;
         self
     }
 
     pub fn set_base_path<P: Into<PathBuf>>(&mut self, base_path: P) -> &mut Self {
         self.base_path = Some(base_path.into());
+        self.prepared = None;
         self
     }
 
     pub fn set_dispatch(&mut self, dispatch: tracing::Dispatch) -> &mut Self {
         self.dispatch = Some(dispatch);
+        self.prepared = None;
         self
     }
 
@@ -120,10 +128,15 @@ impl PhlowRuntime {
     }
 
     pub fn settings_mut(&mut self) -> &mut Settings {
+        self.prepared = None;
         &mut self.settings
     }
 
-    pub async fn run(&mut self) -> Result<Value, PhlowRuntimeError> {
+    pub async fn build(&mut self) -> Result<(), PhlowRuntimeError> {
+        if self.prepared.is_some() {
+            return Ok(());
+        }
+
         use_log!();
 
         let pipeline = self
@@ -145,7 +158,7 @@ impl PhlowRuntime {
 
         loader.update_info();
 
-        let mut guard = None;
+        let mut guard: Option<OtelGuard> = None;
         let dispatch = if let Some(dispatch) = self.dispatch.clone() {
             dispatch
         } else {
@@ -202,38 +215,70 @@ impl PhlowRuntime {
             .await
         });
 
+        self.prepared = Some(PreparedRuntime {
+            tx_main_package,
+            dispatch,
+            runtime_handle,
+            guard,
+            app_name,
+            request_data,
+        });
+
+        Ok(())
+    }
+
+    pub async fn run(&mut self) -> Result<Value, PhlowRuntimeError> {
+        self.build().await?;
+
+        let prepared = self
+            .prepared
+            .take()
+            .ok_or(PhlowRuntimeError::MissingPipeline)?;
+
         let (response_tx, response_rx) = tokio::sync::oneshot::channel::<Value>();
-        let package = tracing::dispatcher::with_default(&dispatch, || {
+        let package = tracing::dispatcher::with_default(&prepared.dispatch, || {
             let span = tracing::span!(
                 tracing::Level::INFO,
                 "phlow_run",
-                otel.name = app_name.as_str()
+                otel.name = prepared.app_name.as_str()
             );
 
             Package {
                 response: Some(response_tx),
-                request_data,
+                request_data: prepared.request_data.clone(),
                 origin: 0,
                 span: Some(span),
-                dispatch: Some(dispatch.clone()),
+                dispatch: Some(prepared.dispatch.clone()),
             }
         });
 
-        if tx_main_package.send(package).is_err() {
+        if prepared.tx_main_package.send(package).is_err() {
             return Err(PhlowRuntimeError::PackageSendError);
         }
 
-        drop(tx_main_package);
+        drop(prepared.tx_main_package);
 
         let result = response_rx
             .await
             .map_err(|_| PhlowRuntimeError::ResponseChannelClosed)?;
 
-        let runtime_result = runtime_handle.await.map_err(PhlowRuntimeError::RuntimeJoinError)?;
+        let runtime_result = prepared
+            .runtime_handle
+            .await
+            .map_err(PhlowRuntimeError::RuntimeJoinError)?;
         runtime_result?;
 
-        drop(guard);
+        drop(prepared.guard);
 
         Ok(result)
     }
+}
+
+struct PreparedRuntime {
+    tx_main_package: channel::Sender<Package>,
+    dispatch: tracing::Dispatch,
+    runtime_handle: tokio::task::JoinHandle<Result<(), RuntimeError>>,
+    guard: Option<OtelGuard>,
+    app_name: String,
+    request_data: Option<Value>,
 }

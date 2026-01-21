@@ -19,6 +19,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     runtime.set_pipeline(pipeline);
     runtime.set_context(context);
     runtime.settings_mut().download = false;
+    runtime.build().await?;
 
     let result = runtime.run().await?;
     println!("{}", result.to_json(JsonMode::Inline));
