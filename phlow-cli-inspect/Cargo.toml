@@ -7,7 +7,6 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "CLI inspector for Phlow debug TCP server."
-publish = false
 
 [dependencies]
 crossterm = "0.28.1"
