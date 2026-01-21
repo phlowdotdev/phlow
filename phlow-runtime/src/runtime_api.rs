@@ -104,6 +104,27 @@
 //! let _ = result;
 //! # });
 //! ```
+//!
+//! You can also set the preprocessed value on a runtime to avoid preprocessing twice:
+//!
+//! ```no_run
+//! use phlow_engine::Context;
+//! use phlow_runtime::PhlowRuntime;
+//!
+//! # tokio::runtime::Runtime::new().unwrap().block_on(async {
+//! let script = r#"
+//! steps:
+//!   - return: "ok"
+//! "#;
+//! let mut runtime = PhlowRuntime::new();
+//! let pipeline = runtime.preprocess_string(script).unwrap();
+//! runtime.set_preprocessed_pipeline(pipeline);
+//! runtime.set_context(Context::new());
+//! let result = runtime.run().await.unwrap();
+//! let _ = result;
+//! runtime.shutdown().await.unwrap();
+//! # });
+//! ```
 use crate::debug_server;
 use crate::inline_module::{InlineModules, PhlowModule};
 use crate::loader::Loader;
@@ -306,6 +327,9 @@ impl PhlowRuntime {
     /// Set a preprocessed pipeline to be executed.
     ///
     /// This does not run the preprocessor again.
+    ///
+    /// Use [`preprocess_string`](Self::preprocess_string) to turn a script string
+    /// into a preprocessed value before calling this.
     pub fn set_preprocessed_pipeline(&mut self, pipeline: Value) -> &mut Self {
         self.set_pipeline(pipeline)
     }

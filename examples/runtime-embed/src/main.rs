@@ -1,6 +1,6 @@
 use phlow_engine::Context;
-use phlow_runtime::{PhlowBuilder, PhlowModule, PhlowModuleSchema};
-use phlow_sdk::prelude::{json, JsonMode, Value};
+use phlow_runtime::{PhlowBuilder, PhlowModule, PhlowModuleSchema, PhlowRuntime};
+use phlow_sdk::prelude::{JsonMode, Value, json};
 use phlow_sdk::structs::ModuleResponse;
 
 #[tokio::main]
@@ -47,19 +47,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let message = format!("{}{}", prefix, name);
         ModuleResponse::from_success(json!({ "message": message }))
     });
-    let mut runtime = builder
+
+    let mut inline_runtime = builder
         .set_pipeline(pipeline)
         .set_context(context)
         .set_module("inline_echo", module)
         .build()
         .await?;
 
-    let first = runtime.run().await?;
+    let first = inline_runtime.run().await?;
     println!("{}", first.to_json(JsonMode::Inline));
 
-    let second = runtime.run().await?;
+    let second = inline_runtime.run().await?;
     println!("{}", second.to_json(JsonMode::Inline));
-    runtime.shutdown().await?;
+    inline_runtime.shutdown().await?;
+
+    let script = r#"
+steps:
+  - return: "ok"
+"#;
+
+    let mut preprocess_runtime = PhlowRuntime::new();
+    preprocess_runtime.settings_mut().download = false;
+    let preprocessed = preprocess_runtime.preprocess_string(script)?;
+    preprocess_runtime.set_preprocessed_pipeline(preprocessed);
+    preprocess_runtime.set_context(Context::new());
+    let output = preprocess_runtime.run().await?;
+    println!("{}", output.to_json(JsonMode::Inline));
+    preprocess_runtime.shutdown().await?;
 
     Ok(())
 }
