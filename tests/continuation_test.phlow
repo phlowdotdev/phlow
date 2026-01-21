@@ -1,0 +1,18 @@
+steps:
+  - payload: main
+  - assert: payload > 0
+    then:
+      - payload: payload + 1
+      - assert: payload == 2
+        then:
+          steps:
+            - payload: payload + 3
+  - payload: payload + 10
+
+tests:
+  - describe: Continuation True
+    main: 1
+    assert_eq: 15
+  - describe: Continuation False
+    main: 2
+    assert_eq: 13

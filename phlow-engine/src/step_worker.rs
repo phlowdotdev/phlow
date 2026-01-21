@@ -451,7 +451,7 @@ impl StepWorker {
             span.record("step.condition", condition.raw.to_string());
 
             if self.then_case.is_some() || self.else_case.is_some() {
-                let (next_step, output) = if result {
+                let (mut next_step, output) = if result {
                     debug!("[step {}] condição verdadeira", self.id);
                     let next_step = if let Some(ref then_case) = self.then_case {
                         debug!("[step {}] then_case -> pipeline {}", self.id, then_case);
@@ -474,6 +474,16 @@ impl StepWorker {
 
                     (next_step, None)
                 };
+
+                if matches!(next_step, NextStep::Next) {
+                    if let Some(to) = &self.to {
+                        debug!(
+                            "[step {}] condição 'to' detectada após condicional -> pipeline {}, step {}",
+                            self.id, to.pipeline, to.step
+                        );
+                        next_step = NextStep::GoToStep(to.clone());
+                    }
+                }
 
                 if let Some(ref output) = output {
                     span.record("context.payload", truncate_string(output));

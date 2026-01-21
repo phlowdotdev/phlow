@@ -27,6 +27,7 @@ pub struct Cli {
     pub test: bool,
     pub test_filter: Option<String>,
     pub var_main: Option<String>,
+    pub start_step: Option<String>,
     // analyzer options
     pub analyzer: bool,
     pub analyzer_files: bool,
@@ -138,6 +139,12 @@ impl Cli {
                     .long("var-pre")
                     .help("Set the preprocessor variable value")
                     .value_name("PRE_VALUE"),
+            )
+            .arg(
+                Arg::new("start_step")
+                    .long("step")
+                    .help("Start execution from the step id")
+                    .value_name("STEP_ID"),
             );
         // Analyzer flags
         let command = command
@@ -237,6 +244,9 @@ impl Cli {
             .map(|s| s.to_string());
 
         let var_main = matches.get_one::<String>("var_main").map(|s| s.to_string());
+        let start_step = matches
+            .get_one::<String>("start_step")
+            .map(|s| s.to_string());
 
         let analyzer = *matches.get_one::<bool>("analyzer").unwrap_or(&false);
         let analyzer_files = *matches.get_one::<bool>("files").unwrap_or(&false);
@@ -260,6 +270,7 @@ impl Cli {
             test,
             test_filter,
             var_main,
+            start_step,
             analyzer,
             analyzer_files,
             analyzer_modules,
