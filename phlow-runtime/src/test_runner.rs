@@ -464,7 +464,7 @@ async fn run_single_test(
     // Extract test inputs
     let main_value = {
         let data = test_case.get("main").cloned().unwrap_or(Value::Undefined);
-
+        
         match Script::try_build(engine.clone(), &Value::from(data)) {
             Ok(script) => match script.evaluate(&context) {
                 Ok(val) => val.to_value(),

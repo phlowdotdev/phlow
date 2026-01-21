@@ -1,0 +1,65 @@
+{
+  "steps": [
+    {
+      "payload": "{{ main }}"
+    },
+    {
+      "assert": "{{ payload > 1 }}",
+      "then": [
+        {
+          "payload": "{{ payload + 1 }}"
+        },
+        {
+          "assert": "{{ payload == 3 }}",
+          "then": {
+            "steps": [
+              {
+                "payload": "{{ payload + 1 }}"
+              }
+            ]
+          },
+          "else": {
+            "assert": "{{ payload == 6 }}",
+            "then": [
+              {
+                "log.info": "{{ `Finished with payload 6` }}"
+              },
+              {
+                "return": 100
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "final_step",
+      "payload": "{{ payload ?? main + 10 }}"
+    },
+    {
+      "log.info": "{{ `Final payload is ${payload}` }}"
+    }
+  ],
+  "tests": [
+    {
+      "describe": "Complex 1",
+      "main": 1,
+      "assert_eq": 11
+    },
+    {
+      "describe": "Complex 2",
+      "main": 2,
+      "assert_eq": 14
+    },
+    {
+      "describe": "Complex 3",
+      "main": 4,
+      "assert_eq": 15
+    },
+    {
+      "describe": "Complex 4",
+      "main": 5,
+      "assert_eq": 100
+    }
+  ]
+}
