@@ -23,8 +23,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()
         .await?;
 
-    let result = runtime.run().await?;
-    println!("{}", result.to_json(JsonMode::Inline));
+    let first = runtime.run().await?;
+    println!("{}", first.to_json(JsonMode::Inline));
+
+    let second = runtime.run().await?;
+    println!("{}", second.to_json(JsonMode::Inline));
     runtime.shutdown().await?;
 
     Ok(())
