@@ -16,4 +16,5 @@ Estrutura relevante:
 - `scripts/`: scripts auxiliares
 
 Regra:
-- Antes de concluir a tarefa, buildar todos os pacotes: `cargo build --workspace`
+- Analisar de concluir a tarefa, testar localmente os fluxos alterados.
+- Commit depois de testar localmente.

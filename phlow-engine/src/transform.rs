@@ -157,25 +157,21 @@ fn value_to_structs(
                                 pipeline: pipeline_index,
                                 step: 0,
                             }) {
-                                let next_step_ref = get_next_step(&pipelines_raw, target);
-                                // Validate that the next step actually exists
-                                if is_valid_step(&pipelines_raw, &next_step_ref) {
+                                if let Some(next_step_ref) =
+                                    next_step_if_exists(&pipelines_raw, target)
+                                {
                                     log::debug!("Setting up parent return: pipeline {} → pipeline {} step {}", pipeline_index, next_step_ref.pipeline, next_step_ref.step);
                                     new_step.insert("to".to_string(), next_step_ref.to_value());
+                                } else if let Some(valid_step) =
+                                    find_valid_continuation(&pipelines_raw, &parents, target)
+                                {
+                                    log::debug!("Found valid continuation: pipeline {} → pipeline {} step {}", pipeline_index, valid_step.pipeline, valid_step.step);
+                                    new_step.insert("to".to_string(), valid_step.to_value());
                                 } else {
-                                    log::warn!("Invalid next step reference: pipeline {} step {} - looking for alternative", next_step_ref.pipeline, next_step_ref.step);
-                                    // Try to find a valid continuation point
-                                    if let Some(valid_step) =
-                                        find_valid_continuation(&pipelines_raw, &parents, target)
-                                    {
-                                        log::debug!("Found valid continuation: pipeline {} → pipeline {} step {}", pipeline_index, valid_step.pipeline, valid_step.step);
-                                        new_step.insert("to".to_string(), valid_step.to_value());
-                                    } else {
-                                        log::warn!(
-                                            "No valid continuation found for pipeline {}",
-                                            pipeline_index
-                                        );
-                                    }
+                                    log::warn!(
+                                        "No valid continuation found for pipeline {}",
+                                        pipeline_index
+                                    );
                                 }
                             } else {
                                 // BUGFIX: Se não tem parent e não é a pipeline principal,
@@ -361,6 +357,20 @@ fn is_valid_step(pipelines: &Vec<Value>, step_ref: &StepReference) -> bool {
     false
 }
 
+fn next_step_if_exists(pipelines: &Vec<Value>, target: &StepReference) -> Option<StepReference> {
+    if let Value::Array(arr) = &pipelines[target.pipeline] {
+        let next_step_index = target.step + 1;
+        if next_step_index < arr.len() {
+            return Some(StepReference {
+                pipeline: target.pipeline,
+                step: next_step_index,
+            });
+        }
+    }
+
+    None
+}
+
 /// Function to find a valid continuation point when the direct next step is invalid
 fn find_valid_continuation(
     pipelines: &Vec<Value>,
@@ -398,34 +408,6 @@ fn find_valid_continuation(
             return None;
         }
     }
-}
-
-/// Function to get the next step
-/// This function takes a vector of pipelines and a target step reference.
-fn get_next_step(pipelines: &Vec<Value>, target: &StepReference) -> StepReference {
-    if let Value::Array(arr) = &pipelines[target.pipeline] {
-        let next_step_index = target.step + 1;
-        if arr.get(next_step_index).is_some() {
-            return StepReference {
-                pipeline: target.pipeline,
-                step: next_step_index,
-            };
-        } else {
-            // No more steps in this pipeline, need to find where to go next
-            // This should handle end-of-pipeline scenarios more gracefully
-            log::warn!(
-                "get_next_step: No next step found for pipeline {} step {}",
-                target.pipeline,
-                target.step
-            );
-        }
-    }
-
-    // Fallback - should not reach here in normal execution
-    return StepReference {
-        pipeline: target.pipeline,
-        step: target.step + 1,
-    };
 }
 
 /// Function to map parents

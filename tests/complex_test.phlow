@@ -10,8 +10,10 @@ steps:
         else:
           assert: payload == 6
           then:
-            return: 100
+            - log.info: `Finished with payload 6`
+            - return: 100
   - payload: payload + 10
+  - log.info: `Final payload is ${payload}`
 
 tests:
   - describe: Complex 1
