@@ -29,6 +29,61 @@
 //! runtime.shutdown().await.unwrap();
 //! # });
 //! ```
+//!
+//! # Inline modules
+//!
+//! You can register inline modules with async handlers that run in-process.
+//! The module name must be declared in the pipeline `modules` list.
+//!
+//! ```no_run
+//! use phlow_engine::Context;
+//! use phlow_runtime::{PhlowBuilder, PhlowModule, PhlowModuleSchema};
+//! use phlow_sdk::prelude::json;
+//! use phlow_sdk::structs::ModuleResponse;
+//!
+//! # tokio::runtime::Runtime::new().unwrap().block_on(async {
+//! let pipeline = json!({
+//!     "modules": [
+//!         { "module": "inline_echo", "name": "inline_echo" }
+//!     ],
+//!     "steps": [
+//!         { "use": "inline_echo", "input": { "name": "{{ main.name }}" } },
+//!         { "payload": "{{ payload.message }}" }
+//!     ]
+//! });
+//! let context = Context::from_main(json!({ "name": "Phlow" }));
+//!
+//! let mut module = PhlowModule::new();
+//! module.set_schema(
+//!     PhlowModuleSchema::new()
+//!         .with_input(json!({ "name": "string" }))
+//!         .with_output(json!({ "message": "string" }))
+//!         .with_input_order(vec!["name"]),
+//! );
+//! module.set_handler(|request| async move {
+//!     let name = request
+//!         .input
+//!         .and_then(|value| value.get("name").cloned())
+//!         .unwrap_or_else(|| json!("unknown"));
+//!     let message = format!("Hello, {}", name);
+//!     ModuleResponse::from_success(json!({ "message": message }))
+//! });
+//!
+//! let mut builder = PhlowBuilder::new();
+//! builder.settings_mut().download = false;
+//! let mut runtime = builder
+//!     .set_pipeline(pipeline)
+//!     .set_context(context)
+//!     .set_module("inline_echo", module)
+//!     .build()
+//!     .await
+//!     .unwrap();
+//!
+//! let result = runtime.run().await.unwrap();
+//! let _ = result;
+//! runtime.shutdown().await.unwrap();
+//! # });
+//! ```
 use crate::debug_server;
 use crate::inline_module::{InlineModules, PhlowModule};
 use crate::loader::Loader;
@@ -200,6 +255,7 @@ impl PhlowRuntime {
     /// Register an inline module by name.
     ///
     /// The module must be declared in the pipeline `modules` list.
+    /// The handler runs asynchronously inside the runtime.
     ///
     /// This clears any prepared runtime state.
     pub fn set_module<S: Into<String>>(&mut self, name: S, module: PhlowModule) -> &mut Self {
@@ -482,6 +538,7 @@ impl PhlowBuilder {
     /// Register an inline module by name.
     ///
     /// The module must be declared in the pipeline `modules` list.
+    /// The handler runs asynchronously inside the runtime.
     ///
     /// Returns the builder for chaining.
     pub fn set_module<S: Into<String>>(mut self, name: S, module: PhlowModule) -> Self {
