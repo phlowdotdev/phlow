@@ -3,46 +3,46 @@ sidebar_position: 2
 title: Debug
 ---
 
-# Debug do Phlow
+# Phlow Debugging
 
-O modo debug pausa a execucao antes de cada step e permite inspecionar o contexto (main/payload), o step atual e o historico de execucao via um servidor TCP e o TUI inspector.
+Debug mode pauses execution before each step and lets you inspect the context (main/payload), the current step, and the execution history through a TCP server and the TUI inspector.
 
-## Ativando o debug
+## Enabling debug
 
-O debug eh habilitado por variavel de ambiente. Use `PHLOW_DEBUG=true`:
-
-```bash
-PHLOW_DEBUG=true cargo run -p phlow-runtime -- ./examples/qualquer.phlow
-```
-
-Por padrao o servidor debug escuta em `0.0.0.0:31400`. Para mudar a porta, use `PHLOW_DEBUG_PORT`:
+Debug is enabled via an environment variable. Use `PHLOW_DEBUG=true`:
 
 ```bash
-PHLOW_DEBUG=true PHLOW_DEBUG_PORT=31400 cargo run -p phlow-runtime -- ./examples/qualquer.phlow
+PHLOW_DEBUG=true phlow ./examples/any.phlow
 ```
 
-## Inspecao com o phlow-tui-inspect
-
-Em outro terminal, conecte o inspector na mesma porta:
+By default the debug server listens on `0.0.0.0:31400`. To change the port, use `PHLOW_DEBUG_PORT`:
 
 ```bash
-PHLOW_DEBUG_PORT=31400 cargo run -p phlow-tui-inspect
+PHLOW_DEBUG=true PHLOW_DEBUG_PORT=31400 phlow ./examples/any.phlow
 ```
 
-O inspector se conecta em `127.0.0.1`, entao para depurar remotamente use tunel/port-forward.
+## Inspecting with phlow-tui-inspect
 
-## Comandos principais
+In another terminal, connect the inspector to the same port:
 
-Voce pode digitar os comandos diretamente na barra do inspector:
+```bash
+PHLOW_DEBUG_PORT=31400 phlow --inspect
+```
 
-- `STEP` - mostra o step aguardando execucao
-- `SHOW` - mostra o script compilado
-- `NEXT` - libera um step
-- `RELEASE` - libera o pipeline atual
-- `ALL` - mostra historico de steps
-- `PAUSE` - pausa qualquer liberacao em andamento
+The inspector connects to `127.0.0.1`, so use a tunnel/port-forward if you need remote debugging.
 
-Atalhos do inspector (equivalentes aos comandos acima):
+## Main commands
+
+You can type commands directly in the inspector bar:
+
+- `STEP` - shows the step waiting for execution
+- `SHOW` - shows the compiled script
+- `NEXT` - releases one step
+- `RELEASE` - releases the current pipeline
+- `ALL` - shows step history
+- `PAUSE` - pauses any ongoing release
+
+Inspector shortcuts (equivalent to the commands above):
 
 - `/n` (Ctrl+n) - NEXT + STEP
 - `/a` (Ctrl+a) - NEXT + ALL
@@ -50,9 +50,9 @@ Atalhos do inspector (equivalentes aos comandos acima):
 - `/w` (Ctrl+w) - SHOW
 - `/g` (Ctrl+g) - STEP
 
-Use `/m` para abrir o resumo de comandos e `ESC` para fechar.
+Use `/m` to open the command summary and `ESC` to close it.
 
-## Observacoes e seguranca
+## Notes and safety
 
-- Quando o debug esta ativo, a execucao pausa a cada step ate receber `NEXT` ou `RELEASE`.
-- O servidor debug eh uma porta TCP simples. Use apenas em ambiente confiavel e evite expor para a internet.
+- When debug is active, execution pauses at each step until it receives `NEXT` or `RELEASE`.
+- The debug server is a simple TCP port. Use it only in trusted environments and avoid exposing it to the internet.
