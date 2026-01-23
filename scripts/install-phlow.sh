@@ -4,10 +4,10 @@ set -e
 
 REPO="phlowdotdev/phlow"
 BIN_NAME="phlow"
-INSPECT_BIN_NAME="phlow-cli-inspect"
+INSPECT_BIN_NAME="phlow-tui-inspect"
 INSTALL_DIR="$HOME/.phlow"
 BIN_PATH="$INSTALL_DIR/phlow"
-INSPECT_BIN_PATH="$INSTALL_DIR/phlow-cli-inspect"
+INSPECT_BIN_PATH="$INSTALL_DIR/phlow-tui-inspect"
 ADD_PATH_CMD='export PATH="$HOME/.phlow:$PATH"'
 
 echo "🔍 Detecting platform..."

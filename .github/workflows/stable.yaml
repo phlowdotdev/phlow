@@ -51,14 +51,14 @@ jobs:
           name: phlow-binary-linux-amd64
           path: ./target/x86_64-unknown-linux-gnu/release/phlow
 
-      - name: Build phlow-cli-inspect with Cross
+      - name: Build phlow-tui-inspect with Cross
         run: |
           cross build --target x86_64-unknown-linux-gnu --release -p phlow-tui-inspect
 
-      - name: Upload phlow-cli-inspect Linux artifact
+      - name: Upload phlow-tui-inspect Linux artifact
         uses: actions/upload-artifact@v4
         with:
-          name: phlow-cli-inspect-linux-amd64
+          name: phlow-tui-inspect-linux-amd64
           path: ./target/x86_64-unknown-linux-gnu/release/phlow-tui-inspect
 
   linux_arm64_binary:
@@ -85,14 +85,14 @@ jobs:
           name: phlow-binary-linux-arm64
           path: ./target/aarch64-unknown-linux-gnu/release/phlow
 
-      - name: Build phlow-cli-inspect with Cross
+      - name: Build phlow-tui-inspect with Cross
         run: |
           cross build --target aarch64-unknown-linux-gnu --release -p phlow-tui-inspect
 
-      - name: Upload phlow-cli-inspect Linux artifact
+      - name: Upload phlow-tui-inspect Linux artifact
         uses: actions/upload-artifact@v4
         with:
-          name: phlow-cli-inspect-linux-arm64
+          name: phlow-tui-inspect-linux-arm64
           path: ./target/aarch64-unknown-linux-gnu/release/phlow-tui-inspect
 
   build_macos:
@@ -119,10 +119,10 @@ jobs:
           name: phlow-binary-macos
           path: target/release/phlow
 
-      - name: Upload phlow-cli-inspect macOS binary
+      - name: Upload phlow-tui-inspect macOS binary
         uses: actions/upload-artifact@v4
         with:
-          name: phlow-cli-inspect-macos
+          name: phlow-tui-inspect-macos
           path: target/release/phlow-tui-inspect
 
   tag:
@@ -173,22 +173,22 @@ jobs:
           name: phlow-binary-macos
           path: ./macos
 
-      - name: Download phlow-cli-inspect Linux AMD64 binary
+      - name: Download phlow-tui-inspect Linux AMD64 binary
         uses: actions/download-artifact@v4
         with:
-          name: phlow-cli-inspect-linux-amd64
+          name: phlow-tui-inspect-linux-amd64
           path: ./linux-amd64-inspect
 
-      - name: Download phlow-cli-inspect Linux ARM64 binary
+      - name: Download phlow-tui-inspect Linux ARM64 binary
         uses: actions/download-artifact@v4
         with:
-          name: phlow-cli-inspect-linux-arm64
+          name: phlow-tui-inspect-linux-arm64
           path: ./linux-arm64-inspect
 
-      - name: Download phlow-cli-inspect macOS binary
+      - name: Download phlow-tui-inspect macOS binary
         uses: actions/download-artifact@v4
         with:
-          name: phlow-cli-inspect-macos
+          name: phlow-tui-inspect-macos
           path: ./macos-inspect
 
       - name: Rename binaries
@@ -196,9 +196,9 @@ jobs:
           mv ./linux-amd64/phlow ./linux-amd64/phlow-amd64
           mv ./linux-arm64/phlow ./linux-arm64/phlow-arm64
           mv ./macos/phlow ./macos/phlow-macos
-          mv ./linux-amd64-inspect/phlow-tui-inspect ./linux-amd64-inspect/phlow-cli-inspect-amd64
-          mv ./linux-arm64-inspect/phlow-tui-inspect ./linux-arm64-inspect/phlow-cli-inspect-arm64
-          mv ./macos-inspect/phlow-tui-inspect ./macos-inspect/phlow-cli-inspect-macos
+          mv ./linux-amd64-inspect/phlow-tui-inspect ./linux-amd64-inspect/phlow-tui-inspect-amd64
+          mv ./linux-arm64-inspect/phlow-tui-inspect ./linux-arm64-inspect/phlow-tui-inspect-arm64
+          mv ./macos-inspect/phlow-tui-inspect ./macos-inspect/phlow-tui-inspect-macos
 
       - name: Upload binaries to GitHub Release
         uses: softprops/action-gh-release@v1
@@ -209,9 +209,9 @@ jobs:
             ./linux-amd64/phlow-amd64
             ./linux-arm64/phlow-arm64
             ./macos/phlow-macos
-            ./linux-amd64-inspect/phlow-cli-inspect-amd64
-            ./linux-arm64-inspect/phlow-cli-inspect-arm64
-            ./macos-inspect/phlow-cli-inspect-macos
+            ./linux-amd64-inspect/phlow-tui-inspect-amd64
+            ./linux-arm64-inspect/phlow-tui-inspect-arm64
+            ./macos-inspect/phlow-tui-inspect-macos
           draft: false
           prerelease: false
         env:
@@ -296,5 +296,5 @@ jobs:
       - name: Publish phlow-runtime
         run: cargo publish -p phlow-runtime --token "$CARGO_REGISTRY_TOKEN" --no-verify
 
-      - name: Publish phlow-cli-inspect
+      - name: Publish phlow-tui-inspect
         run: cargo publish -p phlow-tui-inspect --token "$CARGO_REGISTRY_TOKEN" --no-verify
