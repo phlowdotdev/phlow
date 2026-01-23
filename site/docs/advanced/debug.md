@@ -26,7 +26,7 @@ PHLOW_DEBUG=true PHLOW_DEBUG_PORT=31400 phlow ./examples/any.phlow
 In another terminal, connect the inspector to the same port:
 
 ```bash
-PHLOW_DEBUG_PORT=31400 phlow --inspect
+PHLOW_DEBUG_PORT=31400 phlow-cli-inspect
 ```
 
 The inspector connects to `127.0.0.1`, so use a tunnel/port-forward if you need remote debugging.
